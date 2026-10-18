@@ -17,7 +17,7 @@ Vorgänger: `slice-harness-devcontainer-austausch-repo` und `slice-harness-devco
 
 **Berührte Spec-Stellen:** neuer Vertrag eines Harness-Werkzeugs in `harness/vertraege/` (Nummer vergibt der Architect); Host-Voraussetzungen: [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig slice-harness-devcontainer-einrichten-geruest)
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
@@ -45,7 +45,7 @@ Stopp und Neustart (`docker stop <Name>`, dann Schritt 3) sind Dokument §4; ob 
 
 **Bindung an `slice-harness-devcontainer-einrichten-zugang` (Sendung, eingetragen vom Planner am 2026-10-18):** `mk-override.sh` schreibt dieses Ziel, wie Dokument §3.5 es zeigt, auch die Zeile mit dem Verweis `${localEnv:CLAUDE_CODE_OAUTH_TOKEN}` (nie ein Wert); ob sie bleibt, entscheidet der Nehmer. Dieses Ziel liest, löst und übergibt keinen Zugang.
 
-**Entscheidung des Nutzers (2026-10-17): `ssh` ist Voraussetzung am Host** (für das Ziel des Nehmers `slice-harness-devcontainer-einrichten`; dieser Slice braucht `ssh` und `ssh-keygen` ebenfalls). **Die übrigen Voraussetzungen dieses Slice — `u-boot`, die `devcontainer`-CLI, `node` (braucht die CLI und `mk-override.sh`), `ssh-keygen` — hat der Nutzer nicht entschieden.** Der Architect legt sie vor dem Code vor (§6, E2), der Nutzer entscheidet; bis dahin ist es eine Empfehlung des Planners: aufnehmen, jede nur für dieses Ziel, kein Gate und kein anderes Ziel braucht sie. Die Voraussetzungen des Repos sind bisher `git`, `docker` und `make` (`AGENTS.md` §3.1).
+**Entscheidung des Nutzers (2026-10-17): `ssh` ist Voraussetzung am Host** (für das Ziel des Nehmers `slice-harness-devcontainer-einrichten`; dieser Slice braucht `ssh` und `ssh-keygen` ebenfalls). **Stand am 2026-10-18: E2 ist nach Empfehlung entschieden, nicht als Entscheidung des Nutzers** (Host-Voraussetzungen `u-boot` ab 0.10.0, `devcontainer`-CLI, `node`, `ssh-keygen`, je nur für diese Ziele); streicht der Nutzer eine, gilt E2 unten. **Die übrigen Voraussetzungen dieses Slice — `u-boot`, die `devcontainer`-CLI, `node` (braucht die CLI und `mk-override.sh`), `ssh-keygen` — hat der Nutzer nicht entschieden.** Der Architect legt sie vor dem Code vor (§6, E2), der Nutzer entscheidet; bis dahin ist es eine Empfehlung des Planners: aufnehmen, jede nur für dieses Ziel, kein Gate und kein anderes Ziel braucht sie. Die Voraussetzungen des Repos sind bisher `git`, `docker` und `make` (`AGENTS.md` §3.1).
 
 **Kein Gate**, wie `hooks-install`: Das Ziel steht im Abschnitt *Werkzeuge* von `harness/README.md`, nicht in `GATE_CHECKS`. Seine Gegenprobe ist ein Gate (§2).
 
@@ -107,7 +107,7 @@ Gates und Closure:
 
 **Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness docs/developer`. Basis ist der
-Elternteil des Commits, der diese Datei nach `in-progress/` bewegt; Vertrag und ADR (Commits des Architect vor dem Start) zählen nicht.
+Elternteil des Commits, der diese Datei nach `in-progress/` bewegt, hier `8b19dc66` (der Commit vor dem Move); Vertrag und ADR (Commits des Architect vor dem Start) zählen nicht.
 
 **Schätzung (Planner, 2026-10-18; Metrik wie oben, Gegenprobe mit dem Doppelten des Produktcodes, Faktor aus `AGENTS.md` §3.14):**
 
