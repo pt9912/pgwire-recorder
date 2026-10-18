@@ -170,6 +170,66 @@ Risiken:
 - **Risiken aus §6:** —
 - **Drei Paarungen:** —
 
+**Belege des Implementers** (Stand: Commit `3507d4ad` auf dem Zweig `slice-harness-gegenproben-aus-gates-fahrstelle`, Klon im Container `pgr-dev2`; der Plan ändert seitdem nur diesen Abschnitt)
+
+- **Größe (Metrik `AGENTS.md` §3.14):** `git diff --numstat 0f066c04..HEAD -- tools harness/mk harness/README.md` ergibt Einfügungen 701, Löschungen 0, Summe **701** (Skript 116, Gegenprobe 572, Fragment 11, `harness/README.md` 2). Die Meldeschwelle 700 ist um 1 überschritten, die Marke 900 nicht; eine Rückführung nach `next` tritt nicht ein.
+- **Läufe am Endstand (Code unverändert seit `3507d4ad`):**
+  - `make gegenproben-nach-einlieferung-gegenprobe`: grün, 4 min 15 s (74 Fälle, 113 Mutationen, `GP_PARALLEL` 4; mit 8 gleichzeitigen Mutationen 2 min 17 s). Ein früherer voller Lauf desselben Standes: grün, 4 min 26 s. Vor dem Eintragen der roten Mengen lief die Entdeckung (`GP_ENTDECKE=1`) dreimal; drei Mutanten (`m-p3-gleichzeitig`, `m-p6-zweiter-beendet-ersten`, `m-p9-log-ohne-stdout`) lieferten wechselnde Mengen und wurden deterministisch gemacht (Versatz von 0,1 s zwischen den Läufen, `pgrep -o` statt aller Treffer, `2>` statt `> /dev/null 2>&1`), danach stabil in drei Wiederholungen.
+  - `make gates`: grün, 4 min 19 s, Nachweis `.harness/state/gates-passed.diffsha` geschrieben.
+  - `make gates-schnell-gegenprobe`: grün, 1 min 02 s (Namensregel `SPEC-060` Punkt 2 hält die neue Gegenprobe in `GEGENPROBEN_CONTAINER`).
+  - `make docs-check`: 0 Befunde.
+  - Prozesse: nach jedem Lauf `pgrep -fc '[p]ost-receive --lauf'` gleich 0, keine `attrappe`-Verzeichnisse in `/tmp` zurück; die Gegenprobe räumt ihr Temp-Verzeichnis und die Prozesse mit `pkill -f` auf ihren Pfad.
+- **Zusage · Mutation · roter Fall** (alle 113 Mutationen mit ihrer genauen roten Menge stehen als `mut`-Zeilen in `tools/harness/gegenproben-nach-einlieferung-gegenprobe.sh`; die Tabelle nennt je Zusage und je Element den Fall, der sie belegt; „+ Folgen“ heißt: weitere Fälle werden rot, weil der Hook nicht mehr läuft):
+
+| Punkt · Zusage / Element | Mutation | roter Fall |
+|---|---|---|
+| 1 · Kopie lädt nichts nach | `m-p1-laedt-nach` | `p1-kopie` |
+| 1 · liest stdin; echter Push löst Lauf aus, Push endet vor dem Ende | `m-p1-liest-stdin-nicht` | `p1-echter-push` (+ Folgen) |
+| 2 · Marke: genau eine Zeile / absolut / vorhandenes Verzeichnis | `m-p2-zeilenzahl` / `m-p2-absolut` / `m-p2-verzeichnis` | `p2-zwei-zeilen` / `p2-relativ` / `p2-kein-verzeichnis` |
+| 2 · Marke fehlt, leer (gemeinsam getragen von den drei Prüfungen) | `m-p2-keine-marke`, `m-p2-nur-existenz` | `p2-fehlt`, `p2-leer` |
+| 2 · nichts angelegt, Bare-Repo unverändert | `m-p2-legt-an` | die fünf Fälle `p2-*` |
+| 3 · nur `refs/heads/`: Tag, Notizen, `refs/headsx/` | `m-p3-refs-stern`, `m-p3-heads-ohne-schraeg`, `m-p3-meldet-fremde-refs` | `p3-tag`, `p3-notes`, `p3-headsx` (die zweite nur `p3-headsx`) |
+| 3 · mehrere Zweige nacheinander in Zeilenfolge | `m-p3-gleichzeitig`, `m-p3-rueckwaerts`, `m-p3-nur-erste` | `p3-mehrere` |
+| 4 · gelöscht (40 und 64 Nullen): kein Lauf, keine Meldung | `m-p4-null-laeuft`, `m-p4-null-nur-40`, `m-p4-loeschung-meldet` | `p4-null40`, `p4-null64` |
+| 4 · Löschung lässt Ergebnis, Log, Marke stehen | `m-p4-loeschung-entfernt-ergebnis` | `p4-ergebnis-bleibt` |
+| 4 · Form des Hashes: zu kurz / groß / 41 / 64 angenommen | `m-p4-keine-form` / `m-p4-grossbuchstaben` / `m-p4-41-stellen` / `m-p4-nur-40` | `p4-hash-kurz`, `p4-hash-gross` / `p4-hash-gross` / `p4-hash-41` / `p4-hash-64` |
+| 4 · fehlendes Feld und kaputter Hash enden nur die Zeile | `m-p4-feld-ohne-pruefung`, `m-p4-feld-beendet` / `m-p4-kaputte-zeile-beendet` | `p4-feld-fehlt` / `p4-zeile-kaputt-dann-gut` |
+| 4 · leere Eingabe ist kein Fehler | `m-p4-leere-eingabe-meldet` | `p4-stdin-leer` |
+| 5 · Rückkehr vor dem Ende des Laufs | `m-p5-wartet` | `p5-vor-ende` (+ Folgen) |
+| 5 · nichts auf stdout; Zeile `gestartet` | `m-p5-stdout-zeile` / `m-p5-gestartet-fehlt` | `p5-stdout-leer` / `p5-gestartet-zeile` |
+| 5 · Lauf ohne stdout / stderr / stdin des Hooks | `m-p5-erbt-stdout` / `m-p5-erbt-stderr` / `m-p5-erbt-stdin` | `p5-fd-1`, `p5-leitung-stdout` / `p5-fd-2`, `p5-leitung-stderr` / `p5-fd-0` |
+| 5 · eigene Sitzung (Signal an die Gruppe des Hooks) | `m-p5-gleiche-sitzung` | `p5-gruppe` |
+| 6 · Läufe überlappen nicht / wartet statt zu entfallen / bricht den ersten nicht ab | `m-p6-ohne-sperre` / `m-p6-sperre-nicht-erwartet` / `m-p6-zweiter-beendet-ersten` | `p6-nacheinander` / `p6-kein-abbruch` / `p6-kein-abbruch` |
+| 7 · derselbe Hash erneut läuft / altes Ergebnis wird beim Aufruf entfernt / Name trägt den Zweig | `m-p7-lauf-entfaellt` / `m-p7-altes-bleibt` / `m-p7-name-ohne-zweig` | `p7-neu` / `p7-altes-weg` / `p7-anderer-zweig` (+ Folgen) |
+| 8 · Kodierung: Schrägstrich, `%`, Nicht-ASCII, `+`, Großbuchstaben-Hex | `m-p8-keine-kodierung`, `m-p8-nur-schraeg`, `m-p8-prozent-bleibt`, `m-p8-hex-klein` | `p8-schraeg`, `p8-nichtascii`, `p8-sonderzeichen`, `p8-prozent`, `p8-eindeutig` |
+| 8 · unverändert bleiben `.` `_` `-` Ziffern, Groß- und Kleinbuchstaben | `m-p8-ohne-punkt`, `-unterstrich`, `-bindestrich` / `m-p8-ohne-ziffern`, `-grossbuchstaben` / `m-p8-ohne-kleinbuchstaben` | `p8-unveraendert` / `p8-eindeutig` / viele (+ Folgen) |
+| 8 · Grenze 120: 121 abgelehnt, 120 angenommen; Meldung `name` | `m-p8-grenze-121`, `m-p8-grenze-119`, `m-p8-lang-ohne-meldung` | `p8-lang`, `p8-grenze`, `p8-lang` |
+| 9 · `ergebnis=gruen` nur bei Exit 0 (Exit 2 und Exit 1) | `m-p9-gruen-immer`, `m-p9-exit1-gruen` | `p9-rot`, `p7-neu` |
+| 9 · `rot=`: alle Ziele, in der Reihenfolge des Logs | `m-p9-rot-nur-erstes`, `m-p9-rot-rueckwaerts` | `p9-rot` |
+| 9 · Zeilen in der Reihenfolge `zweig hash exit ergebnis beginn ende rot`, `rot=` vorhanden | `m-p9-zweig-hash-vertauscht`, `m-p9-exit-ergebnis-vertauscht`, `m-p9-beginn-ende-vertauscht`, `m-p9-ohne-rot-zeile` | `p9-gruen` |
+| 9 · `beginn` und `ende` in UTC | `m-p9-beginn-lokal`, `m-p9-ende-lokal` | `p9-gruen` (Lauf mit `TZ=UTC-5`) |
+| 9 · `beginn` nach der Sperre | `m-p9-beginn-vor-sperre` | `p9-beginn-nach-sperre` |
+| 9 · Marke beim Aufruf da, nach dem Ende weg | `m-p9-marke-fehlt` / `m-p9-marke-bleibt` | `p9-marke` |
+| 9 · Ergebnis erst nach dem Ende (Temp-Datei, `mv`) | `m-p9-ergebnis-vorher` | `p9-nicht-vorher` |
+| 9 · Log mit stdout und stderr, neu beschrieben | `m-p9-log-ohne-stdout`, `m-p9-log-ohne-stderr`, `m-p9-log-anhaengen` | `p9-log` |
+| 9 · `SIGTERM`: kein Ergebnis / Marke bleibt / Nachkommen beendet / Arbeitsbaum geräumt / Exit 143 / beim Warten | `m-p9-ergebnis-bei-sigterm` / `m-p9-marke-weg-bei-sigterm` / `m-p9-nachkommen-bleiben` / `m-p9-arbeitsbaum-bleibt-bei-sigterm` / `m-p9-exit0`, `m-p9-sigterm-ohne-trap` / `m-p9-sigterm-wartet-unbehandelt` | `p9-sigterm-lauf` (die ersten zwei auch `p9-sigterm-wartet`) / `p9-sigterm-wartet` |
+| 10 · genau `make gegenproben`: nicht `gegenproben-host`, nicht `-k`, `-j`, `-i`, `-n`, keine Variable, kein Einzelziel | `m-p10-host`, `-k`, `-j`, `-i`, `-n`, `-variable`, `-einzelziel` | `p10-argv` (je Mutation) |
+| 11 · ohne `MAKEFLAGS` / `MFLAGS` / `MAKELEVEL` / `MAKEOVERRIDES` / `GIT_DIR` / `GIT_QUARANTINE_PATH` | `m-p11-makeflags-bleibt`, `-mflags-`, `-makelevel-`, `-makeoverrides-`, `m-p11-git-dir-bleibt`, `m-p11-quarantaene-bleibt`; nur `GIT_DIR` zurückgesetzt: `m-p11-nur-git-dir` | `p11-makeflags`, `p11-mflags`, `p11-makelevel`, `p11-makeoverrides`, `p11-git-dir` (+ Folgen), `p11-git-quarantaene` |
+| 12 · Arbeitsbaum: Hash statt Spitze, losgelöst, in der Ablage, sauber, je Lauf neuer Name | `m-p12-spitze`, `m-p12-nicht-losgeloest`, `m-p12-im-bare`, `m-p12-fester-name` | `p12-stand` (+ Folgen) |
+| 12 · entfernt nach grün / nach rot | `m-p12-bleibt-nach-gruen` / `m-p12-bleibt-nach-rot` | `p12-entfernt-gruen`, `p12-entfernt-rot` / `p12-entfernt-rot` |
+| 12 · Bare-Repo: kein Ref, keine Konfiguration geändert | `m-p12-aendert-ref` / `m-p12-aendert-config` | `p12-bare-unveraendert` |
+| 12 · Rest eines früheren Laufs wird nicht verwendet und nicht gelöscht | `m-p12-loescht-reste` | `p12-rest` |
+| 13 · Werkzeug `git` / `flock` / `setsid` / `make` | `m-p13-ohne-git` / `-flock` / `-setsid` / `-make` | `p13-werkzeug-git` / `-flock` / `-setsid` / `-make` |
+| 13 · Ablage schreibbar | `m-p13-ohne-ablage-probe` | `p13-ablage-weg` |
+| 13 · Reihenfolge Marke vor Werkzeug / Werkzeug vor Ablage / Ablage vor Zeile | `m-p13-werkzeug-vor-marke` / `m-p13-ablage-vor-werkzeug` / `m-p13-zeile-vor-ablage` | `p13-marke-vor-werkzeug` / `p13-werkzeug-vor-ablage` / `p13-ablage-vor-zeile` |
+| 13 · Exit 0 in jedem Fall | `m-p13-exit1` | 25 Fälle, die den Hook mit Meldung oder Start durchlaufen |
+| 13 · nie `gruen` ohne beendetes `make`; Marke bleibt bei Sperre und Arbeitsbaum | `m-p13-gruen-bei-sperre`, `m-p13-gruen-bei-arbeitsbaum`, `m-p13-marke-weg-bei-sperre`, `m-p13-marke-weg-bei-arbeitsbaum` | `p13-sperre`, `p13-hash-fehlt` |
+| 13 · `make` mit Exit 127 ist ein beendeter Lauf, Ergebnis `rot` | `m-p13-127-ohne-ergebnis` | `p13-make-127` |
+
+- **Grüne Mutanten:** keine; jede der 113 Mutationen färbt genau ihre Menge (die Gegenprobe verlangt sie). **Einzelprüfung nicht möglich, deshalb keine eigene Mutation:** Marke fehlt und Marke leer lehnen drei Prüfungen gemeinsam ab (Zeilenzahl, absolut, Verzeichnis). Invariante: die Marke ist eine einzelne absolute Zeile mit vorhandenem Verzeichnis; Ort: die drei Zeilen nach `# (1) Marke des Containers`; Sonde: `m-p2-keine-marke` (alle drei gestrichen) färbt `p2-fehlt` und `p2-leer`, `m-p2-nur-existenz` färbt `p2-leer`, jeweils gefahren. `m-p9-sigterm-ohne-trap` färbt `p9-sigterm-wartet` nicht (die Standardaktion von `SIGTERM` beendet das Skript mit Exit 143 ohne Ergebnis und mit Marke, beobachtbar gleich); der Mutant ist durch `p9-sigterm-lauf` rot.
+- **Nicht durch einen Fall belegt:** Punkte 14 und 16 (akzeptierte Negative); „Kopie, kein Symlink“ (Punkt 1); „ein Hintergrundprozess je Push“ (Punkt 3); die Reihenfolge Sperre vor Arbeitsbaum vor Lauf (Punkt 13 (5) bis (7)); `SIGINT` und `SIGHUP` (nicht zugesagt); die Zusage „Exit 1, wenn der Lauf rot endet“ entfällt, weil der Hook nicht wartet (`m-p5-wartet` und `m-p13-exit1` decken die Rückkehr und den Exit ab).
+- **Rückgaben an den Architect (Randform · Frage; im Bericht, kein Code-Commit trägt eine davon in §6):** (1) leere Zeile mitten in der Eingabe: heute eine Meldung `zeile` (kein Feld); schweigend überspringen? (2) Zeile mit mehr als drei Feldern, Ref mit Leerzeichen: heute ist alles ab dem dritten Feld der Ref; ablehnen? (3) letzte Zeile ohne Zeilenumbruch: heute verarbeitet. (4) `pgrep` fehlt: Punkt 13 nennt es nicht unter den Werkzeugen; heute beendet `SIGTERM` dann nur `make`, nicht dessen Nachkommen; aufnehmen oder Negativ? (5) `make` durch ein Signal beendet (Exit über 128): heute ein beendeter Lauf mit `ergebnis=rot`; so gewollt? (6) `p13-ablage-weg` braucht einen Benutzer ohne root (`chmod` sperrt root nicht aus); als root endet die Gegenprobe mit Exit 2 und damit `make gegenproben` rot; Bedingung in `SPEC-061` aufnehmen oder anderer Aufbau?
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Berührt ist die Default-Sub-Area `REPO` (`harness/conventions.md` §Modus-Deklaration pro Sub-Area), die einzige deklarierte; sie trägt eine einheitliche Greenfield-Deklaration, daher keine Ausdifferenzierung nötig.
