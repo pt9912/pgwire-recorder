@@ -172,65 +172,155 @@ Risiken:
 - **Risiken aus §6:** —
 - **Drei Paarungen:** —
 
-**Belege des Implementers** (Stand: Commit `3507d4ad` auf dem Zweig `slice-harness-gegenproben-aus-gates-fahrstelle`, Klon im Container `pgr-dev2`; der Plan ändert seitdem nur diesen Abschnitt)
+**Belege des Implementers** (Stand: Commit `7da1b158` auf dem Zweig `slice-harness-gegenproben-aus-gates-fahrstelle`, Klon im Container `pgr-dev2`; der Plan ändert seitdem nur diesen Abschnitt)
 
-- **Größe (Metrik `AGENTS.md` §3.14):** `git diff --numstat 0f066c04..HEAD -- tools harness/mk harness/README.md` ergibt Einfügungen 701, Löschungen 0, Summe **701** (Skript 116, Gegenprobe 572, Fragment 11, `harness/README.md` 2). Die Meldeschwelle 700 ist um 1 überschritten, die Marke 900 nicht; eine Rückführung nach `next` tritt nicht ein.
-- **Läufe am Endstand (Code unverändert seit `3507d4ad`):**
-  - `make gegenproben-nach-einlieferung-gegenprobe`: grün, 4 min 15 s (74 Fälle, 113 Mutationen, `GP_PARALLEL` 4; mit 8 gleichzeitigen Mutationen 2 min 17 s). Ein früherer voller Lauf desselben Standes: grün, 4 min 26 s. Vor dem Eintragen der roten Mengen lief die Entdeckung (`GP_ENTDECKE=1`) dreimal; drei Mutanten (`m-p3-gleichzeitig`, `m-p6-zweiter-beendet-ersten`, `m-p9-log-ohne-stdout`) lieferten wechselnde Mengen und wurden deterministisch gemacht (Versatz von 0,1 s zwischen den Läufen, `pgrep -o` statt aller Treffer, `2>` statt `> /dev/null 2>&1`), danach stabil in drei Wiederholungen.
-  - `make gates`: grün, 4 min 19 s, Nachweis `.harness/state/gates-passed.diffsha` geschrieben.
-  - `make gates-schnell-gegenprobe`: grün, 1 min 02 s (Namensregel `SPEC-060` Punkt 2 hält die neue Gegenprobe in `GEGENPROBEN_CONTAINER`).
-  - `make docs-check`: 0 Befunde.
-  - Prozesse: nach jedem Lauf `pgrep -fc '[p]ost-receive --lauf'` gleich 0, keine `attrappe`-Verzeichnisse in `/tmp` zurück; die Gegenprobe räumt ihr Temp-Verzeichnis und die Prozesse mit `pkill -f` auf ihren Pfad.
-- **Zusage · Mutation · roter Fall** (alle 113 Mutationen mit ihrer genauen roten Menge stehen als `mut`-Zeilen in `tools/harness/gegenproben-nach-einlieferung-gegenprobe.sh`; die Tabelle nennt je Zusage und je Element den Fall, der sie belegt; „+ Folgen“ heißt: weitere Fälle werden rot, weil der Hook nicht mehr läuft):
+- **Größe (Metrik `AGENTS.md` §3.14):** `git diff --numstat 0f066c04..HEAD -- tools harness/mk harness/README.md` ergibt Einfügungen 794, Löschungen 0, Summe **794** (Skript 118, Gegenprobe 663, Fragment 11, `harness/README.md` 2). Die Meldeschwelle 700 ist überschritten, die Marke 900 nicht; eine Rückführung nach `next` tritt nicht ein. (Erster Stand `3507d4ad`: 701.)
+- **Läufe am Endstand (Commit `7da1b158`):**
+  - `make gegenproben-nach-einlieferung-gegenprobe` im Container (Zeitzone UTC): grün, 94 Fälle, 131 Mutationen gefahren, unveränderte Kopie grün, 5 min 30 s (4 gleichzeitige Mutationen).
+  - dieselbe Gegenprobe mit `TZ=Europe/Berlin LANG=de_DE.UTF-8` (`date` zeigt CEST): grün, 5 min 28 s. Damit hängt sie nicht mehr an der Zeitzone des Hosts (Verifikation V-1): jeder Hook-Aufruf startet mit `TZ=UTC`, außer `p9-zeitzone-ost` und `p9-zeitzone-west`.
+  - `make gates`: grün, 4 min 19 s. `make gates-schnell-gegenprobe`: grün, 1 min 00 s. `make docs-check`: 0 Befunde.
+  - Die roten Mengen entstanden aus drei Entdeckungsläufen (`GP_ENTDECKE=1`, 8 gleichzeitige Mutationen, je 3 min 13 s); die zwei ersten, die wechselten, wurden durch Aufbau-Änderungen deterministisch (Attrappe wählt Exit und Ausgabe nach dem Hash statt nach der Nummer des Aufrufs; `p12-stand` fährt zwei Hook-Aufrufe nacheinander statt zwei Zeilen), danach lieferten zwei Läufe gleiche Mengen, und die zwei vollen Läufe oben bestätigen sie mit der Prüfung auf genau diese Menge.
+  - Prozesse: nach jedem Lauf `pgrep -fc '[p]ost-receive --lauf'` gleich 0, keine Temp-Verzeichnisse zurück.
+- **Rückgaben des ersten Berichts (beantwortet vom Architect in `SPEC-061`, Commits `33d34bbc`, `794bf990`):** (1) leere oder nur aus Leerraum bestehende Zeile: schweigend übersprungen (`p4-leerzeile`, `p4-leerzeichen-zeile`); (2) mehr als drei Felder: Meldung `zeile`, kein Lauf (`p4-vier-felder`); (3) letzte Zeile ohne Umbruch läuft (`p4-ohne-umbruch`); (4) `pgrep` ist ein Werkzeug von Punkt 13 an letzter Stelle (`p13-werkzeug-pgrep`, `p13-werkzeug-erstes`); (5) `make` durch ein Signal: `ergebnis=rot` mit `exit=137` (`p13-make-signal`); (6) die Gegenprobe verlangt einen Benutzer ohne root, Exit 2 sonst (Kopf von `SPEC-061`, Meldung nennt `p13-ablage-weg` und `p13-mktemp`). Dazu die Entscheidungen zu den Funden des Reviews: `GNUMAKEFLAGS`, Fehler von `mktemp -d` beendet nur den Lauf, Zwischenname des Ergebnisses mit `mktemp`, Force-Push, Locale, Länge am kodierten Namen, Tiefe des Abbruchs, `GIT_*` als Präfix, Reihenfolgen.
+- **Zusage · Mutation · roter Fall** (alle 131 Mutationen; die Spalte „rote Menge“ ist die Menge, die die Gegenprobe verlangt, und stimmt mit den `mut`-Zeilen des Skripts überein; „Folgen“ sind Fälle, die rot werden, weil der Hook nicht mehr läuft):
 
-| Punkt · Zusage / Element | Mutation | roter Fall |
+| Zusage / Element | Mutation | rote Menge (genau) |
 |---|---|---|
-| 1 · Kopie lädt nichts nach | `m-p1-laedt-nach` | `p1-kopie` |
-| 1 · liest stdin; echter Push löst Lauf aus, Push endet vor dem Ende | `m-p1-liest-stdin-nicht` | `p1-echter-push` (+ Folgen) |
-| 2 · Marke: genau eine Zeile / absolut / vorhandenes Verzeichnis | `m-p2-zeilenzahl` / `m-p2-absolut` / `m-p2-verzeichnis` | `p2-zwei-zeilen` / `p2-relativ` / `p2-kein-verzeichnis` |
-| 2 · Marke fehlt, leer (gemeinsam getragen von den drei Prüfungen) | `m-p2-keine-marke`, `m-p2-nur-existenz` | `p2-fehlt`, `p2-leer` |
-| 2 · nichts angelegt, Bare-Repo unverändert | `m-p2-legt-an` | die fünf Fälle `p2-*` |
-| 3 · nur `refs/heads/`: Tag, Notizen, `refs/headsx/` | `m-p3-refs-stern`, `m-p3-heads-ohne-schraeg`, `m-p3-meldet-fremde-refs` | `p3-tag`, `p3-notes`, `p3-headsx` (die zweite nur `p3-headsx`) |
-| 3 · mehrere Zweige nacheinander in Zeilenfolge | `m-p3-gleichzeitig`, `m-p3-rueckwaerts`, `m-p3-nur-erste` | `p3-mehrere` |
-| 4 · gelöscht (40 und 64 Nullen): kein Lauf, keine Meldung | `m-p4-null-laeuft`, `m-p4-null-nur-40`, `m-p4-loeschung-meldet` | `p4-null40`, `p4-null64` |
-| 4 · Löschung lässt Ergebnis, Log, Marke stehen | `m-p4-loeschung-entfernt-ergebnis` | `p4-ergebnis-bleibt` |
-| 4 · Form des Hashes: zu kurz / groß / 41 / 64 angenommen | `m-p4-keine-form` / `m-p4-grossbuchstaben` / `m-p4-41-stellen` / `m-p4-nur-40` | `p4-hash-kurz`, `p4-hash-gross` / `p4-hash-gross` / `p4-hash-41` / `p4-hash-64` |
-| 4 · fehlendes Feld und kaputter Hash enden nur die Zeile | `m-p4-feld-ohne-pruefung`, `m-p4-feld-beendet` / `m-p4-kaputte-zeile-beendet` | `p4-feld-fehlt` / `p4-zeile-kaputt-dann-gut` |
-| 4 · leere Eingabe ist kein Fehler | `m-p4-leere-eingabe-meldet` | `p4-stdin-leer` |
-| 5 · Rückkehr vor dem Ende des Laufs | `m-p5-wartet` | `p5-vor-ende` (+ Folgen) |
-| 5 · nichts auf stdout; Zeile `gestartet` | `m-p5-stdout-zeile` / `m-p5-gestartet-fehlt` | `p5-stdout-leer` / `p5-gestartet-zeile` |
-| 5 · Lauf ohne stdout / stderr / stdin des Hooks | `m-p5-erbt-stdout` / `m-p5-erbt-stderr` / `m-p5-erbt-stdin` | `p5-fd-1`, `p5-leitung-stdout` / `p5-fd-2`, `p5-leitung-stderr` / `p5-fd-0` |
-| 5 · eigene Sitzung (Signal an die Gruppe des Hooks) | `m-p5-gleiche-sitzung` | `p5-gruppe` |
-| 6 · Läufe überlappen nicht / wartet statt zu entfallen / bricht den ersten nicht ab | `m-p6-ohne-sperre` / `m-p6-sperre-nicht-erwartet` / `m-p6-zweiter-beendet-ersten` | `p6-nacheinander` / `p6-kein-abbruch` / `p6-kein-abbruch` |
-| 7 · derselbe Hash erneut läuft / altes Ergebnis wird beim Aufruf entfernt / Name trägt den Zweig | `m-p7-lauf-entfaellt` / `m-p7-altes-bleibt` / `m-p7-name-ohne-zweig` | `p7-neu` / `p7-altes-weg` / `p7-anderer-zweig` (+ Folgen) |
-| 8 · Kodierung: Schrägstrich, `%`, Nicht-ASCII, `+`, Großbuchstaben-Hex | `m-p8-keine-kodierung`, `m-p8-nur-schraeg`, `m-p8-prozent-bleibt`, `m-p8-hex-klein` | `p8-schraeg`, `p8-nichtascii`, `p8-sonderzeichen`, `p8-prozent`, `p8-eindeutig` |
-| 8 · unverändert bleiben `.` `_` `-` Ziffern, Groß- und Kleinbuchstaben | `m-p8-ohne-punkt`, `-unterstrich`, `-bindestrich` / `m-p8-ohne-ziffern`, `-grossbuchstaben` / `m-p8-ohne-kleinbuchstaben` | `p8-unveraendert` / `p8-eindeutig` / viele (+ Folgen) |
-| 8 · Grenze 120: 121 abgelehnt, 120 angenommen; Meldung `name` | `m-p8-grenze-121`, `m-p8-grenze-119`, `m-p8-lang-ohne-meldung` | `p8-lang`, `p8-grenze`, `p8-lang` |
-| 9 · `ergebnis=gruen` nur bei Exit 0 (Exit 2 und Exit 1) | `m-p9-gruen-immer`, `m-p9-exit1-gruen` | `p9-rot`, `p7-neu` |
-| 9 · `rot=`: alle Ziele, in der Reihenfolge des Logs | `m-p9-rot-nur-erstes`, `m-p9-rot-rueckwaerts` | `p9-rot` |
-| 9 · Zeilen in der Reihenfolge `zweig hash exit ergebnis beginn ende rot`, `rot=` vorhanden | `m-p9-zweig-hash-vertauscht`, `m-p9-exit-ergebnis-vertauscht`, `m-p9-beginn-ende-vertauscht`, `m-p9-ohne-rot-zeile` | `p9-gruen` |
-| 9 · `beginn` und `ende` in UTC | `m-p9-beginn-lokal`, `m-p9-ende-lokal` | `p9-gruen` (Lauf mit `TZ=UTC-5`) |
+| 1 · läuft aus der Kopie, lädt nichts nach | `m-p1-laedt-nach` | `p1-kopie` `p13-ref-vor-form` `p3-headsx` `p3-notes` `p3-tag` `p4-ergebnis-bleibt` `p4-hash-64` `p4-null40` `p4-null64` `p4-ohne-umbruch` `p4-stdin-leer` `p5-gestartet-zeile` |
+| 1 · liest stdin, echter Push löst Lauf aus | `m-p1-liest-stdin-nicht` | `p1-echter-push` `p1-kopie` `p10-argv` `p11-git-dir` `p11-git-quarantaene` `p11-git-weitere` `p11-gnumakeflags` `p11-makeflags` `p11-makelevel` `p11-makeoverrides` `p11-mflags` `p12-entfernt-rot` `p12-stand` `p13-form-vor-laenge` `p13-hash-fehlt` `p13-make-127` `p13-make-signal` `p13-sperre` `p13-sperre-vor-arbeitsbaum` `p3-mehrere` `p4-feld-fehlt` `p4-hash-41` `p4-hash-64` `p4-hash-gross` `p4-hash-kurz` `p4-leerzeichen-zeile` `p4-leerzeile` `p4-ohne-umbruch` `p4-vier-felder` `p4-zeile-kaputt-dann-gut` `p5-fd-0` `p5-fd-1` `p5-fd-2` `p5-gestartet-zeile` `p5-gruppe` `p6-kein-abbruch` `p6-nacheinander` `p7-anderer-zweig` `p7-force` `p7-neu` `p8-eindeutig` `p8-grenze` `p8-lang` `p8-lang-mehrbyte` `p8-locale` `p8-nichtascii` `p8-prozent` `p8-schraeg` `p8-sonderzeichen` `p8-unveraendert` `p9-beginn-nach-sperre` `p9-gruen` `p9-log` `p9-marke` `p9-rot` `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 2 · Marke: genau eine Zeile | `m-p2-zeilenzahl` | `p2-zwei-zeilen` |
+| 2 · Marke: absoluter Pfad | `m-p2-absolut` | `p2-relativ` |
+| 2 · Marke: vorhandenes Verzeichnis | `m-p2-verzeichnis` | `p2-kein-verzeichnis` |
+| 2 · leere Marke und die übrigen Formen | `m-p2-nur-existenz` | `p2-kein-verzeichnis` `p2-leer` `p2-relativ` `p2-zwei-zeilen` |
+| 2 · fehlende Marke und alle Formen | `m-p2-keine-marke` | `p13-marke-vor-werkzeug` `p2-fehlt` `p2-kein-verzeichnis` `p2-leer` `p2-relativ` `p2-zwei-zeilen` |
+| 2 · nichts angelegt, Bare-Repo unverändert | `m-p2-legt-an` | `p2-fehlt` `p2-kein-verzeichnis` `p2-leer` `p2-relativ` `p2-zwei-zeilen` |
+| 2 · fehlende Marke (eigene Mutation) | `m-p2-fehlt-nimmt-ablage` | `p13-marke-vor-werkzeug` `p2-fehlt` |
+| 2 · leere Marke (eigene Mutation) | `m-p2-leer-nimmt-ablage` | `p2-leer` |
+| 3 · nur `refs/heads/` (Muster `refs/*`) | `m-p3-refs-stern` | `p13-ref-vor-form` `p3-headsx` `p3-notes` `p3-tag` |
+| 3 · `refs/headsx/` löst nichts aus | `m-p3-heads-ohne-schraeg` | `p3-headsx` |
+| 3 · Zweige nacheinander | `m-p3-gleichzeitig` | `p3-mehrere` `p6-nacheinander` `p9-beginn-nach-sperre` `p9-sigterm-enkel` `p9-sigterm-lauf` `p9-sigterm-wartet` |
+| 3 · Reihenfolge der Zeilen | `m-p3-rueckwaerts` | `p3-mehrere` |
+| 3 · jeder Zweig läuft | `m-p3-nur-erste` | `p3-mehrere` `p4-leerzeichen-zeile` `p4-leerzeile` `p7-anderer-zweig` `p8-eindeutig` `p8-grenze` `p8-lang` `p8-nichtascii` `p8-prozent` `p8-sonderzeichen` `p8-unveraendert` `p9-rot` |
+| 3 · fremde Refs ohne Meldung | `m-p3-meldet-fremde-refs` | `p13-ref-vor-form` `p3-headsx` `p3-notes` `p3-tag` |
+| 4 · gelöscht: kein Lauf | `m-p4-null-laeuft` | `p4-ergebnis-bleibt` `p4-null40` `p4-null64` |
+| 4 · gelöscht mit 64 Stellen | `m-p4-null-nur-40` | `p4-null64` |
+| 4 · Form des Hashes geprüft | `m-p4-keine-form` | `p13-form-vor-laenge` `p4-hash-41` `p4-hash-gross` `p4-hash-kurz` `p4-zeile-kaputt-dann-gut` |
+| 4 · 64 Stellen angenommen | `m-p4-nur-40` | `p4-hash-64` |
+| 4 · Großbuchstaben abgelehnt | `m-p4-grossbuchstaben` | `p4-hash-gross` |
+| 4 · 41 Stellen abgelehnt | `m-p4-41-stellen` | `p4-hash-41` |
+| 4 · kaputter Hash beendet nur die Zeile | `m-p4-kaputte-zeile-beendet` | `p4-zeile-kaputt-dann-gut` |
+| 4 · fehlendes Feld gemeldet | `m-p4-feld-ohne-pruefung` | `p4-feld-fehlt` |
+| 4 · fehlendes Feld beendet nur die Zeile | `m-p4-feld-beendet` | `p4-feld-fehlt` |
+| 4 · Löschung lässt Ergebnis stehen | `m-p4-loeschung-entfernt-ergebnis` | `p4-ergebnis-bleibt` |
+| 4 · gelöscht: keine Meldung | `m-p4-loeschung-meldet` | `p4-ergebnis-bleibt` `p4-null40` `p4-null64` |
+| 4 · leere Eingabe ohne Meldung | `m-p4-leere-eingabe-meldet` | `p13-ref-vor-form` `p3-headsx` `p3-notes` `p3-tag` `p4-ergebnis-bleibt` `p4-feld-fehlt` `p4-null40` `p4-null64` `p4-stdin-leer` |
+| 4 · Leerzeile und Leerraum-Zeile schweigend übersprungen | `m-p4-leerzeile-meldet` | `p4-leerzeichen-zeile` `p4-leerzeile` |
+| 4 · mehr als drei Felder ungültig | `m-p4-vier-felder-ref` | `p4-vier-felder` |
+| 4 · letzte Zeile ohne Umbruch läuft | `m-p4-ohne-umbruch-entfaellt` | `p4-ohne-umbruch` `p5-gruppe` |
+| 5 · Rückkehr vor dem Ende | `m-p5-wartet` | `p1-echter-push` `p5-fd-0` `p5-fd-1` `p5-fd-2` `p5-leitung-stderr` `p5-leitung-stdout` `p5-vor-ende` `p7-altes-weg` `p9-marke` `p9-nicht-vorher` |
+| 5 · Lauf ohne stdout des Hooks | `m-p5-erbt-stdout` | `p1-echter-push` `p5-fd-1` `p5-leitung-stdout` |
+| 5 · Lauf ohne stderr des Hooks | `m-p5-erbt-stderr` | `p1-echter-push` `p5-fd-2` `p5-leitung-stderr` |
+| 5 · Lauf liest `/dev/null` | `m-p5-erbt-stdin` | `p5-fd-0` |
+| 5 · eigene Sitzung | `m-p5-gleiche-sitzung` | `p5-gruppe` |
+| 5 · nichts auf stdout | `m-p5-stdout-zeile` | `p5-stdout-leer` |
+| 5 · Zeile `gestartet` | `m-p5-gestartet-fehlt` | `p1-kopie` `p4-hash-64` `p4-leerzeichen-zeile` `p4-leerzeile` `p4-ohne-umbruch` `p4-zeile-kaputt-dann-gut` `p5-gestartet-zeile` |
+| 6 · Läufe überlappen nicht | `m-p6-ohne-sperre` | `p6-nacheinander` `p9-beginn-nach-sperre` `p9-sigterm-wartet` |
+| 6 · zweiter Lauf wartet | `m-p6-sperre-nicht-erwartet` | `p6-kein-abbruch` `p6-nacheinander` `p9-beginn-nach-sperre` `p9-sigterm-wartet` |
+| 6 · laufender Lauf wird nicht abgebrochen | `m-p6-zweiter-beendet-ersten` | `p6-kein-abbruch` `p6-nacheinander` |
+| 7 · derselbe Hash erneut läuft | `m-p7-lauf-entfaellt` | `p7-altes-weg` `p7-neu` |
+| 7 · altes Ergebnis beim Aufruf entfernt | `m-p7-altes-bleibt` | `p7-altes-weg` |
+| 7 · anderer Zweig, gleicher Hash | `m-p7-name-ohne-zweig` | `p1-echter-push` `p1-kopie` `p12-entfernt-rot` `p13-hash-fehlt` `p13-make-127` `p13-make-signal` `p13-sperre` `p13-sperre-vor-arbeitsbaum` `p3-mehrere` `p4-hash-64` `p4-leerzeichen-zeile` `p4-leerzeile` `p4-ohne-umbruch` `p4-zeile-kaputt-dann-gut` `p5-gruppe` `p6-kein-abbruch` `p7-anderer-zweig` `p7-force` `p7-neu` `p8-eindeutig` `p8-grenze` `p8-locale` `p8-nichtascii` `p8-prozent` `p8-schraeg` `p8-sonderzeichen` `p8-unveraendert` `p9-beginn-nach-sperre` `p9-gruen` `p9-log` `p9-marke` `p9-rot` `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 7 · Force-Push (alt ungleich Null) läuft | `m-p7-alt-ungleich-null-entfaellt` | `p7-force` |
+| 8 · Kodierung | `m-p8-keine-kodierung` | `p8-eindeutig` `p8-lang-mehrbyte` `p8-locale` `p8-nichtascii` `p8-prozent` `p8-schraeg` `p8-sonderzeichen` |
+| 8 · `%` wird kodiert | `m-p8-prozent-bleibt` | `p8-eindeutig` `p8-prozent` |
+| 8 · jedes Byte außer dem erlaubten Satz | `m-p8-nur-schraeg` | `p8-eindeutig` `p8-lang-mehrbyte` `p8-locale` `p8-nichtascii` `p8-prozent` `p8-sonderzeichen` |
+| 8 · Großbuchstaben-Hex | `m-p8-hex-klein` | `p8-eindeutig` `p8-locale` `p8-nichtascii` `p8-schraeg` `p8-sonderzeichen` |
+| 8 · `.` bleibt | `m-p8-ohne-punkt` | `p8-unveraendert` |
+| 8 · `_` bleibt | `m-p8-ohne-unterstrich` | `p8-unveraendert` |
+| 8 · `-` bleibt | `m-p8-ohne-bindestrich` | `p8-unveraendert` |
+| 8 · Ziffern bleiben | `m-p8-ohne-ziffern` | `p8-eindeutig` |
+| 8 · Großbuchstaben bleiben | `m-p8-ohne-grossbuchstaben` | `p8-eindeutig` |
+| 8 · Kleinbuchstaben bleiben | `m-p8-ohne-kleinbuchstaben` | `p1-echter-push` `p1-kopie` `p12-entfernt-rot` `p13-hash-fehlt` `p13-make-127` `p13-make-signal` `p13-sperre` `p13-sperre-vor-arbeitsbaum` `p3-mehrere` `p4-hash-64` `p4-leerzeichen-zeile` `p4-leerzeile` `p4-ohne-umbruch` `p4-zeile-kaputt-dann-gut` `p5-gruppe` `p6-kein-abbruch` `p7-anderer-zweig` `p7-force` `p7-neu` `p8-eindeutig` `p8-grenze` `p8-prozent` `p8-schraeg` `p8-sonderzeichen` `p8-unveraendert` `p9-beginn-nach-sperre` `p9-gruen` `p9-log` `p9-marke` `p9-rot` `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 8 · Grenze 120 (121 abgelehnt) | `m-p8-grenze-121` | `p8-lang` |
+| 8 · Grenze 120 (120 angenommen) | `m-p8-grenze-119` | `p8-grenze` |
+| 8 · Meldung `name` | `m-p8-lang-ohne-meldung` | `p8-lang` `p8-lang-mehrbyte` |
+| 8 · feste Locale `C` | `m-p8-ohne-feste-locale` | `p8-locale` |
+| 8 · Länge des kodierten Namens | `m-p8-laenge-roh` | `p8-lang-mehrbyte` |
+| 9 · `gruen` nur bei Exit 0 (Exit 2) | `m-p9-gruen-immer` | `p13-make-127` `p13-make-signal` `p7-neu` `p9-rot` |
+| 9 · `gruen` nur bei Exit 0 (Exit 1) | `m-p9-exit1-gruen` | `p7-neu` |
+| 9 · `rot=` alle Ziele | `m-p9-rot-nur-erstes` | `p9-rot` |
+| 9 · `rot=` Reihenfolge des Logs | `m-p9-rot-rueckwaerts` | `p9-rot` |
+| 9 · Zeilenfolge zweig/hash | `m-p9-zweig-hash-vertauscht` | `p1-echter-push` `p7-anderer-zweig` `p7-force` `p8-eindeutig` `p9-gruen` |
+| 9 · Zeilenfolge exit/ergebnis | `m-p9-exit-ergebnis-vertauscht` | `p12-entfernt-rot` `p13-make-127` `p13-make-signal` `p5-gruppe` `p6-kein-abbruch` `p7-neu` `p9-gruen` `p9-rot` |
+| 9 · Zeilenfolge beginn/ende | `m-p9-beginn-ende-vertauscht` | `p9-gruen` |
+| 9 · Zeile `rot=` | `m-p9-ohne-rot-zeile` | `p9-gruen` `p9-rot` |
+| 9 · `beginn` in UTC | `m-p9-beginn-lokal` | `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 9 · `ende` in UTC | `m-p9-ende-lokal` | `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 9 · Marke nach dem Ende weg | `m-p9-marke-bleibt` | `p5-gruppe` `p9-marke` |
+| 9 · Marke beim Aufruf da | `m-p9-marke-fehlt` | `p1-echter-push` `p13-hash-fehlt` `p13-sperre` `p4-hash-64` `p9-marke` |
+| 9 · Ergebnis erst nach dem Ende | `m-p9-ergebnis-vorher` | `p7-altes-weg` `p9-nicht-vorher` `p9-sigterm-lauf` `p9-sigterm-wartet` |
+| 9 · `SIGTERM`: kein Ergebnis | `m-p9-ergebnis-bei-sigterm` | `p9-sigterm-lauf` `p9-sigterm-wartet` |
+| 9 · `SIGTERM`: Marke bleibt | `m-p9-marke-weg-bei-sigterm` | `p9-sigterm-lauf` `p9-sigterm-wartet` |
+| 9 · `SIGTERM`: Nachkommen beendet | `m-p9-nachkommen-bleiben` | `p9-sigterm-enkel` `p9-sigterm-lauf` |
+| 9 · `SIGTERM` beim Warten | `m-p9-sigterm-wartet-unbehandelt` | `p9-sigterm-wartet` `p9-sigterm-wartet-waise` |
+| 9 · `SIGTERM`: Exit 143 | `m-p9-exit0` | `p9-sigterm-lauf` `p9-sigterm-wartet` |
+| 9 · `SIGTERM`: kein wartendes Waisen-`flock` | `m-p9-sigterm-ohne-trap` | `p9-sigterm-enkel` `p9-sigterm-lauf` `p9-sigterm-wartet-waise` |
+| 9 · `SIGTERM`: Arbeitsbaum geräumt | `m-p9-arbeitsbaum-bleibt-bei-sigterm` | `p9-sigterm-lauf` |
+| 9 · Log mit stderr | `m-p9-log-ohne-stderr` | `p9-log` `p9-rot` |
+| 9 · Log mit stdout | `m-p9-log-ohne-stdout` | `p9-log` |
+| 9 · Log neu beschrieben | `m-p9-log-anhaengen` | `p9-log` |
 | 9 · `beginn` nach der Sperre | `m-p9-beginn-vor-sperre` | `p9-beginn-nach-sperre` |
-| 9 · Marke beim Aufruf da, nach dem Ende weg | `m-p9-marke-fehlt` / `m-p9-marke-bleibt` | `p9-marke` |
-| 9 · Ergebnis erst nach dem Ende (Temp-Datei, `mv`) | `m-p9-ergebnis-vorher` | `p9-nicht-vorher` |
-| 9 · Log mit stdout und stderr, neu beschrieben | `m-p9-log-ohne-stdout`, `m-p9-log-ohne-stderr`, `m-p9-log-anhaengen` | `p9-log` |
-| 9 · `SIGTERM`: kein Ergebnis / Marke bleibt / Nachkommen beendet / Arbeitsbaum geräumt / Exit 143 / beim Warten | `m-p9-ergebnis-bei-sigterm` / `m-p9-marke-weg-bei-sigterm` / `m-p9-nachkommen-bleiben` / `m-p9-arbeitsbaum-bleibt-bei-sigterm` / `m-p9-exit0`, `m-p9-sigterm-ohne-trap` / `m-p9-sigterm-wartet-unbehandelt` | `p9-sigterm-lauf` (die ersten zwei auch `p9-sigterm-wartet`) / `p9-sigterm-wartet` |
-| 10 · genau `make gegenproben`: nicht `gegenproben-host`, nicht `-k`, `-j`, `-i`, `-n`, keine Variable, kein Einzelziel | `m-p10-host`, `-k`, `-j`, `-i`, `-n`, `-variable`, `-einzelziel` | `p10-argv` (je Mutation) |
-| 11 · ohne `MAKEFLAGS` / `MFLAGS` / `MAKELEVEL` / `MAKEOVERRIDES` / `GIT_DIR` / `GIT_QUARANTINE_PATH` | `m-p11-makeflags-bleibt`, `-mflags-`, `-makelevel-`, `-makeoverrides-`, `m-p11-git-dir-bleibt`, `m-p11-quarantaene-bleibt`; nur `GIT_DIR` zurückgesetzt: `m-p11-nur-git-dir` | `p11-makeflags`, `p11-mflags`, `p11-makelevel`, `p11-makeoverrides`, `p11-git-dir` (+ Folgen), `p11-git-quarantaene` |
-| 12 · Arbeitsbaum: Hash statt Spitze, losgelöst, in der Ablage, sauber, je Lauf neuer Name | `m-p12-spitze`, `m-p12-nicht-losgeloest`, `m-p12-im-bare`, `m-p12-fester-name` | `p12-stand` (+ Folgen) |
-| 12 · entfernt nach grün / nach rot | `m-p12-bleibt-nach-gruen` / `m-p12-bleibt-nach-rot` | `p12-entfernt-gruen`, `p12-entfernt-rot` / `p12-entfernt-rot` |
-| 12 · Bare-Repo: kein Ref, keine Konfiguration geändert | `m-p12-aendert-ref` / `m-p12-aendert-config` | `p12-bare-unveraendert` |
-| 12 · Rest eines früheren Laufs wird nicht verwendet und nicht gelöscht | `m-p12-loescht-reste` | `p12-rest` |
-| 13 · Werkzeug `git` / `flock` / `setsid` / `make` | `m-p13-ohne-git` / `-flock` / `-setsid` / `-make` | `p13-werkzeug-git` / `-flock` / `-setsid` / `-make` |
-| 13 · Ablage schreibbar | `m-p13-ohne-ablage-probe` | `p13-ablage-weg` |
-| 13 · Reihenfolge Marke vor Werkzeug / Werkzeug vor Ablage / Ablage vor Zeile | `m-p13-werkzeug-vor-marke` / `m-p13-ablage-vor-werkzeug` / `m-p13-zeile-vor-ablage` | `p13-marke-vor-werkzeug` / `p13-werkzeug-vor-ablage` / `p13-ablage-vor-zeile` |
-| 13 · Exit 0 in jedem Fall | `m-p13-exit1` | 25 Fälle, die den Hook mit Meldung oder Start durchlaufen |
-| 13 · nie `gruen` ohne beendetes `make`; Marke bleibt bei Sperre und Arbeitsbaum | `m-p13-gruen-bei-sperre`, `m-p13-gruen-bei-arbeitsbaum`, `m-p13-marke-weg-bei-sperre`, `m-p13-marke-weg-bei-arbeitsbaum` | `p13-sperre`, `p13-hash-fehlt` |
-| 13 · `make` mit Exit 127 ist ein beendeter Lauf, Ergebnis `rot` | `m-p13-127-ohne-ergebnis` | `p13-make-127` |
+| 9 · `SIGTERM`: Enkel beendet | `m-p9-nur-direkte-kinder` | `p9-sigterm-enkel` |
+| 10 · nicht `gegenproben-host` | `m-p10-host` | `p10-argv` |
+| 10 · kein `-k` | `m-p10-k` | `p10-argv` |
+| 10 · kein `-j` | `m-p10-j` | `p10-argv` |
+| 10 · kein `-i` | `m-p10-i` | `p10-argv` |
+| 10 · kein `-n` | `m-p10-n` | `p10-argv` |
+| 10 · kein Variablen-Argument | `m-p10-variable` | `p10-argv` |
+| 10 · kein Einzelziel | `m-p10-einzelziel` | `p10-argv` |
+| 11 · ohne `GNUMAKEFLAGS` | `m-p11-gnumakeflags-bleibt` | `p11-gnumakeflags` |
+| 11 · jede `GIT_*` (nur zwei Namen) | `m-p11-zwei-namen` | `p11-git-weitere` |
+| 11 · ohne `MAKEFLAGS` | `m-p11-makeflags-bleibt` | `p11-makeflags` |
+| 11 · ohne `MFLAGS` | `m-p11-mflags-bleibt` | `p11-mflags` |
+| 11 · ohne `MAKELEVEL` | `m-p11-makelevel-bleibt` | `p11-makelevel` |
+| 11 · ohne `MAKEOVERRIDES` | `m-p11-makeoverrides-bleibt` | `p11-makeoverrides` |
+| 11 · ohne `GIT_DIR` | `m-p11-git-dir-bleibt` | `p11-git-dir` `p12-stand` `p3-mehrere` `p9-rot` |
+| 11 · ohne `GIT_QUARANTINE_PATH` | `m-p11-quarantaene-bleibt` | `p11-git-quarantaene` |
+| 11 · jede `GIT_*` (nur `GIT_DIR`) | `m-p11-nur-git-dir` | `p11-git-quarantaene` `p11-git-weitere` |
+| 12 · `make` im Arbeitsbaum | `m-p12-im-bare` | `p12-stand` `p3-mehrere` `p9-rot` |
+| 12 · genau der Hash | `m-p12-spitze` | `p12-entfernt-rot` `p12-stand` `p13-hash-fehlt` `p13-make-127` `p3-mehrere` `p4-leerzeichen-zeile` `p4-leerzeile` `p4-ohne-umbruch` `p4-zeile-kaputt-dann-gut` `p6-kein-abbruch` `p6-nacheinander` `p7-anderer-zweig` `p8-eindeutig` `p8-grenze` `p8-locale` `p8-nichtascii` `p8-prozent` `p8-schraeg` `p8-sonderzeichen` `p8-unveraendert` `p9-beginn-nach-sperre` `p9-gruen` `p9-log` `p9-marke` `p9-rot` `p9-sigterm-enkel` `p9-sigterm-lauf` `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 12 · losgelöst | `m-p12-nicht-losgeloest` | `p11-git-quarantaene` `p11-git-weitere` `p12-bare-unveraendert` `p12-stand` `p13-make-signal` `p4-leerzeichen-zeile` `p4-ohne-umbruch` `p5-gruppe` `p7-force` `p7-neu` `p8-locale` `p9-log` `p9-zeitzone-ost` `p9-zeitzone-west` |
+| 12 · entfernt nach grün | `m-p12-bleibt-nach-gruen` | `p12-entfernt-gruen` `p12-entfernt-rot` |
+| 12 · entfernt nach rot | `m-p12-bleibt-nach-rot` | `p12-entfernt-rot` |
+| 12 · Name je Lauf neu | `m-p12-fester-name` | `p12-stand` |
+| 12 · Rest bleibt stehen | `m-p12-loescht-reste` | `p12-rest` |
+| 12 · kein Ref geändert | `m-p12-aendert-ref` | `p12-bare-unveraendert` |
+| 12 · keine Konfiguration geändert | `m-p12-aendert-config` | `p12-bare-unveraendert` |
+| 13 · Werkzeug `git` | `m-p13-ohne-git` | `p13-werkzeug-erstes` `p13-werkzeug-git` `p13-werkzeug-vor-ablage` |
+| 13 · Werkzeug `flock` | `m-p13-ohne-flock` | `p13-werkzeug-flock` |
+| 13 · Werkzeug `setsid` | `m-p13-ohne-setsid` | `p13-werkzeug-setsid` |
+| 13 · Werkzeug `make` | `m-p13-ohne-make` | `p13-werkzeug-make` |
+| 13 · Werkzeug `pgrep` | `m-p13-ohne-pgrep` | `p13-werkzeug-pgrep` |
+| 13 · erstes fehlendes Werkzeug | `m-p13-werkzeug-umgekehrt` | `p13-werkzeug-erstes` |
+| 13 · Ablage schreibbar | `m-p13-ohne-ablage-probe` | `p13-ablage-vor-zeile` `p13-ablage-weg` |
+| 13 · Marke vor Werkzeug | `m-p13-werkzeug-vor-marke` | `p13-marke-vor-werkzeug` |
+| 13 · Werkzeug vor Ablage | `m-p13-ablage-vor-werkzeug` | `p13-werkzeug-vor-ablage` |
+| 13 · Ablage vor Zeile | `m-p13-zeile-vor-ablage` | `p13-ablage-vor-zeile` |
+| 13 · Exit 0 in jedem Fall | `m-p13-exit1` | `p1-kopie` `p13-ablage-weg` `p13-form-vor-laenge` `p13-hash-fehlt` `p13-ref-vor-form` `p13-sperre` `p13-werkzeug-erstes` `p13-werkzeug-flock` `p13-werkzeug-git` `p13-werkzeug-make` `p13-werkzeug-pgrep` `p13-werkzeug-setsid` `p2-fehlt` `p2-kein-verzeichnis` `p2-leer` `p2-relativ` `p2-zwei-zeilen` `p3-headsx` `p3-notes` `p3-tag` `p4-ergebnis-bleibt` `p4-feld-fehlt` `p4-hash-41` `p4-hash-gross` `p4-hash-kurz` `p4-null40` `p4-null64` `p4-stdin-leer` `p4-vier-felder` `p5-gestartet-zeile` `p8-lang-mehrbyte` |
+| 13 · nie `gruen` bei Sperre | `m-p13-gruen-bei-sperre` | `p13-sperre` |
+| 13 · nie `gruen` bei Arbeitsbaum | `m-p13-gruen-bei-arbeitsbaum` | `p13-hash-fehlt` |
+| 13 · Marke bleibt bei Sperre | `m-p13-marke-weg-bei-sperre` | `p13-sperre` |
+| 13 · Marke bleibt bei Arbeitsbaum | `m-p13-marke-weg-bei-arbeitsbaum` | `p13-hash-fehlt` `p4-hash-64` |
+| 13 · `make` mit Exit 127: `rot` | `m-p13-127-ohne-ergebnis` | `p13-make-127` |
+| 13 · Ref vor Form | `m-p13-form-vor-ref` | `p13-ref-vor-form` |
+| 13 · Form vor Länge | `m-p13-laenge-vor-form` | `p13-form-vor-laenge` |
+| 13 · Sperre vor Arbeitsbaum | `m-p13-arbeitsbaum-vor-sperre` | `p13-sperre-vor-arbeitsbaum` |
+| 13 · `make` durch Signal: `rot` | `m-p13-signal-ohne-ergebnis` | `p13-make-signal` |
+| 13 · Fehler des Arbeitsbaums beendet nur diesen Lauf | `m-p13-mktemp-beendet` | `p13-mktemp` |
 
-- **Grüne Mutanten:** keine; jede der 113 Mutationen färbt genau ihre Menge (die Gegenprobe verlangt sie). **Einzelprüfung nicht möglich, deshalb keine eigene Mutation:** Marke fehlt und Marke leer lehnen drei Prüfungen gemeinsam ab (Zeilenzahl, absolut, Verzeichnis). Invariante: die Marke ist eine einzelne absolute Zeile mit vorhandenem Verzeichnis; Ort: die drei Zeilen nach `# (1) Marke des Containers`; Sonde: `m-p2-keine-marke` (alle drei gestrichen) färbt `p2-fehlt` und `p2-leer`, `m-p2-nur-existenz` färbt `p2-leer`, jeweils gefahren. `m-p9-sigterm-ohne-trap` färbt `p9-sigterm-wartet` nicht (die Standardaktion von `SIGTERM` beendet das Skript mit Exit 143 ohne Ergebnis und mit Marke, beobachtbar gleich); der Mutant ist durch `p9-sigterm-lauf` rot.
-- **Nicht durch einen Fall belegt:** Punkte 14 und 16 (akzeptierte Negative); „Kopie, kein Symlink“ (Punkt 1); „ein Hintergrundprozess je Push“ (Punkt 3); die Reihenfolge Sperre vor Arbeitsbaum vor Lauf (Punkt 13 (5) bis (7)); `SIGINT` und `SIGHUP` (nicht zugesagt); die Zusage „Exit 1, wenn der Lauf rot endet“ entfällt, weil der Hook nicht wartet (`m-p5-wartet` und `m-p13-exit1` decken die Rückkehr und den Exit ab).
-- **Rückgaben an den Architect (Randform · Frage; im Bericht, kein Code-Commit trägt eine davon in §6):** (1) leere Zeile mitten in der Eingabe: heute eine Meldung `zeile` (kein Feld); schweigend überspringen? (2) Zeile mit mehr als drei Feldern, Ref mit Leerzeichen: heute ist alles ab dem dritten Feld der Ref; ablehnen? (3) letzte Zeile ohne Zeilenumbruch: heute verarbeitet. (4) `pgrep` fehlt: Punkt 13 nennt es nicht unter den Werkzeugen; heute beendet `SIGTERM` dann nur `make`, nicht dessen Nachkommen; aufnehmen oder Negativ? (5) `make` durch ein Signal beendet (Exit über 128): heute ein beendeter Lauf mit `ergebnis=rot`; so gewollt? (6) `p13-ablage-weg` braucht einen Benutzer ohne root (`chmod` sperrt root nicht aus); als root endet die Gegenprobe mit Exit 2 und damit `make gegenproben` rot; Bedingung in `SPEC-061` aufnehmen oder anderer Aufbau?
+- **Grüne Mutanten:** keine; jede der 131 Mutationen färbt genau ihre Menge. Die frühere Aussage, `m-p9-sigterm-ohne-trap` färbe `p9-sigterm-wartet` nicht, weil das Verhalten „beobachtbar gleich“ sei, ist gestrichen: ohne Behandlung bleibt das wartende `flock` als Waise stehen (Review F-6); der Mutant färbt jetzt `p9-sigterm-wartet-waise` (gemessen über die Prozesse mit offener Sperre) neben `p9-sigterm-enkel` und `p9-sigterm-lauf`; `p9-sigterm-wartet` bleibt grün, weil Exit 143, Marke und fehlendes Ergebnis ohne Behandlung dieselben sind, und genau diese drei Beobachtungen prüft dieser Fall. Die frühere Aussage „Einzelprüfung für `p2-fehlt` und `p2-leer` nicht möglich“ ist gestrichen (Review F-10): `m-p2-fehlt-nimmt-ablage` und `m-p2-leer-nimmt-ablage` färben je ihren Fall.
+- **Nicht durch einen Fall belegt (akzeptierte Negative laut `SPEC-061`):** Kopie statt Symlink (Punkt 1), gleichzeitige Aufrufe mit gleichem Namen (Punkt 14), Grenzen 16 (1) bis (9), `SIGINT` und `SIGHUP`, Verhalten der Prüfung als root, Übereinstimmung der Kopie im Bare-Repo mit dem Skript. „Ein Hintergrundprozess je Push“ (Punkt 3) fängt keine eigene Mutation; die Mutation „ein Prozess je Zeile“ färbte im Review `p3-mehrere`.
+- **Hinweise an den Planner (`AGENTS.md` §3.9; ich ändere nur §7):** §1 und §3 nennen die Voraussetzung „Benutzer ohne root“ nicht, die der Kopf von `SPEC-061` jetzt festlegt, und zählen die Fälle nicht (94) und Mutationen (131); die Größenzählung in §8 (610 bis 1035 Zeilen geschätzt) liegt mit 794 darin.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
