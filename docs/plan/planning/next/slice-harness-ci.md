@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-064` Teile 1 und 2 und Punkt 14 für `ci.yml` und `ci-range.sh` (Vertrag des Architect in `harness/vertraege/`; Teil 3, die Konfiguration der Range-Prüfungen mit ihrer Gegenprobe, trägt `slice-harness-ci-range-konfiguration`) · `SPEC-063` (gelesen: Gate der Workflows; `ci.yml` besteht es) · [`SPEC-050`](../../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md) (gelesen: Kennungen im Commit) · [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) Punkte 1 bis 4 und 21 (gelesen: Nachweis des vollen Laufs, Aufrufarten).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-ci)
 **Autor:** Planner. **Datum:** 2026-10-18.
 
 ---
