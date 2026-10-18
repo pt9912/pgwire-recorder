@@ -41,7 +41,7 @@ sonden_raeumen() { local d; for d in "${PSDS[@]}"; do [[ ${d##*/} == pgr-cs-* ]]
 # anonymes Volume, das danach bleibt, wird gemeldet und entfernt.
 dk_raeumen() {
   local n v i k
-  (( ${#DKC[@]} )) || return 0
+  [ -n "${dkb-}" ] || return 0
   for n in "${DKC[@]}"; do
     [[ $n == pgr-cs-* ]] || continue
     DKV+=($(docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}} {{end}}{{end}}' "$n" 2> /dev/null))
@@ -71,7 +71,7 @@ freier_port() {
 dk_sonde() { # legt Image, Container, ein benanntes und ein anonymes Volume des Präfixes an, startet nichts und nennt sie
   local im=vsc-$nm-sonde c=$nm-sonde
   tar -cT /dev/null | docker import - "$im" > /dev/null || return 1
-  DKC+=("$c")
+  DKC+=("$c") dkb=1
   docker create --name "$c" -v /anon -v "$c-vol:/benannt" "$im" /x > /dev/null || return 1
   printf '%s\n%s\n%s\n' "$c" "$c-vol" "$im"
   docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' "$c" | grep .
@@ -266,7 +266,7 @@ dk_gruppe() {
   [ -n "$id1" ] || return 0
   [ -z "${GP_KIND-}" ] || return 0
   dd=$arbeit/$nm dp=$(freier_port) || { melde "kein freier Port"; return 0; }
-  DKC=("$nm") DKV=()
+  DKC=("$nm") DKV=() dkb=1
   dk
   sel p11-docker-bereit && { { [ "$code" = 0 ] && grep -qx "container-start: bereit $nm 127.0.0.1:$dp" "$arbeit/dk.out"; } || rot p11-docker-bereit; }
   sel p9-docker-erststart && { { [ "$(ins '{{.Name}}')" = "/$nm" ] && [ "$(ins '{{index .Config.Labels "devcontainer.local_folder"}}')" = "$dd" ] && [ "$(ins '{{.State.Running}}')" = true ]; } || rot p9-docker-erststart; }
@@ -500,6 +500,7 @@ cases() {
     c "p15-voraussetzung-$t" && { kind "$t"; [ "$code" != 0 ] && grep -qF "$t fehlt im Pfad" "$w/err" && ! grep -q übersprungen "$w/err" || rot; }
   done
   c p15-rekursion && { (GP_KIND=1; eval "$(sed -n '/^kind() {/,/^}/p' "$gpk")"; kind nichts) > /dev/null 2> "$w/err"; [ $? = 1 ] && grep -q Rekursion "$w/err" || rot; }
+  c p15-fremdes-verzeichnis && { mkdir "$w/tmp"; a=$(TMPDIR=$w/tmp mktemp -d -t pgr-cs-XXXXXX); TMPDIR=$w/tmp sonde ende; { [ -d "$a" ] && [ "$pcode" = 0 ]; } || rot; rmdir -- "$a" 2> /dev/null; }
   c p15-sonden-raeumen && { kind nichts '^p15-ende$'; [ "$code" = 0 ] || rot; }
   c p15-name-ohne-praefix && { (cd "$w" && env -i PATH="$PATH" HOME="$w" TMPDIR="$w" GP_KIND=1 GP_NAME=foo GP_NUR=p15-aufraeumen-ende GP_MUT='^$' GP_QUELLE="$quelle" "$BASH" "$gpk" > "$w/out" 2> "$w/err"); code=$?
     { [ "$code" != 0 ] && grep -qF 'trägt das Präfix pgr-cs- nicht' "$w/err"; } || rot; }
@@ -618,7 +619,7 @@ mut p3-docker-version s '(( 10#${BASH_REMATCH[1]} >= 24 ))' 'true' 'p3-docker-.*
 mut p3-docker-groesser s '(( 10#${BASH_REMATCH[1]} >= 24 ))' '(( 10#${BASH_REMATCH[1]} > 24 ))' 'p3-docker-.*' p3-docker-24
 mut p3-exit s '(( bad == 0 )) || exit 3' '(( bad == 0 )) || exit 1' 'p3-fehlt-ssh' p3-fehlt-ssh
 # Punkt 4
-mut p4-meldung-form s 'echo "container-start: $schritt: $*" >&2' 'echo "$schritt: $*" >&2' "$P4S|p3-.*" p3-alle-fehlen p3-docker-23 p3-docker-24 p3-docker-daemon p3-docker-exit1 p3-docker-unlesbar p3-fehlt-devcontainer p3-fehlt-docker p3-fehlt-node p3-fehlt-ssh p3-fehlt-ssh-keygen p3-fehlt-u-boot p3-u-boot-0.10.0 p3-u-boot-0.100.0 p3-u-boot-0.9.0 p3-u-boot-1.0.0 p3-u-boot-exit1 p3-u-boot-unlesbar p4-meldung-form p6-nur-privat p6-passphrase
+mut p4-meldung-form s 'echo "container-start: $schritt: $*" >&2' 'echo "$schritt: $*" >&2' "$P4S|p3-.*" p3-alle-fehlen p3-docker-23 p3-docker-daemon p3-docker-exit1 p3-docker-unlesbar p3-fehlt-devcontainer p3-fehlt-docker p3-fehlt-node p3-fehlt-ssh p3-fehlt-ssh-keygen p3-fehlt-u-boot p3-u-boot-0.9.0 p3-u-boot-exit1 p3-u-boot-unlesbar p4-meldung-form
 mut p4-meldung-stdout s 'echo "container-start: $schritt: $*" >&2' 'echo "container-start: $schritt: $*"' "$P4S" p2-dev-leer p2-port-abc p3-fehlt-ssh p3-u-boot-0.9.0 p4-nichts-geaendert p5-elternpfad-fehlt p5-fremd-datei p6-nur-privat p9-kollision p6-passphrase
 mut p4-schreibt-vor-pruefung s '  eltern=$(dirname -- "$PGR_DEV")' '  eltern=$(dirname -- "$PGR_DEV"); echo x > "$eltern/spur"' "$P4S" p4-meldung-form p4-nichts-geaendert
 mut p4-ruft-up s '  (( bad == 0 )) || exit 3' '  docker up; (( bad == 0 )) || exit 3' "$P4S" p4-nichts-geaendert
@@ -719,6 +720,7 @@ mut p15-term p $'trap \'exit 143\' TERM' ':' 'p15-(praefix|aufraeumen-.*|docker-
 mut p15-praefix p 'mktemp -d -t pgr-cs-XXXXXX' 'mktemp -d "${GP_PROBE_DATEI%/*}/xyz-XXXXXX"' 'p15-(praefix|aufraeumen-.*)' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term p15-praefix
 mut p15-schutz p '[[ ${arbeit##*/} == pgr-cs-* ]] && ' '' 'p15-(praefix|aufraeumen-.*)'
 mut p15-rekursion-schutz p '  [ -z "${GP_KIND-}" ] || { melde "Rekursion: eine Kind-Gegenprobe ruft kind erneut auf"; exit 1; }' '' 'p15-rekursion' p15-rekursion
+mut p15-sonden-per-praefix p 'local d; for d in "${PSDS[@]}"; do' 'local d; for d in "${TMPDIR:-/tmp}"/pgr-cs-*; do' 'p15-(fremdes-verzeichnis|aufraeumen-.*)' p15-fremdes-verzeichnis
 mut p15-sonden-bleiben p 'rmdir -- "$d" 2> /dev/null' ':' 'p15-sonden-raeumen' p15-sonden-raeumen
 mut p15-voraussetzung-ohne-node p 'for t in make node ssh-keygen u-boot docker devcontainer ssh; do' 'for t in make ssh-keygen u-boot docker devcontainer ssh; do' 'p15-voraussetzung-.*' p15-voraussetzung-node
 mut p15-voraussetzung-ohne-ssh-keygen p 'for t in make node ssh-keygen u-boot docker devcontainer ssh; do' 'for t in make node u-boot docker devcontainer ssh; do' 'p15-voraussetzung-.*' p15-voraussetzung-ssh-keygen
