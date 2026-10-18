@@ -57,11 +57,11 @@ eine Mutation.
 1. **Prüfbereich.** Geprüft werden die regulären Dateien unmittelbar in `<Wurzel>/.github/workflows/` mit der Endung
    `.yml` (E1) oder `.yaml` (E2), klein geschrieben und als Ende des Namens, in der Reihenfolge der Namen (Locale `C`).
    Eine Datei in einem Unterverzeichnis und eine Datei mit anderer Endung (`.YML`, `.yml.bak`, `README.md`) werden nicht geprüft;
-   jede steht auf stdout als Zeile `hinweis: <Pfad> wird nicht geprüft (<Grund>)` und ist kein Befund. Ein Symlink mit einer der
+   jede steht auf stdout als Zeile `hinweis: <Pfad> wird nicht geprüft (<Grund>)` und ist kein Befund. Ein Symlink mit **anderer** Endung ist wie jede Datei mit anderer Endung ein Hinweis `(Endung)`, kein Befund und nicht gefolgt. Ein Symlink mit einer der
    beiden Endungen ist ein Befund `symlink` (Zeile 1), wird nicht gefolgt und nicht an `actionlint` gegeben, auch bei einem Ziel
    innerhalb des Baums. Fälle: `p1-yml`, `p1-yaml` (je eine Datei mit Befund aus Punkt 6, rot, Datei genannt),
    `p1-andere-endung` (Dateien `x.YML`, `x.yml.bak` und `x.txt` mit Befund: grün, drei Hinweise), `p1-unterverzeichnis`,
-   `p1-symlink`. Mutationen: Prüfbereich nur `.yml`; nur `.yaml`; Endung als Teilstring (`*.yml*`); rekursive Suche; Symlink gefolgt.
+   `p1-symlink`, `p1-symlink-andere-endung` (`x.txt` als Symlink: grün, Hinweis mit `(Endung)`, kein Befund). Mutationen: Prüfbereich nur `.yml`; nur `.yaml`; Endung als Teilstring (`*.yml*`); rekursive Suche; Symlink gefolgt; Symlink mit anderer Endung wird Befund oder ohne Hinweis übergangen (je eine, färben `p1-symlink-andere-endung`).
 2. **Kein Prüfbereich.** Fehlt das Verzeichnis (F1), ist es leer (F2) oder enthält es nur Dateien, die Punkt 1 weder prüft noch als Symlink beanstandet (F3), meldet das
    Skript auf stdout `workflows-check: keine Workflow-Dateien unter .github/workflows` und endet mit Exit 0, **ohne** `docker` zu rufen
    und ohne die Prüfungen der Punkte 4 und 8. Das ist grün über leerem Prüfbereich und gilt bis zur ersten Datei (Grenze, Punkt 11); die
@@ -108,13 +108,13 @@ eine Mutation.
    (`contents: admin`). Mutationen: oben fehlendes `permissions:` angenommen; jeder Wert oben angenommen (färbt `p6-read-all`, `p6-write-all`,
    `p6-block`, `p6-flow-eintrag`); ein Skalar am Job angenommen (färbt `p6-job-write-all`, `p6-job-read-all`); ein Flow-Mapping am Job angenommen;
    ein unbekannter Wert im Block angenommen; `permissions:` am Job verlangt.
-7. **Zeitgrenzen.** Jeder Job mit der Eigenschaft `runs-on:` (Einzug vier) trägt `timeout-minutes:` mit einer dezimalen Ganzzahl von 1 bis 60, danach
-   höchstens Leerraum und ein Kommentar. Fehlt sie: Befund `timeout-fehlt`; jeder andere Wert (0, 61, ein Ausdruck `${{ … }}`, `30.5`, ein
+7. **Zeitgrenzen.** Jeder Job mit der Eigenschaft `runs-on:` (Einzug vier) trägt `timeout-minutes:` mit einer dezimalen Ganzzahl in Normalform (Ziffern ohne Vorzeichen und ohne führende Null) von 1 bis 60, danach
+   höchstens Leerraum und ein Kommentar. Fehlt sie: Befund `timeout-fehlt`; jeder andere Wert (0, 61, `010`, `0060`, `00`, `+5`, `5.0`, ein Ausdruck `${{ … }}`, `30.5`, ein
    Wort): Befund `timeout-wert` mit dem gelesenen Wert. Die Obergrenze 60 liegt unter dem Standard von GitHub (360); sie zu heben ist eine
    Änderung dieser Kennung. Ein Job ohne `runs-on:` (der Aufruf eines wiederverwendbaren Workflows mit `uses:`) wird nicht geprüft, weil GitHub
    dort keine `timeout-minutes` zulässt; `actionlint` fängt sie dort (Punkt 3). Fälle: `p7-fehlt`, `p7-1-ok`, `p7-60-ok`, `p7-61`, `p7-0`,
-   `p7-ausdruck`, `p7-nicht-ganzzahl`, `p7-uses-job-ok`. Mutationen: Pflicht entfällt; Obergrenze 61; Obergrenze 360; 0 angenommen; Ausdruck
-   angenommen; Nicht-Ganzzahl angenommen; Job ohne `runs-on:` geprüft.
+   `p7-ausdruck`, `p7-nicht-ganzzahl`, `p7-fuehrende-null` (`010`, `0060`, `00`: je rot, `timeout-wert` mit dem Wert), `p7-vorzeichen` (`+5`), `p7-dezimal` (`5.0`), `p7-uses-job-ok`. Mutationen: Pflicht entfällt; Obergrenze 61; Obergrenze 360; 0 angenommen; Ausdruck
+   angenommen; Nicht-Ganzzahl angenommen; führende Null angenommen (färbt `p7-fuehrende-null`); Vorzeichen angenommen (färbt `p7-vorzeichen`); Dezimalform angenommen (färbt `p7-dezimal`); Job ohne `runs-on:` geprüft.
 8. **Bindung der Pin-Prüfung.** Gibt es mindestens eine Datei nach Punkt 1, muss `<Wurzel>/.d-check.yml` (a) in der Zeile `modules:` in der Flow-Form
    `[…]` das Element `workflows` führen, (b) eine Zeile `workflows:` in Spalte 1 führen und (c) darunter, vor dem nächsten Schlüssel in Spalte 1,
    eine Zeile `  dir:` mit dem Wert `.github/workflows` (mit oder ohne Anführungszeichen, ohne schließenden Schrägstrich). Sonst ist es ein Befund
