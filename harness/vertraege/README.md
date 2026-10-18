@@ -38,6 +38,7 @@ eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsb
 | `SPEC-058` | `container-start`, `container-start-gegenprobe` | [`SPEC-058-container-start.md`](SPEC-058-container-start.md) |
 | `SPEC-060` | `gegenproben`, `gegenproben-host`, `gegenproben-gegenprobe`; Namensregel der Gegenproben | [`SPEC-060-gegenproben.md`](SPEC-060-gegenproben.md) |
 | `SPEC-061` | `gegenproben-nach-einlieferung` (Hook im Bare-Repo des Gegenproben-Containers), `gegenproben-nach-einlieferung-gegenprobe` | [`SPEC-061-gegenproben-nach-einlieferung.md`](SPEC-061-gegenproben-nach-einlieferung.md) |
+| `SPEC-062` | `nachweis-uebernehmen`, `nachweis-uebernehmen-gegenprobe` | [`SPEC-062-nachweis-uebernehmen.md`](SPEC-062-nachweis-uebernehmen.md) |
 
 ## Historie
 
@@ -68,3 +69,4 @@ eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsb
 | 2026-10-18 | Start des Dev-Containers: `container-start-gegenprobe` ist ein Ziel für den Host, kein Teil von `GATE_CHECKS` und der Ausnahmeliste; Voraussetzung am Host ohne Überspringen (`SPEC-058`, Punkte 15 und 16) |
 | 2026-10-18 | Gegenproben außerhalb der Gate-Kette: zwei Listen (Container, Host), Namens- und Eindeutigkeitsregel, zwei Sammelziele mit Reihenfolge, rotem Einzelziel, Ausgabe, Abbruch, leerer Liste, Aufrufarten von `make` und Reihenfolge der Gründe, Pflicht zum Fahren, Grenzen und Plattform (`SPEC-060`); Ausnahmeliste der schnellen Kette auf drei Gates, Nachweis ohne Gegenproben, Beleg der Positivliste als Regel an den Schreiber einer Gegenprobe (`SPEC-052`); Anschluss der Gegenproben an die Liste statt an `GATE_CHECKS` (`SPEC-053` Punkte 12 und 13, `SPEC-054` Punkt 11, `SPEC-055` Punkt 12, `SPEC-056` Punkt 11, `SPEC-057` Punkt 10, `SPEC-058` Punkt 16) |
 | 2026-10-18 | Hook für die Einlieferung in den Gegenproben-Container: Marke, Refs, Löschung und Form der Zeilen, Hintergrundlauf, Sperre, derselbe Hash, Kodierung des Zweignamens, Ergebnis und Marke des laufenden Laufs, nur `make gegenproben`, Umgebung, Arbeitsbaum je Lauf, Reihenfolge der Gründe, Lesen des Ergebnisses und Grenzen (`SPEC-061`) |
+| 2026-10-18 | Übernahme des Nachweises des vollen Laufs aus einer anderen Umgebung: Quelle als Verzeichnis, Bedingungen (unbeschädigte Liste, Hash neben der Liste, byte-gleiche Liste mit dem Baum des Ziels), Reihenfolge der Gründe, Kennwörter und Exit-Codes, Ersetzen und Ablehnen ohne Änderung, Signale, Make-Flags, Kopplung an den Hook, Grenzen und Plattform (`SPEC-062`); zweiter Schreiber des Nachweises (`SPEC-052` Punkte 1, 8 und 21) |

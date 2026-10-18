@@ -15,7 +15,9 @@ von [`SPEC-060`](SPEC-060-gegenproben.md); Punkt 8 ist eine Bindung der Zusagen 
    kann aus ihr nicht still fallen, weil kein Fragment sie aufzählt. Eine Gegenprobe oder
    `a-check-negativ` hängt dort nicht ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 2). `make gates` schreibt
    den Nachweis des vollen Laufs `.harness/state/gates-passed.diffsha`, dazu die Dateiliste
-   (Punkt 11); bei den Make-Flags `-i`, `-n`, `-q`, `-t` gilt Punkt 21.
+   (Punkt 11); bei den Make-Flags `-i`, `-n`, `-q`, `-t` gilt Punkt 21. Der Nachweis hat einen
+   zweiten Schreiber, `make nachweis-uebernehmen` ([`SPEC-062`](SPEC-062-nachweis-uebernehmen.md)): Er legt
+   den Nachweis einer anderen Umgebung nur ab, wenn dessen Liste mit der des Arbeitsbaums byte-gleich ist.
 2. **Schnelle Kette.** Die schnelle Kette ist `GATE_CHECKS` ohne die Ausnahmeliste. Die
    Ausnahmeliste steht im Fragment der Kette, `harness/mk/gates-schnell.mk`, und nennt genau
    `test-container`, `test-integration` und `test-postgres-versionen`. `build`,
@@ -45,7 +47,7 @@ von [`SPEC-060`](SPEC-060-gegenproben.md); Punkt 8 ist eine Bindung der Zusagen 
 7. **Der volle Nachweis bleibt getrennt.** Die schnelle Kette schreibt, verändert und löscht
    den Nachweis des vollen Laufs nie und ersetzt ihn nie.
 8. **Aufruf-Voraussetzung.** Zugesagt ist nacheinander: Änderung des Arbeitsbaums, Lauf der
-   vollen Kette, Lauf der schnellen Kette und Hook kommen nicht gleichzeitig. Gleichzeitige
+   vollen Kette, Übernahme des Nachweises ([`SPEC-062`](SPEC-062-nachweis-uebernehmen.md)), Lauf der schnellen Kette und Hook kommen nicht gleichzeitig. Gleichzeitige
    Läufe sind nicht zugesagt. Ein Hook, der eine halb geschriebene Datei liest, endet in „kein
    Stand“ oder „beschädigt“ und damit bei der vollen Kette; mehr wird nicht zugesagt, ein
    atomares Schreiben und ein Fall dafür entfallen.
@@ -233,7 +235,10 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     entscheiden nach ihrem Pfad.
 21. **Make-Flags beim Schreiben des Nachweises des vollen Laufs.** Der Hook glaubt den Nachweis,
     also schreibt ihn `make gates` nur nach einem Lauf, in dem die Gates tatsächlich liefen und
-    kein Fehler überlesen wurde. Ein Aufruf mit dem Make-Flag `-i` (`--ignore-errors`, in
+    kein Fehler überlesen wurde. Der zweite Schreiber, `make nachweis-uebernehmen`
+    ([`SPEC-062`](SPEC-062-nachweis-uebernehmen.md)), schreibt ihn nur bei byte-gleicher Liste; er lehnt `-i` ab
+    (Exit 2) und lässt einen vorhandenen Nachweis dabei stehen, und für `-n`, `-q` und `-t` gilt dort
+    Punkt 16. Ein Aufruf mit dem Make-Flag `-i` (`--ignore-errors`, in
     `MAKEFLAGS` gleich welcher Schreibweise, auch aus der Umgebung und zusammen mit anderen
     Flags wie `-k` oder `-j`) schreibt weder die Dateiliste noch `gates-passed.diffsha`; ein
     älterer Nachweis beider Dateien entfällt, auch bei grünem Lauf. Ein Aufruf mit `-n`, `-q`
