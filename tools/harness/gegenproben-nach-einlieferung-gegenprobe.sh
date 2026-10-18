@@ -7,6 +7,8 @@
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn das Muster `ok` trifft); GP_ENTDECKE=1 nennt je
 # Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen. Braucht bash ≥ 5, git, flock, setsid, pgrep, timeout.
 # Die Fälle p13-ablage-weg und p13-mktemp verlangen einen Benutzer ohne root (chmod sperrt root nicht aus); als root endet die Gegenprobe mit Exit 2.
+# Wartezeiten: Aussagen über etwas, das nicht geschehen darf, warten bis zum Ende der Läufe der Gruppe (bis_fertig) statt fest; Fristen bis zu 15 s in Schritten von 0,1 s (WA);
+# der Fall p9-sigterm-wartet-waise zählt die Prozesse der Sitzung des Hintergrundlaufs (pgrep -s), nicht die des Hosts.
 # GRENZE: Die Attrappe ersetzt `make gegenproben`; ob die echten Gegenproben grün sind, sagt die erste Fahrt im Container. SIGKILL, ein Neustart und die
 # Gleichzeitigkeit zweier Aufrufe mit gleichem Namen (Punkte 14, 16) haben keinen Fall.
 set -uo pipefail
@@ -113,7 +115,7 @@ g2() {
   aufbau p2
   marke_fall() {
     local vor; vor="$(snap "$g/bare")"
-    haken "$(zl main "$h1")"; sleep 0.3
+    haken "$(zl main "$h1")"; bis_fertig
     { nichts && grep -q '^gegenproben-nach-einlieferung: marke: ' "$g/h.err" && [ "$(snap "$g/bare")" = "$vor" ]; } || echo "$1"
     zurueck
   }
@@ -129,7 +131,7 @@ g3() {
   local r
   aufbau p3
   for r in tags:p3-tag notes:p3-notes headsx:p3-headsx; do
-    haken "$(printf '%s %s refs/%s/x\n' "$Z0" "$h1" "${r%%:*}")"; sleep 0.3
+    haken "$(printf '%s %s refs/%s/x\n' "$Z0" "$h1" "${r%%:*}")"; bis_fertig
     { nichts && [ ! -s "$g/h.err" ]; } || echo "${r##*:}"
     zurueck
   done
@@ -144,28 +146,28 @@ g3() {
 g4() {
   local gross h64 v
   aufbau p4
-  haken "$h1 $Z0 refs/heads/x"; sleep 0.3; { nichts && [ ! -s "$g/h.err" ]; } || echo p4-null40; zurueck
-  haken "$h1 $Z64 refs/heads/x"; sleep 0.3; { nichts && [ ! -s "$g/h.err" ]; } || echo p4-null64; zurueck
+  haken "$h1 $Z0 refs/heads/x"; bis_fertig; { nichts && [ ! -s "$g/h.err" ]; } || echo p4-null40; zurueck
+  haken "$h1 $Z64 refs/heads/x"; bis_fertig; { nichts && [ ! -s "$g/h.err" ]; } || echo p4-null64; zurueck
   echo alt > "$(res b "$h1")"; echo log > "$(res b "$h1").log"; : > "$(res b "$h1").laeuft"; v="$(snap "$g/ablage")"
-  haken "$h1 $Z0 refs/heads/b"; sleep 0.3
+  haken "$h1 $Z0 refs/heads/b"; bis_fertig
   { [ "$hrc" -eq 0 ] && [ ! -s "$g/h.err" ] && [ "$(snap "$g/ablage")" = "$v" ] && [ "$(cat "$(res b "$h1")")" = alt ]; } || echo p4-ergebnis-bleibt
   leere
   gross="$(printf 'A%.0s' {1..40})"; h64="$(printf 'ab%.0s' {1..32})"
-  haken "$Z0 ${h1:0:39} refs/heads/x"; sleep 0.3; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-hash-kurz; zurueck
-  haken "$Z0 $gross refs/heads/x"; sleep 0.3; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-hash-gross; zurueck
-  haken "$Z0 ${h1}a refs/heads/x"; sleep 0.3; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-hash-41; zurueck
+  haken "$Z0 ${h1:0:39} refs/heads/x"; bis_fertig; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-hash-kurz; zurueck
+  haken "$Z0 $gross refs/heads/x"; bis_fertig; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-hash-gross; zurueck
+  haken "$Z0 ${h1}a refs/heads/x"; bis_fertig; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-hash-41; zurueck
   haken "$Z0 $h64 refs/heads/x"; bis_fertig
   { err_ist "$(gest x "$h64")" && [ -e "$(res x "$h64").laeuft" ]; } || echo p4-hash-64
   leere
-  haken "$(printf 'x\n%s %s\n' "$Z0" "$h1")"; sleep 0.3
+  haken "$(printf 'x\n%s %s\n' "$Z0" "$h1")"; bis_fertig
   { nichts && [ "$(grep -c 'zeile: ' "$g/h.err")" -eq 2 ]; } || echo p4-feld-fehlt
-  haken ""; sleep 0.3; { nichts && [ ! -s "$g/h.err" ]; } || echo p4-stdin-leer; zurueck
+  haken ""; bis_fertig; { nichts && [ ! -s "$g/h.err" ]; } || echo p4-stdin-leer; zurueck
   for v in p4-leerzeile: p4-leerzeichen-zeile:'  	 '; do
     haken "$(printf '%s\n%s\n%s' "$(zl a "$h1")" "${v#*:}" "$(zl b "$h2")")"; bis_fertig
     { ! grep -q 'zeile: ' "$g/h.err" && [ "$(grep -c 'gestartet: ' "$g/h.err")" -eq 2 ] && [ -f "$(res a "$h1")" ] && [ -f "$(res b "$h2")" ]; } || echo "${v%%:*}"
     zurueck
   done
-  haken "$Z0 $h1 refs/heads/x extra"; sleep 0.3; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-vier-felder; zurueck
+  haken "$Z0 $h1 refs/heads/x extra"; bis_fertig; { nichts && grep -q 'zeile: ' "$g/h.err"; } || echo p4-vier-felder; zurueck
   roh=1 haken "$(zl a "$h1")"; bis_fertig
   { err_ist "$(gest a "$h1")" && [ -f "$(res a "$h1")" ]; } || echo p4-ohne-umbruch
   haken "$(printf '%s %s refs/heads/y\n' "$Z0" "${h1:0:39}"; zl x "$h1")"; bis_fertig
@@ -204,7 +206,7 @@ g6() {
   local a b
   aufbau p6
   echo 2 > "$g/steuer/warte"
-  haken "$(zl a "$h1")"; sleep 0.5; haken "$(zl b "$h2")"; bis_fertig
+  haken "$(zl a "$h1")"; warte_auf grep -qs beginn "$g/steuer/protokoll"; haken "$(zl b "$h2")"; bis_fertig
   [ "$(awk '{print $1 $2}' "$g/steuer/protokoll" | tr '\n' ' ')" = "beginn1 ende1 beginn2 ende2 " ] || echo p6-nacheinander
   { [ "$(feld "$(res a "$h1")" exit)" = 0 ] && [ "$(feld "$(res b "$h2")" exit)" = 0 ]; } || echo p6-kein-abbruch
   a="$(feld "$(res a "$h1")" ende)"; b="$(feld "$(res b "$h2")" beginn)"
@@ -249,7 +251,7 @@ g8() {
   { grep -q '^gegenproben-nach-einlieferung: name: ' "$g/h.err" && [ ! -e "$e-$lang121-$h1" ] && [ ! -e "$e-$lang121-$h1.laeuft" ]; } || echo p8-lang
   [ -f "$e-$lang120-$h1" ] || echo p8-grenze
   zurueck
-  haken "$(zl "$(printf 'ü%.0s' {1..60})" "$h1")"; sleep 0.3
+  haken "$(zl "$(printf 'ü%.0s' {1..60})" "$h1")"; bis_fertig
   { nichts && grep -q '^gegenproben-nach-einlieferung: name: ' "$g/h.err"; } || echo p8-lang-mehrbyte
   zurueck
   if [ "$(LC_ALL=C.UTF-8 bash -c 's=ü; echo ${#s}' 2> /dev/null)" = 1 ]; then
@@ -299,34 +301,39 @@ lauf_direkt() {
   (env -i PATH="$g/bin:$PFAD" HOME="$g" TZ=UTC setsid -w "$BASH" "$g/bare/hooks/post-receive" --lauf "$g/bare" "$g/ablage" "$@" < /dev/null > /dev/null 2>&1; echo $? > "$g/rc") &
 }
 # haelt — Zahl der Prozesse, die die Sperre der Ablage offen halten.
-haelt() { local f c=0; for f in /proc/[0-9]*/fd/*; do if [ "$(readlink "$f" 2> /dev/null)" = "$g/ablage/gegenproben.lock" ]; then c=$((c + 1)); fi; done; echo "$c"; }
+# Der Hintergrundlauf ist Führer einer eigenen Sitzung; was von ihm bleibt (ein wartendes flock), bleibt in dieser Sitzung.
+sitz() { ps -o sid= -p "$1" 2> /dev/null | tr -d ' '; }
+sitz_leer() { [ -z "$1" ] || ! pgrep -s "$1" > /dev/null; }
+sitz_zwei() { [ "$(pgrep -s "$1" | wc -l)" -ge 2 ]; }
+laeuft() { pgrep -f "post-receive --lauf $g/bare" > /dev/null; }
+halter() { ! flock -n "$g/ablage/gegenproben.lock" true; }
 tot() { ! kill -0 "$(cat "$1" 2> /dev/null || echo 0)" 2> /dev/null; }
 
 g9s() {
-  local n bgpid base
+  local n bgpid sid
   aufbau p9s
   touch "$g/steuer/block"; n="gegenproben-z-$h1"
   lauf_direkt "$n" z "$h1"
   warte_auf test -s "$g/steuer/block.pid"; warte_auf test -s "$g/steuer/enkel.pid"
   bgpid="$(pgrep -of "post-receive --lauf $g/bare" || echo 0)"
   if [ "$bgpid" -gt 1 ]; then kill -TERM "$bgpid"; fi
-  WA=40 warte_auf test -s "$g/rc"
+  WA=150 warte_auf test -s "$g/rc"
   { [ "$(cat "$g/rc" 2> /dev/null)" = 143 ] && [ ! -e "$g/ablage/$n" ] && [ -e "$g/ablage/$n.laeuft" ] && tot "$g/steuer/block.pid" && tot "$g/steuer/kind.pid" \
     && ! ls -A "$g/ablage" | grep -q '^arbeitsbaum' && fertig; } || echo p9-sigterm-lauf
   tot "$g/steuer/enkel.pid" || echo p9-sigterm-enkel
   pkill -KILL -f -- "$g/" 2> /dev/null
   rm -f "${g:?}/rc" "${g:?}/steuer/block" "${g:?}/steuer/zaehler"; rm -rf "${g:?}"/steuer/aufruf.*
-  flock "$g/ablage/gegenproben.lock" sleep 30 &
-  sleep 0.5
-  base="$(haelt)"
+  flock "$g/ablage/gegenproben.lock" sleep 300 &
+  warte_auf halter
   lauf_direkt "$n" z "$h1"
-  sleep 0.5
+  warte_auf laeuft
   bgpid="$(pgrep -of "post-receive --lauf $g/bare" || echo 0)"
+  sid="$(sitz "$bgpid")"
+  warte_auf sitz_zwei "${sid:-0}"
   if [ "$bgpid" -gt 1 ]; then kill -TERM "$bgpid"; fi
-  WA=40 warte_auf test -s "$g/rc"
+  WA=150 warte_auf test -s "$g/rc"
   { [ "$(cat "$g/rc" 2> /dev/null)" = 143 ] && [ ! -e "$g/ablage/$n" ] && [ -e "$g/ablage/$n.laeuft" ] && [ ! -e "$g/steuer/zaehler" ] && fertig; } || echo p9-sigterm-wartet
-  sleep 0.3
-  [ "$(haelt)" -eq "$base" ] || echo p9-sigterm-wartet-waise
+  WA=150 warte_auf sitz_leer "$sid" || echo p9-sigterm-wartet-waise
   pkill -KILL -f -- "$g/" 2> /dev/null
 }
 
@@ -389,15 +396,15 @@ g13() {
   ln -s "$g/bin/make" "$g/pfad/make"
   for w in git flock setsid make pgrep; do
     pfad="$g/pfad-$w"; cp -a "$g/pfad" "$pfad"; rm -f "${pfad:?}/${w:?}"
-    haken "$(zl main "$h1")"; sleep 0.3
+    haken "$(zl main "$h1")"; bis_fertig
     { nichts && grep -q "^gegenproben-nach-einlieferung: werkzeug: $w " "$g/h.err"; } || echo "p13-werkzeug-$w"
     zurueck
   done
   cp -a "$g/pfad" "$g/pfad-gf"; rm -f "${g:?}/pfad-gf/git" "${g:?}/pfad-gf/flock"; pfad="$g/pfad-gf"
-  haken "$(zl main "$h1")"; sleep 0.3
+  haken "$(zl main "$h1")"; bis_fertig
   { nichts && grep -q '^gegenproben-nach-einlieferung: werkzeug: git ' "$g/h.err"; } || echo p13-werkzeug-erstes
   zurueck; pfad=""
-  chmod 555 "$g/ablage"; haken "$(zl main "$h1")"; sleep 0.3; chmod 755 "$g/ablage"
+  chmod 555 "$g/ablage"; haken "$(zl main "$h1")"; bis_fertig; chmod 755 "$g/ablage"
   { [ "$hrc" -eq 0 ] && grep -q '^gegenproben-nach-einlieferung: ablage: ' "$g/h.err" && [ -z "$(ls -A "$g/ablage")" ] && [ ! -e "$g/steuer/zaehler" ]; } || echo p13-ablage-weg; zurueck
   mkdir "$g/ablage/gegenproben.lock"
   haken "$(zl main "$h1")"; bis_fertig
@@ -416,24 +423,24 @@ g13() {
   haken "$(zl main "$h1")"; bis_fertig; rm -f "${g:?}/steuer/sigkill"
   { [ "$(feld "$(res main "$h1")" exit)" = 137 ] && [ "$(feld "$(res main "$h1")" ergebnis)" = rot ]; } || echo p13-make-signal
   zurueck
-  haken "$Z0 ${h1:0:39} refs/tags/x"; sleep 0.3; { nichts && [ ! -s "$g/h.err" ]; } || echo p13-ref-vor-form; zurueck
-  haken "$Z0 ${h1:0:39} refs/heads/$(printf 'x%.0s' {1..121})"; sleep 0.3
+  haken "$Z0 ${h1:0:39} refs/tags/x"; bis_fertig; { nichts && [ ! -s "$g/h.err" ]; } || echo p13-ref-vor-form; zurueck
+  haken "$Z0 ${h1:0:39} refs/heads/$(printf 'x%.0s' {1..121})"; bis_fertig
   { nichts && grep -q 'zeile: ' "$g/h.err" && ! grep -q 'name: ' "$g/h.err"; } || echo p13-form-vor-laenge; zurueck
   : > "$g/ablage/gegenproben.lock"
   for t in a:"$h1" b:"$h2"; do : > "$g/ablage/gegenproben-${t%%:*}-${t#*:}.log"; : > "$g/ablage/gegenproben-${t%%:*}-${t#*:}.laeuft"; done
   chmod 555 "$g/ablage"; rm -f "${g:?}/rc"
   lauf_direkt "gegenproben-a-$h1" a "$h1" "gegenproben-b-$h2" b "$h2"
-  WA=50 warte_auf test -s "$g/rc"; chmod 755 "$g/ablage"
+  WA=150 warte_auf test -s "$g/rc"; chmod 755 "$g/ablage"
   { grep -q 'arbeitsbaum: ' "$g/ablage/gegenproben-a-$h1.log" && grep -q 'arbeitsbaum: ' "$g/ablage/gegenproben-b-$h2.log" && [ ! -e "$g/ablage/gegenproben-a-$h1" ] \
     && [ ! -e "$g/ablage/gegenproben-b-$h2" ] && [ ! -e "$g/steuer/zaehler" ]; } || echo p13-mktemp
   leere; rm -f "${g:?}/bare/gegenproben-ablage"; pfad="$g/pfad-git"
-  haken "$(zl main "$h1")"; sleep 0.3
+  haken "$(zl main "$h1")"; bis_fertig
   { grep -q 'marke: ' "$g/h.err" && ! grep -q 'werkzeug: ' "$g/h.err"; } || echo p13-marke-vor-werkzeug; zurueck
   echo "$g/ablage" > "$g/bare/gegenproben-ablage"
-  chmod 555 "$g/ablage"; haken "$(zl main "$h1")"; sleep 0.3; chmod 755 "$g/ablage"
+  chmod 555 "$g/ablage"; haken "$(zl main "$h1")"; bis_fertig; chmod 755 "$g/ablage"
   { grep -q 'werkzeug: ' "$g/h.err" && ! grep -q 'ablage: ' "$g/h.err"; } || echo p13-werkzeug-vor-ablage; zurueck
   pfad=""
-  chmod 555 "$g/ablage"; haken "kaputt"; sleep 0.3; chmod 755 "$g/ablage"
+  chmod 555 "$g/ablage"; haken "kaputt"; bis_fertig; chmod 755 "$g/ablage"
   { grep -q 'ablage: ' "$g/h.err" && ! grep -q 'zeile: ' "$g/h.err"; } || echo p13-ablage-vor-zeile
 }
 
