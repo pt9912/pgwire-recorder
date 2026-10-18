@@ -164,6 +164,86 @@ dasteht.
 
 ## 7. Closure-Notiz
 
+### Belege des Implementers
+
+Stand: Zweig `slice-harness-gegenproben-aus-gates`, Commits `ae1b8f43` (Kette), `a18e585e` (Anschluss der Gegenproben), `c7099fc8` (Nachzug, Gate-Index), `b614cfb0` (Zeile im Gate-Index); Lauf im Dev-Container `pgr-dev2` (Docker-Daemon dort).
+
+**Start (Risiko 4).** Im Stand `9ce157a4` hat `harness/mk/container-start-gegenprobe.mk` kein `GATE_CHECKS +=` (`git show 9ce157a4:harness/mk/container-start-gegenprobe.mk | grep -c 'GATE_CHECKS +='` gibt 0) und `GATE_SCHNELL_AUSNAHME` in `gates-schnell.mk` nennt sie nicht (`grep -c` gibt 0); `slice-harness-devcontainer-einrichten-geruest` liegt in `done/`. Nach dem Umbau: `GEGENPROBEN_HOST = container-start-gegenprobe` (`make -pq help`).
+
+**Neu:** `tools/harness/gegenproben-regel.sh` (die Namens- und Zuordnungsregel als Funktion `namensregel`, geladen von `gates-schnell-gegenprobe.sh`; kein Make-Ziel), in der Zählung des Plans Teil des Liefer-Punkts 1. Die Regel liest die Ausgabe von `make -pq` (Variablen und Ziele mit Rezept aus einem Fragment unter `harness/mk/`).
+
+**Zusage · Mutation · roter Fall** (SPEC-060 Teil 1; `gates-schnell-gegenprobe`: Kopie je Fall, danach eine Kopie der Regel mit der Mutation, rot sind genau die benannten Fälle, sonst meldet die Gegenprobe ROT). Alle Zeilen laufen grün, d. h. jede Mutation färbte genau die genannten Fälle.
+
+| Zusage | Mutation der Regel | roter Fall |
+|---|---|---|
+| Punkt 2, N1 (Name auf `-gegenprobe`) nicht in `GATE_CHECKS` (V1) | Prüfung für Klasse n1 gestrichen (`echo "p2-v1-$k"` nur für n2) | `p2-v1-n1` |
+| Punkt 2, N2 (`a-check-negativ`) nicht in `GATE_CHECKS` (V1) | dasselbe für n2 | `p2-v1-n2` |
+| Punkt 2, N1/N2 nicht in beiden Listen (V2) | je Klasse gestrichen | `p2-v2-n1`, `p2-v2-n2` |
+| Punkt 2, N1/N2 in einer Liste (V3) | je Klasse gestrichen | `p2-v3-n1`, `p2-v3-n2` |
+| Punkt 2, N1/N2 genau einmal in der Liste (V4) | je Klasse gestrichen | `p2-v4-n1` (und `p2-v4-host`, dessen Ziel auf `-gegenprobe` endet), `p2-v4-n2` |
+| Punkt 2, genau einmal in der Liste für den Host / für den Container (Element der Aufzählung) | V4 prüft nur die Liste für den Host / nur die für den Container | `p2-v4-n1`, `p2-v4-n2` / `p2-v4-host` |
+| Punkt 2, Eintrag der Liste hat ein Ziel (V6), je Liste | Prüfung der Liste für den Container / für den Host gestrichen | `p2-v6-container` / `p2-v6-host` |
+| Punkt 2, nur der Name zählt (`p2-andere-namen`: `gegenproben`, `gegenproben-host`, `x-negativ`, `x-gegenprobe-alt`, `gegenprobe` in `GATE_CHECKS`, in keiner Liste, ohne Befund) | Teilstring `-gegenprobe*`; Ende ohne Strich (`*gegenprobe`); Anfang `gegenprobe*`; N2 als `*-negativ` | `p2-andere-namen` (vier Mutationen, je eine für `x-gegenprobe-alt`, `gegenprobe`, `gegenproben` und `gegenproben-host`, `x-negativ`) |
+| Punkt 2, nur ein Ziel mit Rezept aus einem Fragment unter `harness/mk/` (Fall über den Vertrag hinaus) | Herkunft des Rezepts nicht geprüft | `p2-rezept-ausserhalb-fragment` |
+| Punkt 2, die Regel gilt im Arbeitsbaum (`deckung "$wurzel"`) | n/a: der Arbeitsbaum ist grün (Lauf unten); von Hand an einer Kopie von `harness/mk/` gesehen (unten) | — |
+| SPEC-052 Punkt 4, Ausnahmeliste nennt nur Gates in `GATE_CHECKS`; Gegenprobe dort ein Fehler | `lint-gegenprobe` an die Ausnahmeliste gehängt | `p4-eintrag` (`m-gegenprobe-in-ausnahme`) |
+| SPEC-052 Punkt 2, drei Gates in der Ausnahmeliste | `test-container`, `test-integration`, `test-postgres-versionen` je einzeln entfernt | `p2-langsam` (und `p4-name`) (`m-test-container`, `m-test-integration`, `m-test-postgres-versionen`) |
+| SPEC-052 Punkt 1, `make gates` fährt keine Gegenprobe | `record-gates: $(GATE_CHECKS) lint-gegenprobe` | `p1-voll` (`m-gegenprobe-in-gates`) |
+| SPEC-060 Punkt 1/2, die Gegenprobe der Kette steht in der Liste | Zeile `GEGENPROBEN_CONTAINER += gates-schnell-gegenprobe` gestrichen | `p2-v3-n1` (`m-ohne-anschluss`) |
+
+Entfallene Mutanten (die Fälle gibt es nicht mehr): `m-lint-gegenprobe`, `m-test-container-gegenprobe`, `m-test-postgres-versionen-gegenprobe` (Gegenproben in der Ausnahmeliste), `m-gate-ohne-eintrag` (Name auf `-gegenprobe` in `GATE_CHECKS` ist jetzt V1). Die Mutanten der Punkte 1 bis 7 von SPEC-052 bleiben und laufen grün.
+
+**Regel an der Kopie von `harness/mk/` von Hand gesehen** (Regel gegen die Datenbank von `make -pq help` einer Kopie mit je einer Änderung am Fragment, `lint.mk`, `arch-negativ.mk`, `container-start-gegenprobe.mk`): unverändert: kein Befund; `lint-gegenprobe` in `GATE_CHECKS` → `p2-v1-n1`; `a-check-negativ` in `GATE_CHECKS` → `p2-v1-n2`; `lint-gegenprobe` zusätzlich in der Liste für den Host → `p2-v2-n1`; Zeile `GEGENPROBEN_CONTAINER += lint-gegenprobe` gestrichen → `p2-v3-n1`; dasselbe für `a-check-negativ` → `p2-v3-n2`; `lint-gegenprobe` doppelt → `p2-v4-n1`; `phantom` in der Liste für den Container / für den Host → `p2-v6-container` / `p2-v6-host`.
+
+**Anschluss der Gegenproben (Liefer-Punkt 2): Zusage · Mutation · roter Fall.**
+
+| Gegenprobe | Zusage | Mutation | roter Fall |
+|---|---|---|---|
+| `container-gegenprobe` | `test-container-gegenprobe` steht in `GEGENPROBEN_CONTAINER` (SPEC-055 Punkt 12) | Zeile `GEGENPROBEN_CONTAINER += test-container-gegenprobe` gestrichen (`mut p12-gegenprobe`) | `p12-liste-gegenprobe` |
+| `container-gegenprobe` | `test-container` hängt an `GATE_CHECKS` | `GATE_CHECKS += test-container` leer (`mut p12-ziel`) | `p12-gate-checks-ziel` |
+| `postgres-versionen-gegenprobe` | wie oben (SPEC-053 Punkt 12) | `mut p12-gegenprobe`, `mut p12-ziel` | `p12-liste-gegenprobe`, `p12-gate-checks-ziel` |
+| `stop-hook-gegenprobe` | `stop-hook-gegenprobe` steht in `GEGENPROBEN_CONTAINER` | `m-ohne-anschluss`: Zeile gestrichen | `anschluss-liste` |
+| `kopf-check-gegenprobe` | `kopf-check-gegenprobe` in `GEGENPROBEN_CONTAINER`, `kopf-check` in `GATE_CHECKS` (SPEC-047) | Zeile der Gegenprobe / Zeile von `kopf-check` gestrichen, Kopie des Arbeitsbaums von Hand (siehe unten) | `nr9-liste` / `nr9-gate-checks` |
+| `meldungskatalog-check-gegenprobe` | wie oben, dazu `meldungskatalog-check` nicht in der Ausnahmeliste (SPEC-054 Punkt 11) | Zeilen gestrichen, Prüfung in `GATE_SCHNELL_AUSNAHME` gesetzt, von Hand | `nr11-liste` / `nr11-gate-checks` / `nr11-schnelle-kette` |
+| `lint-gegenprobe` | `lint-gegenprobe` in `GEGENPROBEN_CONTAINER`, `lint` in `GATE_CHECKS` (SPEC-049) | Zeile gestrichen; hier nur der Code des Falls an der Datenbank einer Kopie (Lauf der Gegenprobe wäre 283 s) | `p10-gegenprobe-liste` |
+| `coverage-gegenprobe` | `coverage-gegenprobe` in `GEGENPROBEN_CONTAINER` (SPEC-056 Punkt 11) | Zeile gestrichen; der Code des Falls an der Datenbank einer Kopie | `p11-gegenprobe-liste` |
+
+Von Hand für `kopf-check-gegenprobe` und `meldungskatalog-check-gegenprobe`: die ganze Gegenprobe in einer Kopie des Arbeitsbaums mit der gestrichenen Zeile: `kopf-check-gegenprobe: ROT — Fall 'nr9-liste': kopf-check-gegenprobe steht nicht in GEGENPROBEN_CONTAINER`; `… Fall 'nr9-gate-checks': kopf-check steht nicht in GATE_CHECKS`; `meldungskatalog-check-gegenprobe: ROT — Fall 'nr11-liste'`, `'nr11-gate-checks'` und `'nr11-schnelle-kette'`. Der Fall zu `GATE_SCHNELL_AUSNAHME` für die Gegenprobe (`nr11-ausnahme-gegenprobe`) und `p11-ausnahmeliste` entfallen (die Namensregel fängt sie zentral); die Fälle zu „Gegenprobe hängt an `GATE_CHECKS`“ in den sieben Gegenproben sind durch die Fälle zur Liste ersetzt (`p12-gate-checks-gegenprobe`, `nr9-gate-checks` für die Gegenprobe, `nr11-gate-checks` für die Gegenprobe, `p10-gate-checks` für die Gegenprobe, `anschluss-gate-checks`).
+
+**`container-start-gegenprobe` (Host).** Der Anker der Mutation `p16-ausnahme` (`GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe `) war nach dem Umbau weg und ist auf `GATE_SCHNELL_AUSNAHME := test-container ` umgestellt. Gelaufen nur Punkt 16 (`GP_NUR='^p16' GP_MUT='^p16'` mit einem Platzhalter für `u-boot`): grün, die vier Mutationen `p16-gate-checks`, `p16-scharf`, `p16-ausnahme`, `p16-ziel-gate` färben je ihren Fall. Die volle Gegenprobe läuft hier nicht (kein `u-boot`, kein `devcontainer`) und ist am Host zu fahren (Rückgabe 1).
+
+**Läufe am Endstand der Gegenproben** (`timeout`, je Gegenprobe einmal; Dev-Container, ein Prozess nach dem anderen):
+
+| Lauf | Ergebnis | Dauer |
+|---|---|---|
+| `make kopf-check-gegenprobe` | grün | 2 s |
+| `make meldungskatalog-check-gegenprobe` | grün (der Fall `nr9-bytefolge` wird übersprungen: Locale `de_DE.UTF-8` fehlt im Container, Bestand) | 2 s |
+| `make stop-hook-gegenprobe` | grün | 164 s |
+| `make test-container-gegenprobe` | grün; erster Lauf, dann nach Umbenennung einer Variable erneut | 216 s, 216 s |
+| `make test-postgres-versionen-gegenprobe` | erster Lauf rot (15 Mutationen, siehe Klasse unten), nach der Umbenennung grün | 126 s, 137 s |
+| `make abdeckung-gegenprobe` | grün | 5 s |
+| `make hook-gegenprobe` | grün | 1 s |
+| `make coverage-gegenprobe` | grün | 105 s |
+| `make lint-gegenprobe` | grün | 283 s |
+| `make integration-volumes-gegenprobe` | grün | 67 s |
+| `make a-check-negativ` | grün | 13 s |
+| `make gates-schnell-gegenprobe` | grün | 47 s |
+
+**Befund der eigenen Arbeit, als Klasse behoben:** In `postgres-versionen-gegenprobe.sh` und `container-gegenprobe.sh` stand die neue Variable `liste` im Kopf des Skripts; `postgres-versionen-gegenprobe.sh` benutzt `liste` selbst (die Versionsliste der Fälle), und 15 Mutationen mit unbeteiligten Fällen wurden rot. Merkmal: eine neue Variable im Hauptteil eines Skripts, deren Name das Skript schon führt. Umbenannt in `gp_liste` in beiden Skripten; die übrigen Gegenproben (`kopf-check`, `lint`, `meldungskatalog-check`) setzen `liste` und `fall` nur in der Schleife des einen Falls und führen diese Namen sonst nicht (`grep`).
+
+**Metrik (`AGENTS.md` §3.14), Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..HEAD -- tools harness AGENTS.md`:** wörtlich mit Basis `b4ce87d3`: **707** (527 + 180); darin liegen 269 Zeilen Vertrag (`harness/vertraege/`, Commits des Architect vor dem Start; §4: „Vertrag und ADR zählen nicht“). Ohne sie, mit Basis `9ce157a4` (Stand vor dem ersten Commit des Implementers): **438** (302 + 136), davon `gates-schnell-gegenprobe.sh` 144 und `gegenproben-regel.sh` 66, die übrigen Gegenproben 88, Fragmente 90, Gate-Index und Texte 50; Marke 900 nicht erreicht, Meldeschwelle 700 nur in der wörtlichen Lesart um 7 überschritten; die Schätzung lag bei 260 bis 500.
+
+**Randformen.** Keine Randform außerhalb von §6 entschieden. Drei Fälle über die elf des Vertrags (SPEC-060 Punkt 2: V1 bis V4 je Klasse, V6 je Liste, `p2-andere-namen`): `p2-v4-host` (Element „dieselbe Liste“, Host), `p2-rezept-ausserhalb-fragment` (Wortlaut „Ziel mit Rezept in einem Fragment unter `harness/mk/`“) und die zwei Mutationen zu `p2-v4-nur-*`; sie nennt der Vertrag nicht (Rückgabe 3).
+
+**Grüne Mutanten.** Keine in den Läufen oben (jede Abweichung der roten Menge meldet die Gegenprobe). Nicht belegt, kein Mutant: dass die Wahl der Liste stimmt (SPEC-060 Punkt 3, akzeptiertes Negativ), und dass ein Rezept aus einem Fragment unter `harness/mk/` auch ohne die Ausgabeform `recipe to execute (from '…')` von GNU make 4.x erkannt würde (Invariante: Platzierung der Zeile von `make -p`; Ort: `gp_rezeptziele` in `tools/harness/gegenproben-regel.sh`; Sonde: GNU make 4.4.1 im Container; eine andere Version ist nicht zugesagt, `SPEC-060` Plattform).
+
+**Rückgaben.**
+
+1. *Architect / Nutzer:* `container-start-gegenprobe` (Host): einmal die ganze Gegenprobe am Host fahren (Anker von `p16-ausnahme` geändert, siehe oben); hier nur Punkt 16 gelaufen.
+2. *Planner:* Der Auftrag nennt „§4-Satz laut Plan“ in `AGENTS.md`; der Plan nennt keinen Satz in `AGENTS.md` §4. Geändert ist nur die erste Hälfte der Pflicht in §6 Schritt 6.
+3. *Architect:* `SPEC-060` Punkt 2 nennt elf Fälle; die Gegenprobe hat dreizehn (`p2-v4-host`, `p2-rezept-ausserhalb-fragment`). Vorschlag: beide in den Vertrag aufnehmen oder streichen. Dazu: Die Listen sind nicht in `Makefile` initialisiert (`+=` auf eine ungesetzte Variable ergibt eine rekursive Variable; `make -p` zeigt den Wert unausgewertet, wenn ein Fragment ihn aus einer Variablen bildet); die Regel liest die Datenbank, die Sammelziele erweitern die Liste im Rezept mit `make`. Ob eine Initialisierung gewollt ist, gehört in `SPEC-060` Punkt 1.
+4. *Planner / Architect:* `Makefile` Z. 2 sagt „jedes [Fragment] haengt seine Checks an GATE_CHECKS“; die Gegenproben tun es nicht mehr. Das `Makefile` trägt „generiert von ai-harness-init“ und steht nicht in der Dateiliste des Plans; nicht geändert.
+
 - **Was hat funktioniert:** —
 - **Was ging anders als geplant:** —
 - **Steering-Loop-Eintrag:** —
