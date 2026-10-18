@@ -20,7 +20,7 @@ der Übernahme) und der Beleg in
 (Zeile 49); die Moves von Schritt 35b und 36a gingen von Hand, weil das Muster `-sqlite` gegen
 `-sqlite-schreiber` den Präfix mehrdeutig macht. Keine aktive ADR.
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt)
 
 **Verantwortlich:** pt9912
 
@@ -87,13 +87,13 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `…-sqlite-schreiber` zeigt, dass der exakte Name den Präfix schlägt (in einem Wegwerf-Klon, nicht im
       Arbeitsbaum).
 - [ ] **Liefer-Punkt 2 (Gegenprobe):** `tools/harness/slice-mv-gegenprobe.sh` mit dem Fragment
-      `harness/mk/slice-mv-gegenprobe.mk` (Ziel `slice-mv-gegenprobe`, hängt an `GATE_CHECKS`) prüft in
+      `harness/mk/slice-mv-gegenprobe.mk` (Ziel `slice-mv-gegenprobe`, hängt an einer der beiden Listen nach `SPEC-060` Punkt 3, nicht an `GATE_CHECKS`) prüft in
       einem Wegwerf-Repo (`mktemp -d`) die Fälle: exakter Treffer vor Präfix, Bindestrich-Grenze, zwei
       Präfix-Treffer (Exit 2), kein Treffer (Exit 2), derselbe Name in zwei Verzeichnissen (Exit 2),
       dazu die Randformen aus §6 nach der Entscheidung des Architect; je Zusage eine Mutation der
       Datei in einer Kopie, die nur ihre Fälle rot färbt (`AGENTS.md` §3.10, Bericht: Zusage · Mutation ·
-      roter Test); die Zeile in `harness/README.md` §Sensors führt das Ziel; die Ausnahmeliste der
-      schnellen Kette und `harness/sensors/slice-mv.md` nach der Entscheidung des Architect (§6).
+      roter Test); die Zeile in `harness/README.md` §Sensors führt das Ziel; `harness/sensors/slice-mv.md` nach der Entscheidung des Architect (§6);
+      die Ausnahmeliste der schnellen Kette nennt keine Gegenprobe mehr.
 - [ ] Mutation je Zusage der Gegenprobe selbst (`AGENTS.md` §3.10), vom Implementer rot gesehen; der Bericht
       nennt je Zusage: Zusage · Mutation · roter Test.
 - [ ] `make gates` grün.
@@ -116,8 +116,8 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `tools/harness/slice-mv.sh` | update (Übernahme `v0.7.0`) | Funktion `quelle_finden`, Hilfetext, Aufruf in `main()`: +49/−15 Zeilen; Kommentar zur Prüfdatei auf die Gegenprobe umgebogen |
 | `tools/harness/slice-mv-gegenprobe.sh` | neu | Gegenprobe im Stil von `kopf-check-gegenprobe.sh`: Wegwerf-Repo, Fälle je Zusage, Mutationen in Kopien |
-| `harness/mk/slice-mv-gegenprobe.mk` | neu | Ziel `slice-mv-gegenprobe`, `GATE_CHECKS += slice-mv-gegenprobe` |
-| `harness/mk/gates-schnell.mk` | update (nach Entscheidung des Architect) | Ausnahmeliste der schnellen Kette, falls die Gegenprobe dort steht (§6) |
+| `harness/mk/slice-mv-gegenprobe.mk` | neu | Ziel `slice-mv-gegenprobe`, an der Liste der Gegenproben nach `SPEC-060` Punkt 3 |
+| `harness/mk/gates-schnell.mk` | entfällt | Die Ausnahmeliste der schnellen Kette nennt keine Gegenprobe mehr (`SPEC-060` Punkt 2) |
 | `harness/README.md` §Sensors | update | Zeile für `make slice-mv-gegenprobe` |
 | `harness/sensors/slice-mv.md` | neu (nach Entscheidung des Architect) | Beschreibung nur, wenn der Architect sie für nötig hält (§6) |
 
@@ -177,10 +177,9 @@ dasteht.
 
 - *Wirkt `make lint` oder `make docs-check` auf `tools/harness/*.sh`?* Wenn ja, trägt die übernommene Fassung Befunde (Quoting, `local` in
   Schleifen, Kommentarstil nach `AGENTS.md` §3.7); Antwort mit Beleg (Lauf oder Konfiguration), nicht aus dem Gedächtnis.
-- *Gehört `slice-mv-gegenprobe` in `GATE_CHECKS` und in die Ausnahmeliste der schnellen Kette?* Der Plan setzt `GATE_CHECKS` an (wie die anderen
-  Gegenproben); die Ausnahmeliste nennt „jedes Gate mit `-gegenprobe` im Namen“ (`harness/mk/gates-schnell.mk`), und
-  `gates-schnell-gegenprobe` hält sie gegen `GATE_CHECKS` — die Gegenprobe gehört dann dazu. Der Architect bestätigt, und ob die Gegenprobe
-  der Gegenprobe der schnellen Kette einen Fall oder eine Änderung braucht.
+- *Gehört `slice-mv-gegenprobe` in die Container-Liste oder in die Host-Liste?* Die Namensregel (`SPEC-060` Punkte 2 und 3) verlangt für jedes Ziel
+  auf `-gegenprobe` genau eine Liste und nie `GATE_CHECKS`; die Ausnahmeliste der schnellen Kette nennt keine Gegenprobe. Vorschlag des Planners:
+  Container-Liste (die Gegenprobe ruft weder `u-boot` noch `devcontainer`). Der Architect bestätigt.
 - *Braucht der Slice `harness/sensors/slice-mv.md`?* Die Zeile in `harness/README.md` reicht, wenn kein Vertrag mit Punkten zu führen ist; der
   Architect entscheidet, und mit Datei zählt der Plan neu (§8).
 
@@ -259,3 +258,5 @@ Nachgezählt (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Slice ist neu und tr
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice trägt keine Sendung ein und nimmt keine an: Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung; die Moves der Schritte 39b bis 44 und der Release-Slices gehen von Hand, wo das Präfix mehrdeutig ist.
+
+**Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe hängt an einer der beiden Listen statt an `GATE_CHECKS`, und die Zeile zu `gates-schnell.mk` entfällt (die Ausnahmeliste nennt keine Gegenprobe mehr); der Slice wird dadurch nicht größer, Liefer-Punkte und Schichten ändern sich nicht.

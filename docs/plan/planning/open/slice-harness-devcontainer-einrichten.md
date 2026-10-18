@@ -14,7 +14,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 **Bezug:** [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität) nur insoweit, als die Host-Voraussetzungen des Repos berührt sind (neu: `ssh`, Entscheidung des Nutzers, §1); kein Anspruch des Produkts.
 Vorgänger: `slice-harness-devcontainer-austausch-repo` und `slice-harness-devcontainer-doku` (beide `done/`); der Slice automatisiert deren Ablauf. `slice-harness-devcontainer-u-boot-0-10` (`done/`; Gerüst auf `u-boot` v0.10.0, `make gates` im Container grün, 1701 s). Die unmittelbaren Vorgänger sind `slice-harness-devcontainer-einrichten-geruest` (legt das Gerüst an) und `slice-harness-devcontainer-einrichten-start` (startet den Container); dieser Slice setzt den laufenden Container voraus, §1 und §4. Folge-Slice: `slice-harness-devcontainer-einrichten-zugang` (Zugang von Claude Code; kein Teil dieses Slice, §1). Keine aktive ADR; der Architect legt eine an (§6).
 
-**Berührte Spec-Stellen:** neuer Vertrag eines Harness-Werkzeugs in `harness/vertraege/` (Nummer vergibt der Architect); gebunden an [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) (Punkte 2 und 11, Zusagen der Geber, §1); Host-Voraussetzungen: [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität).
+**Berührte Spec-Stellen:** neuer Vertrag eines Harness-Werkzeugs in `harness/vertraege/` (Nummer vergibt der Architect); gebunden an [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) (Punkte 2 und 11, Zusagen der Geber, §1); Host-Voraussetzungen: [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität); `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt).
 
 **Verantwortlich:** —
 
@@ -50,7 +50,7 @@ Ablauf des Ziels, in dieser Reihenfolge (die Schritte 4 bis 10 des Slice vor dem
 
 **Entscheidung des Nutzers (2026-10-17): `ssh` ist neue Voraussetzung am Host.** Auf die Frage, ob `ssh` als Voraussetzung für dieses Ziel in Ordnung ist, antwortete der Nutzer „ja“. Die Voraussetzungen des Repos sind bisher `git`, `docker` und `make` (`AGENTS.md` §3.1, [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität)). Der Architect trägt die Entscheidung in die Spezifikation des Vertrags und in die ADR ein (§3); `ssh` gilt nur für dieses Ziel, kein Gate und kein anderes Ziel braucht es. Die übrigen Voraussetzungen (`u-boot`, `devcontainer`-CLI, `node`, `ssh-keygen`) gehören dem Geber `slice-harness-devcontainer-einrichten-geruest`; der Nutzer hat sie mit [ADR-0045](../../adr/0045-container-start-als-werkzeug-im-repo.md) am 2026-10-18 entschieden.
 
-**Kein Gate**, wie `hooks-install`: Das Ziel steht im Abschnitt *Werkzeuge* von `harness/README.md`, nicht in `GATE_CHECKS`. Seine Gegenprobe ist ein Gate (§2).
+**Kein Gate**, wie `hooks-install`: Das Ziel steht im Abschnitt *Werkzeuge* von `harness/README.md`, nicht in `GATE_CHECKS`. Seine Gegenprobe ist ein Ziel einer der beiden Listen, kein Gate (§2).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -67,7 +67,7 @@ Ablauf des Ziels, in dieser Reihenfolge (die Schritte 4 bis 10 des Slice vor dem
 Liefer-Punkte (drei):
 
 - [ ] **Ziel `container-einrichten`** (Fragment unter `harness/mk/` und Skript unter `tools/harness/`): erfüllt den Vertrag, den der Architect in `harness/vertraege/` festlegt (Ablauf aus §1, Randformen aus §6); kein Gate; in `harness/README.md` §Werkzeuge genannt.
-- [ ] **Gegenprobe** `container-einrichten-gegenprobe` (Gate, hängt an `GATE_CHECKS`, steht in der Ausnahmeliste der schnellen Kette): gegen einen Scratch-Container (Präfix, Entfernen nur per Name, `docker rm -fv`, nichts Fremdes, nie der Container, in dem der Implementer arbeitet) je Randform aus §6 ein Fall und je Zusage und je Element einer Aufzählung eine Mutation, die nur ihn rot färbt (`AGENTS.md` §3.10); die Gegenprobe steht im Gate-Index.
+- [ ] **Gegenprobe** `container-einrichten-gegenprobe` (hängt an `GEGENPROBEN_CONTAINER` oder `GEGENPROBEN_HOST`, nicht an `GATE_CHECKS`, und steht nicht in der Ausnahmeliste der schnellen Kette; die Wahl der Liste trifft der Schreiber nach `SPEC-060` Punkt 3: ruft sie `u-boot` oder `devcontainer`, die Host-Liste): gegen einen Scratch-Container (Präfix, Entfernen nur per Name, `docker rm -fv`, nichts Fremdes, nie der Container, in dem der Implementer arbeitet) je Randform aus §6 ein Fall und je Zusage und je Element einer Aufzählung eine Mutation, die nur ihn rot färbt (`AGENTS.md` §3.10); die Gegenprobe steht im Gate-Index.
 - [ ] **Dokument** `docs/developer/devcontainer.md` §6 und §9 nennen `make container-einrichten` als Weg und führen die Einzelbefehle nur, soweit das Dokument sie als Erklärung braucht; dazu der Ablauf eines Implementer-Laufs im Container-Klon (Sendung von `slice-harness-devcontainer-u-boot-0-10`, §1): Arbeit im Klon per `ssh`, `make gates` dort mit der Dauer, die jener Slice misst, Ergebnis per `git fetch container`. §3 bis §5 gehören `slice-harness-devcontainer-einrichten-geruest`, §7 `slice-harness-devcontainer-einrichten-zugang`. Jede Aussage ist durch einen Lauf belegt oder steht in §13.
 
 Gates und Closure:
@@ -85,10 +85,10 @@ Gates und Closure:
 |---|---|---|
 | `harness/vertraege/SPEC-<NNN>-container-einrichten.md` | neu (Architect) | Vertrag des Werkzeugs: Ablauf, Randformen aus §6, Host-Voraussetzung `ssh`; Nummer vergibt der Architect |
 | `docs/plan/adr/` (eine ADR) | neu (Architect) | Entscheidung: Ort des Ziels (folgt dem Geber), Host-Voraussetzung `ssh` (Entscheidung des Nutzers vom 2026-10-17); `Schärft:` zeigt auf den Vertrag (`AGENTS.md` §3.8) |
-| `harness/mk/container-einrichten.mk` | neu | Ziel `container-einrichten` (kein Gate), Gegenprobe hängt an `GATE_CHECKS` |
+| `harness/mk/container-einrichten.mk` | neu | Ziel `container-einrichten` (kein Gate), Gegenprobe hängt an einer der beiden Listen |
 | `tools/harness/container-einrichten.sh` | neu | Ablauf aus §1 (Prüfen, Einrichtung, Zweig); Eingaben aus der Umgebung (`PGR_DEV`, `PGR_SSH_PORT`, Remote-Name), Fehlermeldungen mit Schritt; keine Zugangsvariable (Bindung, §1) |
 | `tools/harness/container-einrichten-gegenprobe.sh`, `harness/mk/container-einrichten-gegenprobe.mk` | neu | Gegenprobe gegen Scratch-Container; Fälle und Mutationen aus §6 |
-| `harness/mk/gates-schnell.mk` | update | Gegenprobe in die Ausnahmeliste der schnellen Kette (Docker; Pflege nach `SPEC-052`, Architect prüft Punkt der Gate-Kette) |
+| `harness/mk/gates-schnell.mk` | entfällt | Die Ausnahmeliste der schnellen Kette nennt keine Gegenprobe mehr (`SPEC-060` Punkt 2) |
 | `harness/README.md` | update | Abschnitt *Werkzeuge* (`container-einrichten`) und *Sensors* (Gegenprobe) |
 | `docs/developer/devcontainer.md` | update | §6 und §9 nennen das Ziel; Ablauf eines Implementer-Laufs; §13 für Ungeprüftes |
 
@@ -205,3 +205,5 @@ alle berührten Sub-Areas GF (`REPO`: Spezifikation und Entscheidung gehen dem C
 **Zählung nach `AGENTS.md` §3.13 (Planner, 2026-10-18, im Commit, der den Schnitt einträgt):** Liefer-Punkte 3 (Ziel mit Ablauf, Gegenprobe, Dokument; die Sendung „Arbeit im Container“ liegt im Dokument-Punkt, die Sendung „Quellenauflösung“ liegt beim Zugang, Gerüst und Start beim Geber). Schichten 2 (Harness-Werkzeug mit Gegenprobe und Gate-Index; Nutzer- und Wartungs-Doku `docs/developer/`; `harness/README.md` ist Index desselben Werkzeugs, Planung und Vertrag sind keine Schicht). Schätzung in der Metrik von §4: 565 bis 830, **unter der Marke 900** (Meldeschwelle 700 in der oberen Hälfte überschritten). Vor dem Schnitt 995 bis 1480 (ungeteilt, mit Gerüst und Start). **Nachgezählt am 2026-10-18 im Commit, der die Aufteilung des Gebers in `slice-harness-devcontainer-einrichten-geruest` und `slice-harness-devcontainer-einrichten-start` einträgt:** Die Bindung an den Container kommt jetzt von zwei Gebern; sie ist keine neue Lieferung dieses Slice. Liefer-Punkte 3 und Schichten 2 unverändert, Schätzung 565 bis 830 unverändert, unter der Marke 900. `grep` nach der Kennung dieses Slice findet ihn in den Gebern `slice-harness-devcontainer-einrichten-geruest` und `slice-harness-devcontainer-einrichten-start` (§1, nehmen die Bindung auf), im Folge-Slice `slice-harness-devcontainer-einrichten-zugang`, in `slice-harness-devcontainer-u-boot-0-10` (Geber, `done/`), in den Plänen der Release-Welle (keine Bindung) und in den Beobachtungen.
 
 **Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` einträgt): Die Bindung ändert weder Liefer-Punkte noch Schichten dieses Slice; sie verlangt im Dokument dieselben Abschnitte, die DoD „Dokument“ schon umschreibt. Zählung bleibt wie im Schnitt vom 2026-10-18 (§8 oben).
+
+**Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe hängt an einer der beiden Listen statt an `GATE_CHECKS` und steht nicht in der Ausnahmeliste; die Zeile zu `gates-schnell.mk` entfällt. Liefer-Punkte und Schichten ändern sich nicht (die Zählung in §8 oben bleibt).

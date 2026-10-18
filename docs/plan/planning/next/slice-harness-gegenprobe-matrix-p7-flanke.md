@@ -121,7 +121,7 @@ dasteht.
 
 - *Aufruf-Voraussetzung:* Die Fälle der Gruppe `p7-sig` laufen nacheinander in einer Gegenprobe; ob ein Fall beginnt, während der vorige noch aufräumt (`SPEC-053` Punkt 14: das Aufräumen folgt bis zu einige Sekunden nach `SIGTERM` an die Prozessgruppe), ist die Frage, die der Plan stellt, nicht beantwortet. Ob die Zusage an „nacheinander, der vorige Fall ist beendet“ gebunden wird, entscheidet der Architect.
 - *Reihenfolge der Fälle:* Die Gruppe führt `INT:gruppe TERM:gruppe INT:skript TERM:skript`; ob die Kopplung an die Reihenfolge hängt, ist zu zeigen, nicht zu vermuten.
-- *Aufrufarten des Treibers:* `make -n`, `-q`, `-t`, `-i` und `MAKEFLAGS` aus der Umgebung ändern an der Hängung der Gegenprobe an `GATE_CHECKS` nichts, solange der Slice das Rezept nicht anfasst; der Architect bestätigt es oder nennt die Entscheidung je Flag.
+- *Aufrufarten des Treibers:* `make -n`, `-q`, `-t`, `-i` und `MAKEFLAGS` aus der Umgebung ändern an der Hängung der Gegenprobe an ihrer Liste (seit `slice-harness-gegenproben-aus-gates` nicht mehr `GATE_CHECKS`) nichts, solange der Slice das Rezept nicht anfasst; der Architect bestätigt es oder nennt die Entscheidung je Flag.
 - *Wiederholungszahl:* Wie oft die Gruppe `p7-sig` laufen muss, damit „bleibt grün“ eine Aussage über eine zeitabhängige Flanke ist, legt der Architect fest; eine einmalige Grünmeldung ist es nicht (drei Einzelläufe waren grün, der volle Lauf war rot).
 - *Stelle einer Nachricht in einer Folge:* nicht berührt; der Vertrag enthält keine Nachrichtenfolge.
 
@@ -171,3 +171,5 @@ Nachgezählt (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Slice ist neu; die S
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice trägt keine Sendung ein und nimmt keine an: Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung; tritt das Rot der Gruppe `p7-sig` bis dahin wieder auf, bleibt es ein Auftreten im Zähler von `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`.
+
+**Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe der Versionsmatrix hängt seit `slice-harness-gegenproben-aus-gates` an der Container-Liste und nicht mehr an `GATE_CHECKS`; die Aufrufarten-Randform nennt die Liste. Liefer-Punkte und Schichten ändern sich nicht.

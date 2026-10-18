@@ -18,7 +18,7 @@ Stufen des Multistage-`Dockerfile`, netzlos außer der Download-Stufe). Die ADR 
 neuen Gates schreibt der Architect im Slice, vor dem Code; ihre Nummer vergibt der
 ADR-Index.
 
-**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 053)
+**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 053); `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt)
 
 **Verantwortlich:** —
 
@@ -94,7 +94,7 @@ die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die Kennung.
       es endet rot, wenn der Anteil getöteter Mutanten unter der Schwelle
       liegt. Die Messung des Bestands, aus der die Schwelle folgt, steht mit Quellstand
       in der ADR; der Bestand ist grün.
-- [ ] Gegenprobe als eigenes Ziel an `GATE_CHECKS`: ein Stand mit einem Test weniger
+- [ ] Gegenprobe als eigenes Ziel an `GEGENPROBEN_CONTAINER` (Namensregel, `SPEC-060` Punkt 2; nicht an `GATE_CHECKS`): ein Stand mit einem Test weniger
       (ein überlebender Mutant mehr) wird abgelehnt, einer genau an der Schwelle
       angenommen; dazu je entschiedener Randform aus §6, die eine Mutation fangen
       kann, ein Fall (äquivalenter Mutant in der Ausnahmeliste, Paketauswahl,
@@ -129,7 +129,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/plan/adr/<NNNN>-mutationstests-als-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Werkzeug, Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
 | `harness/vertraege/` (neue Datei der Kennung 053) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` oder eigenes Werkzeug-Image | update / neu | Stufe oder Image mit dem gepinnten Werkzeug; netzlos außer der Download-Stufe |
-| `harness/mk/<mutation>.mk` | neu | Ziel des Gates und der Gegenprobe an `GATE_CHECKS`, Schwelle als eine benannte Stelle |
+| `harness/mk/<mutation>.mk` | neu | Ziel des Gates an `GATE_CHECKS`, Ziel der Gegenprobe an `GEGENPROBEN_CONTAINER`, Schwelle als eine benannte Stelle |
 | `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Pfad: ein Test entfernt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall |
 | `harness/README.md`, `AGENTS.md` | update | §Sensors: Gate und Gegenprobe; §3.10 und §3.11: Zeile *Sensor* |
 
@@ -318,3 +318,5 @@ die ADR ist Planung, keine Schicht. Die Vertragsdatei lag vorher in der Spezifik
 Sendung senkt die Zahl der Schichten, sie erhöht keine.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe des Gates hängt seit `slice-harness-gegenproben-aus-gates` an der Container-Liste statt an `GATE_CHECKS` (die Namensregel verlangt es für jedes Ziel auf `-gegenprobe`); das Gate selbst bleibt an `GATE_CHECKS`. Liefer-Punkte (3) und Schichten (1) ändern sich nicht.
