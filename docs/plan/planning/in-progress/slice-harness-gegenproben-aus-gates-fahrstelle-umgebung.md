@@ -154,6 +154,61 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 (Wird bei der Closure geschrieben.)
 
+### Belege des Implementers
+
+Stand: Zweig `slice-harness-gegenproben-aus-gates-fahrstelle-umgebung`, Code-Commits `7b4eabcc` und `51b5ba8d` (Basis `02a606eb`); dieser Abschnitt ist der einzige Teil des Plans, den der Implementer geändert hat (`git diff 02a606eb..HEAD -- docs/plan` zeigt nur §7).
+
+**Rückgaben an den Architect (Randform · Frage; der Vertrag ist unverändert, der Slice ist damit nicht abschlussreif):**
+
+| Randform | Frage |
+|---|---|
+| `SIGQUIT` in der Shell des Laufs (`SPEC-061` Punkt 11, Fall `p11-sigquit-lauf`) | Eine bash ignoriert `SIGQUIT` selbst, gleich wie sie gestartet wird (Messung unten, M1); `SigIgn` der Shell mit `--lauf` trägt Bit 3 immer. Der Fall `p11-sigquit-lauf` und seine Mutation sind deshalb **nicht geliefert**; `SIGINT` im Lauf ist geliefert (`p11-sigint-lauf`). Soll die Zusage für den Lauf nur `SIGINT` nennen (`make` und Kinder behalten beide), oder soll der Lauf `SIGQUIT` mit einem Handler fangen (was täte er dann)? |
+| Mutation „der Lauf schließt erst nach dem Start von `make`“ (`SPEC-061` Punkt 5, vierte Mutation) | Der Weg, den ich gewählt habe, schließt die Deskriptoren in einer `bash -c`-Stufe **vor** dem Lauf (`setsid -f "$BASH" -c '…; exec "$BASH" "$@"'`); eine Stelle „nach dem Start von `make`“ gibt es dort nicht. Dazu steht die genannte Menge (nur `p5-fd-make`, `p5-fd-kind`) im Widerspruch zu `p5-eof-*`: Hielte `make` den Deskriptor, bliebe auch das EOF der Pipe aus. Mutation streichen oder anders fassen? Die Zusage „`make` bekommt die Sperre nicht“ (`9>&-`) hat ihre Mutation (`m-p5-make-mit-sperre`). |
+| Vorab-Prüfung „die Gegenprobe selbst ignoriert beide Signale nicht“ (Punkt 11) | `haken` ruft den Hook über `timeout`; `timeout` setzt `SIGINT` auf Vorgabe zurück (gemessen, M2; ein ignoriertes `SIGQUIT` erbt ein Kind der Sitzung ohnehin nicht, M3), die Gegenprobe selbst ist also ohne Wirkung auf den Hook, und eine bash-Gegenprobe ignoriert `SIGQUIT` selbst. Der Fall prüft stattdessen vorab, was der Aufruf des Hooks (`env -i`, `timeout`, `sh`) an `SigIgn` liefert (Sonde S2). Text von Punkt 11 anpassen? |
+| Aufrufer ignoriert `SIGINT` oder `SIGQUIT` (echter `git push`) | Der Hook setzt nichts zurück; ein ignorierendes Signal erbt der Lauf (Punkt 11: „erbt jeder Aufruf“). Die Gegenprobe kann den Fall nicht zeigen (`timeout` in `haken` setzt `SIGINT` zurück, M2); ob `git receive-pack` ein Signal ignoriert, zeigt erst die erste Fahrt (`SigIgn` im Lauf). Soll der Hook die Signale vor der `bash -c`-Stufe zurücksetzen (`env --default-signal=INT,QUIT`)? Das wäre eine Zusage mehr mit eigenem Fall. |
+| Warnung des Architect „`( … ) &` im Lauf setzt `SIGINT` und `SIGQUIT` wieder auf ignoriert“ | Nicht bestätigt (M4): Eine Subshell mit `&` ignoriert beide selbst, ihre Kinder und ein `exec` in ihr nicht. Zu ignorierten Signalen führt der **einfache** Hintergrundbefehl `cmd &`. `make` startet der Lauf weiter mit `( … exec make …) &`; die Mutation „Lauf startet `make` mit `&`“ ist `env -C "$wt" make … &` (`m-p11-make-mit-und`). |
+
+**Messungen (Container `pgr-dev2`, bash 5.2.37, util-linux 2.41.5, coreutils 9.7):**
+
+- M1 — bash ignoriert `SIGQUIT` selbst: `env --default-signal=INT,QUIT bash z.sh`, `z.sh` liest `/proc/$$/status` mit dem Builtin `read` (kein Kindprozess): `SigIgn: 0000000000000004`; ein Handler (`trap 'echo q' QUIT`) setzt es auf `0`; `env --default-signal=QUIT sh -c '…'` (dash): `0`.
+- M2 — `timeout` setzt `SIGINT` zurück: `setsid -w sh -c 'trap "" INT; exec env -i sh -c "grep SigIgn /proc/\$\$/status"'` zeigt `0000000000000002`; mit `timeout 30` vor dem inneren `sh`: `0000000000000000`.
+- M3 — Ein Kind der `ssh`-Sitzung erbt kein ignoriertes `SIGQUIT`: `ssh … 'env -i sh -c "grep SigIgn /proc/\$\$/status"'` zeigt `0`; die `bash -c`-Shell der Sitzung selbst zeigt Bit 3 (M1).
+- M4 — `bash -c '( exec bash -c "grep SigIgn …" ) & wait'` aus einer Shell ohne Jobsteuerung: Kind `0`; `sleep 5 & grep SigIgn /proc/$!/status`: `0000000000000006`.
+
+**Befunde vorher und nachher:** Stand vor der Änderung (Hook aus `02a606eb`, Gegenprobe dieses Stands): die unveränderte Kopie ist rot an genau `p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make p5-eof-fd12 p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-fd-kind p5-fd-lauf p5-fd-make` (12 Fälle), sonst nichts. Nach der Änderung: unveränderte Kopie grün, 107 Fälle, 143 Mutationen.
+
+**Mutationstabelle** (rote Menge gemessen mit `GP_ENTDECKE=1`; der volle Lauf verlangt genau diese Mengen):
+
+| Zusage (SPEC-061) | Mutation | rote Fälle |
+|---|---|---|
+| 5: kein Deskriptor über 2 im Lauf, ohne Liste fester Nummern | `eval "exec $n>&-"` entfällt | `p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-lauf p5-fd-make p5-fd-kind` |
+| 5: … Deskriptor 3 (untere Grenze) | geschlossen wird nur über 3 | `p5-eof-fd3` |
+| 5: … nicht nur 5 | nur Deskriptor 5 | `p5-eof-fd3 p5-eof-fd7 p5-eof-fd12` |
+| 5: … nicht nur 3 bis 9 | nur 3 bis 9 | `p5-eof-fd12` |
+| 5: … 0 bis 2 bleiben offen | geschlossen wird ab 2 | `p5-fd-2` |
+| 5: `make` und Nachkommen tragen die Sperre nicht | `9>&-` entfällt | `p5-fd-make p5-fd-kind` |
+| 5: der Hook kehrt zurück, bevor `make` endet; `setsid -f` | `setsid -w` | `p1-echter-push p5-ein-prozess p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stderr p5-leitung-stdout p5-vor-ende p7-altes-weg p9-marke p9-nicht-vorher` |
+| 5, 16 (10): ein Hintergrundprozess je Push | die `bash -c`-Stufe bleibt als Elternprozess (`"$BASH" "$@"; :`) | `p5-ein-prozess` |
+| 5: eigene Sitzung | ohne `setsid`, mit `&`, Signale per `env --default-signal` zurückgesetzt | `p5-gruppe` |
+| 11: `SIGINT`/`SIGQUIT` im Lauf, in `make`, im Kind (Start durch den Hook) | `setsid` ohne `-f`, Start mit `&` | `p11-sigint-lauf p11-sigint-make p11-sigint-kind p11-sigquit-make p11-sigquit-kind` |
+| 11: … Start von `make` durch den Lauf | `env -C "$wt" make … &` statt `( … exec make …) &` | `p11-sigint-make p11-sigint-kind p11-sigquit-make p11-sigquit-kind` |
+| 11: `SIGINT` | `trap '' INT` im Lauf | `p11-sigint-lauf p11-sigint-make p11-sigint-kind` |
+| 11: `SIGQUIT` | `trap '' QUIT` im Lauf | `p11-sigquit-make p11-sigquit-kind` |
+
+Die Mengen der übrigen 130 Mutationen des Bestands sind unverändert bis auf drei Zeilen mit zusätzlichen roten Fällen, je erklärt: `m-p1-liest-stdin-nicht` (der Hook liest keine Zeile, kein Lauf entsteht: alle Fälle, die einen Lauf brauchen, sind rot, auch die neuen `p5-eof-*`, `p5-fd-*`, `p5-ein-prozess`, `p11-*`), `m-p5-wartet` (Zeile oben: ein wartender Hook hält die Pipe, bis der Lauf endet, und `setsid -w` ist ein zweiter Prozess mit `--lauf` in der Befehlszeile) und `m-p3-gleichzeitig` (+ `p5-ein-prozess`: der Lauf startet seine Läufe als Hintergrund-Subshell, ein zweiter Prozess mit `--lauf`). Der Bestand ist 131 Mutationen, dazu 12 neue: 143.
+
+**Grüne Mutanten:** (1) `exec "$BASH" "$@"` → `"$BASH" "$@"` (`m-p5-lauf-ohne-exec`, erwartet: nichts rot): äquivalent. Invariante: `bash -c` führt den letzten einfachen Befehl per `exec` aus, der Prozess bleibt einer; Ort: die Ausführung des `-c`-Strings in bash; Sonde: der Lauf nach `m-p5-lauf-ohne-exec` zählt in `p5-ein-prozess` einen Prozess (`nichts` rot), derselbe Fall wird mit `; :` rot. (2) `SigIgn` eines Enkels von `make`: geprüft sind `SigIgn` von Lauf, `make` und einem Kind von `make` und die Deskriptoren von Lauf, `make`, Kind, Hintergrundkind und Enkel; ein Mutant, der nur den Enkel `SIGINT` ignorieren lässt, hat keinen Fall (kein Mutant dafür gebaut). Ändert das Verhalten und wäre über die Schnittstelle fangbar: die Aufnahme `enkel.sig` liegt in `aufruf.<n>/` schon da, ein Fall `p11-sigint-enkel` läse sie. Test-Idee für die Closure (Adresse offen); `SPEC-061` Punkt 11 sagt „jeder Nachkomme von `make`“ und nennt Fälle nur bis zum Kind.
+
+**Sonden (Vorabprüfungen, einmal gefahren):** S1 — Kopie, in der `eof_gruppe` den Deskriptor an `/dev/null` statt an die Pipe legt: rot mit `p5-eof-fd5`, `-fd7`, `-fd12` mit `Deskriptor n ist im Fall keine offene Pipe` (gefahren vor dem Fall `-fd3`, derselbe Code). S2 — Kopie, deren Aufruf-Probe `trap "" INT; exec sed …` fährt: rot mit `p11-sigint-lauf: der Aufruf des Hooks ignoriert SIGINT oder SIGQUIT (SigIgn 0000000000000002)` und den fünf p11-Fällen.
+
+**Akzeptiertes Negativ:** Dass ein echter `git push` über `ssh` zurückkehrt, prüft die Gegenprobe nicht (`SPEC-061` Punkt 16 (10)); den Beleg trägt die erste Fahrt in `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb`.
+
+**Größe:** Summe aus Einfügungen und Löschungen von `git diff --numstat 4219bab6..HEAD -- tools harness/mk harness/README.md`: 154 (134 Einfügungen, 20 Löschungen; Schätzung des Plans 90 bis 180) (Meldeschwelle 700, Marke 900).
+
+**Doku:** `harness/README.md` §Sensors, Zeile `make gegenproben-nach-einlieferung-gegenprobe`: Zahlen (107 Fälle, 143 Mutationen), die neuen Fälle, die Voraussetzungen (`sh`, `env` mit `--default-signal`) und das Nicht-Geprüfte (`ssh`-Push, `SIGQUIT` in der Shell des Laufs). Quantoren der neuen Sätze: „ohne geerbten Deskriptor über 2“ — Ausnahmen derselben Zeile: die Sperre (9) und der Skript-Deskriptor (255) im Lauf, beide im Muster von `p5-fd-lauf`; „`SIGINT` und `SIGQUIT` in `make` und seinen Kindern nicht ignoriert“ — Ausnahme: die Shell des Laufs ignoriert `SIGQUIT` selbst, in der Zeile unter „nicht geprüft“ genannt.
+
+**Läufe:** GATES_PLATZHALTER
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
