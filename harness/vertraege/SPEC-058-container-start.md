@@ -158,9 +158,10 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    gleich dem Verweis `${localEnv:CLAUDE_CODE_OAUTH_TOKEN}`. Alles andere der Datei bleibt gleich. **Nie ein Wert:** weder
    `override.json` noch eine Ausgabe des Ziels noch eine Datei unter `$PGR_DEV` enthält den Wert von `CLAUDE_CODE_OAUTH_TOKEN`
    oder `ANTHROPIC_API_KEY` aus der Umgebung; das Ziel liest, löst und übergibt keinen Zugang.
+   **Umgebung der Kinder:** Das Skript entfernt `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY` und `GIT_TOKEN` zu Beginn aus seiner eigenen Umgebung; kein Kindprozess (`u-boot`, `mk-override.sh`, `docker`, `devcontainer`, `ssh`) erbt sie. Der Verweis `${localEnv:…}` in `override.json` löst die `devcontainer`-CLI damit zu einem leeren Wert auf, und kein Zugang kann in die Ausgabe von `devcontainer up`, in `docker inspect` oder in die Prozessliste des Hosts gelangen (nicht gemessen und nicht nötig: der Wert ist nie vorhanden). Wer Claude Code im Container braucht, übergibt den Zugang in einem eigenen Aufruf (`devcontainer exec`), nicht über dieses Ziel.
    Fälle `p8-*` mit echtem `node` und einer minimalen `devcontainer.json`: je Zusatz (a) bis (f) einer, Rest gleich, Vorgaben,
-   Wert-Sentinel in beiden Variablen nirgends zu finden, vorhandenes `mk-override.sh` bleibt. Mutationen: Zusatz fehlt oder
-   falsch (Port, Adresse `0.0.0.0`, Mount ohne `readonly`), Verweis durch den Wert der Umgebung ersetzt, Rest der Datei verändert, Skript überschrieben.
+   Wert-Sentinel in allen drei Variablen nirgends zu finden und in der Umgebung jeder Attrappe (Protokoll mit Umgebung) und von `mk-override.sh` nicht gesetzt (`p8-umgebung`), vorhandenes `mk-override.sh` bleibt. Mutationen: Zusatz fehlt oder
+   falsch (Port, Adresse `0.0.0.0`, Mount ohne `readonly`), Verweis durch den Wert der Umgebung ersetzt, eine der drei Variablen wird nicht entfernt (je Variable eine Mutation), Rest der Datei verändert, Skript überschrieben.
 
 9. **Container und zweiter Aufruf.** Schritt `zustand` liest, `start` handelt. Der Container „des Gerüsts“ ist der, dessen Label
    `devcontainer.local_folder` gleich `$PGR_DEV` ist (die Annahme, dass die CLI es setzt, misst der Implementer an einem Scratch-Container
@@ -175,7 +176,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
      im Verzeichnis (Neustart; derselbe Container).
    - Es besteht keiner: ebenso (neuer Container; vorhandene Volumes bleiben, die Namen tragen die `devcontainerId` des Verzeichnisses).
    `devcontainer up` gilt als erfolgreich bei Exit-Code 0 **und** einer Ausgabezeile mit `"outcome":"success"`; sonst endet der Lauf
-   mit Exit 5 (`start`), ohne Rückbau. Seine Ausgabe erscheint unverändert. Ein Container, den Docker beim Fehler im Zustand `created`
+   mit Exit 5 (`start`), ohne Rückbau. Seine Ausgabe erscheint unverändert; er läuft ohne die drei Variablen aus Punkt 8 in der Umgebung (Fall `p9-umgebung`: die Attrappe von `devcontainer` sieht keine; Mutation: `env -u` entfällt). Ein Container, den Docker beim Fehler im Zustand `created`
    hinterlässt, ist beim nächsten Aufruf „besteht, läuft nicht“. **Stopp und Neustart (E6, Empfehlung):** kein zweites Ziel; Stopp ist
    `docker stop <Name>`, Neustart der zweite Aufruf, ebenso nach `docker rm` (neuer Container, Volumes bleiben; was im
    Dateisystem des Containers lag, ist weg). Das Ziel baut nach einer Änderung von `egress.allow` nicht um; der Nutzer ruft `u-boot generate devcontainer`
@@ -209,7 +210,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     `known_hosts` und `~/.ssh/` des Hosts nach dem Lauf unverändert (Mutation: ohne `UserKnownHostsFile=/dev/null`). Fall gegen reales Docker:
     die Probe meldet bereit mit dem Schlüssel des Gerüsts und scheitert (Exit 5) mit einem anderen.
 
-12. **Abbruch.** `SIGINT` und `SIGTERM` beenden den Lauf: Das Skript beendet seinen laufenden Kindprozess (`u-boot`, `devcontainer`, `ssh`),
+12. **Abbruch (Teil II).** Zugesagt erst mit Teil II; im Zwischenstand (Punkt 13) ist das Verhalten bei `SIGINT` und `SIGTERM` nicht zugesagt und hat keinen Fall (akzeptiertes Negativ; Grund: der Zwischenstand endet nach `override` ohne langlaufendes Kind, und die Falle gehört zum Start). Der Fall im Schritt `geruest` und die Wiederholung gehören zu Teil II. `SIGINT` und `SIGTERM` beenden den Lauf: Das Skript beendet seinen laufenden Kindprozess (`u-boot`, `devcontainer`, `ssh`),
     meldet auf stderr `container-start: <Schritt>: abgebrochen` mit dem Schritt, in dem es war, und endet mit 130 beziehungsweise 143. Es
     baut nichts zurück. Jeder Schritt ist wiederholbar (Punkte 5, 6, 9), mit zwei akzeptierten Negativen: (1) Bricht `u-boot init` ab und hinterlässt
     Dateien ohne `u-boot.yaml`, ist das Verzeichnis beim nächsten Aufruf fremd (Punkt 5) und der Nutzer räumt es; (2) bricht der Lauf in
@@ -227,7 +228,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     1. `eingaben` (Exit 2), 2. `werkzeuge` (3), 3. in `zustand` (4): Lage des Pfades im Repo, Zustand des Verzeichnisses (Punkt 5), Zustand
     des Schlüsselpaars (6), Zustand des Containers (9), Port belegt (10), 4. Fehler eines Schrittes `geruest`, `schluessel`, `override`,
     `start`, `warten` (5), 5. Signal (130, 143). Exit-Code 0 heißt „bereit“ (auch beim zweiten Aufruf); 1 und alle anderen sind nicht
-    belegt. Fälle `p13-*`: je Nachbarpaar der Reihenfolge ein Fall, in dem beide Gründe zutreffen und der frühere gemeldet wird (Eingabe vor
+    belegt. **Zwischenstand, nicht zugesagt:** Solange Teil II nicht geliefert ist, endet ein Lauf, der alle Schritte bis `override` besteht, mit Exit-Code 6 und der Zeile `container-start: override: Teil II fehlt, Gerüst liegt, kein Container gestartet` auf stderr; er schreibt nie `bereit` und endet nie mit 0. Mit Teil II entfallen Exit 6 und die Zeile (kein Code und keine Zeile des Vertrags nennen ihn danach); die Fälle des Zwischenstandes (`p13-zwischenstand`, Mutation: Exit 0 oder Zeile `bereit`) fallen mit ihm weg. Fälle `p13-*`: je Nachbarpaar der Reihenfolge ein Fall, in dem beide Gründe zutreffen und der frühere gemeldet wird (Eingabe vor
     Werkzeug; Werkzeug vor Pfad im Repo; Pfad im Repo vor fremdem Verzeichnis; fremdes Verzeichnis vor Schlüsselmangel; Schlüsselmangel vor
     Kollision des Containers; Kollision vor belegtem Port) und der Exit-Code jedes Grundes; Mutation: die beiden Prüfungen vertauscht.
 
@@ -239,15 +240,15 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     Zusage ist die Meldung: `container-start: bereit` steht nur nach einem Erfolg, bei jedem Fehler stattdessen die Zeile des
     Schrittes auf stderr. `MAKEFLAGS` aus der Umgebung gilt wie das Flag, auch in Kombination; bei `-n`, `-q` oder `-t` zusammen mit `-i` gilt
     `-n`, `-q`, `-t` (nichts läuft). `-k` und `-j` ändern an diesem einen Ziel nichts: gleiches Ergebnis wie ohne. Gleichzeitige Aufrufe
-    mit demselben `PGR_DEV` sind nicht zugesagt (Punkt 17). Je Flag `-n`, `-q`, `-t`, `-i`, `-k`, `-j`, je `MAKEFLAGS` aus der Umgebung
+    mit demselben `PGR_DEV` sind nicht zugesagt (Punkt 17). Der Erfolgsfall eines Laufs ist in Teil I der Zwischenstand aus Punkt 13 (Exit 6 von `make` als Fehler des Rezepts, Zeile des Zwischenstandes, keine Zeile `bereit`), mit Teil II der Lauf mit `bereit`. Je Flag `-n`, `-q`, `-t`, `-i`, `-k`, `-j`, je `MAKEFLAGS` aus der Umgebung
     mit demselben Flag und für `-n` zusammen mit `-i` ein Fall `p14-*` an Attrappen (Protokoll der Aufrufe leer bei `-n`, `-q`, `-t`; bei
-    `-i` ein Fehlerfall ohne Zeile `bereit`; bei `-k` und `-j` ein Erfolgsfall); Mutation: ein Rezept mit `$(MAKE)` oder `+`.
+    `-i` ein Fehlerfall ohne Zeile `bereit`; bei `-k` und `-j` ein Erfolgsfall im eben genannten Sinn); Mutation: ein Rezept mit `$(MAKE)` oder `+`.
 
 15. **Gegenprobe.** `container-start-gegenprobe` hat zwei Gruppen. *Gruppe Attrappen* (alle Punkte außer den Fällen gegen reales Docker)
     läuft in Temp-Verzeichnissen mit Attrappen von `docker`, `u-boot`, `devcontainer` und `ssh` in einem vorangestellten Pfad, ohne Docker
     und ohne Netz, mit echtem `node` und `ssh-keygen`; jede Attrappe protokolliert Aufruf und Argumente. *Gruppe Docker* (die Fälle gegen
     reales Docker aus den Punkten 7 bis 11) fährt gegen den Daemon des Hosts und höchstens einen Container des Gerüsts zugleich. Regeln der
-    Gruppe Docker: (a) Namenspräfix `pgr-cs-` für jeden Container, jedes Verzeichnis (unter `mktemp -d`), jedes Image (`vsc-pgr-cs-`);
+    Gruppe Docker (Zuordnung: (a) für Verzeichnisse und (e), (f) für Verzeichnisse und Temp-Pfade gelten schon in Teil I, mit dem Fall gegen das echte `u-boot` aus Punkt 7, der eine Attrappe von `docker` nutzt, weil Schritt `werkzeuge` nur `info` und `version` ruft; (a) für Container und Image, (b), (c), (d) und (e), (f) für Container und Volumes erst mit Teil II): (a) Namenspräfix `pgr-cs-` für jeden Container, jedes Verzeichnis (unter `mktemp -d`), jedes Image (`vsc-pgr-cs-`);
     (b) der Port ist einer, der zum Zeitpunkt frei ist, nie 2222 und nie ein Port eines Containers ohne Präfix; (c) `PGR_CPUS=2` und
     `PGR_MEM=2g`; (d) Entfernen nur per Name: `docker rm -fv`, danach die Prüfung, dass keines der zuvor aus `docker inspect` gelesenen Volumes
     (Typ `volume`) bleibt (`SPEC-057` Punkte 3 und 4; ein Rest wird gemeldet, per Name entfernt und färbt die Gegenprobe rot), `docker rmi`
