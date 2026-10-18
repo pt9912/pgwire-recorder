@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-064` Teile 1 und 2 und Punkt 14 für `ci.yml` und `ci-range.sh` (Vertrag des Architect in `harness/vertraege/`; Teil 3, die Konfiguration der Range-Prüfungen mit ihrer Gegenprobe, trägt `slice-harness-ci-range-konfiguration`) · `SPEC-063` (gelesen: Gate der Workflows; `ci.yml` besteht es) · [`SPEC-050`](../../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md) (gelesen: Kennungen im Commit) · [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) Punkte 1 bis 4 und 21 (gelesen: Nachweis des vollen Laufs, Aufrufarten).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** Planner. **Datum:** 2026-10-18.
 
 ---
@@ -182,3 +182,5 @@ Slice-Typ) und die **vier Pflichtkriterien**.
 **Schätzung des Architect nach dem Schnitt (2026-10-18; Metrik von §4; `SPEC-064` vor dem Anspruch geschrieben, nicht gezählt; Faktor 1,3 bis 1,65 aus `slice-harness-ci-workflows`):** `ci.yml` 45 bis 70, `ci-range.sh` 80 bis 110, Eintrag der Pins 5 bis 10, `ci.mk` 20, `harness/README.md` 15 bis 30, Gegenprobe 240 bis 330 (Text von `ci.yml` mit je einer Mutation je Zeile, rund 30 Formen von `ci-range.sh` mit Git-Repositories); roh zusammen 405 bis 570, mit dem Faktor 530 bis 930, Mitte rund 730. Die Obergrenze liegt über der Marke 900; tritt sie ein, ist der Schnitt *Range* (Liefer-Punkt 2 mit seinen Fällen `p6-*` bis `p9-*`) und *Workflow* (Punkt 1, Fälle `p1-*`).
 
 **Nachschätzung des Architect (2026-10-18):** Punkt 18 von `SPEC-064` fügt dieser Gegenprobe zwei Fälle mit vier Mutationen und eine Falle hinzu, rund 30 bis 45 Zeilen; die Obergrenze 930 steigt auf rund 970, die Mitte auf rund 770. Das verschärft die Rückführung *zu groß* (Schnitt in §4); der Planner entscheidet, ob er ihn vorab setzt.
+
+**Nachrechnung beim Anspruch (Planner, 2026-10-18; Empfehlung, kein Beschluss des Nutzers):** Die Schätzung des Architect (530 bis rund 970, Mitte rund 770) trägt den Faktor 1,3 bis 1,65 schon in sich (roh 435 bis 615 nach Punkt 18). Mit dem gemessenen Faktor der Nachbarn (1,1 bis 1,65; `slice-harness-ci-range-konfiguration` 445 gegen 300 bis 415, `slice-harness-ci-workflows` 899 gegen 545 bis 695) auf den rohen Wert liegt der Slice bei 480 bis 1015, Mitte rund 750, unter der Marke 900; die Obergrenze liegt darüber. Die Mitte liegt unter der Marke mit rund 150 Zeilen Spielraum, daher kein Schnitt vorab: ein Slice, der Schnitt *Range* gegen *Workflow* bleibt die Rückführung nach §4. Liefer-Punkte 3, Schichten 2, unverändert (kein neuer Eintrag einer Sendung).
