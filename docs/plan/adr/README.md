@@ -53,6 +53,7 @@
 | [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | Gegenprobe des Container-Starts ist ein Ziel für den Host und kein Gate | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0048](0048-gegenproben-verlassen-die-gate-kette.md) | Die Gegenproben verlassen die Gate-Kette, zwei Sammelziele fahren sie | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0049](0049-nachweis-aus-anderer-umgebung-uebernehmen.md) | Der Nachweis des vollen Laufs darf aus einer anderen Umgebung übernommen werden, wenn die Dateiliste gleich ist | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0050](0050-ci-auf-github-actions.md) | Die CI läuft auf GitHub Actions, gehärtet durch Pins, leere Rechte und Zeitgrenzen, mit einem Gate für die Workflows | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 
@@ -95,3 +96,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | ersetzt [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) und ergänzt [0045](0045-container-start-als-werkzeug-im-repo.md) um die Aussage, die Gegenprobe sei ein Ziel nur für den Host und kein Gate |
 | [0048](0048-gegenproben-verlassen-die-gate-kette.md) | ersetzt Teile von [0038](0038-gate-kette-voll-und-schnell.md) (Punkt 2 der Entscheidung, den einzigen Nachweis in Punkt 1 und die Verwerfung der Alternative D: die Gegenproben verlassen die Gate-Kette, die Ausnahmeliste der schnellen Kette schrumpft auf drei Gates) und liest [0033](0033-gate-nachweise-in-der-abdeckung.md) so, dass „hängt an der Gate-Kette“ „steht in einer der beiden Listen“ heißt; Positivliste, Dateiliste und Wahl am Pfad der 0038 bleiben; ersetzt keine ADR im Ganzen |
 | [0049](0049-nachweis-aus-anderer-umgebung-uebernehmen.md) | ergänzt [0038](0038-gate-kette-voll-und-schnell.md) um einen zweiten Schreiber des Nachweises des vollen Laufs (Übernahme aus einer anderen Umgebung bei byte-gleicher Dateiliste); ersetzt keine ADR |
+| [0050](0050-ci-auf-github-actions.md) | CI auf GitHub Actions, gehärtet durch Pins, leere Rechte und Zeitgrenzen, mit einem Gate für die Workflows; ergänzt den lokalen Hook ([0038](0038-gate-kette-voll-und-schnell.md)), ersetzt keine ADR |
