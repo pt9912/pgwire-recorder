@@ -52,7 +52,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] **Liefer-Punkt 1 (Gate):** `make workflows-check` prüft nach `SPEC-063` die drei Gruppen (Syntax und Ausdrücke, Rechte und Zeitgrenzen, Bindung der Pin-Prüfung) über jede Datei unter `.github/workflows/`, nennt je Befund Pfad, Zeile und Regel (bei Job-Eigenschaften steht der Job im Text), endet mit Exit ungleich 0 bei einem Befund, schreibt nichts in den Arbeitsbaum, braucht kein Netz zur Laufzeit und hängt an `GATE_CHECKS`; jede Entscheidung je Randform aus §6 steht vor dem ersten Code-Commit in `SPEC-063`. Fragment `harness/mk/workflows.mk`, Skript `tools/harness/workflows-check.sh`; der Eintrag in `.d-check.yml` gehört nicht dazu (`slice-harness-ci`).
 - [x] **Liefer-Punkt 2 (Gegenprobe):** `make workflows-check-gegenprobe` zeigt je Punkt von `SPEC-063` und je Element seiner Aufzählungen (Dateiendung, Form von `permissions`, Job-Art, Bindung der Pin-Prüfung) einen Fall, der abgelehnt, und einen, der angenommen wird, dazu je Zusage eine Mutation des Skripts, die nur den Fall ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie grün; Aufrufarten `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` aus der Umgebung je ein Fall (`AGENTS.md` §3.12). Das Ziel steht in `GEGENPROBEN_CONTAINER` (Namens- und Zuordnungsregel von `SPEC-060`).
 - [x] **Liefer-Punkt 3 (Gate-Index):** `harness/README.md` §Sensors führt die Zeilen von Gate und Gegenprobe mit Vertrag und Bindung; die Prosa über das Gate nennt die Regel an den Schreiber einer Workflow-Datei und zeigt auf `SPEC-063` und `.d-check.yml` als Quelle, nicht auf eine nachgeschriebene Aufzählung (`AGENTS.md` §3.11).
-- [ ] `make gates` grün (Stop-Hook verlangt den vollen Lauf, weil `harness/` und `tools/` ändern) und `make gates-schnell-gegenprobe` grün (die Deckung zählt die neue Gegenprobe); `make workflows-check-gegenprobe` grün auf dem Endstand. **Offen: Host-Lauf von `make gates` am Integrationsstand** (V-1); `make gates-schnell-gegenprobe` und `make workflows-check-gegenprobe` sind am Endstand grün (§7).
+- [x] `make gates` grün (Stop-Hook verlangt den vollen Lauf, weil `harness/` und `tools/` ändern) und `make gates-schnell-gegenprobe` grün (die Deckung zählt die neue Gegenprobe); `make workflows-check-gegenprobe` grün auf dem Endstand. `make gates` am Integrationsstand `dffe1ccf` im Host-Worktree: Exit 0, am 2026-10-18 (V-1); `make gates-schnell-gegenprobe` und `make workflows-check-gegenprobe` sind am Endstand grün (§7).
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -154,7 +154,7 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `bdfbedf5` (Gate `7a66cc39
 |---|---|
 | `make workflows-check-gegenprobe` | grün, 100 Läufe (unveränderte Kopie und 99 Mutationen), 98 Fälle, davon 3 echte gegen die Images von `actionlint` und d-check; als root (`sudo -n`, ebenfalls im Container) grün mit 97 Läufen, die drei Fälle mit Rechten und ihre drei Mutationen entfallen und stehen am Ende auf stderr |
 | `make gates-schnell-gegenprobe` | grün (Ausnahmeliste deckt `GATE_CHECKS`, Namensregel von `SPEC-060` Punkt 2 am Arbeitsbaum mit der neuen Gegenprobe) |
-| `make gates` | am Stand `6f4058fe` bis auf `docs-check` grün (`make -k gates`); `docs-check` meldete drei Befunde `id-unlinked` im Review-Report, behoben im Commit `e9219f59` des Reviewers (Links). Ein voller Lauf von `make gates` am Endstand ist in diesem Container nicht gefahren; er (Verifikation V-1) steht beim Host am Integrationsstand |
+| `make gates` | am Stand `6f4058fe` bis auf `docs-check` grün (`make -k gates`); `docs-check` meldete drei Befunde `id-unlinked` im Review-Report, behoben im Commit `e9219f59` des Reviewers (Links). Der volle Lauf am Endstand lief im Host-Worktree am Integrationsstand `dffe1ccf`: Exit 0 (Verifikation V-1) |
 | `make docs-check` | 0 Befunde am Stand `bdfbedf5` (nach `e9219f59`) |
 | `make gates-schnell-gegenprobe` | grün am Endstand |
 | echter Lauf des Gates | an einer Datei mit Ausdrucksfehler, `permissions: read-all`, `timeout-minutes: 99`, einem Job ohne Zeitgrenze und `contents: admin`: 10 Befunde (4 von `actionlint`, 5 eigene, 1 Bindung), Exit 1 |
@@ -295,7 +295,7 @@ Urteil: bestanden, mit Auflagen vor der Closure. Liefer-Punkte 1 bis 3 bestätig
 
 | ID | Ausgang |
 |---|---|
-| V-1 (mittel) | **offen bis zum Host-Lauf:** `make gates` am Endstand ist in diesem Zweig nicht gefahren; der Host fährt es am Integrationsstand und trägt das Ergebnis in die DoD-Zeile ein. Der Planner schreibt den Lauf nicht selbst |
+| V-1 (mittel) | behoben: `make gates` am Integrationsstand `dffe1ccf` im Host-Worktree, Exit 0 (2026-10-18); der Nachweis des vollen Laufs ist geschrieben |
 | V-2 (gering) | behoben (§7 *Belege des Implementers* nachgezogen, `dffe1ccf`) |
 | V-3 (gering, CRLF) | weiter offen → `BEO-REPO/zeilenende-crlf-im-gelesenen-wert` (1×, ohne Adresse: kein Slice der Welle nimmt die Entscheidung an); Rückgabe an den Architect: in `SPEC-063` Punkt 5 das Zeilenende als Grenze nennen oder `\r` als Befund `form` einstufen |
 | V-4 (gering) | behoben (Werkzeugliste im Kopf von `workflows.mk`, `bdfbedf5`) |
