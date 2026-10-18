@@ -48,7 +48,7 @@ attrappe="$arbeit/attrappe"
 
 FAELLE=(
   p1-yml p1-yaml p1-andere-endung p1-unterverzeichnis p1-symlink
-  p2-kein-verzeichnis p2-leer p2-nur-andere p2-ohne-4 p2-ohne-8
+  p2-kein-verzeichnis p2-leer p2-nur-andere p2-ohne-4 p2-ohne-8 p2-nur-symlink
   p3-e1 p3-e2 p3-e3 p3-e4 p3-e5 p3-e6 p3-e7 p3-e8 p3-einmal
   p3-exit0 p3-exit1 p3-exit1-leer p3-exit2 p3-exit3 p3-exit3-rechte p3-exit125 p3-kein-docker p3-digest-form p3-image-leer
   p4-yaml p4-yml
@@ -167,6 +167,13 @@ f_p2_nur_andere() {
 }
 f_p2_ohne_4() { neu; rm "$w/.d-check.yml"; printf 'x\n' > "$w/.github/actionlint.yaml"; lauf; chk code_ist 0; chk err_leer; chk out_hat "$KEINE"; }
 f_p2_ohne_8() { neu; rm "$w/.d-check.yml"; schreibe y.txt "y"; lauf; chk code_ist 0; chk err_leer; chk out_hat "$KEINE"; }
+
+f_p2_nur_symlink() {
+  neu; rm "$w/.d-check.yml"; ln -s ziel.txt "$w/.github/workflows/l.yml"; printf 'x\n' > "$w/.github/workflows/ziel.txt"
+  lauf
+  chk code_ist 1; chk tags_sind symlink; chk summe_stimmt; chk err_hat "workflows-check: 1 Befund(e)"
+  chk aufrufe_sind 0; chk test -z "$(out_hat "$KEINE" && echo ja)"
+}
 
 # --- Punkt 3: Aufruf von actionlint -----------------------------------------------------------------------------------------------------------------
 zwei() { neu; schreibe b.yaml "$(gut)"; schreibe a.yml "$(gut)"; lauf; chk code_ist 0; }
@@ -445,13 +452,15 @@ mut m-p1-nur-yml "p1-yaml p3-e6 p9-gruen" skript '*.yml | *.yaml) endung=1' '*.y
 mut m-p1-nur-yaml "MUSS:p1-yml NICHT:p1-yaml p2-leer p2-nur-andere p3-digest-form" skript '*.yml | *.yaml) endung=1' '*.yaml) endung=1'
 mut m-p1-teilstring "p1-andere-endung" skript '*.yml | *.yaml) endung=1' '*.yml* | *.yaml*) endung=1'
 mut m-p1-rekursiv "p1-unterverzeichnis" skript 'find "$dir" -mindepth 1 -maxdepth 1 -print0' 'find "$dir" -mindepth 1 -print0'
-mut m-p1-symlink-gefolgt "p1-symlink" skript '  if [ -L "$p" ]; then' '  if false; then'
+mut m-p1-symlink-gefolgt "p1-symlink p2-nur-symlink" skript '  if [ -L "$p" ]; then' '  if false; then'
 mut m-p1-reihenfolge "p3-e6 p9-reihenfolge" skript 'done < <(find "$dir" -mindepth 1 -maxdepth 1 -print0 | sort -z)' 'done < <(find "$dir" -mindepth 1 -maxdepth 1 -print0 | sort -rz)'
 # Punkt 2
 mut m-p2-f1-exit2 "p2-kein-verzeichnis" skript '[ -d "$dir" ] || keine' '[ -d "$dir" ] || exit 2'
 mut m-p2-f2-still "p2-leer p2-ohne-4" skript 'if [ "$alle" -eq 0 ]; then keine; fi' 'if [ "$alle" -eq 0 ]; then exit 0; fi'
-mut m-p2-f3-docker "p1-andere-endung p2-nur-andere p2-ohne-8" skript 'if [ "${#geordnet[@]}" -eq 0 ]; then keine; fi' ':' \
+mut m-p2-f3-docker "p1-andere-endung p2-nur-andere p2-nur-symlink p2-ohne-8" skript 'if [ "${#geordnet[@]}" -eq 0 ]; then keine; fi' ':' \
   $'if [ "${#kand[@]}" -gt 0 ]; then\n  [ -n "${WORKFLOWS_ACTIONLINT:-}" ]' $'if true; then\n  [ -n "${WORKFLOWS_ACTIONLINT:-}" ]'
+mut m-p2-f4-wie-f3 "p2-nur-symlink" skript 'if [ "${#geordnet[@]}" -eq 0 ]; then keine; fi' 'if [ "${#kand[@]}" -eq 0 ]; then keine; fi'
+mut m-p2-f4-docker "p2-nur-symlink" skript $'if [ "${#kand[@]}" -gt 0 ]; then\n  [ -n "${WORKFLOWS_ACTIONLINT:-}" ]' $'if true; then\n  [ -n "${WORKFLOWS_ACTIONLINT:-}" ]'
 mut m-p2-punkt4 "p2-ohne-4" skript 'keine() { echo' 'keine() { if [ -e "$wurzel/.github/actionlint.yaml" ]; then echo "workflows-check: 1 Befund(e)" >&2; exit 1; fi; echo'
 mut m-p2-punkt8 "p1-andere-endung p2-kein-verzeichnis p2-leer p2-nur-andere p2-ohne-4 p2-ohne-8" skript 'keine() { echo' 'keine() { if [ ! -f "$wurzel/.d-check.yml" ]; then echo "workflows-check: 1 Befund(e)" >&2; exit 1; fi; echo'
 # Punkt 3
