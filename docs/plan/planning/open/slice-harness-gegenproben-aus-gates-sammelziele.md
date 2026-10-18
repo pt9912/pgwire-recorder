@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-060` Teil 2 (Punkte 4 bis 12, die Sammelziele) und die Punkte 13 bis 15, soweit sie die Sammelziele betreffen (Vertrag in `harness/vertraege/`, vom Architect am 2026-10-18 geschrieben); [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) Punkt 8 (Aufruf-Voraussetzung nacheinander), nur gelesen.
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
