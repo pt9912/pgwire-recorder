@@ -87,7 +87,7 @@ Alle vier tragen nur einen *vorgesehenen* Ausgang; §7 sagt „Wird bei Closure 
 | `harness/vertraege/SPEC-063-workflows-check.md` | 22 / 17 |
 | `harness/vertraege/SPEC-064-ci.md` | 1 / 4 |
 
-Marke 900 um eine Zeile unterschritten, Meldeschwelle 700 überschritten (wie §7 sagt). Nicht zum Slice gehören 8 Zeilen (SPEC-064 mit 5 und 3 Zeilen von SPEC-063): der Commit `28775212` des Architect (Stand der Entscheidung nach Annahme von ADR-0050) liegt vor dem Merge `79b82a0e`, aber hinter der Basis `a98d0b9e` des Plans. Von `79b82a0e` aus sind es 891. Beide Zahlen unter der Marke; keine Rückführung. Der Review-Report und §7 liegen außerhalb der gemessenen Pfade.
+Marke 900 um eine Zeile unterschritten, Meldeschwelle 700 überschritten (wie §7 sagt). Nicht zum Slice gehören 8 Zeilen (SPEC-064 mit 5 und 3 Zeilen von SPEC-063): der Commit `28775212` des Architect (Stand der Entscheidung nach Annahme der [ADR-0050](../plan/adr/0050-ci-auf-github-actions.md)) liegt vor dem Merge `79b82a0e`, aber hinter der Basis `a98d0b9e` des Plans. Von `79b82a0e` aus sind es 891. Beide Zahlen unter der Marke; keine Rückführung. Der Review-Report und §7 liegen außerhalb der gemessenen Pfade.
 
 ## Befunde
 
