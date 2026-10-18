@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # container-start-gegenprobe — prüft tools/harness/container-start.sh und harness/mk/container-start.mk
 # gegen Teil I von SPEC-058 (harness/vertraege/SPEC-058-container-start.md: Punkte 1 bis 8, die Teile der
-# Punkte 13 und 14 ohne Container, Punkte 15 und 16). Gruppe Attrappen: Temp-Verzeichnisse mit Attrappen
+# Punkte 13 und 14 ohne Container, Punkte 15 und 16). Ziel für den Host, kein Gate (ADR-0047). Gruppe Attrappen: Temp-Verzeichnisse mit Attrappen
 # von docker, u-boot, devcontainer und ssh in einem vorangestellten Pfad, echtes node und ssh-keygen,
 # ohne Docker und ohne Netz; dazu der Fall p7-echt-u-boot gegen das echte u-boot. Jede Attrappe
 # protokolliert Aufruf und Argumente. Der Name jedes Falls trägt die Nummer seines Punktes; die
@@ -9,9 +9,11 @@
 # einer Datei; trifft sie nichts oder mehr als eine Stelle, bricht die Gegenprobe ab) werden von den
 # Fällen ihrer Gruppe (SEL) genau die benannten rot.
 #
-# Voraussetzungen (SPEC-058 Punkt 3): make, GNU-Werkzeuge, node, ssh-keygen und u-boot im Pfad; fehlt eines,
-# bricht die Gegenprobe mit einer Meldung ab (kein Fall prüft das). Verzeichnisse tragen das Präfix pgr-cs-
-# (mktemp -d); entfernt wird nur dieses Verzeichnis, bei Ende, SIGINT und SIGTERM (Fälle p15-*).
+# Voraussetzungen (SPEC-058 Punkt 15): make, GNU-Werkzeuge, node, ssh-keygen und u-boot im Pfad; die Gegenprobe prüft sie
+# zuerst und endet bei einem fehlenden mit einer Meldung (Fälle p15-voraussetzung-*).
+# Verzeichnisse tragen das Präfix pgr-cs- (mktemp -d); entfernt wird nur dieses Verzeichnis, bei Ende, SIGINT und
+# SIGTERM (Fälle p15-*). GRENZE: Die Mutanten p15-ende und p15-exit-trap hinterlassen leere Verzeichnisse der Sonde;
+# die Gegenprobe entfernt am Ende nur diese, nur wenn leer, nur per rmdir, und prüft, dass keines bleibt.
 # GRENZE: p15-aufraeumen-int und -term setzen voraus, dass die Gegenprobe SIGINT nicht ignoriert (kein Start
 # als Hintergrundjob einer Shell ohne Jobsteuerung). Es gibt keinen Container und keinen Fall zu Punkt 9
 # bis 12 (Teil II).
@@ -24,10 +26,12 @@ export LC_ALL=C
 shopt -u patsub_replacement 2> /dev/null || true
 
 GP_SELF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOURCE[0]}")
-quelle=$(cd "$(dirname "$GP_SELF")/../.." && pwd -P)
+quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../.." && pwd -P)}
 arbeit=$(mktemp -d -t pgr-cs-XXXXXX)
 bg=
-aufraeumen() { [ -z "$bg" ] || kill "$bg" 2> /dev/null; [[ ${arbeit##*/} == pgr-cs-* ]] && [ -d "$arbeit" ] && rm -rf -- "$arbeit"; }
+PSDS=()
+sonden_raeumen() { local d; for d in "${PSDS[@]}"; do [[ ${d##*/} == pgr-cs-* ]] && [ -d "$d" ] && rmdir -- "$d" 2> /dev/null; done; return 0; }
+aufraeumen() { [ -z "$bg" ] || kill "$bg" 2> /dev/null; sonden_raeumen; [[ ${arbeit##*/} == pgr-cs-* ]] && [ -d "$arbeit" ] && rm -rf -- "$arbeit"; }
 trap aufraeumen EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -44,7 +48,9 @@ melde() { echo "container-start-gegenprobe: ROT — $*" >&2; fehler=1; }
 declare -A ROT FILE=([s]=tools/harness/container-start.sh [m]=harness/mk/container-start.mk [g]=harness/mk/container-start-gegenprobe.mk [k]=harness/mk/gates-schnell.mk [p]=gp.sh)
 rot() { ROT[${1:-$fn}]=1; [ -z "${GP_DEBUG-}" ] || echo "ROT ${1:-$fn} $w" >&2; }
 
-for t in make node ssh-keygen u-boot; do command -v "$t" > /dev/null 2>&1 || { melde "$t fehlt im Pfad (Voraussetzung der Gegenprobe)"; exit 1; }; done
+fehlt=0
+for t in make node ssh-keygen u-boot; do command -v "$t" > /dev/null 2>&1 || { melde "$t fehlt im Pfad (Voraussetzung der Gegenprobe)"; fehlt=1; }; done
+[ "$fehlt" = 0 ] || exit 1
 node=$(command -v node) sshkeygen=$(command -v ssh-keygen) realub=$(command -v u-boot)
 sys=$arbeit/sys att=$arbeit/att
 mkdir -p "$sys" "$att"
@@ -55,9 +61,9 @@ n=${0##*/}
 echo "$n $*" >> "$AT_LOG"
 for v in CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY GIT_TOKEN; do [ -z "${!v+x}" ] || echo "ENV! $n $v" >> "$AT_LOG"; done
 case $n in
-  docker) case $1 in info) exit "${AT_DK_INFO-0}" ;; version) echo "${AT_DK_VER-29.9.1}" ;; esac ;;
+  docker) case $1 in info) exit "${AT_DK_INFO-0}" ;; version) echo "${AT_DK_VER-29.9.1}"; exit "${AT_DK_VEXIT-0}" ;; esac ;;
   u-boot)
-    [ "$1" = --version ] && { echo "${AT_UB_AUS-u-boot version ${AT_UB_VER-0.10.0}}"; exit 0; }
+    [ "$1" = --version ] && { echo "${AT_UB_AUS-u-boot version ${AT_UB_VER-0.10.0}}"; exit "${AT_UB_EXIT-0}"; }
     mkdir -p "$AT_STATE"
     k=$(( $(cat "$AT_STATE/k" 2> /dev/null || echo 0) + 1 )); echo $k > "$AT_STATE/k"
     echo "UB-STDOUT-$k"; echo "UB-STDERR-$k" >&2
@@ -107,7 +113,12 @@ neu() {
   for t in docker u-boot devcontainer ssh; do ln -s "$att/attrappe" "$w/bin/$t"; done
   ln -s "$node" "$w/bin/node"; ln -s "$sshkeygen" "$w/bin/ssh-keygen"
 }
-c() { fn=$1; [[ $1 =~ ^($SEL)$ ]] && neu; }
+c() {
+  fn=$1; [[ $1 =~ ^($SEL)$ ]] || return 1
+  [[ -n ${GP_KIND-} && $1 =~ ^p15-(voraussetzung|sonden-raeumen|rekursion) ]] && return 1
+  [ -z "${GP_LISTE-}" ] || echo "$1" >> "$GP_LISTE"
+  neu
+}
 snap() { (cd "$w" && find . ! -path ./bin ! -path './bin/*' ! -path ./st ! -path './st/*' ! -name log ! -name out ! -name err -printf '%p %m %y %l\n' -type f -exec cksum {} +) | sort; }
 snapw() { (cd "$1" && find . -printf '%p %m\n' -type f -exec cksum {} + | sort); }
 lauf() {
@@ -148,7 +159,18 @@ sonde() { # <Modus> [<Signal>]: startet die Gegenprobe im Sondenmodus; setzt pco
   fi
   { GP_PROBE=$1 GP_PROBE_DATEI=$d bash "$gpk"; } 2> /dev/null; pcode=$?
   wait
-  psd=$(sed -n 1p "$d")
+  psd=$(sed -n 1p "$d"); [[ ${psd##*/} == pgr-cs-* ]] && PSDS+=("$psd")
+}
+# kind <Werkzeug> [<Muster>]: die Gegenprobe (gpk) in einem Pfad ohne <Werkzeug>
+kind() {
+  local f=$arbeit/ohne-$1 p b
+  [ -z "${GP_KIND-}" ] || { melde "Rekursion: eine Kind-Gegenprobe ruft kind erneut auf"; exit 1; }
+  if [ ! -d "$f" ]; then
+    mkdir "$f"; declare -A alle=()
+    while IFS= read -r p; do b=${p##*/}; [ "$b" = "$1" ] || [ -n "${alle[$b]-}" ] || alle[$b]=$p; done < <(for p in ${PATH//:/ }; do find "$p/" -maxdepth 1 \( -type f -o -type l \) -perm -u+x 2> /dev/null; done)
+    ln -s -t "$f" "${alle[@]}"
+  fi
+  (cd "$w" && timeout 300 env -i PATH="$f" HOME="$w" TMPDIR="$w" GP_KIND=1 GP_QUELLE="$quelle" GP_MUT="${2:-^\$}" GP_LISTE="$w/liste" "$BASH" "$gpk" > "$w/out" 2> "$w/err"); code=$?
 }
 
 cases() {
@@ -175,8 +197,8 @@ cases() {
   ein p2-dev-basis-unterstrich PGR_DEV 'Basisnamen' 'PGR_DEV=@W@/pgr_dev'
   ein p2-name-leer PGR_NAME 'ungültig' PGR_NAME=
   ein p2-name-gross PGR_NAME 'ungültig' PGR_NAME=Pgr
-  for p in leer: abc:abc 02222:02222 plus22:+22 0:0 65536:65536; do ein "p2-port-${p%%:*}" PGR_SSH_PORT 'keine ganze Zahl' "PGR_SSH_PORT=${p#*:}"; done
-  for p in leer: abc:ab 0:0 601:601; do ein "p2-warten-${p%%:*}" PGR_WARTEN 'keine ganze Zahl' "PGR_WARTEN=${p#*:}"; done
+  for p in leer: abc:abc 02222:02222 plus22:+22 minus22:-22 2plus2:2+2 22minus:22- 0:0 65536:65536; do ein "p2-port-${p%%:*}" PGR_SSH_PORT 'keine ganze Zahl' "PGR_SSH_PORT=${p#*:}"; done
+  for p in leer: abc:abc ab:ab 0:0 601:601; do ein "p2-warten-${p%%:*}" PGR_WARTEN 'keine ganze Zahl' "PGR_WARTEN=${p#*:}"; done
   for p in PGR_SSH_PORT=1 PGR_SSH_PORT=65535 PGR_WARTEN=1 PGR_WARTEN=600; do c "p2-grenze-${p//=/-}" && gruen "$p"; done
   c p2-vorgaben && { gruen; v=$dev/.devcontainer/override.json
     for a in --name=pgr-dev --cpus=8 --memory=12g 127.0.0.1:2222:2222; do grep -qF -- "$a" "$v" || rot; done; }
@@ -193,7 +215,10 @@ cases() {
     [ "$(sed 's/^container-start: werkzeuge: //;s/ fehlt im Pfad$//' "$w/err" | tr '\n' ' ')" = 'docker u-boot devcontainer node ssh ssh-keygen ' ] || rot; }
   c p3-u-boot-0.9.0 && { lauf AT_UB_VER=0.9.0; ex 3 'container-start: werkzeuge: u-boot 0.9.0 ist kleiner als 0.10.0'; zeilen 1; }
   for v in 0.10.0 0.100.0 1.0.0; do c "p3-u-boot-$v" && gruen AT_UB_VER=$v; done
-  c p3-u-boot-unlesbar && { lauf 'AT_UB_AUS=u-boot version dev'; ex 3 'container-start: werkzeuge: u-boot: die Version ist unlesbar'; zeilen 1; }
+  c p3-u-boot-unlesbar && { lauf 'AT_UB_AUS=u-boot version dev'; ex 3 'container-start: werkzeuge: u-boot: Version unlesbar'; zeilen 1; }
+  c p3-u-boot-exit1 && { lauf AT_UB_EXIT=1; ex 3 'container-start: werkzeuge: u-boot: Version unlesbar'; zeilen 1; }
+  c p3-docker-unlesbar && { lauf AT_DK_VER=dev; ex 3 'container-start: werkzeuge: docker: Version des Servers unlesbar'; zeilen 1; }
+  c p3-docker-exit1 && { lauf AT_DK_VEXIT=1; ex 3 'container-start: werkzeuge: docker: Version des Servers unlesbar'; zeilen 1; }
   c p3-docker-daemon && { lauf AT_DK_INFO=1; ex 3 'container-start: werkzeuge: docker: der Daemon ist nicht erreichbar'; zeilen 1; }
   c p3-docker-23 && { lauf AT_DK_VER=23.0.6; ex 3 'container-start: werkzeuge: docker: der Server 23.0.6 ist älter als 24'; zeilen 1; }
   c p3-docker-24 && gruen AT_DK_VER=24.0.0
@@ -209,7 +234,7 @@ cases() {
   c p5-fehlt && { gruen; [ -d "$dev" ] || rot; }
   c p5-leer && { mkdir "$dev"; gruen; aufrufe | grep -q '^u-boot init ' || rot; }
   c p5-vorhanden-ohne-aufruf && { gruen; gruen; ! aufrufe | grep -q . || rot; }
-  c p5-vorhanden-unveraendert && { gruen; v=$(snap); gruen; [ "$v" = "$(snap)" ] || rot; }
+  c p5-vorhanden-unveraendert && { gruen; v=$(snap | grep -v override.json); gruen PGR_CPUS=3; [ "$v" = "$(snap | grep -v override.json)" ] || rot; }
   c p5-fortsetzen && { mkdir "$dev"; printf 'schemaVersion: 1\nproject:\n    name: pgr-cs-dev\n' > "$dev/u-boot.yaml"; gruen
     [ "$(aufrufe | grep -c '^u-boot config set ')" = 6 ] && aufrufe | grep -q '^u-boot generate devcontainer$' || rot; }
   c p5-fremd-datei && { mkdir "$dev"; echo x > "$dev/datei"; lauf; ex 4 "$dev ist fremd"; }
@@ -223,6 +248,9 @@ cases() {
   c p6-ohne-passphrase && { gruen; "$sshkeygen" -y -P '' -f "$dev/ssh/id_ed25519" > /dev/null 2>&1 < /dev/null || rot; }
   c p6-gueltig-unveraendert && { gruen; v=$(cksum "$dev"/ssh/*); gruen; [ "$v" = "$(cksum "$dev"/ssh/*)" ] || rot; }
   c p6-kommentar-ignoriert && { gruen; sed -i 's/ pgr-cs-dev$/ anderer/' "$dev/ssh/id_ed25519.pub"; gruen; }
+  c p6-modus-ordner-vorhanden && { gruen; rm -rf "$dev/ssh"; mkdir -m 755 "$dev/ssh"; echo x > "$dev/ssh/andere"; gruen; [ "$(stat -c %a "$dev/ssh")" = 700 ] && [ "$(cat "$dev/ssh/andere")" = x ] || rot; }
+  c p6-ssh-ist-datei && { gruen; rm -rf "$dev/ssh"; : > "$dev/ssh"; lauf; ex 4 "$dev/ssh ist kein Verzeichnis"; }
+  c p6-ssh-ist-symlink && { gruen; rm -rf "$dev/ssh"; : > "$w/datei"; ln -s "$w/datei" "$dev/ssh"; lauf; ex 4 "$dev/ssh ist kein Verzeichnis"; }
   c p6-nur-privat && { gruen; rm "$dev/ssh/id_ed25519.pub"; lauf; ex 4 'nur eine der beiden Dateien'; }
   c p6-nur-oeffentlich && { gruen; rm "$dev/ssh/id_ed25519"; lauf; ex 4 'nur eine der beiden Dateien'; }
   c p6-ordner-750 && { gruen; chmod 750 "$dev/ssh"; lauf; ex 4 '(a)'; }
@@ -301,13 +329,19 @@ cases() {
   c p15-aufraeumen-int && { sonde warten INT; { [ "$pcode" = 130 ] && [ ! -e "$psd" ]; } || rot; }
   c p15-aufraeumen-term && { sonde warten TERM; { [ "$pcode" = 143 ] && [ ! -e "$psd" ]; } || rot; }
 
-  # Punkt 16: Anschluss an die Gate-Kette (Temp-Baum mit Makefile und Fragmenten)
-  c p16-gate-kette && { mkdir -p "$w/t/harness/mk" "$w/t/tools/harness"; cp "$root/Makefile" "$w/t/"
+  for t in u-boot node ssh-keygen; do
+    c "p15-voraussetzung-$t" && { kind "$t"; [ "$code" != 0 ] && grep -qF "$t fehlt im Pfad" "$w/err" && ! grep -q übersprungen "$w/err" || rot; }
+  done
+  c p15-rekursion && { (GP_KIND=1; eval "$(sed -n '/^kind() {/,/^}/p' "$gpk")"; kind nichts) > /dev/null 2> "$w/err"; [ $? = 1 ] && grep -q Rekursion "$w/err" || rot; }
+  c p15-sonden-raeumen && { kind nichts '^p15-ende$'; [ "$code" = 0 ] || rot; }
+
+  # Punkt 16: Host-Ziel, kein Gate (Temp-Baum mit Makefile und Fragmenten)
+  c p16-keine-kette && { mkdir -p "$w/t/harness/mk" "$w/t/tools/harness"; cp "$root/Makefile" "$w/t/"
     cp "$root"/harness/mk/{container-start,container-start-gegenprobe,gates-schnell}.mk "$w/t/harness/mk/"
     printf 'exit 1\n' > "$w/t/tools/harness/container-start-gegenprobe.sh"
     v=$(make -C "$w/t" -pq help 2> /dev/null || true)
     for t in GATE_CHECKS GATE_SCHNELL_AUSNAHME; do
-      printf '%s\n' "$v" | awk -v z="$t" '$1 == z && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == "container-start-gegenprobe") f = 1 } END { exit !f }' || rot "p16-$t"
+      ! printf '%s\n' "$v" | awk -v z="$t" '$1 == z && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == "container-start-gegenprobe") f = 1 } END { exit !f }' || rot "p16-$t"
     done
     ! printf '%s\n' "$v" | awk '$1 == "GATE_CHECKS" && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == "container-start") f = 1 } END { exit !f }' || rot p16-ziel-kein-gate
     ! make -C "$w/t" container-start-gegenprobe > /dev/null 2>&1 || rot p16-scharf; }
@@ -337,10 +371,6 @@ mut() {
   [ "$got" = "$exp" ] || melde "Mutation $name: rot sind [$got], erwartet [$exp]"
 }
 
-baue "$arbeit/orig"
-sk=$arbeit/orig/tools/harness/container-start.sh root=$arbeit/orig gpk=$GP_SELF SEL=${GP_NUR:-'.*'}
-cp -a "$root" "$root.rein"; ROT=(); cases
-for k in "${!ROT[@]}"; do melde "Fall $k ist an der unveränderten Kopie rot"; done
 # --- Tabelle der Mutationen ---
 # Punkt 1
 mut p1-zerstoerung s '  (( bad == 0 )) || exit 3' '  docker rm -f x; (( bad == 0 )) || exit 3' "p1-keine-zerstoerung|$P4S" p1-keine-zerstoerung p4-nichts-geaendert
@@ -366,8 +396,11 @@ mut p2-name-gross s '^[a-z0-9][a-z0-9_.-]*$' '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' 'p2-
 mut p2-port-leer s 'PGR_SSH_PORT=${PGR_SSH_PORT-2222}' 'PGR_SSH_PORT=${PGR_SSH_PORT:-2222}' 'p2-port-.*' p2-port-leer
 mut p2-warten-leer s 'PGR_WARTEN=${PGR_WARTEN-60}' 'PGR_WARTEN=${PGR_WARTEN:-60}' 'p2-warten-.*' p2-warten-leer
 mut p2-zahl-leer s '  [[ -n $1 ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-leer p2-warten-leer
-mut p2-zahl-ziffern s '  [[ $1 != *[!0-9+-]* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-abc p2-warten-abc
-mut p2-zahl-vorzeichen s '  [[ $1 != [+-]* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-plus22
+mut p2-zahl-ziffern s '  [[ $1 != *[!0-9+-]* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-abc p2-warten-ab
+mut p2-zahl-plus s '  [[ $1 != +* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-plus22
+mut p2-zahl-minus s '  [[ $1 != -* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-minus22
+mut p2-zahl-plus-innen s '  [[ $1 != ?*+* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-2plus2
+mut p2-zahl-minus-innen s '  [[ $1 != ?*-* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-22minus
 mut p2-zahl-fuehrende-null s '  [[ $1 != 0?* ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-02222
 mut p2-zahl-null s '  [[ $1 != 0 ]] || return 1' '  :' 'p2-(port|warten)-.*' p2-port-0 p2-warten-0
 mut p2-zahl-eins s '  [[ $1 != 0 ]] || return 1' '  [[ $1 != [01] ]] || return 1' 'p2-(port|warten|grenze)-.*' p2-grenze-PGR_SSH_PORT-1 p2-grenze-PGR_WARTEN-1
@@ -395,13 +428,16 @@ mut p3-u-boot-lexikalisch s '(( 10#$x > 0 )) || (( 10#$y >= 10 )) ||' '[[ ! $x.$
 mut p3-u-boot-groesser s '(( 10#$y >= 10 ))' '(( 10#$y > 10 ))' 'p3-u-boot-.*' p3-u-boot-0.10.0
 mut p3-u-boot-hauptversion s '(( 10#$x > 0 )) || ' '' 'p3-u-boot-.*' p3-u-boot-1.0.0
 mut p3-u-boot-nicht-geprueft s '(( 10#$x > 0 )) || (( 10#$y >= 10 )) || meld "u-boot ${BASH_REMATCH[0]} ist kleiner als 0.10.0"' ':' 'p3-u-boot-.*' p3-u-boot-0.9.0
-mut p3-u-boot-unlesbar s '          meld "u-boot: die Version ist unlesbar"' '          :' 'p3-u-boot-.*' p3-u-boot-unlesbar
+mut p3-u-boot-unlesbar s '          meld "u-boot: Version unlesbar"' '          :' 'p3-u-boot-.*' p3-u-boot-exit1 p3-u-boot-unlesbar
+mut p3-u-boot-exit s '|| v=' '|| :' 'p3-u-boot-.*' p3-u-boot-exit1
+mut p3-docker-exit s '|| sv=' '|| :' 'p3-docker-.*' p3-docker-exit1
+mut p3-docker-unlesbar s '            meld "docker: Version des Servers unlesbar"' '            :' 'p3-docker-.*' p3-docker-exit1 p3-docker-unlesbar
 mut p3-docker-info s 'if docker info > /dev/null 2>&1; then' 'if true; then' 'p3-docker-.*' p3-docker-daemon
 mut p3-docker-version s '(( 10#${BASH_REMATCH[1]} >= 24 ))' 'true' 'p3-docker-.*' p3-docker-23
 mut p3-docker-groesser s '(( 10#${BASH_REMATCH[1]} >= 24 ))' '(( 10#${BASH_REMATCH[1]} > 24 ))' 'p3-docker-.*' p3-docker-24
 mut p3-exit s '(( bad == 0 )) || exit 3' '(( bad == 0 )) || exit 1' 'p3-fehlt-ssh' p3-fehlt-ssh
 # Punkt 4
-mut p4-meldung-form s 'echo "container-start: $schritt: $*" >&2' 'echo "$schritt: $*" >&2' "$P4S|p13-zwischenstand|p3-.*" p13-zwischenstand p3-alle-fehlen p3-docker-23 p3-docker-24 p3-docker-daemon p3-fehlt-devcontainer p3-fehlt-docker p3-fehlt-node p3-fehlt-ssh p3-fehlt-ssh-keygen p3-fehlt-u-boot p3-u-boot-0.10.0 p3-u-boot-0.100.0 p3-u-boot-0.9.0 p3-u-boot-1.0.0 p3-u-boot-unlesbar p4-meldung-form p6-nur-privat p6-passphrase
+mut p4-meldung-form s 'echo "container-start: $schritt: $*" >&2' 'echo "$schritt: $*" >&2' "$P4S|p13-zwischenstand|p3-.*" p13-zwischenstand p3-alle-fehlen p3-docker-23 p3-docker-24 p3-docker-daemon p3-docker-exit1 p3-docker-unlesbar p3-fehlt-devcontainer p3-fehlt-docker p3-fehlt-node p3-fehlt-ssh p3-fehlt-ssh-keygen p3-fehlt-u-boot p3-u-boot-0.10.0 p3-u-boot-0.100.0 p3-u-boot-0.9.0 p3-u-boot-1.0.0 p3-u-boot-exit1 p3-u-boot-unlesbar p4-meldung-form p6-nur-privat p6-passphrase
 mut p4-meldung-stdout s 'echo "container-start: $schritt: $*" >&2' 'echo "container-start: $schritt: $*"' "$P4S|p13-zwischenstand" p13-zwischenstand p2-dev-leer p2-port-abc p3-fehlt-ssh p3-u-boot-0.9.0 p4-nichts-geaendert p5-elternpfad-fehlt p5-fremd-datei p6-nur-privat p6-passphrase
 mut p4-schreibt-vor-pruefung s '  eltern=$(dirname -- "$PGR_DEV")' '  eltern=$(dirname -- "$PGR_DEV"); echo x > "$eltern/spur"' "$P4S" p4-meldung-form p4-nichts-geaendert
 mut p4-ruft-up s '  (( bad == 0 )) || exit 3' '  docker up; (( bad == 0 )) || exit 3' "$P4S" p4-nichts-geaendert
@@ -423,7 +459,8 @@ mut p5-nicht-anlegen s '[ -d "$PGR_DEV" ] || mkdir -- "$PGR_DEV" || ende 5 "$PGR
 mut p5-exit s 'ende 4 "$PGR_DEV ist fremd (kein u-boot.yaml mit dem Namen $name), nichts wird überschrieben"' 'ende 1 "$PGR_DEV ist fremd (kein u-boot.yaml mit dem Namen $name), nichts wird überschrieben"' 'p5-fremd-datei' p5-fremd-datei
 # Punkt 6
 mut p6-ueberschreibt s '  [ "$zs" = erzeugen ] || return 0' ':' 'p6-.*' p6-gueltig-unveraendert p6-kommentar-ignoriert
-mut p6-modus-ordner s 'mkdir -p -m 700 --' 'mkdir -p --' 'p6-.*' p6-gueltig-unveraendert p6-kommentar-ignoriert p6-modus-ordner
+mut p6-modus-ordner s '&& chmod 700 -- "$sd"' '' 'p6-.*' p6-gueltig-unveraendert p6-kommentar-ignoriert p6-modus-ordner p6-modus-ordner-vorhanden
+mut p6-ssh-datei s 'if { [ -e "$sd" ] || [ -L "$sd" ]; } && [ ! -d "$sd" ]; then' 'if false; then' 'p6-.*' p6-ssh-ist-datei p6-ssh-ist-symlink
 mut p6-modus-privat s '|| ende 5 "ssh-keygen endete mit Exit $?"' '|| ende 5 "ssh-keygen endete mit Exit $?"; chmod 644 "$priv"' 'p6-.*' p6-gueltig-unveraendert p6-kommentar-ignoriert p6-modus-privat p6-ohne-passphrase p6-pub-anderer
 mut p6-kommentar s '-C "$name"' '-C x' 'p6-.*' p6-kommentar
 mut p6-passphrase-anlegen s $'-N \'\'' '-N x' 'p6-.*' p6-gueltig-unveraendert p6-kommentar-ignoriert p6-ohne-passphrase p6-pub-anderer
@@ -448,8 +485,8 @@ mut p7-egress s 'ub config set devcontainer.sandbox.egress.enabled true' 'ub con
 mut p7-allow-gcr s 'gcr.io,pkg-containers.githubusercontent.com' 'pkg-containers.githubusercontent.com' 'p7-.*' p7-aufruf-7 p7-echt-u-boot
 mut p7-allow-pkg s 'gcr.io,pkg-containers.githubusercontent.com' 'gcr.io' 'p7-.*' p7-aufruf-7 p7-echt-u-boot
 mut p7-generate s 'ub generate devcontainer' 'ub generate' 'p7-.*' p7-aufruf-8 p7-echt-u-boot
-mut p7-up s 'ub generate devcontainer' 'ub generate devcontainer; ub up' 'p7-.*' p7-kein-up-doctor p7-reihenfolge
-mut p7-doctor s 'ub generate devcontainer' 'ub generate devcontainer; ub doctor' 'p7-.*' p7-kein-up-doctor p7-reihenfolge
+mut p7-up s 'ub generate devcontainer' 'ub generate devcontainer; ub up' 'p7-(kein-up-doctor|reihenfolge)' p7-kein-up-doctor p7-reihenfolge
+mut p7-doctor s 'ub generate devcontainer' 'ub generate devcontainer; ub doctor' 'p7-(kein-up-doctor|reihenfolge)' p7-kein-up-doctor p7-reihenfolge
 mut p7-reihenfolge s '  ub config set devcontainer.features.node.enabled true' '  ub generate devcontainer' 'p7-.*' p7-aufruf-2 p7-echt-u-boot p7-reihenfolge
 mut p7-fehler-uebersehen s '|| { c=$?; ende 5 "u-boot $* endete mit Exit $c"; }; }' '|| true; }' 'p7-.*' p7-fehler-1 p7-fehler-2 p7-fehler-3 p7-fehler-4 p7-fehler-5 p7-fehler-6 p7-fehler-7 p7-fehler-8
 mut p7-fehler-exit s 'ende 5 "u-boot $* endete mit Exit $c"' 'ende 1 "u-boot $* endete mit Exit $c"' 'p7-.*' p7-fehler-1 p7-fehler-2 p7-fehler-3 p7-fehler-4 p7-fehler-5 p7-fehler-6 p7-fehler-7 p7-fehler-8
@@ -496,17 +533,27 @@ mut p14-plus m $'\t@bash tools/harness/container-start.sh' $'\t+@bash tools/harn
 mut p14-make m $'\t@bash tools/harness/container-start.sh' $'\t@bash tools/harness/container-start.sh # $(MAKE)' 'p14-.*' p14-makeflags-n p14-makeflags-n-i p14-makeflags-q p14-makeflags-t p14-n p14-n-i p14-q p14-rezept p14-t
 mut p14-phony m '.PHONY: container-start' '.PHONY: nichts' 'p14-.*' p14-makeflags-t p14-phony p14-t
 # Punkt 15
-mut p15-ende p $'[ "$GP_PROBE" = ende ] && exit 0' $'[ "$GP_PROBE" = ende ] && kill -KILL $$' 'p15-.*' p15-aufraeumen-ende
-mut p15-exit-trap p 'trap aufraeumen EXIT' ':' 'p15-.*' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term
-mut p15-int p $'trap \'exit 130\' INT' ':' 'p15-.*'
-mut p15-term p $'trap \'exit 143\' TERM' ':' 'p15-.*'
-mut p15-praefix p 'mktemp -d -t pgr-cs-XXXXXX' 'mktemp -d -t xyz-XXXXXX' 'p15-.*' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term p15-praefix
-mut p15-schutz p '[[ ${arbeit##*/} == pgr-cs-* ]] && ' '' 'p15-.*'
+mut p15-ende p $'[ "$GP_PROBE" = ende ] && exit 0' $'[ "$GP_PROBE" = ende ] && kill -KILL $$' 'p15-(praefix|aufraeumen-.*)' p15-aufraeumen-ende
+mut p15-exit-trap p 'trap aufraeumen EXIT' ':' 'p15-(praefix|aufraeumen-.*)' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term
+mut p15-int p $'trap \'exit 130\' INT' ':' 'p15-(praefix|aufraeumen-.*)'
+mut p15-term p $'trap \'exit 143\' TERM' ':' 'p15-(praefix|aufraeumen-.*)'
+mut p15-praefix p 'mktemp -d -t pgr-cs-XXXXXX' 'mktemp -d "${GP_PROBE_DATEI%/*}/xyz-XXXXXX"' 'p15-(praefix|aufraeumen-.*)' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term p15-praefix
+mut p15-schutz p '[[ ${arbeit##*/} == pgr-cs-* ]] && ' '' 'p15-(praefix|aufraeumen-.*)'
+mut p15-rekursion-schutz p '  [ -z "${GP_KIND-}" ] || { melde "Rekursion: eine Kind-Gegenprobe ruft kind erneut auf"; exit 1; }' '' 'p15-rekursion' p15-rekursion
+mut p15-sonden-bleiben p 'rmdir -- "$d" 2> /dev/null' ':' 'p15-sonden-raeumen' p15-sonden-raeumen
+mut p15-voraussetzung-ohne-node p 'for t in make node ssh-keygen u-boot; do' 'for t in make ssh-keygen u-boot; do' 'p15-voraussetzung-.*' p15-voraussetzung-node
+mut p15-voraussetzung-ohne-ssh-keygen p 'for t in make node ssh-keygen u-boot; do' 'for t in make node u-boot; do' 'p15-voraussetzung-.*' p15-voraussetzung-ssh-keygen
+mut p15-voraussetzung-ohne-u-boot p 'for t in make node ssh-keygen u-boot; do' 'for t in make node ssh-keygen; do' 'p15-voraussetzung-.*' p15-voraussetzung-u-boot
 # Punkt 16
-mut p16-gate-checks g 'GATE_CHECKS += container-start-gegenprobe' '' 'p16-.*' p16-GATE_CHECKS
+mut p16-gate-checks g '.PHONY: container-start-gegenprobe' $'GATE_CHECKS += container-start-gegenprobe\n.PHONY: container-start-gegenprobe' 'p16-.*' p16-GATE_CHECKS
 mut p16-scharf g $'\t@bash tools/harness/container-start-gegenprobe.sh' $'\t-@bash tools/harness/container-start-gegenprobe.sh' 'p16-.*' p16-scharf
-mut p16-ausnahme k ' container-start-gegenprobe ' ' ' 'p16-.*' p16-GATE_SCHNELL_AUSNAHME
+mut p16-ausnahme k 'GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe ' 'GATE_SCHNELL_AUSNAHME := container-start-gegenprobe abdeckung-gegenprobe ' 'p16-.*' p16-GATE_SCHNELL_AUSNAHME
 mut p16-ziel-gate m '.PHONY: container-start' $'GATE_CHECKS += container-start\n.PHONY: container-start' 'p16-.*' p16-ziel-kein-gate
-
+baue "$arbeit/orig"
+sk=$arbeit/orig/tools/harness/container-start.sh root=$arbeit/orig gpk=$GP_SELF SEL=${GP_NUR:-'.*'}
+cp -a "$root" "$root.rein"; ROT=(); cases
+for k in "${!ROT[@]}"; do melde "Fall $k ist an der unveränderten Kopie rot"; done
+sonden_raeumen
+for d in "${PSDS[@]}"; do [ ! -e "$d" ] || melde "Verzeichnis der Sonde bleibt: $d"; done
 [ "$fehler" = 0 ] || exit 1
 echo "container-start-gegenprobe: gruen — Teil I von SPEC-058: Fälle der Punkte 1 bis 8, 13 bis 16 und je Zusage eine Mutation"

@@ -24,7 +24,10 @@ meld() { fehl "$@"; bad=1; }
 zahl() {
   [[ -n $1 ]] || return 1
   [[ $1 != *[!0-9+-]* ]] || return 1
-  [[ $1 != [+-]* ]] || return 1
+  [[ $1 != +* ]] || return 1
+  [[ $1 != -* ]] || return 1
+  [[ $1 != ?*+* ]] || return 1
+  [[ $1 != ?*-* ]] || return 1
   [[ $1 != 0?* ]] || return 1
   [[ $1 != 0 ]] || return 1
   (( ${#1} < ${#2} )) || { (( ${#1} == ${#2} )) && [[ ! $1 > $2 ]]; }
@@ -76,12 +79,16 @@ s_werkzeuge() {
           x=${BASH_REMATCH[1]} y=${BASH_REMATCH[2]}
           (( 10#$x > 0 )) || (( 10#$y >= 10 )) || meld "u-boot ${BASH_REMATCH[0]} ist kleiner als 0.10.0"
         else
-          meld "u-boot: die Version ist unlesbar"
+          meld "u-boot: Version unlesbar"
         fi ;;
       docker)
         if docker info > /dev/null 2>&1; then
-          sv=$(docker version --format '{{.Server.Version}}' 2> /dev/null)
-          { [[ $sv =~ ^([0-9]+)\. ]] && (( 10#${BASH_REMATCH[1]} >= 24 )); } || meld "docker: der Server ${sv:-ohne Version} ist älter als 24"
+          sv=$(docker version --format '{{.Server.Version}}' 2> /dev/null) || sv=
+          if [[ $sv =~ ^([0-9]+) ]]; then
+            (( 10#${BASH_REMATCH[1]} >= 24 )) || meld "docker: der Server $sv ist älter als 24"
+          else
+            meld "docker: Version des Servers unlesbar"
+          fi
         else
           meld "docker: der Daemon ist nicht erreichbar"
         fi ;;
@@ -117,6 +124,7 @@ zust_verzeichnis() {
 zust_schluessel() {
   sd=$PGR_DEV/ssh priv=$PGR_DEV/ssh/id_ed25519
   pub=$priv.pub
+  if { [ -e "$sd" ] || [ -L "$sd" ]; } && [ ! -d "$sd" ]; then ende 4 "$sd ist kein Verzeichnis"; fi
   zs=vorhanden
   hp=0 hb=0
   { [ -e "$priv" ] || [ -L "$priv" ]; } && hp=1
@@ -160,7 +168,7 @@ s_geruest() {
 # Punkt 6: schluessel legt ein fehlendes Paar ohne Passphrase an und fasst ein vorhandenes nie an.
 s_schluessel() {
   [ "$zs" = erzeugen ] || return 0
-  mkdir -p -m 700 -- "$sd" || ende 5 "$sd ließ sich nicht anlegen"
+  { mkdir -p -- "$sd" && chmod 700 -- "$sd"; } || ende 5 "$sd ließ sich nicht anlegen"
   ssh-keygen -q -t ed25519 -N '' -C "$name" -f "$priv" > /dev/null < /dev/null || ende 5 "ssh-keygen endete mit Exit $?"
 }
 

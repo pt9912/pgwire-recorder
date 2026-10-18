@@ -10,7 +10,7 @@
 # `test`, `lint`, `a-check`, `docs-check` fahren über Docker); die Gegenprobe fährt
 # Attrappen als Gates und ruft Docker nicht.
 # GEPRÜFT DURCH tools/harness/gates-schnell-gegenprobe.sh.
-GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe a-check-negativ container-start-gegenprobe coverage-gegenprobe gates-schnell-gegenprobe hook-gegenprobe integration-volumes-gegenprobe kopf-check-gegenprobe lint-gegenprobe meldungskatalog-check-gegenprobe stop-hook-gegenprobe test-container test-container-gegenprobe test-integration test-postgres-versionen test-postgres-versionen-gegenprobe
+GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe a-check-negativ coverage-gegenprobe gates-schnell-gegenprobe hook-gegenprobe integration-volumes-gegenprobe kopf-check-gegenprobe lint-gegenprobe meldungskatalog-check-gegenprobe stop-hook-gegenprobe test-container test-container-gegenprobe test-integration test-postgres-versionen test-postgres-versionen-gegenprobe
 
 .PHONY: gates-schnell gates-schnell-gegenprobe
 
