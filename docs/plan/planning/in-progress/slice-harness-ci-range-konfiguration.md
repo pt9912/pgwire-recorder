@@ -121,6 +121,8 @@ dasteht.
 8. **Abbruch und Herunterfahren der Gegenprobe** (`SIGINT`, `SIGTERM`, Ende; Unterprozesse und Docker-Läufe). **Entschieden:** `SPEC-064` Punkt 18 (räumt ganz, beendet Unterprozesse zuerst, Exit 130 und 143; Fälle `p18-sigint`, `p18-sigterm`).
 9. **Form der Muster, Ausnahme am Betreff, Struktur-Kennung allein, Umbenennung im Link-Ziel, Index.** **Entschieden:** `SPEC-064` Punkte 11 und 12 (Form je Muster mit `-knapp`-Fall und Mutationen; Fälle `p11-exempt-nicht-am-anfang`, `p11-struktur-allein`, `p12-index` in der Liste; Umbenennung und „Merge nach Leerzeile“ als Grenze).
 
+10. **Zeichenklassen der Muster und Leerzeichen der Ausnahme** (Verifikation V-2, V-3). **Entschieden:** `SPEC-064` Punkt 11: nicht zugesagt (Grenze mit Grund); kein Fall, keine Mutation. Der Schwanz `(-[a-z0-9]+)*` des Slice-Musters ist für die Anwesenheit äquivalent (Invariante, Ort, Sonde stehen im Report der Verifikation und gehören in §7).
+
 **Fragen an den Nutzer** (jede mit Empfehlung des Planners; eine Empfehlung ist keine Entscheidung):
 
 1. **Schnitt.** Die Teilung aus `slice-harness-ci` ist die Empfehlung des Planners auf Anweisung der Koordination. Alternative: ungeteilt lassen und bei der Marke von `slice-harness-ci` zurückführen (§4 dort). Empfehlung: geteilt, weil die Schätzung des ungeteilten Slice mit dem gemessenen Faktor in der Mitte über der Marke liegt.
