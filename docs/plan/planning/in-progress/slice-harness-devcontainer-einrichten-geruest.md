@@ -80,6 +80,7 @@ Gates und Closure:
 | `tools/harness/container-start.sh` | neu | Schritte `eingaben` bis `override` (Punkte 2 bis 8), Fehlermeldung `container-start: <Schritt>: <Grund>`, Exit-Codes 2 bis 5; schreibt `mk-override.sh` nach Punkt 8; keine Zugangsvariable |
 | `tools/harness/container-start-gegenprobe.sh`, `harness/mk/container-start-gegenprobe.mk` | neu | Gegenprobe: Rahmen, Attrappen (`docker` für `info` und `version`, `u-boot`), Fälle und Mutationen nach §6, Fall gegen echtes `u-boot`, `p16-gate-kette` |
 | `harness/mk/gates-schnell.mk` | update | Gegenprobe in die Ausnahmeliste der schnellen Kette (`SPEC-052`, Architect prüft den Punkt der Gate-Kette) |
+| `tools/harness/gates-schnell-gegenprobe.sh` | update (Zeile 32) | Die Liste `LANGSAM` ihrer Fixture spiegelt die Ausnahmeliste; ohne den Eintrag `container-start-gegenprobe` ist `gates-schnell-gegenprobe` an der unveränderten Kopie rot (`p4-eintrag`); eine Zeile, kein weiterer Liefer-Punkt |
 | `harness/README.md` | update | Abschnitt *Werkzeuge* (`container-start`) und *Sensors* (Gegenprobe, Bindung an [ADR-0045](../../adr/0045-container-start-als-werkzeug-im-repo.md)) |
 
 - Das Skript trennt Prüfen und Handeln: erst alle Vorbedingungen am Host (bis einschließlich `zustand` ändert es nichts), dann Gerüst. Die Reihenfolge der Gründe bindet `SPEC-058` Punkt 13.
