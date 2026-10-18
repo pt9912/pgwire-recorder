@@ -8,9 +8,10 @@
 # benannten Fälle rot werden; die unveränderte Kopie besteht jeden Fall. Eine Mutation läuft über die Fälle ihrer Gruppe (p11 oder p12), die beiden
 # Mutationen `Block fehlt` über alle Fälle. Der Name jedes Falls trägt die Nummer des Punktes. Ein Name in der Fallliste ohne Funktion `f_<name>` zählt als roter Fall.
 # Abbruch (Punkt 18): Bei Ende, SIGINT und SIGTERM beendet das Skript erst seine Nachkommen und wartet auf sie, entfernt dann sein Temp-Verzeichnis
-# und endet mit 130 bzw. 143; die Fälle p18-sigint und p18-sigterm starten dafür eine Kopie des Skripts mit eigenem TMPDIR (GP_INNEN=1 lässt die Kopie die p18-Fälle
-# auslassen) und senden das Signal, sobald dort der erste Fall läuft; Mutationen der Kopie (Textersatz im Skript): die Falle fehlt, die Nachkommen werden nicht beendet,
+# und endet mit 130 bzw. 143; die Fälle p18-sigint und p18-sigterm starten dafür eine Kopie des Skripts mit eigenem TMPDIR (die Kopie startet ohne GP_MUT, GP_ENTDECKE und GP_FALL und mit GP_PARALLEL=2, und GP_INNEN=1 schaltet in jedem ihrer Läufe die p18-Fälle und die Mutationen m-p18-* ab; ein Lauf mit
+# GP_INNEN=1 und GP_MUT=m-p18 fährt nichts und endet mit Exit 1, Lauf `rekursion-schutz`) und senden das Signal, sobald dort der erste Fall läuft; Mutationen der Kopie (Textersatz im Skript): die Falle fehlt, die Nachkommen werden nicht beendet,
 # das Verzeichnis wird vor dem Ende der Nachkommen entfernt. Ein Container von d-check, der beim Signal schon läuft, endet von selbst (`--rm`); SIGKILL und SIGHUP sind nicht zugesagt.
+# Die Form der Muster von `commits.id-patterns` ist Stellung, Länge und Ziffernzahl; Zeichenklasse und Leerzeichen der Ausnahme sind nicht zugesagt (SPEC-064 Punkt 11).
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn das Muster `ok` trifft);
 # GP_ENTDECKE=1 nennt je Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Läufe;
 # GP_FALL=<name> gibt für die unveränderte Kopie das Protokoll dieses Falls aus.
@@ -199,7 +200,7 @@ abbruchfall() {
   local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste
   mkdir -p "$run"
   t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1
-  ( trap - INT TERM; exec env TMPDIR="$t" GP_INNEN=1 DOCKER="$arbeit/attrappe" DCHECK_REF="$DCHECK_REF" setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$t.pid" "$skript18" > "$t.out" 2> "$t.err" ) &
+  ( trap - INT TERM; exec env -u GP_MUT -u GP_ENTDECKE -u GP_FALL TMPDIR="$t" GP_PARALLEL=2 GP_INNEN=1 DOCKER="$arbeit/attrappe" DCHECK_REF="$DCHECK_REF" setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$t.pid" "$skript18" > "$t.out" 2> "$t.err" ) &
   bg=$!
   warte_auf fall_laeuft || ok=0
   pid="$(cat "$t.pid" 2> /dev/null || echo 0)"
@@ -228,7 +229,7 @@ faelle() {
   case "$1" in
     p11) set -- "${FAELLE_P11[@]}" ;;
     p12) set -- "${FAELLE_P12[@]}" ;;
-    p18) set -- "${FAELLE_P18[@]}" ;;
+    p18) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_P18[@]}"; fi ;;
     ok) set -- "${FAELLE_P11[@]}" "${FAELLE_P12[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_P18[@]}" ;;
     *) set -- "${FAELLE_P11[@]}" "${FAELLE_P12[@]}" ;;
   esac
@@ -286,6 +287,7 @@ fi
 # mut18 <name> <rote Fälle> <alt> <neu> — Textersatz im Skript (Kopie in einem Baum mit den Dateien, die es braucht); rot sind genau die benannten p18-Fälle.
 mut18() {
   local name="$1" rote="$2" alt="$3" inhalt neu ist erwartet f m
+  [ -z "${GP_INNEN-}" ] || return 0
   [[ $name =~ ${GP_MUT:-.} ]] || return 0
   wartejob
   (
@@ -304,6 +306,16 @@ mut18() {
     [ "$ist" = "$erwartet" ] || melde "Mutation '$name': erwartet rot: ${rote:-nichts}; rot sind: ${ist:-nichts}"
   ) &
 }
+
+# Schutz gegen Rekursion: Eine Kopie (GP_INNEN=1), deren GP_MUT auf m-p18 passt, fährt nichts und endet mit Exit 1.
+if [[ rekursion-schutz =~ ${GP_MUT:-.} ]] && [ -z "${GP_INNEN-}" ]; then
+  (
+    run="$arbeit/rekursion-schutz"; mkdir -p "$run"
+    rc=0; ausgabe="$(env -u GP_FALL GP_INNEN=1 GP_MUT=m-p18 DOCKER="$arbeit/attrappe" TMPDIR="$run" timeout 60 bash "$selbst" 2>&1)" || rc=$?
+    echo rekursion-schutz >> "$arbeit/gefahren"
+    [[ $ausgabe == *"keine Mutation und keine Kopie gefahren"* ]] && [ "$rc" -eq 1 ] || melde "Rekursionsschutz: erwartet Exit 1 ohne Lauf; Exit $rc: $ausgabe"
+  ) &
+fi
 
 # Probe der Fallliste: ein Name ohne Funktion ist rot.
 if [[ fall-ohne-funktion =~ ${GP_MUT:-.} ]]; then
