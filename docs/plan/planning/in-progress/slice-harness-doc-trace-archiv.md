@@ -84,32 +84,32 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1 (Werkzeug und Vertrag):** `tools/harness/archiv-bezug.sh` mit dem Fragment `harness/mk/archiv-bezug.mk`
+- [x] **Liefer-Punkt 1 (Werkzeug und Vertrag):** `tools/harness/archiv-bezug.sh` mit dem Fragment `harness/mk/archiv-bezug.mk`
       (Ziel `archiv-bezug`, `.PHONY`, Rezept ohne `$(MAKE)`; Werkzeug, kein Gate, nicht in `GATE_CHECKS`) und dem Vertrag `SPEC-068`
       in `harness/vertraege/` (Eintrag im Index und in der Historie von `harness/vertraege/README.md`), der die Randformen aus §6 entscheidet.
       Aufruf: `make archiv-bezug` für alle Archive unter `docs/plan/planning/done/*/archiv.zip`, `make archiv-bezug WELLE=<welle-id>` für eines.
       Das Werkzeug schreibt nur die Stubs und committet nichts.
-- [ ] **Liefer-Punkt 2 (Gegenprobe):** `make archiv-bezug-gegenprobe` (Fragment `harness/mk/archiv-bezug-gegenprobe.mk`, Skript
+- [x] **Liefer-Punkt 2 (Gegenprobe):** `make archiv-bezug-gegenprobe` (Fragment `harness/mk/archiv-bezug-gegenprobe.mk`, Skript
       `tools/harness/archiv-bezug-gegenprobe.sh`, Liste `GEGENPROBEN_CONTAINER` nach `SPEC-060` Punkt 2, nicht `GATE_CHECKS`) in Temp-Repos mit selbst
       gebauten Archiven, ohne Docker: je Zusage und je Element einer Aufzählung von `SPEC-068` ein Fall und eine Mutation, die genau die benannten
       Fälle rot färbt (`AGENTS.md` §3.10); die Zeile im Gate-Index von `harness/README.md` §Sensors nennt Ziel, Vertrag und Bindung.
-- [ ] **Liefer-Punkt 3 (Anwendung und Berichtigung):** `make archiv-bezug` ist über die vier Archive (`welle-walking-skeleton`,
+- [x] **Liefer-Punkt 3 (Anwendung und Berichtigung):** `make archiv-bezug` ist über die vier Archive (`welle-walking-skeleton`,
       `welle-extended-query`, `welle-replay-semantik`, `welle-v1-abschluss`; 97 Stubs) gelaufen, das Ergebnis in **einem** Inhalts-Commit je
       Welle; `make doc-trace` zeigt danach die Waisen, die §7 mit Zahl und Namen nennt (gemessen: vorher sieben, nachher keine; `LH-FA-19` zählt über einen lebenden Slice); die Zeile von `make doc-trace`
       in `harness/README.md` §Werkzeuge nennt die Regel an den Schreiber (ein Stub trägt seine Anforderungen in `**Bezug:**`; Quelle der Matrix ist
       `trace:` in `.d-check.yml`) statt der falschen Beschreibung des Verhaltens (`AGENTS.md` §3.11).
-- [ ] Mutation je Zusage der Gegenprobe selbst (`AGENTS.md` §3.10), vom Implementer rot gesehen; der Bericht nennt je Zusage: Zusage · Mutation · roter Test.
-- [ ] Wirkung auf bestehende Gates gemessen und in §7 belegt: `make docs-check` (Stubs mit Anforderungs-Kennungen ohne Befund, einschließlich
+- [x] Mutation je Zusage der Gegenprobe selbst (`AGENTS.md` §3.10), vom Implementer rot gesehen; der Bericht nennt je Zusage: Zusage · Mutation · roter Test.
+- [x] Wirkung auf bestehende Gates gemessen und in §7 belegt: `make docs-check` (Stubs mit Anforderungs-Kennungen ohne Befund, einschließlich
       der Matrix-Regeln für die Klasse Slice), `make kopf-check` (liest nur `open/`, `next/`, `in-progress/`), `make abdeckung-check` (liest `docs/user/`,
       unberührt), und der Lauf des Stop-Hooks über Positivliste und Dateiliste.
-- [ ] `make gates` grün; `make archiv-bezug-gegenprobe` und `make gates-schnell-gegenprobe` (Namensregel der Gegenproben) grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün; `make archiv-bezug-gegenprobe` und `make gates-schnell-gegenprobe` (Namensregel der Gegenproben) grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -233,20 +233,22 @@ Architect in den Vertrag schreibt):
 **Risiken:**
 
 - Künftige Archivierungen schreiben den Stub weiter ohne Anforderungs-Kennung, und die Waisen kehren zurück, ohne dass ein Gate es meldet (`make doc-trace` ist
-  kein Gate). — **Ausgang:** — (bei Closure; Vorschlag: *weiter offen* → neues `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` im Register, bis `ai-harness-init`
-  den Antrag aus §1 aufnimmt)
+  kein Gate). — **Ausgang:** weiter offen → `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` (neu, 1×, `offen`; bis `ai-harness-init` den Antrag aus §1 aufnimmt; die
+  Handlung bis dahin ist `make archiv-bezug` nach jeder Archivierung)
 - Die Zeile `**Bezug:**` im Stub verletzt eine Prüfung, die ich nicht gemessen habe (Matrix-Regeln des Doku-Gates für die Klasse Slice, Linkpflicht, Form-Prüfung eines
-  Stubs). — **Ausgang:** — (bei Closure; Messung in §7, Lauf von `make docs-check` vor dem Commit der ersten Welle)
-- Die Nennung im Kopf ist keine Lieferung (`LH-…` nur zitiert), und die Matrix zählt mehr als geliefert. — **Ausgang:** — (bei Closure; Vorschlag: *entfallen*: dieselbe
-  Lesart wie bei lebenden Slices, siehe §1 letzter Ausschluss)
-- Das Werkzeug ändert 97 Dateien in einem Lauf; ein Fehler in der Mitte hinterließe einen halben Stand. — **Ausgang:** — (bei Closure; Gegenmittel im Vertrag: Prüfung aller
-  Stubs und Archive vor dem ersten Schreiben, Fall und Mutation)
+  Stubs). — **Ausgang:** entfallen (Grund: `make docs-check` meldet nach dem ersten Lauf über 3 Stubs und am Endstand 0 Befunde, `make kopf-check` und `make abdeckung-check` Exit 0; Messung in §7)
+- Die Nennung im Kopf ist keine Lieferung (`LH-…` nur zitiert), und die Matrix zählt mehr als geliefert. — **Ausgang:** entfallen (Grund: `d-check` zählt in lebenden Slices jede Nennung im Text; das Werkzeug übernimmt die
+  Nennung der Zeile `Bezug:` und urteilt nicht darüber, §1 letzter Ausschluss; die 12 Stubs ohne Kennung im Kopf tragen `— keine —`, `SPEC-068` Punkt 4)
+- Das Werkzeug ändert 97 Dateien in einem Lauf; ein Fehler in der Mitte hinterließe einen halben Stand. — **Ausgang:** entfallen (Grund: Das Gegenmittel trägt. Alle Stubs und Archive werden vor dem ersten Schreiben geprüft
+  (`SPEC-068` Punkt 3, Fälle `p3-alle-befunde`, `p2-keine-teilschreibung`, Mutation `m-p3-schreiben-vor-pruefung`). Scheitert das Schreiben selbst, endet das Werkzeug mit Exit 2 ohne Temp-Datei
+  und ohne weiteren Stub (`p3-schreiben-scheitert`); ein halber Stand bleibt dann möglich, ist aber Grenze im Vertrag und ohne Verlust, weil der zweite Aufruf fortsetzt und der dritte nichts ändert
+  (Verifikation, Bruch von Hand, `md5sum`))
 
 **Entschieden vom Architect am 2026-10-19 nach dem Review** (`SPEC-068` Punkte 2, 3, 6, 7): Schreibfehler endet mit Exit 2 (Stichwort `Schreiben fehlgeschlagen`, Temp-Datei entfernt, kein weiterer Stub); fehlende Wurzel Exit 2; gleiche Zeile an falscher Stelle Befund; eine genannte Welle ohne Stub und ohne Archiv ist die leere Menge (Exit 0); Modus und Besitzer nach `mv` sind Grenze; Gegenprobe bash ≥ 4.3.
 
 ## 7. Closure-Notiz
 
-Wird bei der Closure gefüllt (Planner, `/close-welle`-Anweisung für wellenlose Slices). Hier stehen dann die Messungen aus §2 (Waisen vor und nach dem Lauf, Gates).
+Closure am 2026-10-19 (Planner, `/close-welle`-Anweisung für wellenlose Slices); die Messungen aus §2 (Waisen vor und nach dem Lauf, Gates) stehen darunter.
 
 ### Belege des Implementers
 
@@ -422,13 +424,13 @@ Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` me
 
 **Stop-Hook** (`.claude/hooks/stop-require-gates.sh`, Eingabe `{"stop_hook_active": false}`): Nach `make gates` am Endstand und einer Änderung allein von §7 (Positivliste) mit `make gates-schnell` (17 s): Antwort `approve`. Probe: eine Zeile in `tools/harness/archiv-bezug.sh` angehängt, dieselbe Eingabe: `block` („A changed path is not on the inert list“); die Zeile zurückgenommen: `approve`.
 
-- **Was hat funktioniert:** —
-- **Was ging anders als geplant:** —
-- **Steering-Loop-Eintrag:** —
-- **Beobachtungs-Register (`../observations/`):** —
-- **Folge-Slices:** —
-- **Risiken aus §6:** —
-- **Drei Paarungen:** —
+- **Was hat funktioniert:** Der Vertrag `SPEC-068` stand vor dem ersten Code-Commit, und die Entscheidungen des Architect (`arch-dt2` bis `arch-dt4`) kamen in drei Runden ohne Umbau des Schnitts; die Gegenprobe baute ihre Archive selbst (`zip` im Temp-Repo) und ließ sich mit Attrappen von `id` und `locale` unter root und fremder Sprache fahren. Die Stubs liefen als Daten: ein Inhalts-Commit je Welle, 97 Zeilen, und die Neuableitung aus den Bytes der vier `archiv.zip` (Review mit eigenem Perl-Skript, Verifikation unabhängig davon) fand 97 von 97 gleich. Die Verifikation brach jede Behebung der Review-Runde von Hand und sah den benannten Fall rot (Bewusstes Brechen, Modul 11) — das erneute Sehen der Nacharbeit, das die Beobachtung `nacharbeit-nach-review-ohne-erneuten-lauf` verlangt.
+- **Was ging anders als geplant:** (1) Die Erwartung des Plans (neun Waisen, danach eine) stimmte nicht; am Basisstand `5f68ebef` waren es sieben, danach keine (`LH-FA-19` zählt über `slice-erster-release-veroeffentlichung`). Kopf und §1 folgten erst nach dem Review (F-8). (2) Die Gegenprobe trug 477 von 630 Zeilen (Faktor rund 4,6 zum Skript mit 104 Zeilen), die Summe lag dennoch in der Spanne des Architect (470 bis 710); die Meldeschwelle 650 wurde nicht erreicht. (3) Die Randformen kamen in vier Stößen (Rückgabe des Implementers nach dem Code, Review F-1 und F-10, Verifikation V-2), obwohl §6 bei der Planung jede Zeile mit einem Punkt von `SPEC-068` versah; die Lücken lagen in Randformen, die §6 nicht nannte (Exit-Code beim Schreibfehler, Wurzel, leere Menge, Welle ohne Stub).
+- **Steering-Loop-Eintrag:** Form: **neuer Sensor und benannte Spec-Lücke.** *Sensor:* `make archiv-bezug-gegenprobe` (91 Fälle, 126 Mutationen, Liste `GEGENPROBEN_CONTAINER`) hält das Werkzeug `make archiv-bezug`; sie hält nicht die Archivierung — dass ein künftiger Stub die Zeile trägt, prüft kein Sensor, und `make doc-trace` ist kein Gate. *Lücke (benannt):* `archive-welle` in `ai-harness-init` schreibt die Anforderungs-Kennungen des Slice nicht in den Stub; die Matrix verliert mit jeder Archivierung Anforderungen. Der Antrag steht als Text in §1 (Weitergabe durch den Nutzer); die Handlung bis dahin ist `make archiv-bezug` nach jeder Archivierung. Register: `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` (neu, 1×, offen). Eine geschärfte Regel trägt der Slice nicht ein; ein Herkunfts-Anker `seit slice-harness-doc-trace-archiv` entfällt, weil nichts in `AGENTS.md` oder `.claude/` verkörpert wurde. **Vorschläge an den Nutzer, nicht eingetragen** (Eintragungen in `AGENTS.md` und `.claude/` brauchen sein Ja): (a) `.claude/commands/close-welle.md`, Schritt der Archivierung: danach `make archiv-bezug`, damit die Waisen nicht mit der nächsten Welle zurückkehren (Register `archiv-stub-verliert-anforderungs-kennung`); (b) `AGENTS.md` §3.10: eine Zusage der Form „nur X“ trägt eine Grenzmutation, und eine Reihenfolge von n Gründen trägt je benachbartes Paar einen Fall mit einer Mutation, die beide vertauscht (F-2, F-3; Register `negativtests-fehlen-bei-neuem-vertrag`, Zähler 60, zweites Auftreten der Form „nur X“, Vorschlag steht seit `slice-erster-release-veroeffentlichung`); (c) `AGENTS.md` §3.12 oder `.claude/commands/implement-slice.md`: sagt ein Vertrag, dass Fälle unter root oder ohne Locale laut entfallen, fährt der Implementer die Gegenprobe vor der Übergabe einmal mit Attrappen von `id` und `locale`, und die erwarteten Listen der Mutationen entfallen mit (F-4; Register `gegenprobe-haengt-an-umgebung-des-hosts`, Zähler 8, die Empfehlung dort steht weiter aus); (d) `.claude/commands/plan-welle.md`: eine Zahl, die der Plan aus einer Messung nennt, trägt den Stand (Hash), an dem sie gemessen ist (F-8; Register `plan-folgt-korrektur-nicht`, Zähler 72).
+- **Beobachtungs-Register (`../observations/`):** Neu: `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` (1×, offen). Evidence: `negativtests-fehlen-bei-neuem-vertrag` (60; F-2, F-3, F-5, F-6, V-1), `spec-randform-erst-im-review-entschieden` (44; F-1, F-10, V-2), `randform-im-code-entschieden-dann-zurueckgegeben` (24; Rückgabe nach dem Code), `plan-folgt-korrektur-nicht` (72; F-8), `gegenprobe-haengt-an-umgebung-des-hosts` (8; F-4, root und Locale), `spezifikation-widerspricht-sich-im-wortlaut` (4; zwei Widersprüche in `SPEC-068`, der Ausgang `geplant` bleibt). Vermerke ohne Auftreten (die ersten beiden mit Zeile in deren `state.md`, die übrigen nur hier): `schaetzung-in-zeilen-unterschaetzt-tests` (630 in der Spanne 470 bis 710, Zähler bleibt 18), `nacharbeit-nach-review-ohne-erneuten-lauf` (die Nacharbeit wurde erneut gesehen, Zähler bleibt 3), `gruener-mutant-faelschlich-aequivalent` (kein Mutant als äquivalent geführt, V-1 ist ein grüner Mutant ohne Fall und steht unter `negativtests-fehlen-bei-neuem-vertrag`; Zähler bleibt 9), `meldeschwelle-ohne-artefakt` und `groessenprobe-ohne-messbaren-stand` (Marke mit Metrik in §4, Meldeschwelle nicht erreicht). Zuordnung nach Form: F-4 zu `gegenprobe-haengt-an-umgebung-des-hosts` (Gegenprobe grün in der Umgebung des Entstehens, rot aus dem falschen Grund in einer anderen), nicht zu `make-ausgabe-locale-abhaengig-gelesen` (diese führt die Ursache „Sprache von `make` gelesen“); F-1 und F-10 zu `spec-randform-erst-im-review-entschieden` (das Review fand die Randform), die Rückgabe nach dem Code zu `randform-im-code-entschieden-dann-zurueckgegeben` (der Implementer gab sie selbst zurück). Die Einträge über der Schwelle (`negativtests…`, `spec-randform…`, `randform-im-code…`, `plan-folgt…`, `spezifikation-widerspricht…` mit Ausgang; `gegenprobe-haengt…` und `nacharbeit…` ohne) liest die Welle-Closure; der Planner weist nichts zu.
+- **Folge-Slices:** keine. Alle Befunde sind behoben oder vom Architect entschieden: F-1 bis F-10 (`4dec8155`, `98f0f407`), V-1 und V-5 (`9388da0f`), V-2 und V-4 (`bf41c694`); V-3 sind die Closure-Pflichten dieser Notiz. Der Antrag an `ai-harness-init` ist Text in §1, keine Sendung an einen Slice in diesem Repo (`AGENTS.md` §3.13).
+- **Risiken aus §6:** Risiko 1 (Archivierungen schreiben den Stub weiter ohne Kennung) *weiter offen* → `BEO-REPO/archiv-stub-verliert-anforderungs-kennung`; Risiko 2 (Prüfung gegen die Zeile unbekannt) *entfallen*: `make docs-check` 0 Befunde, `make kopf-check` und `make abdeckung-check` Exit 0; Risiko 3 (Nennung ist keine Lieferung) *entfallen*: dieselbe Lesart wie bei lebenden Slices, §1 letzter Ausschluss; Risiko 4 (halber Stand) *entfallen*: Prüfung aller Stubs vor dem ersten Schreiben, Schreibfehler endet mit Exit 2 ohne Temp-Datei, ein halber Stand ist Grenze im Vertrag und durch den zweiten Aufruf ohne Verlust fortsetzbar. Die Begründungen stehen in §6 am Risiko.
+- **Drei Paarungen:** *Anker:* keiner — keine Regel verkörpert (die Vorschläge oben warten auf das Ja des Nutzers). *Folge-Slice:* keiner; dieser Slice weist keinem anderen Slice etwas zu und nimmt nichts an (Nachzählung in §8: keine Sendung). *Register:* oben. Wellen-Zugehörigkeit: keine (wellenlos); die Roadmap nennt den Slice nicht, das Drift-Log trägt keine Zeile, ein Zustandsfeld ist nicht betroffen (`AGENTS.md` §3.7).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
