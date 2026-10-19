@@ -198,18 +198,18 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-Stand: Kopf des Codes `be46a2bb` auf dem Zweig `impl-rel-a` (Basis 11a2ba91, nach dem Merge der Entscheidung des Architect `5f9fddb5`); Lauf im Dev-Container pgr-dev3 (Docker im Container), die Läufe nacheinander am Endstand.
+Stand: Kopf des Codes `39d964e9` auf dem Zweig `impl-rel-a` (Basis 11a2ba91, nach den Merges der Entscheidungen des Architect `5f9fddb5` und `eec9c839` und des Review-Reports); Lauf im Dev-Container pgr-dev3 (Docker im Container), die Läufe nacheinander am Endstand.
 
 | Lauf | Ergebnis | Dauer |
 |---|---|---|
-| `make release-gegenprobe` | `release-gegenprobe: grün (217 Läufe)`: die unveränderte Kopie, 214 Mutationen, der Rekursionsschutz und die Probe der Fallliste; 182 Fälle (96 `p1-*`, 80 `p2-*` bis `p13-*` ohne den Abbruch, 6 `p13-*` des Abbruchs) | 187 s |
+| `make release-gegenprobe` | `release-gegenprobe: grün (226 Läufe)`: die unveränderte Kopie, 223 Mutationen, der Rekursionsschutz und die Probe der Fallliste; 183 Fälle (96 `p1-*`, 81 `p2-*` bis `p13-*` ohne den Abbruch, 6 `p13-*` des Abbruchs) | 234 s |
 | `make workflows-check` | Exit 0, `workflows-check: 2 Datei(en) geprüft, kein Befund` | 1 s |
 | `make docs-check` | Exit 0, `d-check: 1208 Datei(en) geprüft, 0 Befund(e)` | 2 s |
-| `make gates` | Exit 0 (darunter `test-container`, `test-postgres-versionen`, `kopf-check`) | 271 s |
+| `make gates` | Exit 0 (darunter `test-container`, `test-postgres-versionen`, `kopf-check`) | 285 s |
 
 Der Lauf von `make gates-schnell-gegenprobe` vom ersten Stand (Exit 0, 63 s) ist nicht wiederholt: Seit ihm ändert sich weder ein Fragment noch die Liste `GEGENPROBEN_CONTAINER`. Während der Arbeit nur die engsten Sensoren: `bash -n`, Teilläufe der Gegenprobe mit `GP_MUT` und `GP_ENTDECKE` (die roten Fälle je Mutation gemessen, dann die Erwartung im Skript gesetzt), `make docs-check`.
 
-**Messung der Größe** (`AGENTS.md` §3.14): `git diff --numstat 11a2ba91..be46a2bb -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` ergibt als Summe aus Einfügungen und Löschungen **1393** (`release-gegenprobe.sh` 1016, `release.sh` 230, `releasing.md` 79, `release.yml` 38, `release.mk` 12, `SPEC-067` 16 aus der Entscheidung des Architect, `harness/README.md` 1, `VERSION` 1); ohne den Vertragstext 1377. Schätzung des Architect 820 bis 1070; Meldeschwelle 1000 und Marke 1300 sind überschritten. 2026-10-19 (Implementer): Entscheidung „weiter“ oder „schneiden“ steht aus, der Bericht an die Koordination nennt die Zahl.
+**Messung der Größe** (`AGENTS.md` §3.14): `git diff --numstat 11a2ba91..39d964e9 -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` ergibt als Summe aus Einfügungen und Löschungen **1425** (`release-gegenprobe.sh` 1037, `release.sh` 231, `releasing.md` 83, `release.yml` 38, `release.mk` 12, `SPEC-067` 22 aus den Entscheidungen des Architect, `harness/README.md` 1, `VERSION` 1); ohne den Vertragstext 1403. Schätzung des Architect 820 bis 1070; Meldeschwelle 1000 und Marke 1300 sind überschritten. 2026-10-19 (Implementer): Entscheidung „weiter“ oder „schneiden“ steht aus, der Bericht an die Koordination nennt die Zahl.
 
 **Mutationstabelle** (`AGENTS.md` §3.10): Zusage · Mutation (Textersatz in einer Kopie von `release.sh` bzw. in `pruefe_release`; Namen wie in `tools/harness/release-gegenprobe.sh`) · roter Fall. Je Mutation sind genau die genannten Fälle rot, jede Mutation einmal gesehen (`GP_ENTDECKE=1`), die unveränderte Kopie ist grün. Bei mehr als sechs roten Fällen nennt die Zeile die Zahl und drei Namen; die vollständige Menge steht im Skript.
 
@@ -333,6 +333,15 @@ Der Lauf von `make gates-schnell-gegenprobe` vom ersten Stand (Exit 0, 63 s) ist
 | 9: jeder Aufruf von `gh` mit `--repo` | `--repo` fehlt bei `release download` (`m-p9-repo-fehlt-download`) | `p9-repo-argument` |
 | 9: jeder Aufruf von `gh` mit `--repo` | `--repo` fehlt bei `release upload` (`m-p9-repo-fehlt-upload`) | `p9-repo-argument` |
 | 9: ohne `GH_TOKEN` Exit 2 vor dem ersten Aufruf von `gh` | die Prüfung entfällt (`m-p9-gh-ohne-token-pruefung`) | `p9-gh-token-fehlt` |
+| 9: nur `release not found` heißt „nicht vorhanden“ (F-1) | Muster geweitet auf `not found` ohne Schreibweise (`m-p9-view-muster-geweitet`) | `p9-view-anderer-fehler` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `darwin/amd64` fehlt in `erwartete_namen` (`m-p9-name-fehlt-darwin_amd64`) | 20 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `darwin/arm64` fehlt in `erwartete_namen` (`m-p9-name-fehlt-darwin_arm64`) | 20 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `linux/amd64` fehlt in `erwartete_namen` (`m-p9-name-fehlt-linux_amd64`) | 20 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `linux/arm64` fehlt in `erwartete_namen` (`m-p9-name-fehlt-linux_arm64`) | 21 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `windows/amd64` fehlt in `erwartete_namen` (`m-p9-name-fehlt-windows_amd64`) | 20 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `windows/arm64` fehlt in `erwartete_namen` (`m-p9-name-fehlt-windows_arm64`) | 20 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 9: Anhänge genau die sieben Dateien (F-4) | `SHA256SUMS` fehlt in `erwartete_namen` (`m-p9-name-fehlt-sha256sums`) | 20 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 3 (5)/9: Zeile mit genau drei Zellen, ein `|` im Text ist ein Fehler `notes` (F-5) | die Zeile mit weiterem `|` wird angenommen (`m-p3-pipe-abgeschnitten-angenommen`) | `p3-notes-pipe` |
 | 10: kein Wert des Tokens in der Ausgabe (Fehler im Vergleich) | das Skript gibt `$GH_TOKEN` aus (`m-p10-token-bei-fehler`) | `p10-nicht-im-log` |
 | 10: kein Wert des Tokens in der Ausgabe (Fehler der Summe) | das Skript gibt `$GH_TOKEN` aus (`m-p10-token-bei-fehler-binaries`) | `p10-nicht-im-log` |
 | 10: kein `set -x` | `set -x` im Skript (`m-p10-set-x`) | 7 Fälle, darunter `p10-nicht-im-log`, `p3-schluesselwort-ereignis`, `p3-schluesselwort-notes` |
@@ -355,6 +364,17 @@ Der Lauf von `make gates-schnell-gegenprobe` vom ersten Stand (Exit 0, 63 s) ist
 | 13: Unterprozesse der Gegenprobe zuerst beendet (`SIGTERM`) | sie werden nicht beendet (`m-p13-gegenprobe-term-kinder-bleiben`) | `p13-gegenprobe-sigterm` |
 | 13: erst Unterprozesse, dann Verzeichnis (Gegenprobe, `SIGINT`) | Verzeichnis zu früh entfernt (`m-p13-gegenprobe-int-verzeichnis-zu-frueh`) | `p13-gegenprobe-sigint` |
 | 13: erst Unterprozesse, dann Verzeichnis (Gegenprobe, `SIGTERM`) | Verzeichnis zu früh entfernt (`m-p13-gegenprobe-term-verzeichnis-zu-frueh`) | `p13-gegenprobe-sigterm` |
+
+**Findings der Review-Runde 1** (Report `2026-10-19-review-slice-erster-release-veroeffentlichung`; Behebung als Klasse, `implement-slice.md` Schritt 19):
+
+| Finding | Behebung | Beleg |
+|---|---|---|
+| F-1 (MEDIUM): Muster „nicht vorhanden“ nur an `release not found` | Fall `p9-view-anderer-fehler` hat ein zweites Bein: `gh` meldet `HTTP 404: Not Found`, Exit 1, kein `create`; Mutation `m-p9-view-muster-geweitet` (`grep -qi 'not found'`) | rot: `p9-view-anderer-fehler` |
+| F-2 (MEDIUM): gleichzeitige Läufe | Entscheidung des Architect `eec9c839`; `release.yml` mit `group: release-${{ github.event_name }}` (Zeile des Textes in `p1-*`, Zeile 9, mit den Mutationen aller Zeilen), Plan §1 auf den **laufenden** Lauf eingegrenzt | `p1-gleich` grün, `p1-fehlt-9`/`p1-geaendert-9` rot unter den Zeilenmutationen |
+| F-3 (LOW): Probe-Tag in `releasing.md` | §3 sagt, dass die Begriffe nur das Verfahren der Formel (§7) betreffen und die Veröffentlichung der Binaries (§6) den Trockenlauf statt eines Probe-Tags hat | `make docs-check` 0 Befunde |
+| F-4 (LOW): Aufzählung der Anhänge ohne Mutation je Element | sieben Mutationen `m-p9-name-fehlt-<Element>` (sechs Binaries, `SHA256SUMS`); jede färbt die Fälle, die `binaries` grün fahren, `linux_arm64` zusätzlich `p4-datei-fehlt`; auf einzelne Fälle lässt sich das nicht eingrenzen, weil `erwartete_namen` Bau und Release gemeinsam benutzen | die Mengen in der Tabelle |
+| F-5 (LOW): Zelle mit `|` | Entscheidung des Architect `eec9c839` (genau drei Zellen); `notiz_der_version` meldet `X` bei einer Zeile ohne genau drei Zellen, `pruefe_notes` und `github-release` lehnen ab (`notes`, Exit 2); Fall `p3-notes-pipe` (roh und als `\|`, Lauf und Trockenlauf); Mutation `m-p3-pipe-abgeschnitten-angenommen` | rot: `p3-notes-pipe` |
+| F-6, F-7 (INFO) | Größe: oben, Entscheidung steht aus; Trockenlauf auf GitHub und Wortlaut von `gh`: unverändert offen | — |
 
 **Zwei grüne Mutanten, äquivalent** (`AGENTS.md` §3.10):
 
