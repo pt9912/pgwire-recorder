@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# release-gegenprobe — prüft die Zusagen von SPEC-067 Fassung A (harness/vertraege/SPEC-067-release.md, Punkt 14): den Text von .github/workflows/release.yml
+# release-gegenprobe — prüft die Zusagen von SPEC-067 (harness/vertraege/SPEC-067-release.md, Punkt 14): den Text von .github/workflows/release.yml
 # (Fälle p1-*, geprüft von der Funktion pruefe_release, die den Text hält) und tools/harness/release.sh (Fälle p2-* bis p13-*): je Fall ein Temp-Baum mit einem
-# Git-Repository (Commits, Zweig, refs/remotes/origin/main und origin/trunk), dem Auszug des Benutzerhandbuchs, einem PATH, in dem `make`, `gh`, `docker` und
-# `skopeo` Attrappen sind, die ihre Aufrufe aufzeichnen; `git`, `sha256sum`, `awk` und `cmp` sind die echten Werkzeuge. Ohne Docker, ohne Netz, ohne make. Ein Fall besteht,
+# Git-Repository (Commits, Zweig, refs/remotes/origin/main und origin/trunk), dem Auszug des Benutzerhandbuchs, einem PATH, in dem `make`, `gh`, `docker`, `skopeo` und
+# `gp-layout` (schreibt ein OCI-Layout) Attrappen sind, die ihre Aufrufe aufzeichnen; `skopeo` führt Buch über zwei Registries in einem Verzeichnis, `tools/harness/container-smoke.sh`
+# des Baums ist eine Attrappe; `git`, `sha256sum`, `awk`, `tar` und `cmp` sind die echten Werkzeuge. Ohne Docker, ohne Netz, ohne make. Ein Fall besteht,
 # wenn Exit-Code, Kennwort der Meldung und die Aufrufe der Attrappen dem erwarteten Text entsprechen; jeder Fall hat seinen Temp-Baum. Je Mutation (Textersatz in
 # pruefe_release bzw. in einer Kopie von release.sh) müssen genau die benannten Fälle rot werden; die unveränderte Kopie besteht jeden Fall. Der Name jedes Falls trägt
 # die Nummer des Punktes; ein Name in der Fallliste ohne Funktion f_<name> zählt als roter Fall.
@@ -14,7 +15,7 @@
 # p13-sigterm prüfen release.sh: ein `make` als Attrappe, das Nachkommen startet, bekommt das Signal mit dem Skript. SIGKILL und SIGHUP sind nicht zugesagt.
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Läufe, deren Name passt (die unveränderte Kopie nur, wenn das Muster `ok` trifft); GP_ENTDECKE=1 nennt je Mutation die
 # roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Läufe; GP_FALL=<name> gibt für die unveränderte Kopie das Protokoll dieses Falls aus.
-# Braucht bash (mit `wait -n`), git, GNU sed, grep, awk, cmp, pgrep, setsid, timeout, sha256sum und die Werkzeuge von coreutils; ohne Docker, ohne make und ohne Netz.
+# Braucht bash (mit `wait -n`), git, GNU sed, grep, awk, cmp, tar, pgrep, setsid, timeout, sha256sum und die Werkzeuge von coreutils; ohne Docker, ohne make und ohne Netz.
 # Aufrufarten von `make` (-n, -q, -t, -i, MAKEFLAGS) haben keinen Fall: kein Hook und kein Stand liest das Ergebnis, und release.sh läuft nie unter `make` (SPEC-067 Punkt 13).
 set -uo pipefail
 
@@ -49,7 +50,7 @@ trap abbruch_term TERM
 : > "$arbeit/gefahren"
 melde() { echo "release-gegenprobe: ROT — $*" >> "$arbeit/fehler"; }
 
-for t in git sed grep awk cmp mktemp sort tr wc cat cp chmod rm env find ls seq sleep mkdir dirname basename head pgrep setsid timeout sha256sum; do
+for t in git sed grep awk cmp tar mktemp sort tr wc cat cp chmod rm env find ls seq sleep mkdir dirname basename head pgrep setsid timeout sha256sum; do
   command -v "$t" > /dev/null 2>&1 || { echo "release-gegenprobe: $t fehlt" >&2; exit 2; }
 done
 for f in .github/workflows/release.yml tools/harness/release.sh; do
@@ -59,9 +60,9 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 export GIT_AUTHOR_NAME=gp GIT_AUTHOR_EMAIL=gp@example.invalid GIT_COMMITTER_NAME=gp GIT_COMMITTER_EMAIL=gp@example.invalid
 
 # --- Punkt 1: der Text -------------------------------------------------------------------------------------------------------------------------------
-# SOLL_ROH ist der Text von Punkt 1a, Zeile für Zeile, mit der Herkunft (A oder B) vor dem ersten `|`; HERKUNFT nennt die Herkunft, die diese Fassung führt. Die Zeile
+# SOLL_ROH ist der Text von Punkt 1b, Zeile für Zeile, mit der Herkunft (A oder B) vor dem ersten `|`; HERKUNFT nennt die Herkunft, die diese Fassung führt. Die Zeile
 # mit <SHA> und <Tag> prüft PIN_RE. Die Gegenprobe trägt den Text wörtlich als eigene Kopie.
-HERKUNFT=A
+HERKUNFT=AB
 mapfile -t SOLL_ROH << 'EOT'
 A|name: release
 A|on:
@@ -80,6 +81,7 @@ A|    runs-on: ubuntu-24.04
 A|    timeout-minutes: 60
 A|    permissions:
 A|      contents: write
+B|      packages: write
 A|    env:
 A|      RELEASE_EVENT: ${{ github.event_name }}
 A|      RELEASE_REF: ${{ github.ref }}
@@ -93,9 +95,36 @@ A|        with:
 A|          fetch-depth: 0
 A|          persist-credentials: false
 A|      - name: Eingaben
+B|        env:
+B|          RELEASE_DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+B|          RELEASE_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 A|        run: bash tools/harness/release.sh eingaben
 A|      - name: Binaries
 A|        run: bash tools/harness/release.sh binaries
+B|      - name: Image
+B|        run: bash tools/harness/release.sh image
+B|      - name: Veröffentlichen
+B|        if: ${{ github.event_name == 'push' }}
+B|        env:
+B|          RELEASE_GHCR_USER: ${{ github.actor }}
+B|          RELEASE_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+B|          RELEASE_DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+B|          RELEASE_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+B|        run: bash tools/harness/release.sh veroeffentlichen
+B|      - name: Vergleichen
+B|        if: ${{ github.event_name == 'push' }}
+B|        run: bash tools/harness/release.sh vergleichen
+B|      - name: Smoke
+B|        if: ${{ github.event_name == 'push' }}
+B|        run: bash tools/harness/release.sh smoke
+B|      - name: Latest
+B|        if: ${{ github.event_name == 'push' }}
+B|        env:
+B|          RELEASE_GHCR_USER: ${{ github.actor }}
+B|          RELEASE_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+B|          RELEASE_DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+B|          RELEASE_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+B|        run: bash tools/harness/release.sh latest
 A|      - name: GitHub-Release
 A|        if: ${{ github.event_name == 'push' }}
 A|        env:
@@ -106,21 +135,19 @@ SOLL=()
 for z in "${SOLL_ROH[@]}"; do if [[ $HERKUNFT == *"${z%%|*}"* ]]; then SOLL+=("${z#*|}"); fi; done
 N=${#SOLL[@]}
 PIN=-1
-BEDINGUNG=-1
+# Die Schritte nach dem Checkout: STEP_AB[k] ist die Zeile `- name:` des Schritts k in SOLL, STEP_ID[k] sein Kürzel (Name des Falls); BEDING[j] ist die Zeile `if:` des Schritts BEDING_ID[j].
+declare -A SCHRITT_ID=([Eingaben]=eingaben [Binaries]=binaries [Image]=image [Veröffentlichen]=veroeffentlichen [Vergleichen]=vergleichen [Smoke]=smoke [Latest]=latest [GitHub-Release]=github-release)
+STEP_AB=() STEP_ID=() BEDING=() BEDING_ID=()
+schritt_re='^      - name: (.*)$'
 for ((i = 0; i < N; i++)); do
+  if [[ ${SOLL[i]} =~ $schritt_re && ${BASH_REMATCH[1]} != Checkout ]]; then STEP_AB+=("$i"); STEP_ID+=("${SCHRITT_ID[${BASH_REMATCH[1]}]}"); fi
   if [[ ${SOLL[i]} == *"actions/checkout@<SHA>"* ]]; then PIN=$i; fi
-  if [[ ${SOLL[i]} == *"if: \${{ github.event_name == 'push' }}"* ]]; then BEDINGUNG=$i; fi
+  if [[ ${SOLL[i]} == *"if: \${{ github.event_name == 'push' }}"* ]]; then BEDING+=("$i"); BEDING_ID+=("${STEP_ID[-1]}"); fi
 done
+K=${#STEP_AB[@]}
+STEP_AB+=("$N")
 PIN_RE="^${SOLL[PIN]%%<SHA>*}[0-9a-f]{40} # [^ ].*\$"
 SHA_PROBE=0123456789abcdef0123456789abcdef01234567
-# Anfang der drei Schritte nach dem Checkout (Zeilen in SOLL)
-for ((i = 0; i < N; i++)); do
-  case "${SOLL[i]}" in
-    *"name: Eingaben") S_E=$i ;;
-    *"name: Binaries") S_B=$i ;;
-    *"name: GitHub-Release") S_G=$i ;;
-  esac
-done
 
 # pruefe_release <datei> — Exit 0, wenn die Datei außer Leerzeilen und Kommentarzeilen genau aus den Zeilen von SOLL besteht (Pin der Zeile PIN nach PIN_RE).
 pruefe_release() {
@@ -181,9 +208,8 @@ ZUSATZ=(
   "environment:|    environment: release"
   "continue-on-error: true|        continue-on-error: true"
   "always()|        if: \${{ always() }}"
-  "packages: write|      packages: write"
 )
-ZUSATZ_NAMEN=(pull-request-target secrets-debug schritt-cache environment continue-on-error always packages-write)
+ZUSATZ_NAMEN=(pull-request-target secrets-debug schritt-cache environment continue-on-error always)
 zusatz() { neu; urteil rot < <(zeilen "${t[@]}" "$1"); }
 for k in "${!ZUSATZ[@]}"; do eval "f_p1_zusatz_${ZUSATZ_NAMEN[k]//-/_}() { zusatz \"\${ZUSATZ[$k]#*|}\"; }"; done
 pin() { neu; t[PIN]="        $1"; urteil rot < <(zeilen "${t[@]}"); }
@@ -192,27 +218,27 @@ f_p1_pin_gross() { pin "uses: actions/checkout@${SHA_PROBE^^} # v7.0.1"; }
 f_p1_pin_tag_leer() { pin "uses: actions/checkout@$SHA_PROBE # "; }
 f_p1_pin_ohne_tag() { pin "uses: actions/checkout@$SHA_PROBE"; }
 f_p1_pin_andere_action() { pin "uses: actions/cache@$SHA_PROBE # v4"; }
-f_p1_bedingung_github_release() { neu; unset "t[$BEDINGUNG]"; urteil rot < <(zeilen "${t[@]}"); }
-# umgestellt <E|B|G>… — der Text mit den Schritten in der genannten Reihenfolge (E: Eingaben, B: Binaries, G: GitHub-Release; der Checkout bleibt vorn).
+# Je Schritt mit Bedingung auf das Ereignis `push` ein Fall, in dem die Zeile `if:` fehlt.
+for j in "${!BEDING[@]}"; do eval "f_p1_bedingung_${BEDING_ID[j]//-/_}() { neu; unset \"t[${BEDING[j]}]\"; urteil rot < <(zeilen \"\${t[@]}\"); }"; done
+# umgestellt <k>… — der Text mit den Schritten in der genannten Reihenfolge (Zahl: Stelle des Schritts im Text; der Checkout bleibt vorn).
 umgestellt() {
-  local b
-  zeilen "${t[@]:0:S_E}"
-  for b in "$@"; do
-    case "$b" in
-      E) zeilen "${t[@]:S_E:S_B-S_E}" ;;
-      B) zeilen "${t[@]:S_B:S_G-S_B}" ;;
-      G) zeilen "${t[@]:S_G}" ;;
-    esac
-  done
+  local k
+  zeilen "${t[@]:0:STEP_AB[0]}"
+  for k in "$@"; do zeilen "${t[@]:STEP_AB[k]:STEP_AB[k+1]-STEP_AB[k]}"; done
 }
-f_p1_reihenfolge_eingaben_binaries() { neu; urteil rot < <(umgestellt B E G); }
-f_p1_reihenfolge_binaries_release() { neu; urteil rot < <(umgestellt E G B); }
+# tausch <k> <l> — die Reihenfolge der Schritte mit den Stellen k und l vertauscht.
+tausch() { local o=() j; for ((j = 0; j < K; j++)); do o+=("$j"); done; o[$1]=$2; o[$2]=$1; echo "${o[*]}"; }
+# Paare vertauschter Schritte: <Name> <Stelle> <Stelle>
+TAUSCHE=("eingaben-binaries 0 1" "binaries-release 1 $((K - 1))" "binaries-image 1 2" "image-veroeffentlichen 2 3" "veroeffentlichen-vergleichen 3 4" "vergleichen-smoke 4 5" "smoke-latest 5 6" "latest-release 6 7")
+for tp in "${TAUSCHE[@]}"; do read -r tn tk tl <<< "$tp"; eval "f_p1_reihenfolge_${tn//-/_}() { neu; urteil rot < <(umgestellt \$(tausch $tk $tl)); }"; done
 f_p1_leerzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "" "${t[@]:3}"); }
 f_p1_kommentarzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "# Kommentar" "${t[@]:3}"); }
 f_p1_kommentarzeile_eingerueckt() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "    # Kommentar" "${t[@]:3}"); }
 
 # --- Welt, Attrappen, Hilfen für release.sh -------------------------------------------------------------------------------------------------------------
 TOKEN=ghs_GeheimerTokenWert0123456789
+TOKEN_D=dckr_pat_GeheimerDockerWert0123
+TOKEN_G=ghs_GeheimerRegistryWert0123
 # attrappen <dir> — make, gh, docker und skopeo als Skripte, die ihre Aufrufe nach $GP_LOG/<name> schreiben; das Verhalten steuern GP_MAKE und GP_GH*.
 attrappen() {
   local b="$1" n
@@ -269,9 +295,106 @@ case "$1 $2" in
 esac
 exit 0
 EOT
-  for n in docker skopeo; do
-    printf '#!/usr/bin/env bash\necho "%s $*" >> "$GP_LOG/%s"\nexit 0\n' "$n" "$n" > "$b/$n"
-  done
+  cat > "$b/gp-layout" << 'EOT'
+#!/usr/bin/env bash
+# gp-layout <Variante> <Tar> — schreibt ein OCI-Layout als Tar und die Bytes des Index nach <Tar>.index
+v="$1"; out="$2"; d="$(mktemp -d)"; trap 'rm -rf "$d"' EXIT
+h() { printf '%s' "$1" | sha256sum | cut -d' ' -f1; }
+m() { printf '{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:%s","size":1,"platform":{"architecture":"%s","os":"linux"}}' "$(h "m-$1")" "$1"; }
+case "$v" in
+  drei) l="$(m amd64),$(m arm64),{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:$(h m-x)\",\"size\":1}" ;;
+  ohne-amd64) l="$(m arm64),$(m s390x)" ;;
+  ohne-arm64) l="$(m amd64),$(m s390x)" ;;
+  eine) l="$(m amd64)" ;;
+  *) l="$(m amd64),$(m arm64)" ;;
+esac
+idx="{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.index.v1+json\",\"manifests\":[$l]}"
+x="$(h "$idx")"
+mkdir -p "$d/blobs/sha256"; printf '%s' "$idx" > "$d/blobs/sha256/$x"; printf '%s' "$idx" > "$out.index"
+e="{\"mediaType\":\"application/vnd.oci.image.index.v1+json\",\"digest\":\"sha256:$x\",\"size\":${#idx}}"
+[ "$v" != zwei-eintraege ] || e="$e,$e"
+printf '{"schemaVersion":2,"manifests":[%s]}' "$e" > "$d/index.json"
+printf '{"imageLayoutVersion":"1.0.0"}' > "$d/oci-layout"
+tar -cf "$out" -C "$d" oci-layout index.json blobs
+EOT
+  cat > "$b/docker" << 'EOT'
+#!/usr/bin/env bash
+echo "docker $*" >> "$GP_LOG/docker"
+[ "${1-}" = buildx ] || exit 0
+case "${2-}" in
+  create) [ "${GP_BUILDX-}" != create-rot ] || exit 1 ;;
+  build)
+    shift 2; plat=""; out=""
+    while [ $# -gt 0 ]; do
+      case "$1" in --platform) plat="$2" ;; --output) out="$2" ;; esac
+      shift
+    done
+    [ "${GP_BUILDX-}" != build-rot ] || exit 1
+    dest="$(sed -E 's/.*dest=([^,]*).*/\1/' <<< "$out")"
+    if [[ $dest == *.tar ]]; then
+      gp-layout "${GP_IMAGE-ok}" "$dest"
+    else
+      mkdir -p "$dest"; a="${plat#linux/}"
+      printf 'binary %s linux %s\n' "$(head -n 1 VERSION)" "$a" > "$dest/pgwire-recorder"
+      [ "${GP_SUMME-}" != "$a" ] || echo manipuliert >> "$dest/pgwire-recorder"
+    fi ;;
+esac
+exit 0
+EOT
+  cat > "$b/skopeo" << 'EOT'
+#!/usr/bin/env bash
+echo "skopeo $*" >> "$GP_LOG/skopeo"
+cmd="$1"; shift
+raw=0 anon=0 pws=0 user="" args=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --raw) raw=1 ;;
+    --no-creds) anon=1 ;;
+    --authfile | --password) shift ;;
+    --username) user="$2"; shift ;;
+    --password-stdin) pws=1 ;;
+    --all | --preserve-digests) ;;
+    *) args+=("$1") ;;
+  esac
+  shift
+done
+# teile <Referenz> — setzt reg und ref (Tag oder sha256:…) einer Referenz docker://<Registry>/pt9912/pgwire-recorder[:@]<ref>
+teile() { local r="${1#docker://}"; reg="${r%%/*}"; r="${r#*/pt9912/pgwire-recorder}"; ref="${r:1}"; }
+case "$cmd" in
+  login)
+    reg="${args[-1]}"
+    if [ "$pws" = 1 ]; then cat > "$GP_LOG/stdin.$reg"; else : > "$GP_LOG/stdin.$reg"; fi
+    echo "$user" > "$GP_LOG/user.$reg"
+    [ "${GP_LOGIN_ROT-}" != "$reg" ] || exit 1 ;;
+  inspect)
+    teile "${args[0]}"
+    if [ "$anon" = 1 ] && [[ " ${GP_ANON-} " == *" $reg "* ]]; then echo "unauthorized: authentication required" >&2; exit 1; fi
+    case "${GP_INSPECT-}" in
+      "$reg") echo "received unexpected HTTP status: 502 Bad Gateway" >&2; exit 1 ;;
+      "name:$reg") echo "name unknown: repository name not known to registry" >&2; exit 1 ;;
+    esac
+    f="$GP_REG/$reg/$ref"
+    [ -f "$f" ] || { echo "manifest unknown" >&2; exit 1; }
+    if [ "$raw" = 1 ]; then cat "$f"; else printf '{"Name":"x","Digest":"sha256:%s"}\n' "$(tr -d ' \n' < "$f" | sed 's/x/y/' | sha256sum | cut -d' ' -f1)"; fi ;;
+  copy)
+    src="${args[0]}"; teile "${args[1]}"; dreg="$reg"; dref="$ref"
+    [[ " ${GP_COPY_ROT-} " != *" $dreg "* ]] || { echo "copy nach $dreg verweigert" >&2; exit 1; }
+    mkdir -p "$GP_REG/$dreg"
+    case "$src" in
+      oci-archive:*)
+        t="${src#oci-archive:}"
+        x="$(tar -xOf "$t" index.json | grep -o '[0-9a-f]\{64\}' | head -n 1)"
+        tar -xOf "$t" "blobs/sha256/$x" > "$GP_REG/$dreg/$dref" ;;
+      docker://*)
+        teile "$src"
+        for g in "$GP_REG/$reg"/*; do
+          if [ "sha256:$(sha256sum "$g" | cut -d' ' -f1)" = "$ref" ]; then cp "$g" "$GP_REG/$dreg/$dref"; break; fi
+        done
+        [ -f "$GP_REG/$dreg/$dref" ] || exit 1 ;;
+    esac ;;
+esac
+exit 0
+EOT
   chmod +x "$b"/*
 }
 # welt <dir> — legt quelle/ an (main: c1 c2; Zweig side mit s1 aus c1; refs/remotes/origin/main auf c1, origin/trunk auf s1) und bin/ mit den Attrappen.
@@ -279,7 +402,7 @@ welt() {
   local q="$1/quelle"
   mkdir -p "$q"
   git -C "$q" init -q -b main
-  git -C "$q" commit -q --allow-empty -m c1
+  GIT_AUTHOR_DATE="1700000000 +0000" GIT_COMMITTER_DATE="1700000000 +0000" git -C "$q" commit -q --allow-empty -m c1
   c1="$(git -C "$q" rev-parse HEAD)"
   git -C "$q" checkout -q -b side
   git -C "$q" commit -q --allow-empty -m s1
@@ -314,14 +437,25 @@ handbuch() {
   } > "$f"
 }
 # kopie — der Baum des Falls: repo/ (Kopie der Welt), log/, runner/, tmp/.
-kopie() { w="$run/t.$fallname"; rm -rf "$w"; mkdir -p "$w/log" "$w/runner" "$w/tmp"; cp -a "$run/welt/quelle" "$w/repo"; }
+kopie() { w="$run/t.$fallname"; rm -rf "$w"; mkdir -p "$w/log" "$w/runner" "$w/tmp" "$w/registry"; cp -a "$run/welt/quelle" "$w/repo"; }
 # fix [Version [Handbuch-Modus]] — setzt V, legt den Baum an, schreibt VERSION und das Handbuch.
-fix() { V="${1:-0.1.0}"; kopie; printf '%s\n' "$V" > "$w/repo/VERSION"; handbuch "$V" "${2:-normal}"; }
+PGIMG='postgres:test@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+fix() {
+  V="${1:-0.1.0}"; kopie; printf '%s\n' "$V" > "$w/repo/VERSION"; handbuch "$V" "${2:-normal}"
+  mkdir -p "$w/repo/harness/mk" "$w/repo/tools/harness"
+  printf 'POSTGRES_IMAGE ?= %s\n' "$PGIMG" > "$w/repo/harness/mk/integration.mk"
+  cat > "$w/repo/tools/harness/container-smoke.sh" << 'EOT'
+#!/usr/bin/env bash
+echo "ref=$1 VERSION=$VERSION POSTGRES_IMAGE=$POSTGRES_IMAGE SMOKE_NAME=$SMOKE_NAME LAUF=$SMOKE_LAUF WERK=$([ -d "$SMOKE_WERK" ] && echo da || echo fehlt)" >> "$GP_LOG/smoke"
+[[ " ${GP_SMOKE_ROT-} " != *" ${1%%/*} "* ]] || { echo "smoke rot" >&2; exit 1; }
+EOT
+}
 # umg <lauf|trocken> [NAME=Wert | -NAME]… — setzt E: die Umgebung von release.sh, dann die Abweichungen.
 umg() {
   local art="$1" a
   local -A v=([RELEASE_EVENT]=push [RELEASE_REF]="refs/tags/v$V" [RELEASE_SHA]="$c1" [RELEASE_DEFAULT_BRANCH]=main [RELEASE_REPOSITORY]=pt9912/pgwire-recorder
-    [RUNNER_TEMP]="$w/runner" [TMPDIR]="$w/tmp" [GP_LOG]="$w/log" [GH_TOKEN]="$TOKEN")
+    [RUNNER_TEMP]="$w/runner" [TMPDIR]="$w/tmp" [GP_LOG]="$w/log" [GH_TOKEN]="$TOKEN" [GP_REG]="$w/registry"
+    [RELEASE_DOCKERHUB_USER]=dockeruser [RELEASE_DOCKERHUB_TOKEN]="$TOKEN_D" [RELEASE_GHCR_USER]=ghuser [RELEASE_GHCR_TOKEN]="$TOKEN_G")
   shift
   if [ "$art" = trocken ]; then v[RELEASE_EVENT]=workflow_dispatch; v[RELEASE_REF]=refs/heads/impl; fi
   for a in "$@"; do if [[ $a == -* ]]; then unset "v[${a#-}]"; else v[${a%%=*}]="${a#*=}"; fi; done
@@ -333,6 +467,7 @@ umg_befehl() { ENVV=(env --default-signal=INT,TERM -i "PATH=$run/welt/bin:/usr/l
 lauf() {
   local s="$1"
   shift
+  if [ "$s" = github-release ] && [ -z "${ohne_vergl-}" ]; then mkdir -p "$w/runner/release"; : > "$w/runner/release/vergleichen.ok"; fi
   umg_befehl
   ( cd "$w/repo" && "${ENVV[@]}" "$@" bash "$releasesh" "$s" ) > "$w.out" 2> "$w.err"
   code=$?
@@ -603,6 +738,244 @@ f_p11_alte_marke() {
   lauf github-release; sei "github-release: Exit 2 trotz alter Marke" test "$code" -eq 2; sei "gh nie gerufen" nie gh
 }
 
+# --- Fassung B: Image, Registries, latest (Punkte 2, 3 (7), 5 bis 11) ----------------------------------------------------------------------------------
+IMG() { echo "$w/runner/release/image"; }
+REG() { echo "$w/registry/$1"; }
+# rotgrund <Schritt> [Text] — Exit 1 und eine Meldung `release: <Schritt>: ROT`, die den Text nennt.
+rotgrund() { sei "Exit 1" test "$code" -eq 1; sei "ROT in $1" enthaelt "$err" "release: $1: ROT"; if [ -n "${2-}" ]; then sei "Meldung nennt: $2" enthaelt "$err" "$2"; fi; }
+# bild [Version] — Baum und Lauf bis image; setzt D.
+bild() { fix "${1:-0.1.0}"; umg lauf; bis eingaben binaries image; D="$(cat "$(IMG)/digest")"; }
+bis_vergl() { bild "$@"; bis veroeffentlichen vergleichen; }
+# tamper <Registry> — ändert die Bytes des Tags, ohne den Index zu ändern (Leerzeichen am Ende).
+tamper() { printf ' ' >> "$(REG "$1")/0.1.0"; }
+# verben — die Anmeldungen und Kopien in der Reihenfolge des Aufrufs, `login <Registry>` und `copy <Registry>`.
+verben() { awk '$2 == "login" { print "login", $NF } $2 == "copy" { d = $NF; sub("docker://", "", d); sub("/.*", "", d); print "copy", d }' "$w/log/skopeo" | tr '\n' ' '; }
+kopien() { grep -c "^skopeo copy .* docker://$1/" "$w/log/skopeo" || true; }
+# Punkt 2
+f_p2_trockenlauf_image() {
+  fix 0.3.0-dev; umg trocken; bis eingaben binaries image
+  sei "skopeo nie gerufen" nie skopeo; sei "gh nie gerufen" nie gh; sei "kein login" ohne "$(aufrufe docker)" "login"
+  sei "buildx gerufen" enthaelt "$(aufrufe docker)" "buildx build"; sei "Index-Digest geschrieben" test -s "$(IMG)/digest"
+}
+# aussen_b <Umgebung…> — jeder Schritt mit Außenwirkung von B lehnt ab, bevor skopeo, gh oder der Smoke gerufen werden.
+aussen_b() {
+  local s
+  for s in veroeffentlichen vergleichen smoke latest; do
+    bild; umg lauf "$@"; lauf "$s"; grund 2 "$s" ereignis
+    sei "skopeo, gh und der Smoke nie gerufen ($s)" test ! -s "$w/log/skopeo" -a ! -s "$w/log/gh" -a ! -s "$w/log/smoke"
+  done
+}
+f_p2_aussenwirkung_ohne_push_b() { aussen_b RELEASE_EVENT=workflow_dispatch; }
+f_p2_ref_kein_tag_b() { aussen_b RELEASE_REF=refs/heads/main; }
+# Punkt 3 (7): Lauf und Trockenlauf; die Meldung nennt den Namen, nie einen Wert
+secret() { # <Direktive für umg> <Name>
+  local art
+  for art in lauf trocken; do
+    fix 0.1.0; umg "$art" "$1"; lauf eingaben; grund 2 eingaben geheimnis
+    sei "nennt $2" enthaelt "$err" "$2"; sei "nennt keinen Wert" ohne "$out$err" "$TOKEN_D"
+  done
+}
+f_p3_secret_fehlt_user() { secret -RELEASE_DOCKERHUB_USER DOCKERHUB_USERNAME; }
+f_p3_secret_fehlt_token() { secret -RELEASE_DOCKERHUB_TOKEN DOCKERHUB_TOKEN; }
+f_p3_secret_leer_user() { secret RELEASE_DOCKERHUB_USER= DOCKERHUB_USERNAME; }
+f_p3_secret_leer_token() { secret RELEASE_DOCKERHUB_TOKEN= DOCKERHUB_TOKEN; }
+f_p3_schluesselwort_geheimnis() { fix 0.1.0; umg lauf -RELEASE_DOCKERHUB_TOKEN; lauf eingaben; sei "Schlüsselwort geheimnis" beginnt geheimnis; }
+f_p3_reihenfolge_6_7() { fix 0.1.0; umg lauf "RELEASE_SHA=$s1" -RELEASE_DOCKERHUB_TOKEN; lauf eingaben; grund 2 eingaben standard-zweig; }
+# Punkt 5
+bild_mit() { fix 0.1.0; umg lauf; bis eingaben binaries; lauf image "$@"; }
+f_p5_aufruf() {
+  local b c x
+  bild
+  b="$(grep '^docker buildx build ' "$w/log/docker" | grep -e 'type=oci' || true)"
+  for x in "--platform linux/amd64,linux/arm64" "--target runtime" "--build-arg VERSION=0.1.0" "--build-arg SOURCE_DATE_EPOCH=1700000000" "--provenance=false" "--sbom=false" \
+    "--output type=oci,dest=$(IMG)/layout.tar,rewrite-timestamp=true"; do
+    sei "Aufruf: $x" enthaelt "$b" " $x"
+  done
+  c="$(grep '^docker buildx create ' "$w/log/docker" || true)"
+  sei "Treiber docker-container" enthaelt "$c" " --driver docker-container "
+  sei "Image des Builders per Digest" test -n "$(grep -E -e '--driver-opt image=[^ @]+@sha256:[0-9a-f]{64}( |$)' <<< "$c" || true)"
+}
+f_p5_zwei_manifeste() { bild_mit GP_IMAGE=drei; rotgrund image "nicht genau zwei Manifeste"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_plattform_fehlt_amd64() { bild_mit GP_IMAGE=ohne-amd64; rotgrund image "statt linux/amd64 linux/arm64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_plattform_fehlt_arm64() { bild_mit GP_IMAGE=ohne-arm64; rotgrund image "statt linux/amd64 linux/arm64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_ein_index() { bild_mit GP_IMAGE=zwei-eintraege; rotgrund image "nicht genau einen Index"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_summe_amd64() { bild_mit GP_SUMME=amd64; rotgrund image "linux/amd64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_summe_arm64() { bild_mit GP_SUMME=arm64; rotgrund image "linux/arm64"; sei "nicht amd64" ohne "$err" "linux/amd64: das Binary"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_digest() {
+  bild
+  sei "D ist der Hash des Index-Blobs" test "$D" = "sha256:$(sha256sum "$(IMG)/layout.tar.index" | cut -d' ' -f1)"
+  sei "D ist nicht der Hash des Archivs" test "$D" != "sha256:$(sha256sum "$(IMG)/layout.tar" | cut -d' ' -f1)"
+  bis veroeffentlichen
+  sei "die Registry trägt die Bytes mit D" test "sha256:$(sha256sum "$(REG ghcr.io)/0.1.0" | cut -d' ' -f1)" = "$D"
+}
+f_p5_bau_scheitert() {
+  bild_mit GP_BUILDX=create-rot; rotgrund image "buildx create"
+  bild_mit GP_BUILDX=build-rot; rotgrund image "buildx build"
+}
+# Punkt 6
+f_p6_reihenfolge() { bild; bis veroeffentlichen; sei "login ghcr, copy ghcr, login docker, copy docker" test "$(verben)" = "login ghcr.io copy ghcr.io login docker.io copy docker.io "; }
+f_p6_all_und_digests() {
+  local z r
+  bild; bis veroeffentlichen
+  z="$(grep '^skopeo copy ' "$w/log/skopeo")"
+  for r in ghcr.io docker.io; do
+    sei "$r: --all" enthaelt "$z" " --all "; sei "$r: --preserve-digests" enthaelt "$z" " --preserve-digests "
+    sei "$r: Quelle ist das Layout" enthaelt "$z" " oci-archive:$(IMG)/layout.tar docker://$r/pt9912/pgwire-recorder:0.1.0"
+  done
+}
+f_p6_tag_vorhanden_gleich() {
+  bild; mkdir -p "$(REG ghcr.io)"; cp "$(IMG)/layout.tar.index" "$(REG ghcr.io)/0.1.0"
+  lauf veroeffentlichen; gruen
+  sei "kein Copy nach ghcr.io" test "$(kopien ghcr.io)" -eq 0; sei "Copy nach docker.io" test "$(kopien docker.io)" -eq 1
+}
+f_p6_tag_vorhanden_anders() {
+  bild; mkdir -p "$(REG ghcr.io)"; printf '{"anders":true}' > "$(REG ghcr.io)/0.1.0"; cp "$(REG ghcr.io)/0.1.0" "$w/vorher"
+  lauf veroeffentlichen; rotgrund veroeffentlichen "ghcr.io"
+  sei "Meldung nennt beide Digests" enthaelt "$err" "sha256:$(sha256sum "$w/vorher" | cut -d' ' -f1) statt $D"
+  sei "kein Copy" test "$(kopien ghcr.io)" -eq 0; sei "der Tag bleibt, wie er war" cmp -s "$w/vorher" "$(REG ghcr.io)/0.1.0"
+}
+f_p6_inspect_anderer_fehler() {
+  local f
+  for f in ghcr.io name:ghcr.io; do
+    bild; lauf veroeffentlichen "GP_INSPECT=$f"; rotgrund veroeffentlichen; sei "$f: kein Copy" test "$(kopien ghcr.io)" -eq 0
+  done
+}
+f_p6_zweite_registry_faellt() {
+  bild; lauf veroeffentlichen GP_COPY_ROT=docker.io; rotgrund veroeffentlichen "ghcr.io:0.1.0=$D docker.io:0.1.0=-"
+  sei "ghcr.io bleibt beschrieben" test -f "$(REG ghcr.io)/0.1.0"
+}
+f_p6_tag_satz() {
+  bild; bis veroeffentlichen
+  sei "ghcr.io trägt nur 0.1.0" test "$(ls "$(REG ghcr.io)")" = 0.1.0; sei "docker.io trägt nur 0.1.0" test "$(ls "$(REG docker.io)")" = 0.1.0
+  sei "jedes Ziel hat den Tag 0.1.0" test "$(grep '^skopeo copy ' "$w/log/skopeo" | grep -vc ':0.1.0$' || true)" -eq 0
+}
+f_p6_anmeldung_scheitert() { bild; lauf veroeffentlichen GP_LOGIN_ROT=ghcr.io; rotgrund veroeffentlichen "Anmeldung bei ghcr.io"; sei "kein Copy" test "$(kopien ghcr.io)" -eq 0; }
+# Punkt 7
+f_p7_gleich() {
+  bis_vergl
+  sei "Marke vergleichen.ok" test -e "$w/runner/release/vergleichen.ok"
+  sei "ghcr.io ohne Anmeldung, rohe Bytes" test "$(grep -c '^skopeo inspect --raw --no-creds docker://ghcr.io/pt9912/pgwire-recorder:0.1.0$' "$w/log/skopeo" || true)" -eq 1
+  sei "docker.io ohne Anmeldung, rohe Bytes" test "$(grep -c '^skopeo inspect --raw --no-creds docker://docker.io/pt9912/pgwire-recorder:0.1.0$' "$w/log/skopeo" || true)" -eq 1
+}
+f_p7_rohbytes() { bis_vergl; sei "gleich, weil die rohen Bytes gleich sind" test -e "$w/runner/release/vergleichen.ok"; }
+digest_abweichend() { # <Registry>
+  bild; bis veroeffentlichen; tamper "$1"; lauf vergleichen; rotgrund vergleichen "$1 weicht ab"; sei "keine Marke" test ! -e "$w/runner/release/vergleichen.ok"
+}
+f_p7_digest_ghcr() { digest_abweichend ghcr.io; sei "docker.io nicht genannt" ohne "$err" "docker.io weicht ab"; }
+f_p7_digest_docker() { digest_abweichend docker.io; sei "ghcr.io nicht genannt" ohne "$err" "ghcr.io weicht ab"; }
+f_p7_digest_lokal() {
+  bild; bis veroeffentlichen; printf 'sha256:%064d\n' 0 > "$(IMG)/digest"; lauf vergleichen; rotgrund vergleichen "weicht ab"; sei "keine Marke" test ! -e "$w/runner/release/vergleichen.ok"
+}
+anonym() { bild; bis veroeffentlichen; lauf vergleichen "GP_ANON=$1"; rotgrund vergleichen "$1 ist ohne Anmeldung nicht lesbar"; sei "nennt die Handlung" enthaelt "$err" "öffentlich"; sei "keine Marke" test ! -e "$w/runner/release/vergleichen.ok"; }
+f_p7_anonym_ghcr() { anonym ghcr.io; }
+f_p7_anonym_docker() { anonym docker.io; }
+f_p7_eine_plattform() {
+  local r
+  bild; "$run/welt/bin/gp-layout" eine "$w/eine.tar"
+  for r in ghcr.io docker.io; do mkdir -p "$(REG $r)"; cp "$w/eine.tar.index" "$(REG $r)/0.1.0"; done
+  printf 'sha256:%s\n' "$(sha256sum "$w/eine.tar.index" | cut -d' ' -f1)" > "$(IMG)/digest"
+  lauf vergleichen; rotgrund vergleichen "nicht genau zwei Manifeste"; sei "keine Marke" test ! -e "$w/runner/release/vergleichen.ok"
+}
+f_p7_tag_fehlt() {
+  local r
+  for r in ghcr.io docker.io; do
+    bild; bis veroeffentlichen; rm "$(REG "$r")/0.1.0"; lauf vergleichen; rotgrund vergleichen "$r trägt den Tag 0.1.0 nicht"
+  done
+}
+f_p7_smoke_aufruf() {
+  local z
+  bis_vergl; lauf smoke; gruen
+  z="$(aufrufe smoke)"
+  sei "zwei Aufrufe" test "$(wc -l <<< "$z")" -eq 2
+  sei "erst ghcr.io, mit @D" test "$(head -n 1 <<< "$z" | cut -d' ' -f1)" = "ref=ghcr.io/pt9912/pgwire-recorder@$D"
+  sei "dann docker.io, mit @D" test "$(tail -n 1 <<< "$z" | cut -d' ' -f1)" = "ref=docker.io/pt9912/pgwire-recorder@$D"
+  sei "VERSION=0.1.0 in beiden" test "$(grep -c ' VERSION=0.1.0 ' <<< "$z")" -eq 2
+  sei "POSTGRES_IMAGE aus integration.mk in beiden" test "$(grep -c " POSTGRES_IMAGE=$PGIMG " <<< "$z")" -eq 2
+  sei "Meldungspräfix und Verzeichnis in beiden" test "$(grep -c 'SMOKE_NAME=release: smoke LAUF=.* WERK=da$' <<< "$z")" -eq 2
+  sei "Namen der Läufe verschieden" test "$(grep -o ' LAUF=[^ ]*' <<< "$z" | sort -u | wc -l)" -eq 2
+}
+smoke_rot() { bis_vergl; lauf smoke "GP_SMOKE_ROT=$1"; rotgrund smoke "der Smoke aus $1"; sei "kein latest" ohne "$(aufrufe skopeo)" ":latest"; }
+f_p7_smoke_ghcr() { smoke_rot ghcr.io; }
+f_p7_smoke_docker() { smoke_rot docker.io; }
+# Punkt 8
+latest_von() { # <Version> [Tag…] — die Tags liegen im Klon; Lauf bis smoke, setzt D
+  local t
+  fix "$1"; shift
+  for t in "$@"; do git -C "$w/repo" tag "$t" "$c1"; done
+  umg lauf; bis eingaben binaries image veroeffentlichen vergleichen smoke
+  D="$(cat "$(IMG)/digest")"
+}
+gesetzt() { local r; for r in ghcr.io docker.io; do sei "$r: latest zeigt auf D" test "sha256:$(sha256sum "$(REG $r)/latest" 2> /dev/null | cut -d' ' -f1)" = "$D"; done; }
+ungesetzt() { sei "latest in keiner Registry" test ! -e "$(REG ghcr.io)/latest" -a ! -e "$(REG docker.io)/latest"; sei "kein Copy nach latest" ohne "$(aufrufe skopeo)" ":latest"; }
+f_p8_stabil_hoechste() {
+  local z
+  latest_von 1.1.0 v1.0.0 v1.1.0-rc.1; lauf latest; gruen; gesetzt
+  z="$(grep ':latest$' "$w/log/skopeo")"
+  sei "ghcr.io zuerst" test "$(awk '{ d = $NF; sub("docker://", "", d); sub("/.*", "", d); printf "%s ", d }' <<< "$z")" = "ghcr.io docker.io "
+  sei "--all und --preserve-digests" test "$(grep -c '^skopeo copy --all --preserve-digests ' <<< "$z")" -eq 2
+  sei "Quelle ist @D in derselben Registry" enthaelt "$z" " docker://docker.io/pt9912/pgwire-recorder@$D docker://docker.io/pt9912/pgwire-recorder:latest"
+}
+f_p8_vorabversion() { latest_von 1.2.0-rc.1 v1.1.0; lauf latest; gruen; ungesetzt; sei "Meldung" enthaelt "$out" "Vorabversion"; }
+f_p8_aelterer_zweig() { latest_von 1.0.1 v1.1.0; lauf latest; gruen; ungesetzt; }
+f_p8_erster_stabiler() { latest_von 0.1.0; lauf latest; gruen; gesetzt; }
+f_p8_vorabversion_hoeher_zaehlt_nicht() { latest_von 1.1.1 v1.1.0 v1.2.0-rc.1; lauf latest; gruen; gesetzt; }
+f_p8_semver_numerisch() {
+  latest_von 1.10.0 v1.9.0; lauf latest; gruen; gesetzt
+  latest_von 1.9.0 v1.10.0; lauf latest; gruen; ungesetzt
+}
+f_p8_nach_rotem_vergleich() { bild; bis veroeffentlichen; tamper ghcr.io; lauf vergleichen; lauf latest; grund 2 latest vorbedingung; ungesetzt; }
+f_p8_zweite_registry_faellt() {
+  latest_von 1.1.0 v1.0.0; lauf latest GP_COPY_ROT=docker.io; rotgrund latest "ghcr.io:latest=$D docker.io:latest=-"
+  sei "ghcr.io trägt latest" test -f "$(REG ghcr.io)/latest"
+}
+# Punkt 9
+f_p9_nicht_vor_registries() { fix 0.1.0; umg lauf; bis eingaben binaries; ohne_vergl=1; lauf github-release; grund 2 github-release vorbedingung; sei "gh nie gerufen" nie gh; }
+# Punkt 10
+kein_geheimnis() { sei "kein Token in stdout und stderr" ohne "$out$err" "$TOKEN"; sei "kein Token der Registry ghcr.io" ohne "$out$err" "$TOKEN_G"; sei "kein Token von docker.io" ohne "$out$err" "$TOKEN_D"; }
+f_p10_nicht_im_log_image() {
+  local s
+  fix 0.1.0; umg lauf
+  for s in eingaben binaries image veroeffentlichen vergleichen smoke latest; do lauf "$s"; kein_geheimnis; done
+  bild; mkdir -p "$(REG ghcr.io)"; printf '{"anders":true}' > "$(REG ghcr.io)/0.1.0"; lauf veroeffentlichen; sei "rot" test "$code" -eq 1; kein_geheimnis
+  bild; bis veroeffentlichen; tamper ghcr.io; lauf vergleichen; sei "rot" test "$code" -eq 1; kein_geheimnis
+  bild; lauf veroeffentlichen GP_COPY_ROT=docker.io; sei "rot" test "$code" -eq 1; kein_geheimnis
+  bild; lauf veroeffentlichen GP_LOGIN_ROT=docker.io; sei "rot" test "$code" -eq 1; kein_geheimnis
+  fix 0.1.0; umg lauf -RELEASE_DOCKERHUB_USER; lauf eingaben; sei "rot" test "$code" -eq 2; kein_geheimnis
+}
+f_p10_stdin() {
+  local r l
+  latest_von 1.1.0; lauf latest; gruen
+  for r in ghcr.io docker.io; do
+    sei "$r: der Token kommt über stdin" test "$(cat "$w/log/stdin.$r")" = "$([ "$r" = ghcr.io ] && echo "$TOKEN_G" || echo "$TOKEN_D")"
+    sei "$r: Benutzer" test "$(cat "$w/log/user.$r")" = "$([ "$r" = ghcr.io ] && echo ghuser || echo dockeruser)"
+  done
+  l="$(grep '^skopeo login ' "$w/log/skopeo")"
+  sei "vier Anmeldungen (zwei Schritte, zwei Registries)" test "$(wc -l <<< "$l")" -eq 4
+  sei "jede mit --password-stdin" test "$(grep -c ' --password-stdin ' <<< "$l")" -eq 4
+  sei "kein Token in einem Argument" ohne "$l" "$TOKEN_G"; sei "kein Token von docker.io in einem Argument" ohne "$l" "$TOKEN_D"
+}
+# Punkt 11
+f_p11_wiederanlauf_ghcr_vorhanden() {
+  bild; lauf veroeffentlichen GP_COPY_ROT=docker.io; sei "erster Lauf rot" test "$code" -eq 1
+  lauf veroeffentlichen; gruen
+  sei "ghcr.io nur einmal kopiert" test "$(kopien ghcr.io)" -eq 1; sei "docker.io kopiert" test "$(kopien docker.io)" -eq 2
+  sei "beide tragen D" test "sha256:$(sha256sum "$(REG docker.io)/0.1.0" | cut -d' ' -f1)" = "$D"
+}
+f_p11_wiederanlauf_latest() { latest_von 1.1.0 v1.0.0; lauf latest GP_COPY_ROT=docker.io; sei "erster Lauf rot" test "$code" -eq 1; lauf latest; gruen; gesetzt; }
+f_p11_reihenfolge_gruende_b() {
+  local s
+  fix 0.1.0; umg lauf; bis eingaben
+  for s in image veroeffentlichen vergleichen smoke latest; do lauf "$s"; grund 2 "$s" vorbedingung; done
+  sei "skopeo, docker und der Smoke nie gerufen" test ! -s "$w/log/skopeo" -a ! -s "$w/log/docker" -a ! -s "$w/log/smoke"
+}
+f_p11_alte_marke_b() {
+  bis_vergl; umg lauf RELEASE_REF=refs/tags/v01.2.3; lauf eingaben; sei "eingaben rot" test "$code" -eq 2
+  : > "$w/runner/release/binaries.ok"; umg lauf; ohne_vergl=1; lauf github-release; grund 2 github-release vorbedingung; sei "gh nie gerufen" nie gh
+  lauf veroeffentlichen; grund 2 veroeffentlichen vorbedingung
+  bis_vergl; tamper ghcr.io; lauf vergleichen; sei "vergleichen rot" test "$code" -eq 1; sei "keine Marke eines früheren Laufs" test ! -e "$w/runner/release/vergleichen.ok"
+  bild; lauf image GP_SUMME=amd64; sei "image rot" test "$code" -eq 1; lauf veroeffentlichen; grund 2 veroeffentlichen vorbedingung
+}
+
 # --- Punkt 13: Abbruch ------------------------------------------------------------------------------------------------------------------------------
 warte_auf() { local i; for i in $(seq 1 300); do if "$@"; then return 0; fi; sleep 0.1; done; return 1; }
 fall_laeuft() { [ "$(find "$t" -mindepth 3 -maxdepth 3 -name 't.*' 2> /dev/null | wc -l)" -ge 1 ]; }
@@ -675,10 +1048,12 @@ f_p13_sigint() { skript_abbruch INT 130; }
 f_p13_sigterm() { skript_abbruch TERM 143; }
 
 # --- Läufe ------------------------------------------------------------------------------------------------------------------------------------------
-FAELLE_P1=(p1-gleich p1-text-gleich p1-reihenfolge-eingaben-binaries p1-reihenfolge-binaries-release p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt
-  p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action p1-bedingung-github-release)
+FAELLE_P1=(p1-gleich p1-text-gleich p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt
+  p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action)
 for ((n = 1; n <= N; n++)); do FAELLE_P1+=("p1-fehlt-$n" "p1-geaendert-$n"); done
 for k in "${ZUSATZ_NAMEN[@]}"; do FAELLE_P1+=("p1-zusatz-$k"); done
+for j in "${BEDING_ID[@]}"; do FAELLE_P1+=("p1-bedingung-$j"); done
+for tp in "${TAUSCHE[@]}"; do FAELLE_P1+=("p1-reihenfolge-${tp%% *}"); done
 FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-kein-tag
   p3-tag-gueltig p3-laenge-100 p3-ohne-v p3-zwei-teile p3-vier-teile p3-fuehrende-null p3-fuehrende-null-minor p3-fuehrende-null-patch p3-vorabversion-fuehrende-null
   p3-leere-vorabversion p3-leerer-bezeichner p3-ungueltiges-zeichen p3-build-metadaten p3-zu-lang p3-ereignis-unbekannt p3-ereignis-fehlt
@@ -691,19 +1066,26 @@ FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-k
   p9-anhaenge p9-aufruf p9-stabil-ohne-prerelease p9-vorabversion-prerelease p9-notes-aus-zelle p9-notes-zeile-der-version p9-notes-aus-abschnitt
   p9-release-existiert-gleich p9-release-existiert-abweichend p9-view-anderer-fehler p9-repo-argument p9-gh-token-fehlt p13-binaries-ohne-eingaben p13-release-ohne-binaries p10-nicht-im-log
   p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p11-reihenfolge-gruende p11-alte-marke)
+FAELLE_B=(p2-trockenlauf-image p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-schluesselwort-geheimnis p3-reihenfolge-6-7
+  p5-aufruf p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64 p5-ein-index p5-summe-amd64 p5-summe-arm64 p5-digest p5-bau-scheitert
+  p6-reihenfolge p6-all-und-digests p6-tag-vorhanden-gleich p6-tag-vorhanden-anders p6-inspect-anderer-fehler p6-zweite-registry-faellt p6-tag-satz p6-anmeldung-scheitert
+  p7-gleich p7-rohbytes p7-digest-ghcr p7-digest-docker p7-digest-lokal p7-anonym-ghcr p7-anonym-docker p7-eine-plattform p7-tag-fehlt p7-smoke-aufruf p7-smoke-ghcr p7-smoke-docker
+  p8-stabil-hoechste p8-vorabversion p8-aelterer-zweig p8-erster-stabiler p8-vorabversion-hoeher-zaehlt-nicht p8-semver-numerisch p8-nach-rotem-vergleich p8-zweite-registry-faellt
+  p9-nicht-vor-registries p10-nicht-im-log-image p10-stdin p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p11-reihenfolge-gruende-b p11-alte-marke-b)
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
 FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende)
 
-# faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, sh, p13, gp13, ok = alle), einen je Zeile. FALL_ZUSATZ nennt einen weiteren Namen (Probe: ein Name ohne
+# faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, sh, b, p13, gp13, ok = alle), einen je Zeile. FALL_ZUSATZ nennt einen weiteren Namen (Probe: ein Name ohne
 # Funktion ist ein roter Fall).
 faelle() {
   local n
   case "$1" in
     p1) set -- "${FAELLE_P1[@]}" ;;
     sh) set -- "${FAELLE_SH[@]}" ;;
+    b) set -- "${FAELLE_B[@]}" ;;
     p13) set -- "${FAELLE_P13[@]}" ;;
     gp13) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_GP13[@]}"; fi ;;
-    ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_P13[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" ;;
+    ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_B[@]}" "${FAELLE_P13[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" ;;
   esac
   for n in "$@" ${FALL_ZUSATZ-}; do
     fallname="$n"
@@ -837,7 +1219,7 @@ for ((n = 1; n <= N; n++)); do
   i=$((n - 1))
   if [ "$i" -eq "$PIN" ]; then igel='[[ ${ist[j]-} =~ $PIN_RE ]]'; else igel='[ "${ist[j]-}" = "${SOLL[i]}" ]'; fi
   rote="p1-fehlt-$n"
-  if [ "$i" -eq "$BEDINGUNG" ]; then rote+=" p1-bedingung-github-release"; fi
+  for j in "${!BEDING[@]}"; do if [ "$i" -eq "${BEDING[j]}" ]; then rote+=" p1-bedingung-${BEDING_ID[j]}"; fi; done
   mut1 "m-p1-zeile-$n-optional" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ] && ! $igel; then continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
   rote="p1-geaendert-$n"
   if [ "$i" -eq "$PIN" ]; then rote+=" p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action"; fi
@@ -858,13 +1240,14 @@ mut1 m-p1-leerzeilen-nicht-ignoriert "p1-leerzeile" "fn_ersetze '^\\ *(#|\$)' '^
 mut1 m-p1-kommentar-irgendwo-in-der-zeile "p1-gleich p1-text-gleich p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^.*#|^\\ *\$'"
 mut1 m-p1-kommentar-nur-am-zeilenanfang "p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^(#|\$)'"
 # Reihenfolge: die Prüfung nimmt zusätzlich die Folge mit vertauschten Schritten an.
-PERM_BE=("${SOLL[@]:0:S_E}" "${SOLL[@]:S_B:S_G-S_B}" "${SOLL[@]:S_E:S_B-S_E}" "${SOLL[@]:S_G}")
-PERM_GB=("${SOLL[@]:0:S_B}" "${SOLL[@]:S_G}" "${SOLL[@]:S_B:S_G-S_B}")
+soll_umgestellt() { local k; printf '%s\n' "${SOLL[@]:0:STEP_AB[0]}"; for k in "$@"; do printf '%s\n' "${SOLL[@]:STEP_AB[k]:STEP_AB[k+1]-STEP_AB[k]}"; done; }
 tauschbar='src="$(declare -f pruefe_release)"; eval "${src/pruefe_release/pruefe_release_orig}"; pruefe_release() { pruefe_release_orig "$1" && return 0; local -a s=("${SOLL[@]}"); local r; SOLL=("${%s[@]}"); pruefe_release_orig "$1"; r=$?; SOLL=("${s[@]}"); return $r; }'
-# shellcheck disable=SC2059
-mut1 m-p1-reihenfolge-eingaben-binaries-tauschbar "p1-reihenfolge-eingaben-binaries" "$(printf "$tauschbar" PERM_BE)"
-# shellcheck disable=SC2059
-mut1 m-p1-reihenfolge-binaries-release-tauschbar "p1-reihenfolge-binaries-release" "$(printf "$tauschbar" PERM_GB)"
+for tp in "${TAUSCHE[@]}"; do
+  read -r tn tk tl <<< "$tp"
+  mapfile -t "PERM_${tn//-/_}" < <(soll_umgestellt $(tausch "$tk" "$tl"))
+  # shellcheck disable=SC2059
+  mut1 "m-p1-reihenfolge-$tn-tauschbar" "p1-reihenfolge-$tn" "$(printf "$tauschbar" "PERM_${tn//-/_}")"
+done
 
 # --- Mutationen von release.sh (Punkte 2 bis 11) ----------------------------------------------------------------------------------------------------
 # Punkt 2
@@ -1013,6 +1396,105 @@ mutr m-p11-binaries-ohne-eingaben-marke "p11-alte-marke p11-reihenfolge-gruende 
 mutr m-p11-release-ohne-binaries-marke "p11-alte-marke p11-reihenfolge-gruende p13-release-ohne-binaries" sh 'L:# P11binaries' ''
 mutr m-p11-eingaben-loescht-marken-nicht "p11-alte-marke" sh $'  rm -f "$zdir/eingaben.ok" "$zdir/binaries.ok"\n' ''
 mutr m-p11-binaries-loescht-marke-nicht "p11-alte-marke" sh $'  rm -f "$zdir/binaries.ok"\n  tag_ableiten\n  dist=' $'  tag_ableiten\n  dist='
+# --- Mutationen von release.sh: Fassung B (Gruppe b) -------------------------------------------------------------------------------------------------
+# Punkt 2: je Schritt mit Außenwirkung prüft das Ereignis; der Trockenlauf ruft weder skopeo noch eine Anmeldung
+for st in veroeffentlichen vergleichen smoke latest; do
+  mutr "m-p2-$st-ohne-ereignispruefung" "p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b" b "L:# P2$st" ''
+done
+mutr m-p2-trockenlauf-image-ruft-skopeo "p2-trockenlauf-image" b '  echo "release: image: Index-Digest $idx"' $'  [ "$trockenlauf" -eq 0 ] || skopeo inspect docker://x\n  echo "release: image: Index-Digest $idx"'
+mutr m-p2-trockenlauf-image-meldet-an "p2-trockenlauf-image" b '  echo "release: image: Index-Digest $idx"' $'  [ "$trockenlauf" -eq 0 ] || docker login x\n  echo "release: image: Index-Digest $idx"'
+# Punkt 3 (7)
+mutr m-p3-secret-user-entfernt "p10-nicht-im-log-image p3-secret-fehlt-user p3-secret-leer-user" b 'L:# P3secret-user' ''
+mutr m-p3-secret-token-entfernt "p3-schluesselwort-geheimnis p3-secret-fehlt-token p3-secret-leer-token" b 'L:# P3secret-token' ''
+mutr m-p3-secret-user-leer-gilt-als-gesetzt "p3-secret-leer-user" b '[ -n "${RELEASE_DOCKERHUB_USER-}" ] ||' '[ "${RELEASE_DOCKERHUB_USER+x}" ] ||'
+mutr m-p3-secret-token-leer-gilt-als-gesetzt "p3-secret-leer-token" b '[ -n "${RELEASE_DOCKERHUB_TOKEN-}" ] ||' '[ "${RELEASE_DOCKERHUB_TOKEN+x}" ] ||'
+mutr m-p3-7-geheimnisse-entfernt "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlt-token p3-secret-fehlt-user p3-secret-leer-token p3-secret-leer-user" b $'  pruefe_geheimnisse\n' ''
+mutr m-p3-reihenfolge-6-7-vertauscht "p3-reihenfolge-6-7" b $'  pruefe_standard_zweig\n  pruefe_geheimnisse\n' $'  pruefe_geheimnisse\n  pruefe_standard_zweig\n'
+mutr m-p3-schluesselwort-geheimnis-weicht-ab "p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-schluesselwort-geheimnis" b 'eingabe() { echo "release: $1: $2" >&2; exit 2; }' 'eingabe() { local k="$1"; [ "$k" != geheimnis ] || k="${k}x"; echo "release: $k: $2" >&2; exit 2; }'
+mutr m-p3-secret-wert-in-meldung "p10-nicht-im-log-image p3-secret-fehlt-user p3-secret-leer-user" b 'eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt"' 'eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt (${RELEASE_DOCKERHUB_TOKEN-})"'
+# Punkt 5: je Argument des Baus
+mutr m-p5-plattformen-entfallen "p5-aufruf" b ' --platform linux/amd64,linux/arm64 --output "type=oci' ' --output "type=oci'
+mutr m-p5-target-entfaellt "p5-aufruf" b ' --target runtime' ''
+mutr m-p5-version-entfaellt "p5-aufruf" b ' --build-arg "VERSION=$v"' ''
+mutr m-p5-source-date-epoch-entfaellt "p5-aufruf" b ' --build-arg "SOURCE_DATE_EPOCH=$zeit"' ''
+mutr m-p5-zeit-aus-head "p5-aufruf" b 'git show -s --format=%ct "${RELEASE_SHA-}"' 'git show -s --format=%ct HEAD'
+mutr m-p5-provenance-entfaellt "p5-aufruf" b ' --provenance=false' ''
+mutr m-p5-sbom-entfaellt "p5-aufruf" b ' --sbom=false' ''
+mutr m-p5-rewrite-timestamp-entfaellt "p5-aufruf" b ',rewrite-timestamp=true' ''
+mutr m-p5-output-nicht-oci "p5-aufruf" b 'type=oci,dest=' 'type=docker,dest='
+mutr m-p5-treiber-nicht-docker-container "p5-aufruf" b '--driver docker-container' '--driver docker'
+mutr m-p5-builder-ohne-digest "p5-aufruf" b "@sha256:0000000000000000000000000000000000000000000000000000000000000000'" ":latest'"
+mutr m-p5-ein-index-entfernt "p5-ein-index" b 'L:# P5ein-index' ''
+mutr m-p5-manifeste-entfernt "p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64" b 'L:# P5manifeste' ''
+mutr m-p5-zahl-entfernt "p5-zwei-manifeste p7-eine-plattform" b 'L:# P5zahl' ''
+mutr m-p5-plattform-amd64-nicht-verlangt "p5-plattform-fehlt-amd64" b '[ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ]' '[[ "$(plattformen "$1")" == *linux/arm64* ]]'
+mutr m-p5-plattform-arm64-nicht-verlangt "p5-plattform-fehlt-arm64" b '[ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ]' '[[ "$(plattformen "$1")" == *linux/amd64* ]]'
+mutr m-p5-summe-amd64-nicht-geprueft "p11-alte-marke-b p5-summe-amd64" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = amd64 ] ||'
+mutr m-p5-summe-arm64-nicht-geprueft "p5-summe-arm64" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = arm64 ] ||'
+mutr m-p5-digest-aus-archiv "p10-stdin p11-alte-marke-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p5-digest p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-digest-docker p7-gleich p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p8-aelterer-zweig p8-erster-stabiler p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b 'idx="sha256:$(sha256sum "$scratch/index" | cut -d'"'"' '"'"' -f1)" # P5digest' 'idx="sha256:$(sha256sum "$zdir/image/layout.tar" | cut -d'"'"' '"'"' -f1)" # P5digest'
+mutr m-p5-builder-fehler-ignoriert "p5-bau-scheitert" b $'  [ "$rc" -eq 0 ] || rot "docker buildx create endet mit Exit $rc"\n' ''
+mutr m-p5-bau-fehler-ignoriert "p5-bau-scheitert" b $'  [ "$rc" -eq 0 ] || rot "docker buildx build endet mit Exit $rc"\n' ''
+# Punkt 6
+mutr m-p6-reihenfolge-vertauscht "p6-reihenfolge p6-zweite-registry-faellt" b 'for reg in "${REGISTRIES[@]}"; do # P6reg' 'for reg in docker.io ghcr.io; do # P6reg'
+mutr m-p6-all-entfernt "p6-all-und-digests" b 'fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "oci-archive:' 'fuehre skopeo copy --preserve-digests --authfile "$scratch/auth.json" "oci-archive:'
+mutr m-p6-preserve-digests-entfernt "p6-all-und-digests" b 'fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "oci-archive:' 'fuehre skopeo copy --all --authfile "$scratch/auth.json" "oci-archive:'
+mutr m-p6-anderer-digest-angenommen "p10-nicht-im-log-image p6-tag-vorhanden-anders" b 'L:# P6anders' ''
+mutr m-p6-vorhandener-tag-ueberschrieben "p10-nicht-im-log-image p6-tag-vorhanden-anders" b \
+  '[ "$have" = "$d" ] || rot "$reg trägt $v mit dem Digest $have statt $d; der Weg ist ein höherer Tag" # P6anders' '[ "$have" = "$d" ] || { rc=1; echo "manifest unknown" > "$scratch/skopeo.err"; } # P6anders' \
+  '      continue # P6gleich' '      [ "$rc" -ne 0 ] || continue # P6gleich'
+mutr m-p6-gleicher-tag-rot "p6-tag-vorhanden-gleich p11-wiederanlauf-ghcr-vorhanden" b '      continue # P6gleich' '      rot "gleich" # P6gleich'
+mutr m-p6-gleicher-tag-kopiert "p6-tag-vorhanden-gleich p11-wiederanlauf-ghcr-vorhanden" b '      continue # P6gleich' '      : # P6gleich'
+mutr m-p6-fehler-wie-fehlend "p6-inspect-anderer-fehler" b 'grep -q '"'"'manifest unknown'"'"' "$scratch/skopeo.err" || rot "skopeo inspect' 'grep -q '"'"''"'"' "$scratch/skopeo.err" || rot "skopeo inspect'
+mutr m-p6-muster-geweitet "p6-inspect-anderer-fehler" b 'grep -q '"'"'manifest unknown'"'"' "$scratch/skopeo.err" || rot "skopeo inspect' 'grep -q '"'"'unknown'"'"' "$scratch/skopeo.err" || rot "skopeo inspect'
+mutr m-p6-zusaetzlicher-tag "p11-wiederanlauf-ghcr-vorhanden p6-reihenfolge p6-tag-satz p6-tag-vorhanden-gleich" b '    echo "release: veroeffentlichen: $v nach $reg kopiert"' $'    fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:${v%.*}"\n    echo "release: veroeffentlichen: $v nach $reg kopiert"'
+mutr m-p6-zustand-fehlt "p6-zweite-registry-faellt" b '; $(zustand_tag "$v")"' '"'
+mutr m-p6-zweite-registry-ignoriert "p6-zweite-registry-faellt p10-nicht-im-log-image p11-wiederanlauf-ghcr-vorhanden" b '[ "$rc" -eq 0 ] || rot "skopeo copy nach $reg endet mit Exit $rc; $(zustand_tag "$v")"' ':'
+mutr m-p6-anmeldung-fehler-ignoriert "p6-anmeldung-scheitert p10-nicht-im-log-image" b '|| rot "Anmeldung bei $1 scheitert" # P10stdin' '|| true # P10stdin'
+# Punkt 7
+mutr m-p7-ghcr-vergleich-entfernt "p10-nicht-im-log-image p11-alte-marke-b p7-digest-ghcr p8-nach-rotem-vergleich" b 'L:# P7ghcr' ''
+mutr m-p7-docker-vergleich-entfernt "p7-digest-docker" b 'L:# P7docker' ''
+mutr m-p7-vergleich-gegen-d-entfernt "p7-digest-ghcr p7-digest-lokal" b '  [ "$dg" = "$d" ] || rot "ghcr.io weicht ab: $dg statt $d" # P7ghcr' $'  d="$dg"\n  [ "$dg" = "$d" ] || rot "ghcr.io weicht ab: $dg statt $d" # P7ghcr'
+mutr m-p7-anonym-mit-anmeldung "p7-anonym-ghcr p7-anonym-docker p7-gleich" b ' --no-creds "docker://$reg/$IMAGE_NAME:$v"' ' "docker://$reg/$IMAGE_NAME:$v"'
+mutr m-p7-plattformen-nicht-geprueft "p7-eine-plattform" b 'L:# P7plattformen' ''
+mutr m-p7-digest-aus-anzeige "p10-stdin p11-alte-marke-b p11-wiederanlauf-latest p7-digest-docker p7-gleich p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p8-aelterer-zweig p8-erster-stabiler p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b '  dg="sha256:$(sha256sum "$scratch/roh-ghcr.io" | cut -d'"'"' '"'"' -f1)"' '  dg="$(skopeo inspect --no-creds "docker://ghcr.io/$IMAGE_NAME:$v" | sed -E '"'"'s/.*"Digest":"([^"]*)".*/\1/'"'"')"' \
+  '  dd="sha256:$(sha256sum "$scratch/roh-docker.io" | cut -d'"'"' '"'"' -f1)"' '  dd="$(skopeo inspect --no-creds "docker://docker.io/$IMAGE_NAME:$v" | sed -E '"'"'s/.*"Digest":"([^"]*)".*/\1/'"'"')"'
+mutr m-p7-marke-zu-frueh "p11-alte-marke-b p7-anonym-docker p7-anonym-ghcr p7-digest-docker p7-digest-ghcr p7-digest-lokal p7-eine-plattform p8-nach-rotem-vergleich" b '  rm -f "$zdir/vergleichen.ok" # P11vergleichen-marke' '  : > "$zdir/vergleichen.ok" # P11vergleichen-marke'
+mutr m-p7-smoke-nur-eine-registry "p7-smoke-aufruf p7-smoke-docker" b $'  for reg in "${REGISTRIES[@]}"; do\n    mkdir "$scratch/smoke-$reg"' $'  for reg in ghcr.io; do\n    mkdir "$scratch/smoke-$reg"'
+mutr m-p7-smoke-fehler-ignoriert "p7-smoke-ghcr p7-smoke-docker" b $'    [ "$rc" -eq 0 ] || rot "der Smoke aus $reg endet mit Exit $rc"\n' ''
+mutr m-p7-smoke-referenz-ohne-digest "p7-smoke-aufruf" b 'container-smoke.sh "$reg/$IMAGE_NAME@$d" # P7smoke' 'container-smoke.sh "$reg/$IMAGE_NAME:$v" # P7smoke'
+mutr m-p7-smoke-version-fehlt "p7-smoke-aufruf" b 'fuehre env VERSION="$v" POSTGRES_IMAGE=' 'fuehre env POSTGRES_IMAGE='
+mutr m-p7-smoke-postgres-image-fehlt "p7-smoke-aufruf" b ' POSTGRES_IMAGE="$pg" SMOKE_LAUF=' ' SMOKE_LAUF='
+mutr m-p7-smoke-lauf-gleich "p7-smoke-aufruf" b 'SMOKE_LAUF="pgr-rel-$$-${reg%%.*}"' 'SMOKE_LAUF="pgr-rel-$$"'
+mutr m-p7-smoke-werk-fehlt "p7-smoke-aufruf" b 'SMOKE_WERK="$scratch/smoke-$reg"' 'SMOKE_WERK="$scratch/fehlt-$reg"'
+mutr m-p7-smoke-name-weicht-ab "p7-smoke-aufruf" b 'SMOKE_NAME="release: smoke"' 'SMOKE_NAME="smoke"'
+mutr m-p11-vergleichen-loescht-marke-nicht "p11-alte-marke-b" b 'L:# P11vergleichen-marke' ''
+# Punkt 8
+mutr m-p8-vorabversion-setzt-latest "p8-vorabversion" b 'L:# P8stabil' ''
+mutr m-p8-vorabversionen-zaehlen "p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht" b 'grep -E "^v$KERN\$" | sed' 'grep -E "^v" | sed'
+mutr m-p8-hoechste-entfaellt "p8-aelterer-zweig p8-semver-numerisch" b 'L:# P8hoechste' '  hoechste="$v"'
+mutr m-p8-lexikographisch "p8-semver-numerisch" b ' | sort -V | tail -n 1)" # P8hoechste' ' | sort | tail -n 1)" # P8hoechste'
+mutr m-p8-vor-dem-vergleich "p8-nach-rotem-vergleich p11-reihenfolge-gruende-b" b 'L:# P8vergleich' ''
+mutr m-p8-reihenfolge-vertauscht "p8-stabil-hoechste p8-zweite-registry-faellt" b 'for reg in "${REGISTRIES[@]}"; do # P8reg' 'for reg in docker.io ghcr.io; do # P8reg'
+mutr m-p8-all-entfernt "p8-stabil-hoechste" b 'copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://' 'copy --preserve-digests --authfile "$scratch/auth.json" "docker://'
+mutr m-p8-preserve-digests-entfernt "p8-stabil-hoechste" b 'copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://' 'copy --all --authfile "$scratch/auth.json" "docker://'
+mutr m-p8-quelle-tag "p10-stdin p11-wiederanlauf-latest p8-erster-stabiler p8-semver-numerisch p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b '"docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:latest"' '"docker://$reg/$IMAGE_NAME:$v" "docker://$reg/$IMAGE_NAME:latest"'
+mutr m-p8-zweite-registry-ignoriert "p8-zweite-registry-faellt p11-wiederanlauf-latest" b '[ "$rc" -eq 0 ] || rot "latest in $reg nicht gesetzt (Exit $rc); $(zustand_tag latest)"' ':'
+mutr m-p8-zustand-fehlt "p8-zweite-registry-faellt" b '; $(zustand_tag latest)"' '"'
+# Punkt 9 (B), 13
+mutr m-p9-vergleichen-nicht-geprueft "p11-alte-marke-b p9-nicht-vor-registries" b 'L:# P9registries' ''
+mutr m-p13-image-ohne-binaries "p11-reihenfolge-gruende-b" b 'L:# P13image' ''
+mutr m-p13-veroeffentlichen-ohne-image "p11-alte-marke-b p11-reihenfolge-gruende-b" b 'L:# P13veroeffentlichen' ''
+mutr m-p13-vergleichen-ohne-image "p11-reihenfolge-gruende-b" b 'L:# P13vergleichen' ''
+mutr m-p13-smoke-ohne-vergleichen "p11-reihenfolge-gruende-b" b 'L:# P13smoke' ''
+# Punkt 10 (B)
+mutr m-p10-token-bei-fehler-registry "p10-nicht-im-log-image" b '[ "$have" = "$d" ] || rot "$reg trägt' '[ "$have" = "$d" ] || { echo "$RELEASE_DOCKERHUB_TOKEN" >&2; false; } || rot "$reg trägt'
+mutr m-p10-env-bei-fehler-registry "p10-nicht-im-log-image" b '[ "$have" = "$d" ] || rot "$reg trägt' '[ "$have" = "$d" ] || { env >&2; false; } || rot "$reg trägt'
+mutr m-p10-set-x-image "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlt-user p3-secret-leer-user" b $'set -uo pipefail\nexport LC_ALL=C\n' $'set -uo pipefail\nset -x\nexport LC_ALL=C\n'
+mutr m-p10-token-als-argument "p10-stdin" b 'printf '"'"'%s'"'"' "$t" | skopeo login --authfile "$scratch/auth.json" --username "$u" --password-stdin "$1"' 'skopeo login --authfile "$scratch/auth.json" --username "$u" --password "$t" "$1"'
+# Punkt 11 (B): kein Schritt läuft mit dem Zustand eines früheren Laufs
+mutr m-p11-eingaben-loescht-vergleichen-nicht "p11-alte-marke-b" b 'rm -rf "$zdir/vergleichen.ok" "$zdir/image" # P11loescht-b' 'rm -rf "$zdir/image" # P11loescht-b'
+mutr m-p11-eingaben-loescht-image-nicht "p11-alte-marke-b" b 'rm -rf "$zdir/vergleichen.ok" "$zdir/image" # P11loescht-b' 'rm -rf "$zdir/vergleichen.ok" # P11loescht-b'
+mutr m-p11-image-loescht-nicht "p11-alte-marke-b" b 'rm -rf "$zdir/image"; mkdir -p "$zdir/image"' 'mkdir -p "$zdir/image"'
 # Punkt 13: Abbruch von release.sh
 mutr m-p13-ende-falle-fehlt "p13-ende" p13 $'\ntrap raeume_auf EXIT\n' $'\n'
 mutr m-p13-int-falle-fehlt "p13-sigint" p13 $'\ntrap abbruch_int INT\n' $'\n'

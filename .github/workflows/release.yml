@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: write
+      packages: write
     env:
       RELEASE_EVENT: ${{ github.event_name }}
       RELEASE_REF: ${{ github.ref }}
@@ -28,9 +29,36 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Eingaben
+        env:
+          RELEASE_DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          RELEASE_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: bash tools/harness/release.sh eingaben
       - name: Binaries
         run: bash tools/harness/release.sh binaries
+      - name: Image
+        run: bash tools/harness/release.sh image
+      - name: Veröffentlichen
+        if: ${{ github.event_name == 'push' }}
+        env:
+          RELEASE_GHCR_USER: ${{ github.actor }}
+          RELEASE_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          RELEASE_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: bash tools/harness/release.sh veroeffentlichen
+      - name: Vergleichen
+        if: ${{ github.event_name == 'push' }}
+        run: bash tools/harness/release.sh vergleichen
+      - name: Smoke
+        if: ${{ github.event_name == 'push' }}
+        run: bash tools/harness/release.sh smoke
+      - name: Latest
+        if: ${{ github.event_name == 'push' }}
+        env:
+          RELEASE_GHCR_USER: ${{ github.actor }}
+          RELEASE_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          RELEASE_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: bash tools/harness/release.sh latest
       - name: GitHub-Release
         if: ${{ github.event_name == 'push' }}
         env:
