@@ -165,7 +165,10 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
    einem Index und zwei Manifesten (Treiber `docker-container`, das Image des Builders mit Digest gepinnt) und prüft in einem zweiten Bau je Plattform (`type=local`, derselbe Builder), dass das Binary `/pgwire-recorder` die Summe aus `SHA256SUMS` hat;
    das kopierte Layout liest diese Prüfung nicht. Der Digest `D` des Index steht danach fest. Das Image ist nicht reproduzierbar zugesagt.
 4. `Scan` scannt dieses Layout vor dem Push mit Trivy (Image per Digest in `release.sh` gepinnt, `docker run` ohne
-   Ausnahmedatei) je Plattform, `linux/amd64` und `linux/arm64`, und lässt `D` unverändert. Ein Eintrag mit dem
+   Ausnahmedatei) je Plattform, `linux/amd64` und `linux/arm64`, und lässt `D` unverändert. Trivy liest ein Layout nur als
+   Verzeichnis und bei zwei Manifesten das erste; der Schritt entpackt das Layout deshalb in ein Verzeichnis je Plattform, dessen
+   `index.json` nur das Manifest dieser Plattform nennt (fehlt es oder steht es mehrfach im Index: `plattform`, vor dem Aufruf von
+   `docker`; lässt sich das Layout nicht entpacken oder lesen: `scan-gescheitert`). Ein Eintrag mit dem
    Schweregrad `CRITICAL` oder `HIGH` und einer behobenen Version beendet den Lauf mit Exit 1 und nennt alle Befunde
    (`release: scan: schwachstelle: …`); Einträge ohne behobene Version stehen nur in der Summenzeile
    (`<m> ohne Behebung`) und sperren nicht. Ein Scan, der nicht lief, endet mit Exit 2 und einem Stichwort: Trivy scheitert

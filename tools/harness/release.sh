@@ -318,6 +318,8 @@ DB_GRENZE=$((72 * 3600)) # P16db-grenze
 SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)
 # Ein Eintrag über der Schwelle hat den Schweregrad CRITICAL oder HIGH; er ist behebbar, wenn FixedVersion nicht leer ist (fehlt, null und "" sind ohne Behebung).
 SCAN_EINTRAG='.Results[] | (.Vulnerabilities // [])[] | select(.Severity == "CRITICAL" or .Severity == "HIGH")' # P16schwelle
+# Der Eintrag des Index, den Trivy für eine Plattform liest: das Manifest mit os linux und der Architektur ($a).
+SCAN_WAHL='[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $a)]' # P16wahl
 SCAN_BEHOBEN='(.FixedVersion // "") != ""' # P16fix
 # scan_fehler <Stichwort> <Text> — der Scan ist nicht gelaufen oder nicht auswertbar: Exit 2, kein Überspringen.
 scan_fehler() { echo "release: scan: $1: $2" >&2; exit 2; }
@@ -332,17 +334,36 @@ db_alter() {
   [ "$alter" -ge -300 ] || scan_fehler datenbank "UpdatedAt ${t@Q} liegt mehr als 5 Minuten in der Zukunft" # P16db-zukunft
 }
 
+# waehle_manifest <Plattform> — legt $scratch/layout-<Architektur> an (oci-layout, blobs/ als Hardlinks, index.json mit genau dem Deskriptor des Manifests der Plattform) und setzt pdir; Exit 2 `plattform`, wenn der Index das Manifest nicht oder mehr als einmal nennt. Trivy liest ein Layout nur als Verzeichnis und bei zwei Manifesten das erste.
+pdir=""; lay=""; indexblob=""
+waehle_manifest() {
+  local a="${1#linux/}" n
+  n="$(jq --arg a "$a" "$SCAN_WAHL | length" "$indexblob" 2> /dev/null)"
+  [ "$n" = 1 ] || scan_fehler plattform "der Index des Layouts nennt das Manifest für $1 ${n:-0}-mal statt einmal" # P16genau-eines
+  pdir="$scratch/layout-$a"
+  mkdir -p "$pdir"
+  cp "$lay/oci-layout" "$pdir/oci-layout" # P16oci-layout
+  cp -al "$lay/blobs" "$pdir/blobs" # P16blobs
+  jq -c --arg a "$a" "{schemaVersion: 2, manifests: $SCAN_WAHL}" "$indexblob" > "$pdir/index.json"
+}
+
 schritt_scan() {
-  local plat arch cache json erg b bef="" n m=0 z
+  local plat arch cache json erg b bef="" n m=0 z dg
   zustand
   verlange image/digest image # P16image
   [ -f "$zdir/image/layout.tar" ] || eingabe vorbedingung "das Layout des Schrittes image fehlt" # P16layout
   rm -f "$zdir/scan.ok" # P16marke-loescht
   cache="$scratch/trivy"; mkdir -p "$cache"
+  lay="$scratch/layout"; mkdir -p "$lay"
+  tar -xf "$zdir/image/layout.tar" -C "$lay" 2> /dev/null || scan_fehler scan-gescheitert "image/layout.tar ist nicht entpackbar" # P16entpacken
+  dg="$(jq -r '.manifests[0].digest // empty' "$lay/index.json" 2> /dev/null)"
+  indexblob="$lay/blobs/${dg/://}"
+  { [ -n "$dg" ] && jq -e . "$indexblob" > /dev/null 2>&1; } || scan_fehler scan-gescheitert "index.json oder der Index-Blob des Layouts ist nicht lesbar" # P16index
   for plat in "${SCAN_PLATTFORMEN[@]}"; do
     json="$scratch/scan-${plat#linux/}.json"
-    fuehre docker run --rm --user "$(id -u):$(id -g)" -v "$zdir/image/layout.tar:/layout.tar:ro" -v "$cache:/cache" "$TRIVY_IMAGE" \
-      image --input /layout.tar --format json --exit-code 0 --severity HIGH,CRITICAL --timeout 10m --platform "$plat" --cache-dir /cache > "$json" 2> "$scratch/trivy.err" # P16aufruf
+    waehle_manifest "$plat" # P16auswahl
+    fuehre docker run --rm --user "$(id -u):$(id -g)" -v "$pdir:/layout:ro" -v "$cache:/cache" "$TRIVY_IMAGE" \
+      image --input /layout --format json --exit-code 0 --severity HIGH,CRITICAL --timeout 10m --cache-dir /cache > "$json" 2> "$scratch/trivy.err" # P16aufruf
     if [ "$rc" -ne 0 ]; then
       tail -n 20 "$scratch/trivy.err" | sed 's/^/release: trivy: /' >&2
       scan_fehler scan-gescheitert "Trivy für $plat endet mit Exit $rc" # P16exit
