@@ -37,6 +37,8 @@ jobs:
         run: bash tools/harness/release.sh binaries
       - name: Image
         run: bash tools/harness/release.sh image
+      - name: Scan
+        run: bash tools/harness/release.sh scan
       - name: Veröffentlichen
         if: ${{ github.event_name == 'push' }}
         env:

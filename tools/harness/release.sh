@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# release — Schritte der Veröffentlichung bei einem Tag (harness/vertraege/SPEC-067-release.md): eingaben, binaries, image, veroeffentlichen, vergleichen, smoke, latest, github-release.
+# release — Schritte der Veröffentlichung bei einem Tag (harness/vertraege/SPEC-067-release.md): eingaben, binaries, image, scan, veroeffentlichen, vergleichen, smoke, latest, github-release.
 # Aufruf: bash tools/harness/release.sh <Schritt> im Wurzelverzeichnis des Klons; die Pipeline ruft es nie unter make (Punkt 13).
 # Umgebung: RELEASE_EVENT, RELEASE_REF, RELEASE_SHA, RELEASE_DEFAULT_BRANCH, RELEASE_REPOSITORY (gesetzt von .github/workflows/release.yml),
-# RUNNER_TEMP (Ort des Zustands zwischen den Schritten: $RUNNER_TEMP/release mit den Dateien eingaben.ok, binaries.ok, vergleichen.ok und den Verzeichnissen dist/ und image/), GH_TOKEN (github-release),
+# RUNNER_TEMP (Ort des Zustands zwischen den Schritten: $RUNNER_TEMP/release mit den Dateien eingaben.ok, binaries.ok, scan.ok, vergleichen.ok, smoke.ok und den Verzeichnissen dist/ und image/), GH_TOKEN (github-release),
 # RELEASE_DOCKERHUB_USER und RELEASE_DOCKERHUB_TOKEN (eingaben, veroeffentlichen, latest), RELEASE_GHCR_USER und RELEASE_GHCR_TOKEN (veroeffentlichen, latest).
-# Ausgang: 0 grün; 1 ein Schritt scheitert (Bau, Summe, Dateiliste, Release); 2 Eingabe oder Vorbedingung (ein Schritt, dessen Vorgänger nicht grün war). Eine abgelehnte Eingabe
-# steht als `release: <Schlüsselwort>: …` auf stderr, das Schlüsselwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig, geheimnis); ein Hinweis beginnt mit `release: hinweis: `.
+# Ausgang: 0 grün; 1 ein Schritt scheitert (Bau, Summe, Dateiliste, Release, ein Befund des Scans); 2 Eingabe oder Vorbedingung (ein Schritt, dessen Vorgänger nicht grün war) oder ein Scan, der nicht lief. Eine abgelehnte Eingabe
+# steht als `release: <Schlüsselwort>: …` auf stderr, das Schlüsselwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig, geheimnis); der Scan meldet `release: scan: <Stichwort>: …`
+# (schwachstelle, scan-gescheitert, pruefmenge, datenbank, plattform); ein Hinweis beginnt mit `release: hinweis: `.
 # Das Skript gibt keinen Wert eines Geheimnisses aus (Punkt 10): kein `set -x`, kein `env`.
-# Braucht bash, git, make, sha256sum, awk, cmp, grep, sed, tar, sort (GNU, mit -V), pgrep, mktemp, docker mit buildx (image), skopeo (veroeffentlichen, vergleichen, latest) und gh (github-release); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
-# GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p13-*, je Zusage eine Mutation dieser Datei).
+# Braucht bash, git, make, sha256sum, awk, cmp, grep, sed, tar, sort (GNU, mit -V), pgrep, mktemp, docker mit buildx (image) und Zugriff auf das Image des Scanners (scan), jq und date (GNU, scan), skopeo (veroeffentlichen, vergleichen, latest) und gh (github-release); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
+# GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p16-*, je Zusage eine Mutation dieser Datei).
 set -uo pipefail
 export LC_ALL=C
 
@@ -153,6 +154,7 @@ schritt_eingaben() {
   rm -f "$zdir/eingaben.ok" "$zdir/binaries.ok"
   rm -rf "$zdir/vergleichen.ok" "$zdir/image" # P11loescht-b
   rm -f "$zdir/smoke.ok" # P11loescht-smoke
+  rm -f "$zdir/scan.ok" # P16loescht-eingaben
   tag_ableiten
   pruefe_ereignis
   pruefe_tag_form
@@ -285,6 +287,7 @@ schritt_image() {
   v="${tag#v}"
   dist="$zdir/dist"
   rm -rf "$zdir/image"; mkdir -p "$zdir/image"
+  rm -f "$zdir/scan.ok" # P16loescht-image
   zeit="$(git log -1 --format=%ct "${RELEASE_SHA-}")" || rot "die Commit-Zeit von ${RELEASE_SHA-} ist nicht zu lesen"
   fuehre docker buildx create --name pgr-release --driver docker-container --driver-opt "image=$BUILDKIT_IMAGE" --bootstrap
   [ "$rc" -eq 0 ] || rot "docker buildx create endet mit Exit $rc"
@@ -309,11 +312,67 @@ schritt_image() {
   echo "release: image: Index-Digest $idx"
 }
 
+# --- Scan (Punkt 16) -----------------------------------------------------------------------------------------------------------------------------------
+TRIVY_IMAGE='aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa' # 0.75.0
+DB_GRENZE=$((72 * 3600)) # P16db-grenze
+SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)
+# Ein Eintrag über der Schwelle hat den Schweregrad CRITICAL oder HIGH; er ist behebbar, wenn FixedVersion nicht leer ist (fehlt, null und "" sind ohne Behebung).
+SCAN_EINTRAG='.Results[] | (.Vulnerabilities // [])[] | select(.Severity == "CRITICAL" or .Severity == "HIGH")' # P16schwelle
+SCAN_MIT_FIX='select((.FixedVersion // "") != "")' # P16fix
+SCAN_OHNE_FIX='select((.FixedVersion // "") == "")' # P16ohne-fix
+# scan_fehler <Stichwort> <Text> — der Scan ist nicht gelaufen oder nicht auswertbar: Exit 2, kein Überspringen.
+scan_fehler() { echo "release: scan: $1: $2" >&2; exit 2; }
+# db_alter <Cache-Verzeichnis> — setzt alter auf das Alter der Schwachstellen-Datenbank in Sekunden (Feld UpdatedAt von db/metadata.json); Exit 2 `datenbank`, wenn es nicht lesbar ist.
+alter=0
+db_alter() {
+  local t ts
+  t="$(jq -r '.UpdatedAt | strings' "$1/db/metadata.json" 2> /dev/null)"
+  [[ $t =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$ ]] || scan_fehler datenbank "das Alter der Datenbank ist nicht lesbar (db/metadata.json, UpdatedAt ${t@Q})" # P16db-zeitpunkt
+  ts="$(date -u -d "$t" +%s 2> /dev/null)" || scan_fehler datenbank "UpdatedAt ${t@Q} ist kein Zeitpunkt" # P16db-datum
+  alter=$(( $(date +%s) - ts ))
+}
+
+schritt_scan() {
+  local plat arch cache json b bef="" n m=0 k z
+  zustand
+  verlange image/digest image # P16image
+  [ -f "$zdir/image/layout.tar" ] || eingabe vorbedingung "das Layout des Schrittes image fehlt" # P16layout
+  rm -f "$zdir/scan.ok" # P16marke-loescht
+  cache="$scratch/trivy"; mkdir -p "$cache"
+  for plat in "${SCAN_PLATTFORMEN[@]}"; do
+    json="$scratch/scan-${plat#linux/}.json"
+    fuehre docker run --rm --user "$(id -u):$(id -g)" -v "$zdir/image/layout.tar:/layout.tar:ro" -v "$cache:/cache" "$TRIVY_IMAGE" \
+      image --input /layout.tar --format json --exit-code 0 --severity HIGH,CRITICAL --timeout 10m --platform "$plat" --cache-dir /cache > "$json" 2> "$scratch/trivy.err" # P16aufruf
+    if [ "$rc" -ne 0 ]; then
+      tail -n 20 "$scratch/trivy.err" | sed 's/^/release: trivy: /' >&2
+      scan_fehler scan-gescheitert "Trivy für $plat endet mit Exit $rc" # P16exit
+    fi
+    jq -e '(.Results // []) | (type == "array") and (length > 0)' "$json" > /dev/null 2>&1 || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist kein JSON oder trägt kein Ergebnis" # P16pruefmenge
+    db_alter "$cache"
+    [ "$alter" -le "$DB_GRENZE" ] || scan_fehler datenbank "die Datenbank ist $((alter / 3600)) Stunden alt, die Grenze sind 72" # P16db-alt
+    arch="$(jq -r '.Metadata.ImageConfig.architecture // ""' "$json" 2> /dev/null)"
+    [ "$arch" = "${plat#linux/}" ] || scan_fehler plattform "gescannt wurde die Architektur '$arch' statt ${plat#linux/}" # P16plattform
+    b="$(jq -r --arg p "$plat" "$SCAN_EINTRAG | $SCAN_MIT_FIX"' | "\($p) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) \(.Severity)"' "$json" 2> /dev/null)" || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist nicht auswertbar" # P16auswertung
+    k="$(jq -r "[$SCAN_EINTRAG | $SCAN_OHNE_FIX] | length" "$json" 2> /dev/null)" || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist nicht auswertbar" # P16zaehlung
+    m=$((m + k))
+    [ -z "$b" ] || bef+="$b"$'\n'
+  done
+  if [ -n "$bef" ]; then
+    n="$(grep -c . <<< "$bef")"
+    while IFS= read -r z; do [ -z "$z" ] || echo "release: scan: schwachstelle: $z" >&2; done <<< "$bef" # P16alle
+    echo "release: scan: $n Befund(e) über der Schwelle, $m ohne Behebung" >&2 # P16summe
+    exit 1
+  fi
+  : > "$zdir/scan.ok" # P16marke
+  echo "release: scan: 0 Befund(e) über der Schwelle, $m ohne Behebung"
+}
+
 schritt_veroeffentlichen() {
   local reg v d have
   aussenwirkung_erlaubt # P2veroeffentlichen
   zustand
   verlange image/digest image # P13veroeffentlichen
+  verlange scan.ok scan # P16veroeffentlichen
   tag_ableiten
   v="${tag#v}"
   d="$(cat "$zdir/image/digest")"
@@ -404,6 +463,7 @@ case "$schritt" in
   eingaben) schritt_eingaben ;;
   binaries) schritt_binaries ;;
   image) schritt_image ;;
+  scan) schritt_scan ;;
   veroeffentlichen) schritt_veroeffentlichen ;;
   vergleichen) schritt_vergleichen ;;
   smoke) schritt_smoke ;;
