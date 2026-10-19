@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.9
+Version: 0.10
 Stand: 2026-10-19
 
 ## 1. Zweck und Zielgruppe
@@ -119,26 +119,28 @@ Dokument.
 2. Die Änderungshistorie des Benutzerhandbuchs trägt die Zeile der neuen Version
    (§9).
 3. Die Datei `VERSION` (§3) trägt die neue Version und ist committet; dieser Commit ist der, den der Tag trägt.
-4. Das Freshness-Audit liegt vor (unten).
-5. Der Trockenlauf auf diesem Stand ist grün (§6), ohne Hinweis zur Zeile der Änderungshistorie.
+4. Der Trockenlauf auf diesem Stand ist grün (§6), ohne Hinweis zur Zeile der Änderungshistorie.
 
 Die Prüfung des Tags gegen die Versionsdatei läuft in der Pipeline (§6).
 
-**Freshness-Audit** (Handlung des Maintainers von Hand am Netz; es gibt dafür kein Gate und keinen
-Fall der Gegenprobe, `harness/conventions.md` §Baseline): Vor dem Tag fragt der Maintainer die Release-Listen
-der beiden Quellen ab, deren Stand das Repository pinnt, die der Baseline (`pt9912/ai-harness-course`, gepinnter Tag in
-`harness/conventions.md` §Baseline) und die von d-check (`pt9912/d-check`, gepinnter Tag in `d-check.mk`,
-`DCHECK_IMAGE`). **Frisch** heißt: Der gepinnte Stand ist der neueste stabile Release der Liste. Der Beleg ist eine
-Tabelle im Eintrag der Checkliste (§10, Punkt 4), je Quelle eine Zeile:
+**Freshness-Audit** (optional, empfohlen; kein Punkt der Freigabe-Checkliste und keine Vorbedingung des Tags): Der Maintainer
+darf von Hand am Netz die Release-Listen der beiden Quellen abfragen, deren Stand das Repository pinnt, die der Baseline
+(`pt9912/ai-harness-course`, gepinnter Tag in `harness/conventions.md` §Baseline) und die von d-check (`pt9912/d-check`,
+gepinnter Tag in `d-check.mk`, `DCHECK_IMAGE`). Es gibt dafür kein Gate und keinen Fall der Gegenprobe. Der Tag hängt weder an
+der Durchführung noch an einem Zeitpunkt noch an einem Ergebnis: **ein nicht durchgeführtes Audit sperrt den Tag nicht, und ein
+Ergebnis sperrt ihn nie.** **Frisch** heißt: Der gepinnte Stand ist der neueste stabile Release der Liste.
+
+Nur wenn das Audit durchgeführt wird, steht es als eigener Absatz ohne Punktnummer im Eintrag der Checkliste (§10), mit einer
+Tabelle, je Quelle eine Zeile:
 
 | Quelle | gepinnter Stand | neuester stabiler Stand | Datum der Abfrage | Ergebnis |
 |---|---|---|---|---|
-| Baseline | Tag aus `harness/conventions.md` | Tag der Liste | höchstens sieben Tage vor dem Tag | `aktuell` oder `neuerer Stand <Tag>` mit einem Satz zur Auswirkung |
-| d-check | Tag aus `d-check.mk` | Tag der Liste | höchstens sieben Tage vor dem Tag | wie oben |
+| Baseline | Tag aus `harness/conventions.md` | Tag der Liste | Datum | `aktuell` oder `neuerer Stand <Tag>` mit einem Satz zur Auswirkung |
+| d-check | Tag aus `d-check.mk` | Tag der Liste | Datum | wie oben |
 
-Ein neuerer Stand **sperrt den Tag nicht von selbst**: Er wird in der Tabelle dokumentiert, und sein Nachziehen ist ein
-eigener Slice. Nennen die Release-Notizen des neueren Standes eine Sicherheitskorrektur, legt der Maintainer die Frage
-vor dem Tag dem Nutzer vor; der Tag folgt seiner Entscheidung. Eine Abfrage, die älter als sieben Tage ist, wird wiederholt.
+Eine Frist für das Datum der Abfrage gibt es nicht. Ein neuerer Stand wird in der Tabelle dokumentiert, und sein Nachziehen ist
+ein eigener Slice. Nennen die Release-Notizen des neueren Standes eine Sicherheitskorrektur, legt der Maintainer die Frage dem
+Nutzer vor; der Nutzer entscheidet, ob vor oder nach dem Tag nachgezogen wird, und ohne seine Antwort bleibt der Tag, wie er ist.
 
 ## 6. Was der Tag auslöst
 
@@ -236,7 +238,8 @@ mit Exit 2; im Trockenlauf ist eine fehlende Zeile ein Hinweis, eine leere Zelle
 Ein Release ist freigegeben, wenn jeder Punkt einen Beleg trägt. Der **Eintrag** eines Releases ist eine Kopie der Tabelle mit
 ausgefüllter Spalte *Beleg*: für den ersten Release steht er in der Closure von `welle-erster-release`
 (`welle-erster-release-results.md`), für spätere Releases ohne Welle in `docs/maintainer/freigaben/<Version>.md`. Ein Punkt ohne
-Beleg ist nicht erfüllt; was ein Lauf nicht zeigt, steht als Grenze im Eintrag, nie als Behauptung.
+Beleg ist nicht erfüllt; was ein Lauf nicht zeigt, steht als Grenze im Eintrag, nie als Behauptung. Das Freshness-Audit (§5) ist
+kein Punkt der Tabelle; ein durchgeführtes steht als eigener Absatz im Eintrag, ohne Punktnummer.
 
 Der **getaggte Commit** ist der Commit, der `VERSION` und die Zeile der Änderungshistorie trägt; die Punkte 1 bis 3 gelten für genau
 diesen Hash.
@@ -246,18 +249,17 @@ diesen Hash.
 | 1. `make gates` grün auf dem getaggten Commit | Hash, Datum | |
 | 2. Gegenproben-Container grün für diesen Hash | die Dateien `gegenproben-*-<Hash>` der Ablage des Gegenproben-Containers per `ssh`, jede mit `ergebnis=gruen`, `beginn` und `ende`, keine Marke `….laeuft`; fehlt das Ergebnis oder ist es rot, fährt die Freigabe `make gegenproben` selbst | |
 | 3. `make gegenproben-host` am Host grün auf demselben Hash | Datum, Hash, die Zusammenfassung der Ausgabe | |
-| 4. Freshness-Audit (§5) | die Tabelle des Audits, Abfrage höchstens sieben Tage vor dem Tag | |
-| 5. `VERSION` und die Zeile der Änderungshistorie im getaggten Commit | Ausgabe von `grep` | |
-| 6. Trockenlauf auf dem Stand | Lauf-Kennung, Dauer, ohne Hinweis zur Zeile der Änderungshistorie | |
-| 7. Scan grün | die Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` aus dem Log des Trockenlaufs und des Laufs des Tags | |
-| 8. Ausdrückliches Ja des Nutzers zum Tag | Wortlaut, Datum | |
-| 9. Lauf des Tags | Lauf-Kennung, Index-Digest je Registry (gleich), Smoke aus beiden Registries, `latest` | |
-| 10. Anhänge am GitHub-Release | die sieben Dateien (sechs Binaries und `SHA256SUMS`) | |
-| 11. Beobachtungen des ersten Laufs (unten) | je Beobachtung Lauf-Kennung und Zeile im Log, oder die Grenze | |
-| 12. Bezug nach dem Tag (unten) | Befehl, Lauf und Ausgabe je Befehl im Handbuch | |
+| 4. `VERSION` und die Zeile der Änderungshistorie im getaggten Commit | Ausgabe von `grep` | |
+| 5. Trockenlauf auf dem Stand | Lauf-Kennung, Dauer, ohne Hinweis zur Zeile der Änderungshistorie | |
+| 6. Scan grün | die Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` aus dem Log des Trockenlaufs und des Laufs des Tags | |
+| 7. Ausdrückliches Ja des Nutzers zum Tag | Wortlaut, Datum | |
+| 8. Lauf des Tags | Lauf-Kennung, Index-Digest je Registry (gleich), Smoke aus beiden Registries, `latest` | |
+| 9. Anhänge am GitHub-Release | die sieben Dateien (sechs Binaries und `SHA256SUMS`) | |
+| 10. Beobachtungen des ersten Laufs (unten) | je Beobachtung Lauf-Kennung und Zeile im Log, oder die Grenze | |
+| 11. Bezug nach dem Tag (unten) | Befehl, Lauf und Ausgabe je Befehl im Handbuch | |
 
 **Anti-Punkte** (was ein Release nicht tut): Ein Tag wird nicht verändert oder gelöscht. Kein Image geht ohne grünen Scan in eine
-Registry. Eine Vorabversion setzt kein `latest`. Es gibt keinen Tag ohne ausdrückliches Ja des Nutzers (Punkt 8). Keine Datei kommt von Hand
+Registry. Eine Vorabversion setzt kein `latest`. Es gibt keinen Tag ohne ausdrückliches Ja des Nutzers (Punkt 7). Kein Tag hängt an einem Freshness-Audit, weder an seiner Durchführung noch an seinem Ergebnis. Keine Datei kommt von Hand
 an den GitHub-Release. Kein Wert eines Geheimnisses steht in einem Log, einem Eintrag oder einer Nachricht.
 
 **Incident-Klausel:** Ein veröffentlichter Release mit einem Fehler (abweichender Digest, bekannte behebbare Schwachstelle, falsches
@@ -265,11 +267,11 @@ Binary) wird durch einen neuen, höheren Tag ersetzt. Auslöser ist, wer den Feh
 wird er im Eintrag des fehlerhaften Release (Datum, Befund, Ersatz-Tag) und als Zeile in der Änderungshistorie des Handbuchs; der
 fehlerhafte Tag bleibt stehen.
 
-**Den Tag setzt, wer taggen darf, und nur nach dem Ja des Nutzers (Punkt 8).** Ein Implementer startet ihn nicht. Das Ja zum ersten
+**Den Tag setzt, wer taggen darf, und nur nach dem Ja des Nutzers (Punkt 7).** Ein Implementer startet ihn nicht. Das Ja zum ersten
 Tag schließt ein, dass `v0.1.1` ihm folgen kann, wenn der Lauf einen Fehler im Skript oder im Vertrag zeigt (unten); jeder weitere Tag braucht ein
 neues Ja.
 
-**Beobachtungen des ersten Laufs (Punkt 11).** Was der Trockenlauf nicht belegt (§6), zeigt der Lauf des Tags im Log; der Eintrag nennt
+**Beobachtungen des ersten Laufs (Punkt 10).** Was der Trockenlauf nicht belegt (§6), zeigt der Lauf des Tags im Log; der Eintrag nennt
 je Beobachtung die Lauf-Kennung und die Zeile:
 
 - die Wortlaute von `skopeo inspect` für einen nicht vorhandenen Tag in `ghcr.io` und in `docker.io` (Zeilen `release: skopeo: `
@@ -288,7 +290,7 @@ oder im Vertrag** (ein Wortlaut weicht ab, eine Zusage war falsch), wird die Kor
 Tag** gesetzt; der Tag des fehlerhaften Laufs bleibt, und jede Registry, die ihn trägt, behält ihn. Ein Digest, der abweicht, und ein
 abweichender Anhang verlangen immer einen neuen Tag.
 
-**Bezug nach dem Tag (Punkt 12).** Die Zeile der Version in der Änderungshistorie steht vor dem Tag (§9) und bleibt. Nach dem Lauf,
+**Bezug nach dem Tag (Punkt 11).** Die Zeile der Version in der Änderungshistorie steht vor dem Tag (§9) und bleibt. Nach dem Lauf,
 in einem eigenen Commit, der nur `docs/user/`, `README.md` und Planung ändert, nennt der Kopf des Benutzerhandbuchs als
 *Software-Version* die Ausgabe von `pgwire-recorder version` des **veröffentlichten** Binaries (nicht von `make build`), und §2
 *Installation* bekommt die Abschnitte zum Bezug der Binaries (Plattformen, `SHA256SUMS`, Prüfung mit `sha256sum -c`) und der Images
@@ -331,3 +333,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.7 | 2026-10-19 | Pipeline für Tag und Binaries (`release.yml`, `release.sh`), Datei `VERSION`, Trockenlauf, Fehlertabelle und Wiederanlauf für `eingaben`, `binaries` und `github-release` |
 | 0.8 | 2026-10-19 | Image: Bau, Veröffentlichung in beiden Registries, Vergleich der Digests, Smoke, `latest`; Geheimnisse der Registries; Fehlertabelle um die Schritte des Images ergänzt; die Formel gehört nicht zur Pipeline |
 | 0.9 | 2026-10-19 | Scan des Images vor dem Push (Schritt `Scan`, Zeile der Fehlertabelle); Freshness-Audit mit der Form seines Belegs (§5); Freigabe-Checkliste mit Anti-Punkten und Incident-Klausel (§10) |
+| 0.10 | 2026-10-19 | Freshness-Audit optional und kein Punkt der Freigabe-Checkliste mehr (§5); Checkliste mit elf Punkten neu nummeriert, Anti-Punkt zum Audit (§10) |

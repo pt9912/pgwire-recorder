@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-067` (Punkte 1 und 5: der Scan-Schritt zwischen `Image` und `Veröffentlichen` ändert den Text von `release.yml`; gelesen: Punkte 6, 8, 11, 12 zum ersten Tag; Sendungen aus `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image`, §1)
+**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-067` (Punkte 1 und 5: der Scan-Schritt zwischen `Image` und `Veröffentlichen` ändert den Text von `release.yml`; gelesen: Punkte 6, 8, 11, 12 zum ersten Tag, Punkt 17 für die Checkliste mit dem optionalen Freshness-Audit; Sendungen aus `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image`, §1)
 
 **Verantwortlich:** pt9912 (Zweig impl-fr)
 
@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der erste echte Tag ist nach einer Freigabe-Checkliste mit Beleg je Punkt freigegeben, sein Image ist vor dem Push gescannt, vor dem Tag liegt ein Freshness-Audit von Baseline und d-check vor, und der Release liegt in beiden Registries.
+**Ziel:** Der erste echte Tag ist nach einer Freigabe-Checkliste mit Beleg je Punkt freigegeben, sein Image ist vor dem Push gescannt, ein Freshness-Audit von Baseline und d-check vor dem Tag ist optional und empfohlen, kein Punkt der Checkliste und keine Bedingung des Tags (Entscheidung des Nutzers vom 2026-10-19, `SPEC-067` Punkt 17), und der Release liegt in beiden Registries.
 
 **Handbuch und `README.md`:** Ihr Teil (DoD-Punkt 3: Kopf, §11, §2 *Installation*, Bezug) entsteht in einem eigenen Commit nach dem Lauf des Tags (`SPEC-067` Punkt 18), nicht in diesem Zweig; der Entwurf steht in §7.
 
@@ -41,7 +41,7 @@ Nutzers vom 2026-10-09 (Geber `welle-erster-release`), die jener aus der Welle �
 3. Eine Freigabe-Checkliste in `docs/maintainer/releasing.md` mit einem Beleg je Punkt,
    Anti-Punkten (was ein Release nicht tun darf) und einer Incident-Klausel; der ausgefüllte
    Eintrag des ersten Releases steht in der Closure von welle-erster-release (dort §3).
-4. Vor dem Tag ein Freshness-Audit der vendored Baseline und des gepinnten d-check.
+4. *(entfallen als Liefer-Punkt, Entscheidung des Nutzers vom 2026-10-19, `SPEC-067` Punkt 17: Das Freshness-Audit der vendored Baseline und des gepinnten d-check vor dem Tag ist optional; `releasing.md` §5 beschreibt es, der Text gehört zu Punkt 3.)*
 5. Ein Scan des Images vor dem Push in eine Registry.
 
 Aus `slice-doku-ist-stand` (dort §6, *Software-Version*): Mit dem ersten echten Tag trägt das
@@ -71,8 +71,9 @@ Dazu der erste echte Tag: `slice-erster-release-veroeffentlichung` belegt die Pi
   setzt den ersten stabilen Tag dieses Slice voraus.
 - Ein Sensor für das Freshness-Audit — `harness/conventions.md` führt den Audit als Handlung,
   nicht als Sensor, weil er Netz über `bash`, `git` und `docker` hinaus braucht; Bestand bleibt
-  bewusst stehen. Der Audit vor dem ersten Tag läuft von Hand (Entscheidung des Nutzers vom
-  2026-10-18: der erste Release hat Vorrang vor den Nachtläufen). Einen Sensor liefern danach
+  bewusst stehen. Der Audit ist optional und läuft, wenn der Maintainer ihn durchführt, von Hand
+  (Entscheidung des Nutzers vom 2026-10-19, `SPEC-067` Punkt 17; zuvor vom 2026-10-18: der erste
+  Release hat Vorrang vor den Nachtläufen). Einen Sensor liefern danach
   `slice-harness-ci-freshness` und `slice-harness-ci-freshness-images` in
   [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (Start: welle-erster-release in `done/`); dieser Slice
   baut keinen und liest keinen Nachtlauf als Beleg.
@@ -81,8 +82,9 @@ Dazu der erste echte Tag: `slice-erster-release-veroeffentlichung` belegt die Pi
 - Konten, Namensräume, Zugangsdaten und Sichtbarkeit der Pakete in den Registries — Handlungen
   des Betreibers (`docs/maintainer/releasing.md` §4 Punkt 4); die Pipeline liest sie so, wie
   `slice-erster-release-veroeffentlichung` es festlegt.
-- Ein Nachziehen von Baseline oder d-check, das das Audit findet — ein eigener Slice; dieser
-  Slice dokumentiert den Befund (und entscheidet nach §6, ob er den Tag sperrt).
+- Ein Nachziehen von Baseline oder d-check, das ein durchgeführtes Audit findet — ein eigener Slice;
+  der Tag hängt weder an der Durchführung noch an einem Ergebnis, und bei einer Sicherheitskorrektur
+  in den Notizen entscheidet der Nutzer (`SPEC-067` Punkt 17).
 
 ## 2. Definition of Done
 
@@ -92,8 +94,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Die Pipeline scannt das Image jeder Plattform der Manifestliste vor dem Push, als Schritt zwischen `Image` und `Veröffentlichen`, der das Layout liest (je Plattform als Verzeichnis mit dem Manifest dieser Plattform, `SPEC-067` Punkt 16) und `D` unverändert lässt (Einhängepunkt aus `slice-erster-release-veroeffentlichung-image`, `SPEC-067` Punkt 5; der Text von `release.yml` und `SPEC-067` Punkte 1 und 5 ändern sich mit); ein Befund über der Schwelle beendet den Lauf, bevor eine Registry etwas erhält (Punkt 5, Test mit einem Image über der Schwelle; Beleg in §7: Zusage · Mutation · roter Test, `AGENTS.md` §3.10). Der Scan ändert kein Verhalten des Binaries; Handbuch und `README.md` tragen dazu nichts (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
-- [ ] `docs/maintainer/releasing.md` §5 beschreibt das Freshness-Audit der vendored Baseline und des gepinnten d-check vor dem Tag mit der Form seines Belegs; das Audit vor dem ersten echten Tag ist mit diesem Beleg ausgeführt (Punkt 4).
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): `docs/maintainer/releasing.md` §10 trägt die Freigabe-Checkliste mit Beleg je Punkt, Anti-Punkten und Incident-Klausel (Punkt 3). Der erste echte, stabile Tag ist nach ihr freigegeben: Binaries mit `SHA256SUMS` am Release, Image in beiden Registries mit gleichem Index-Digest und `:latest`, Smoke aus Abnahmeszenario 9 bestanden. Der ausgefüllte Eintrag steht in der Closure von welle-erster-release. Die Checkliste und die Closure nennen aus dem Lauf des ersten Tags die Belege (b) und (c) und, falls der Lauf rot war, (a) (Sendung aus `slice-erster-release-veroeffentlichung`, §1; Beleg: Lauf-Kennung und Zeile im Log des Schrittes `GitHub-Release`, bei rotem Lauf der Wiederanstoß nach `releasing.md` §11). Aus `slice-erster-release-veroeffentlichung-image` (Sendung, §1) nennen Checkliste und Closure aus dem Lauf des ersten Tags: die Wortlaute von `skopeo` für einen nicht vorhandenen Tag und die Verfügbarkeit von `skopeo` und `gh` (Beleg: Zeilen `release: skopeo: ` im Log von `Veröffentlichen` und `Vergleichen`), das Schreibrecht der Token, die Sichtbarkeit des Pakets und den Smoke aus beiden Registries (Beleg: Lauf-Kennung, Digest je Registry), die Wirkung von `SOURCE_DATE_EPOCH` (Beleg: Zeitstempel des veröffentlichten Images, als Beobachtung); was der Lauf nicht zeigt, nennt die Checkliste als Grenze ohne Behauptung (`AGENTS.md` §3.11). Handbuch §2 *Installation* und `README.md` tragen die Abschnitte zum Bezug der Binaries vom GitHub-Release und der Images aus den Registries, belegt durch den ersten Tag (Sendung aus `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image`, §1; Beleg: Bezug des veröffentlichten Binaries beziehungsweise Images und `grep` im Handbuch). Aus `slice-doku-ist-stand`: Das Benutzerhandbuch nennt im Kopf (*Software-Version*, *Gültigkeitsbereich*) die Version des veröffentlichten Binaries und trägt in §11 die Zeile des Releases an Stelle von „Es gibt keine veröffentlichte Version.“ (Beleg: `grep` im Handbuch und `version` des veröffentlichten Binaries).
+- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): `docs/maintainer/releasing.md` §10 trägt die Freigabe-Checkliste mit Beleg je Punkt, Anti-Punkten und Incident-Klausel (Punkt 3; elf Punkte nach `SPEC-067` Punkt 17). `docs/maintainer/releasing.md` §5 beschreibt das Freshness-Audit der vendored Baseline und des gepinnten d-check als optional und empfohlen, ohne Punkt der Checkliste; ein durchgeführtes steht als eigener Absatz im Eintrag mit der Tabelle aus §5, ein nicht durchgeführtes ist kein Mangel und sperrt den Tag nicht. Der erste echte, stabile Tag ist nach ihr freigegeben: Binaries mit `SHA256SUMS` am Release, Image in beiden Registries mit gleichem Index-Digest und `:latest`, Smoke aus Abnahmeszenario 9 bestanden. Der ausgefüllte Eintrag steht in der Closure von welle-erster-release. Die Checkliste und die Closure nennen aus dem Lauf des ersten Tags die Belege (b) und (c) und, falls der Lauf rot war, (a) (Sendung aus `slice-erster-release-veroeffentlichung`, §1; Beleg: Lauf-Kennung und Zeile im Log des Schrittes `GitHub-Release`, bei rotem Lauf der Wiederanstoß nach `releasing.md` §11). Aus `slice-erster-release-veroeffentlichung-image` (Sendung, §1) nennen Checkliste und Closure aus dem Lauf des ersten Tags: die Wortlaute von `skopeo` für einen nicht vorhandenen Tag und die Verfügbarkeit von `skopeo` und `gh` (Beleg: Zeilen `release: skopeo: ` im Log von `Veröffentlichen` und `Vergleichen`), das Schreibrecht der Token, die Sichtbarkeit des Pakets und den Smoke aus beiden Registries (Beleg: Lauf-Kennung, Digest je Registry), die Wirkung von `SOURCE_DATE_EPOCH` (Beleg: Zeitstempel des veröffentlichten Images, als Beobachtung); was der Lauf nicht zeigt, nennt die Checkliste als Grenze ohne Behauptung (`AGENTS.md` §3.11). Handbuch §2 *Installation* und `README.md` tragen die Abschnitte zum Bezug der Binaries vom GitHub-Release und der Images aus den Registries, belegt durch den ersten Tag (Sendung aus `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image`, §1; Beleg: Bezug des veröffentlichten Binaries beziehungsweise Images und `grep` im Handbuch). Aus `slice-doku-ist-stand`: Das Benutzerhandbuch nennt im Kopf (*Software-Version*, *Gültigkeitsbereich*) die Version des veröffentlichten Binaries und trägt in §11 die Zeile des Releases an Stelle von „Es gibt keine veröffentlichte Version.“ (Beleg: `grep` im Handbuch und `version` des veröffentlichten Binaries).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -113,7 +114,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | Release-Automatisierung (`release.yml`, `release.sh`, Gegenprobe `release-gegenprobe`) | update | Scan des Images vor dem Push, mit Schwelle, zwischen `Image` und `Veröffentlichen` (Sendung, §1), das Layout je Plattform als Verzeichnis (Trockenlauf `39263455592`); das Muster der Wortlaute von `skopeo` und der Attrappe, falls der erste Tag abweichende zeigt (Sendung aus `slice-erster-release-veroeffentlichung-image`, §1) |
-| `docs/maintainer/releasing.md` §1, §2, §5, §6, §8, §10, §11 | update | Freshness-Audit vor dem Tag, Freigabe-Checkliste, Schritt `Scan` in der Beschreibung des Tags, Zeile `scan` der Fehlertabelle |
+| `docs/maintainer/releasing.md` §1, §2, §5, §6, §8, §10, §11 | update | Freshness-Audit als optionaler Absatz (ohne Punkt der Checkliste), Freigabe-Checkliste mit elf Punkten, Schritt `Scan` in der Beschreibung des Tags, Zeile `scan` der Fehlertabelle |
 | `harness/README.md` (Zeile `make release-gegenprobe`) | update | die Gegenprobe prüft zusätzlich den Scan (`p16-*`, Werkzeuge `jq` und GNU `date`) |
 | Test der Pipeline | neu | Image über der Schwelle wird nicht veröffentlicht |
 | `docs/plan/planning/welle-erster-release-results.md` | neu (bei Welle-Closure) | ausgefüllter Eintrag der Checkliste des ersten Releases |
@@ -168,9 +169,10 @@ dasteht.
   einen höheren Tag zu ersetzen — **Ausgang:** offen bis Closure.
 - Der Scan hängt an einer Schwachstellen-Datenbank aus dem Netz; derselbe Quellstand kann an
   zwei Tagen verschieden bewertet werden — **Ausgang:** offen bis Closure.
-- Das Freshness-Audit kann einen neueren Stand von Baseline oder d-check finden; ob das den Tag
-  sperrt, ist eine Randform (unten), und ein Nachziehen wäre ein eigener Slice — **Ausgang:**
-  offen bis Closure.
+- Das Freshness-Audit kann einen neueren Stand von Baseline oder d-check finden; ein Nachziehen wäre
+  ein eigener Slice — **Ausgang:** entfallen, weil das Audit seit der Entscheidung des Nutzers vom
+  2026-10-19 optional ist und weder seine Durchführung noch ein Ergebnis den Tag sperrt
+  (`SPEC-067` Punkt 17); ein Ergebnis, das ein durchgeführtes Audit findet, dokumentiert der Eintrag.
 - Der erste Tag setzt Außenwirkung in zwei Registries und am GitHub-Release; bricht die Pipeline
   dazwischen ab, liegt ein halber erster Release vor, und der Tag ist nicht zu verändern
   (`docs/maintainer/releasing.md` §11) — **Ausgang:** offen bis Closure; die Randform
@@ -186,8 +188,7 @@ ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnit
 - *Freigabe-Checkliste (Punkt 3)* — Form des Belegs je Punkt (Lauf-Kennung, Digest, Link);
   welche Anti-Punkte; Inhalt der Incident-Klausel (Auslöser, wer, wo festgehalten); wo der
   ausgefüllte Eintrag eines späteren Releases ohne Welle steht.
-- *Freshness-Audit (Punkt 4)* — was als frisch gilt; ob ein neuerer Stand der Baseline oder
-  von d-check den Tag sperrt oder nur dokumentiert wird; Beleg des Audits. Der Audit braucht
+- *Freshness-Audit* — entschieden in `SPEC-067` Punkt 17 (Architect, 2026-10-19, Entscheidung des Nutzers): optional, kein Punkt der Checkliste, sperrt den Tag weder durch Nichtdurchführung noch durch ein Ergebnis; Tabelle als Beleg nur bei Durchführung. Der Audit braucht
   Netz; `harness/conventions.md` führt ihn als Handlung, nicht als Sensor.
 - *Abbruch beim ersten Tag und Wiederholung* — entschieden in `SPEC-067` Punkt 11 (Architect, 2026-10-19): ein roter Lauf wird mit demselben Tag wieder angestoßen (Re-run oder erneuter Lauf), solange kein Digest und kein Anhang abweicht; sonst verlangt der Fehler einen höheren Tag; ein Git-Tag wird nie verändert, ein Tag in einer Registry nie überschrieben. Offen für die Freigabe: wer den Lauf des ersten Tags anstößt und wo der Abbruch in der Checkliste festgehalten wird.
 - *Reihenfolge von Checkliste, Versionszeile und Tag* — die Zeile der Änderungshistorie und die
@@ -209,8 +210,8 @@ ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnit
 
 - *Image-Scan:* Trivy als Image mit Digest-Pin (Vorbild d-check `0.74.0`), `--exit-code 0` und Auswertung des JSON; Schwelle `CRITICAL` und `HIGH` mit verfügbarer Behebung, was ohne Behebung gemeldet wird, zählt und sperrt nicht; **keine Ausnahmeliste**; je Plattform, das Layout je Plattform als Verzeichnis mit dem Manifest dieser Plattform (Trivy liest ein Layout nur als Verzeichnis und bei zwei Manifesten das erste, Trockenlauf `39263455592`, `SPEC-067` Punkt 16), die gescannte Architektur wird verglichen; Datenbank bei jedem Lauf frisch, älter als 72 Stunden ist Exit 2; Zeitgrenze `--timeout 10m`; Exit 0, 1, 2 mit den Stichwörtern `schwachstelle`, `scan-gescheitert`, `pruefmenge`, `datenbank`, `plattform`, `vorbedingung`; der Scan läuft auch im Trockenlauf; Marke `scan.ok`, `veröffentlichen` verlangt sie — Punkt 16.
 - *Variante des Manifests (Randform, entschieden vom Architect in `SPEC-067` Punkt 16):* die Auswahl des Manifests je Plattform vergleicht `os` und `architecture`, ein `variant` wird ignoriert, zwei Manifeste derselben Plattform mit verschiedener Variante sind doppelt (`plattform`).
-- *Freshness-Audit:* Handlung von Hand, Tabelle als Beleg (gepinnter Stand, neuester stabiler Release der Liste, Datum der Abfrage höchstens sieben Tage vor dem Tag, Ergebnis); ein neuerer Stand sperrt den Tag nicht von selbst, er wird dokumentiert; bei einer Sicherheitskorrektur in den Notizen entscheidet der Nutzer vor dem Tag — Punkt 17.
-- *Freigabe-Checkliste:* Tabelle `Punkt | Form des Belegs | Beleg` in `releasing.md` §10, zwölf Punkte, Anti-Punkte, Incident-Klausel (neuer, höherer Tag, der fehlerhafte bleibt); Ort des Eintrags: für den ersten Release die Closure von `welle-erster-release`, später `docs/maintainer/freigaben/<Version>.md`; Belege der Gegenproben: die Dateien `gegenproben-*-<Hash>` der Ablage von `pgr-gp` und die Zusammenfassung von `make gegenproben-host`, beide für den Hash, der `VERSION` trägt und getaggt wird — Punkt 17. Kein Fall (Handlung).
+- *Freshness-Audit (Fassung vom 2026-10-19, Entscheidung des Nutzers):* optional und empfohlen, Handlung von Hand, kein Punkt der Checkliste; nur bei Durchführung eine Tabelle als Beleg (gepinnter Stand, neuester stabiler Release der Liste, Datum der Abfrage ohne Frist, Ergebnis); der Tag hängt weder an der Durchführung noch an einem Ergebnis; bei einer Sicherheitskorrektur in den Notizen legt der Maintainer die Frage dem Nutzer vor — Punkt 17.
+- *Freigabe-Checkliste:* Tabelle `Punkt | Form des Belegs | Beleg` in `releasing.md` §10, elf Punkte (Fassung vom 2026-10-19: ohne Audit), Anti-Punkte, Incident-Klausel (neuer, höherer Tag, der fehlerhafte bleibt); Ort des Eintrags: für den ersten Release die Closure von `welle-erster-release`, später `docs/maintainer/freigaben/<Version>.md`; Belege der Gegenproben: die Dateien `gegenproben-*-<Hash>` der Ablage von `pgr-gp` und die Zusammenfassung von `make gegenproben-host`, beide für den Hash, der `VERSION` trägt und getaggt wird — Punkt 17. Kein Fall (Handlung).
 - *Sendungen von A und B:* der Lauf des ersten Tags belegt sie im Log (Wortlaute `skopeo` und `gh`, Verfügbarkeit, Schreibrecht, Sichtbarkeit, Smoke aus den Registries, Zeitstempel als Beobachtung); „rot“ danach: Fehler der Umgebung ⇒ Wiederanstoß desselben Tags, Fehler im Skript oder Vertrag ⇒ neuer, höherer Tag (der Lauf führt die Fassung des Tag-Commits aus); der Nutzer wird gefragt, ob `v0.1.1` abgesprochen ist — Punkt 18.
 - *Handbuch und README:* Zeile in §11 vor dem Tag (Quelle der Notizen); Kopf *Software-Version* und §2 Installation in einem Commit nach dem Lauf, nur mit Befehlen, die nach dem Tag einmal gelaufen sind (Beleg in §7); `latest` wird genannt, weil der Lauf ihn gesetzt hat — Punkt 18.
 - *Form des Tags:* `v0.1.0` (Entscheidung des Nutzers vom 2026-10-18); *Reihenfolge Checkliste, Versionszeile und Tag:* `VERSION` und Zeile im Commit, der getaggt wird; die Gegenproben laufen auf genau diesem Hash — Punkt 17.
@@ -401,7 +402,7 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft F): Zeilen 40 und 41 des Textes
 | Form der Meldung bei Exit 2 | `release: scan: <Stichwort>: …` für `scan-gescheitert`, `pruefmenge`, `datenbank`, `plattform`; `release: vorbedingung: …` für die Vorbedingung | Bindend so? |
 | Reihenfolge mehrerer Gründe (`AGENTS.md` §3.12): Punkt 16 ordnet sie nicht | je Plattform nacheinander (`amd64`, `arm64`), je Plattform `scan-gescheitert`, `pruefmenge`, `datenbank`, `plattform` (Reihenfolge der Aufzählung); ein Exit 2 einer späteren Plattform geht dem Exit 1 (Befunde der früheren) vor, weil die Befunde erst nach beiden Läufen genannt werden; **kein Fall** zur Reihenfolge | Binden (dann je Paar ein Fall) oder offen lassen? |
 | `scan.ok` und Zustand früherer Läufe | `eingaben` und `image` löschen `scan.ok`, `scan` löscht es zu Beginn (je ein Fall und eine Mutation) | Punkt 11 und 13 sollen es nennen |
-| Summenzeile bei Grün | `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` auf stdout (Checkliste Punkt 7 verlangt „Zeile aus dem Log“) | Punkt 16 nennt die Summe nur bei Exit 1 |
+| Summenzeile bei Grün | `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` auf stdout (Checkliste Punkt 6 verlangt „Zeile aus dem Log“) | Punkt 16 nennt die Summe nur bei Exit 1 |
 | Tabelle in Punkt 11 ohne Zeile `scan` | `releasing.md` §11 führt die Zeile (nicht gelaufen: wiederholen; Befund: beheben, neuer Tag) | Die Tabelle des Vertrags ergänzen, sonst „deckt sich“ nicht |
 | Ein Image ohne jedes Paket hätte kein `Results` | `pruefmenge` (Exit 2): eine leere Prüfmenge ist kein Grün; ob `distroless/static` Pakete im Bericht führt, ist nicht gemessen | Ist das gemeint? |
 | Trivy nicht gemessen: `--platform` zusammen mit `--input` auf einem OCI-Tar mit Index, `Metadata.ImageConfig.architecture`, Betrieb als Nicht-root mit `--cache-dir`, Form von `db/metadata.json`, `Results` bei sauberem Image | wie oben beschrieben; fail-closed | Der erste Trockenlauf misst; wer entscheidet danach, wenn eine Annahme falsch war (Vertrag nachziehen und neuer Lauf)? |
@@ -518,8 +519,8 @@ nicht mehr.
 `docs/plan/planning/observations/BEO-REPO/` am Stand `3f7f52d` gesichtet (Zähler = Dateien
 unter `evidence/`). Treffer:
 
-- `BEO-REPO/verkoerperte-regel-nach-baseline-sprung-nicht-nachgezogen` (1×) — das
-  Freshness-Audit (Punkt 4) kann einen Baseline-Sprung auslösen; der Sprung selbst ist nicht
+- `BEO-REPO/verkoerperte-regel-nach-baseline-sprung-nicht-nachgezogen` (1×) — ein durchgeführtes
+  Freshness-Audit (optional, `SPEC-067` Punkt 17) kann einen Baseline-Sprung auslösen; der Sprung selbst ist nicht
   Teil dieses Slice.
 - `BEO-REPO/spec-randform-erst-im-review-entschieden` (16×, verkörpert in `AGENTS.md` §3.12) —
   die Randformen stehen offen in §6 und gehen vor dem Code an den Architect.
@@ -554,3 +555,5 @@ Nachgezählt am 2026-10-17 (Planner, `AGENTS.md` §3.13; keine neue Sendung, Sta
 **Nachgezählt am 2026-10-19** (Planner, `AGENTS.md` §3.13, im Commit, der die Sendung aus `slice-erster-release-veroeffentlichung` einträgt: die Belege des Wiederanstoßes, des Wortlauts von `gh release view` und des Anlegens des GitHub-Release aus dem Lauf des ersten Tags): Die Sendung ist Beleg und Bedingung im dritten Liefer-Punkt (Checkliste und erster Tag mit Handbuch, DoD 3); ein Nachziehen des Musters in `release.sh`, falls der Wortlaut abweicht, liegt in der Release-Automatisierung, die der erste Punkt schon führt. Liefer-Punkte weiter drei (Scan mit Handbuch- und `README.md`-Teil | Freshness-Audit in `releasing.md` §5 | Checkliste und erster Tag mit Handbuch), Schichten weiter zwei (Release-Automatisierung, Dokumentation). Die Schätzung steigt um höchstens 60 auf 630 bis 1110 (§4), die Marke 1200 bleibt, die obere Grenze liegt über der Meldeschwelle 900; unter der Marke, ein Schnitt vor dem Start unterbleibt. Der Messwert aus `slice-erster-release-veroeffentlichung` (1425 gegen 820 bis 1070) macht die Nachrechnung beim Anspruch zur Bedingung, nicht zur Option.
 
 **Nachgezählt am 2026-10-19** (Planner, `AGENTS.md` §3.13, im Commit, der die Sendung aus `slice-erster-release-veroeffentlichung-image` einträgt: die Belege, die der Trockenlauf des Images nicht erzeugt): Die Sendung ist Beleg und Bedingung im dritten Liefer-Punkt (Checkliste und erster Tag mit Handbuch, DoD 3); ein Nachziehen der Muster der Wortlaute von `skopeo`, falls sie abweichen, liegt in der Release-Automatisierung, die der erste Punkt schon führt. Liefer-Punkte weiter drei (Scan mit Handbuch- und `README.md`-Teil | Freshness-Audit in `releasing.md` §5 | Checkliste und erster Tag mit Handbuch), Schichten weiter zwei (Release-Automatisierung, Dokumentation). Die Schätzung steigt um höchstens 80 auf 660 bis 1190 (§4), obere Grenze 99 % der Marke 1200 und über der Meldeschwelle 900; unter der Marke, ein Schnitt vor dem Start unterbleibt, die Nachrechnung beim Anspruch bleibt Bedingung (der Faktor Gegenprobe zu Produktcode liegt je nach Form der Gegenprobe bei 2 bis 3,7: Attrappen gegen Aufrufe 2, Text einer Datei zeilenweise 3,7; die Gegenprobe des Scans hält Aufrufe gegen eine Attrappe).
+
+**Nachgezählt am 2026-10-19** (Implementer, `AGENTS.md` §3.13, im Commit, der die Entscheidung des Nutzers vom 2026-10-19 einträgt; Geber: `SPEC-067` Punkt 17 in der Fassung des Architect, Commit `8c8a7a38`): Das Freshness-Audit ist optional und kein Punkt der Checkliste; als Liefer-Punkt entfällt es (§1 Punkt 4, DoD). Sein Text in `releasing.md` §5 und der Absatz im Eintrag gehören zum zweiten Liefer-Punkt (Checkliste und erster Tag mit Handbuch, DoD 3). Liefer-Punkte jetzt zwei (Scan mit Handbuch- und `README.md`-Teil | Checkliste mit Audit-Absatz und erster Tag mit Handbuch), Schichten weiter zwei (Release-Automatisierung, Dokumentation). Die Schätzung in §4 sinkt, wenn überhaupt, um die Tabelle des Audits (rund 20 bis 40); Marke 1200 und Meldeschwelle 900 unverändert. Risiko-Ausgang des Audits: entfallen, mit Begründung in §6; kein Risiko ohne Ausgang durch die Änderung.

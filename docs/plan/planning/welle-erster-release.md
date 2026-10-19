@@ -72,7 +72,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 3. `slice-harness-ci` — `ci.yml` mit `make gates` und Commit-Range (setzt 1 und 2 voraus).
 4. `slice-erster-release-veroeffentlichung` — Pipeline für Tag und Binaries (Fassung A des Vertrags `SPEC-067`), belegt mit dem Trockenlauf (setzt 1 bis 3 voraus).
 5. `slice-erster-release-veroeffentlichung-image` — Pipeline für das Image (Fassung B), belegt mit dem Trockenlauf (setzt 4 voraus; Schnitt vom 2026-10-19, Drift-Log der Roadmap).
-6. `slice-erster-release-freigabe` — Scan, Freshness-Audit von Hand, Freigabe-Checkliste und der erste echte Tag (setzt 4 und 5 voraus).
+6. `slice-erster-release-freigabe` — Scan, Freigabe-Checkliste und der erste echte Tag (das Freshness-Audit ist optional und kein Punkt der Checkliste, Entscheidung des Nutzers vom 2026-10-19) (setzt 4 und 5 voraus).
 
 Die Nachtläufe (`slice-harness-ci-gegenproben`, `slice-harness-ci-freshness`, `slice-harness-ci-freshness-images`) liegen seit dem 2026-10-18 in [welle-ci-nachtlaeufe](welle-ci-nachtlaeufe.md) hinter dieser Welle.
 
@@ -89,7 +89,7 @@ der Closure-Trigger unerreichbar wird.
 - Weitere Plattformen oder Registries — nicht zugesichert.
 - Branch-Schutz („required status check“), Geheimnisse und Sichtbarkeit des Repos auf GitHub — Einstellungen des Betreibers, aus dem Klon nicht auditierbar; die Welle nennt sie als Handlung, ohne sie zu behaupten.
 - Aktualität und Gültigkeit der Action-SHA und der Werkzeug-Versionen in den Workflows — kein Slice der Welle nimmt sie an (`slice-harness-ci-workflows` §6 Frage 3).
-- Die Nachtläufe auf GitHub (Gegenproben, Audit gegen upstream, Image-Pins) — [welle-ci-nachtlaeufe](welle-ci-nachtlaeufe.md) (Entscheidung des Nutzers vom 2026-10-18); das Freshness-Audit der Freigabe-Checkliste läuft für den ersten Tag von Hand, ein Nachtlauf ist weder Beleg noch Bedingung.
+- Die Nachtläufe auf GitHub (Gegenproben, Audit gegen upstream, Image-Pins) — [welle-ci-nachtlaeufe](welle-ci-nachtlaeufe.md) (Entscheidung des Nutzers vom 2026-10-18); das Freshness-Audit ist optional, von Hand und kein Punkt der Freigabe-Checkliste (Entscheidung des Nutzers vom 2026-10-19), ein Nachtlauf ist weder Beleg noch Bedingung.
 
 ## 7. Closure-Notiz
 
