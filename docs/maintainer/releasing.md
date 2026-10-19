@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.8
+Version: 0.9
 Stand: 2026-10-19
 
 ## 1. Zweck und Zielgruppe
@@ -17,13 +17,12 @@ Produkt-Image; `make build` baut beide für die Plattform des Hosts
 (`pgwire-recorder:dev`), `make binaries` baut die Binaries aller Zielplattformen mit
 `SHA256SUMS`, und `make test-container` prüft sie (§2). Die Pipeline
 `.github/workflows/release.yml` reagiert auf einen Tag `v*`: Sie prüft die Eingaben, baut die
-Binaries mit `make binaries`, baut das Image einmal für beide Plattformen, veröffentlicht es in
-`ghcr.io` und `docker.io`, vergleicht die Digests, startet das Image aus beiden Registries,
+Binaries mit `make binaries`, baut das Image einmal für beide Plattformen, scannt es vor dem Push,
+veröffentlicht es in `ghcr.io` und `docker.io`, vergleicht die Digests, startet das Image aus beiden Registries,
 setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit den Binaries und
 `SHA256SUMS` an (§6); `make release-gegenprobe` prüft sie mit Attrappen für `make`, `docker`,
-`skopeo`, `gh` und den Smoke, ein Lauf auf GitHub für den Bau des Images und gegen die Registries
-ist noch nicht belegt. Der Scan des Images fehlt, und eine Formel im Tap gibt es nicht. Es ist noch kein Tag
-gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
+`skopeo`, `gh`, den Scanner und den Smoke; der Scan, die Registries und der GitHub-Release hatten noch
+keinen Lauf auf GitHub. Eine Formel im Tap gibt es nicht. Es ist noch kein Tag gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
 Kennung („liefert `slice-…`“), nicht als Zusage. Der Beleg, dass die Pipeline mit einem echten
 Tag durchgelaufen ist, steht hier erst, wenn es ihn gibt.
 
@@ -52,8 +51,8 @@ nicht; es wird über seinen Digest identifiziert.
 
 Die Pipeline, die beim Tag die Binaries baut und an den GitHub-Release hängt, liefert
 `slice-erster-release-veroeffentlichung`, das Image in beiden Registries
-`slice-erster-release-veroeffentlichung-image`; den Scan des Images vor dem Push und den ersten
-echten Tag liefert `slice-erster-release-freigabe`, das Verfahren der Formel
+`slice-erster-release-veroeffentlichung-image`; den Scan des Images vor dem Push, die Freigabe-Checkliste (§10)
+und den ersten echten Tag liefert `slice-erster-release-freigabe`, das Verfahren der Formel
 `slice-v1-abschluss-homebrew`.
 
 **Was lokal läuft:** `make binaries` baut je Zielplattform ein Binary in das Verzeichnis
@@ -116,14 +115,30 @@ Dokument.
 
 ## 5. Vor dem Tag
 
-1. `make gates` ist grün.
+1. `make gates` ist grün; die Gegenproben laufen auf demselben Commit (§10, Punkte 2 und 3).
 2. Die Änderungshistorie des Benutzerhandbuchs trägt die Zeile der neuen Version
    (§9).
-3. Die Datei `VERSION` (§3) trägt die neue Version und ist committet.
+3. Die Datei `VERSION` (§3) trägt die neue Version und ist committet; dieser Commit ist der, den der Tag trägt.
+4. Das Freshness-Audit liegt vor (unten).
+5. Der Trockenlauf auf diesem Stand ist grün (§6), ohne Hinweis zur Zeile der Änderungshistorie.
 
-Das Freshness-Audit der Baseline und von d-check vor dem Tag liefert
-`slice-erster-release-freigabe`; die Prüfung des Tags gegen die Versionsdatei läuft in der
-Pipeline (§6).
+Die Prüfung des Tags gegen die Versionsdatei läuft in der Pipeline (§6).
+
+**Freshness-Audit** (Handlung des Maintainers von Hand am Netz; es gibt dafür kein Gate und keinen
+Fall der Gegenprobe, `harness/conventions.md` §Baseline): Vor dem Tag fragt der Maintainer die Release-Listen
+der beiden Quellen ab, deren Stand das Repository pinnt, die der Baseline (`pt9912/ai-harness-course`, gepinnter Tag in
+`harness/conventions.md` §Baseline) und die von d-check (`pt9912/d-check`, gepinnter Tag in `d-check.mk`,
+`DCHECK_IMAGE`). **Frisch** heißt: Der gepinnte Stand ist der neueste stabile Release der Liste. Der Beleg ist eine
+Tabelle im Eintrag der Checkliste (§10, Punkt 4), je Quelle eine Zeile:
+
+| Quelle | gepinnter Stand | neuester stabiler Stand | Datum der Abfrage | Ergebnis |
+|---|---|---|---|---|
+| Baseline | Tag aus `harness/conventions.md` | Tag der Liste | höchstens sieben Tage vor dem Tag | `aktuell` oder `neuerer Stand <Tag>` mit einem Satz zur Auswirkung |
+| d-check | Tag aus `d-check.mk` | Tag der Liste | höchstens sieben Tage vor dem Tag | wie oben |
+
+Ein neuerer Stand **sperrt den Tag nicht von selbst**: Er wird in der Tabelle dokumentiert, und sein Nachziehen ist ein
+eigener Slice. Nennen die Release-Notizen des neueren Standes eine Sicherheitskorrektur, legt der Maintainer die Frage
+vor dem Tag dem Nutzer vor; der Tag folgt seiner Entscheidung. Eine Abfrage, die älter als sieben Tage ist, wird wiederholt.
 
 ## 6. Was der Tag auslöst
 
@@ -149,27 +164,37 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
 3. `Image` baut das Image einmal für `linux/amd64` und `linux/arm64` in ein OCI-Layout mit genau
    einem Index und zwei Manifesten (Treiber `docker-container`, das Image des Builders mit Digest gepinnt) und prüft in einem zweiten Bau je Plattform (`type=local`, derselbe Builder), dass das Binary `/pgwire-recorder` die Summe aus `SHA256SUMS` hat;
    das kopierte Layout liest diese Prüfung nicht. Der Digest `D` des Index steht danach fest. Das Image ist nicht reproduzierbar zugesagt.
-4. `Veröffentlichen` kopiert genau dieses Layout ohne Neubau nach `ghcr.io`, dann nach `docker.io`, unter dem Tag
+4. `Scan` scannt dieses Layout vor dem Push mit Trivy (Image per Digest in `release.sh` gepinnt, `docker run` ohne
+   Ausnahmedatei) je Plattform, `linux/amd64` und `linux/arm64`, und lässt `D` unverändert. Ein Eintrag mit dem
+   Schweregrad `CRITICAL` oder `HIGH` und einer behobenen Version beendet den Lauf mit Exit 1 und nennt alle Befunde
+   (`release: scan: schwachstelle: …`); Einträge ohne behobene Version stehen nur in der Summenzeile
+   (`<m> ohne Behebung`) und sperren nicht. Ein Scan, der nicht lief, endet mit Exit 2 und einem Stichwort: Trivy scheitert
+   (`scan-gescheitert`), kein JSON oder kein Ergebnis (`pruefmenge`), die Datenbank ist älter als 72 Stunden oder ihr
+   Alter ist nicht lesbar (`datenbank`), die gescannte Architektur weicht ab (`plattform`), das Layout fehlt
+   (`vorbedingung`). Ausnahmen gibt es nicht. `Veröffentlichen` verlangt den grünen `Scan`.
+5. `Veröffentlichen` kopiert genau dieses Layout ohne Neubau nach `ghcr.io`, dann nach `docker.io`, unter dem Tag
    `<SemVer>` ohne `v`. Ein vorhandener Tag mit demselben Digest wird übersprungen, einer mit einem anderen
    Digest ist rot und wird nie überschrieben.
-5. `Vergleichen` liest den Index beider Registries ohne Anmeldung als rohe Bytes; `D`, der Digest aus
+6. `Vergleichen` liest den Index beider Registries ohne Anmeldung als rohe Bytes; `D`, der Digest aus
    `ghcr.io` und der aus `docker.io` müssen gleich sein, der Index nennt genau `linux/amd64` und
    `linux/arm64`. Ist das Paket nicht öffentlich, ist der Schritt rot.
-6. `Smoke` startet das Image `<Registry>/pt9912/pgwire-recorder@<D>` aus jeder der beiden Registries
+7. `Smoke` startet das Image `<Registry>/pt9912/pgwire-recorder@<D>` aus jeder der beiden Registries
    (Aufzeichnen und Wiedergeben, `tools/harness/container-smoke.sh`).
-7. `Latest` setzt `latest` auf `D`, in `ghcr.io` zuerst, nur nach grünem `Smoke` und nur bei einer stabilen Version, die höher ist als jede
+8. `Latest` setzt `latest` auf `D`, in `ghcr.io` zuerst, nur nach grünem `Smoke` und nur bei einer stabilen Version, die höher ist als jede
    andere stabile Version unter den Tags `v*`. Eine Vorabversion und der Patch eines älteren Zweigs lassen
    `latest` unverändert.
-8. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
+9. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
    Änderungshistorie, als Vorabversion bei einem Tag mit `-…`; der Schritt läuft nur, wenn `Smoke` grün war.
 
 Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
-(`workflow_dispatch`): `Eingaben`, `Binaries` und `Image` mit der Version aus `VERSION` als Tag
+(`workflow_dispatch`): `Eingaben`, `Binaries`, `Image` und `Scan` mit der Version aus `VERSION` als Tag
 `v<VERSION>`, ohne Anmeldung, ohne Veröffentlichung und ohne GitHub-Release; fehlt dort die Zeile der Änderungshistorie oder liegt der Commit
 nicht im Standard-Zweig, steht das als Hinweis `release: hinweis: …`, kein Fehler. Ein Probe-Tag gibt es nicht. Der Trockenlauf belegt nicht,
 dass die Token schreiben dürfen, dass das Paket in `ghcr.io` öffentlich ist und das Repository auf Docker Hub
 besteht, dass der Smoke aus den Registries gelingt und dass der GitHub-Release angelegt wird; das zeigt
-erst der Lauf für den ersten Tag. Den Scan des Images vor dem Push liefert `slice-erster-release-freigabe`.
+erst der Lauf für den Tag. Der Scan braucht Netz für das Image des Scanners und die Schwachstellen-Datenbank und läuft deshalb
+auch dort; ein grüner Scan sagt „am Tag des Laufs ist nichts Behebbares mit `HIGH` oder `CRITICAL` bekannt“, nicht „sicher“, und dieselbe
+Quelle kann an zwei Tagen verschieden bewertet werden. Die Binaries am GitHub-Release werden nicht gescannt.
 
 ## 7. Homebrew
 
@@ -189,7 +214,7 @@ Tag; Windows bedient Homebrew nicht.
 Der Smoke aus Abnahmeszenario 9 läuft in der Pipeline aus beiden Registries auf dem Docker-Server des
 Runners (`ubuntu-24.04`, `amd64`; §6, Schritt `Smoke`); für `linux/arm64` prüft die Pipeline die Plattformen des
 Index und die Summe des Binaries, sie startet das Image nicht. Nach dem Push ist zu kontrollieren, dass der Lauf grün endete und `latest` bei einem stabilen Tag
-auf den Digest des Laufs zeigt; weitere Kontrollen liefert `slice-erster-release-freigabe`.
+auf den Digest des Laufs zeigt; die Belege des Laufs trägt die Checkliste (§10).
 
 ## 9. Release-Notes
 
@@ -205,8 +230,68 @@ mit Exit 2; im Trockenlauf ist eine fehlende Zeile ein Hinweis, eine leere Zelle
 
 ## 10. Freigabe-Checkliste
 
-Die Checkliste, mit der ein Release freigegeben wird, liefert
-`slice-erster-release-freigabe`.
+Ein Release ist freigegeben, wenn jeder Punkt einen Beleg trägt. Der **Eintrag** eines Releases ist eine Kopie der Tabelle mit
+ausgefüllter Spalte *Beleg*: für den ersten Release steht er in der Closure von `welle-erster-release`
+(`welle-erster-release-results.md`), für spätere Releases ohne Welle in `docs/maintainer/freigaben/<Version>.md`. Ein Punkt ohne
+Beleg ist nicht erfüllt; was ein Lauf nicht zeigt, steht als Grenze im Eintrag, nie als Behauptung.
+
+Der **getaggte Commit** ist der Commit, der `VERSION` und die Zeile der Änderungshistorie trägt; die Punkte 1 bis 3 gelten für genau
+diesen Hash.
+
+| Punkt | Form des Belegs | Beleg |
+|---|---|---|
+| 1. `make gates` grün auf dem getaggten Commit | Hash, Datum | |
+| 2. Gegenproben-Container grün für diesen Hash | die Dateien `gegenproben-*-<Hash>` der Ablage von `pgr-gp` per `ssh`, jede mit `ergebnis=gruen`, `beginn` und `ende`, keine Marke `….laeuft`; fehlt das Ergebnis oder ist es rot, fährt die Freigabe `make gegenproben` selbst | |
+| 3. `make gegenproben-host` am Host grün auf demselben Hash | Datum, Hash, die Zusammenfassung der Ausgabe | |
+| 4. Freshness-Audit (§5) | die Tabelle des Audits, Abfrage höchstens sieben Tage vor dem Tag | |
+| 5. `VERSION` und die Zeile der Änderungshistorie im getaggten Commit | Ausgabe von `grep` | |
+| 6. Trockenlauf auf dem Stand | Lauf-Kennung, Dauer, ohne Hinweis zur Zeile der Änderungshistorie | |
+| 7. Scan grün | die Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` aus dem Log des Trockenlaufs und des Laufs des Tags | |
+| 8. Ausdrückliches Ja des Nutzers zum Tag | Wortlaut, Datum | |
+| 9. Lauf des Tags | Lauf-Kennung, Index-Digest je Registry (gleich), Smoke aus beiden Registries, `latest` | |
+| 10. Anhänge am GitHub-Release | die sieben Dateien (sechs Binaries und `SHA256SUMS`) | |
+| 11. Beobachtungen des ersten Laufs (unten) | je Beobachtung Lauf-Kennung und Zeile im Log, oder die Grenze | |
+| 12. Bezug nach dem Tag (unten) | Befehl, Lauf und Ausgabe je Befehl im Handbuch | |
+
+**Anti-Punkte** (was ein Release nicht tut): Ein Tag wird nicht verändert oder gelöscht. Kein Image geht ohne grünen Scan in eine
+Registry. Eine Vorabversion setzt kein `latest`. Es gibt keinen Tag ohne ausdrückliches Ja des Nutzers (Punkt 8). Keine Datei kommt von Hand
+an den GitHub-Release. Kein Wert eines Geheimnisses steht in einem Log, einem Eintrag oder einer Nachricht.
+
+**Incident-Klausel:** Ein veröffentlichter Release mit einem Fehler (abweichender Digest, bekannte behebbare Schwachstelle, falsches
+Binary) wird durch einen neuen, höheren Tag ersetzt. Auslöser ist, wer den Fehler bemerkt; entschieden wird mit dem Nutzer. Festgehalten
+wird er im Eintrag des fehlerhaften Release (Datum, Befund, Ersatz-Tag) und als Zeile in der Änderungshistorie des Handbuchs; der
+fehlerhafte Tag bleibt stehen.
+
+**Den Tag setzt, wer taggen darf, und nur nach dem Ja des Nutzers (Punkt 8).** Ein Implementer startet ihn nicht. Das Ja zum ersten
+Tag schließt ein, dass `v0.1.1` ihm folgen kann, wenn der Lauf einen Fehler im Skript oder im Vertrag zeigt (unten); jeder weitere Tag braucht ein
+neues Ja.
+
+**Beobachtungen des ersten Laufs (Punkt 11).** Was der Trockenlauf nicht belegt (§6), zeigt der Lauf des Tags im Log; der Eintrag nennt
+je Beobachtung die Lauf-Kennung und die Zeile:
+
+- die Wortlaute von `skopeo inspect` für einen nicht vorhandenen Tag in `ghcr.io` und in `docker.io` (Zeilen `release: skopeo: `
+  in den Schritten `Veröffentlichen` und `Vergleichen`) und die Verfügbarkeit von `skopeo` und `gh` auf dem Runner;
+- der Wortlaut von `gh release view` für einen nicht vorhandenen Release (Schritt `GitHub-Release`) und das Anlegen des Release;
+- das Schreibrecht der Token in beiden Registries, die Sichtbarkeit des Pakets in `ghcr.io` (anonymer Zugriff im Schritt `Vergleichen`)
+  und der Smoke aus beiden Registries mit der Referenz `<Registry>/pt9912/pgwire-recorder@<D>` (Digest je Registry);
+- die Zeitstempel des veröffentlichten Images als Beobachtung zur Wirkung von `SOURCE_DATE_EPOCH` (keine Zusage);
+- der Wiederanstoß eines roten Laufs nach §11, nur wenn der Lauf rot endete; endet er grün, nennt der Eintrag den Wiederanstoß als
+  nicht belegt.
+
+**Rot nach dem ersten Tag.** Ein Lauf führt `release.yml` und `release.sh` des Commits aus, den der Tag trägt; ein Wiederanstoß desselben
+Tags führt dieselbe Fassung aus. Liegt der Fehler in der **Umgebung** (Token, Schreibrecht, Sichtbarkeit des Pakets, Repository auf Docker
+Hub, Limit anonymer Pulls, Netz), behebt der Betreiber ihn und stößt denselben Tag wieder an (§11). Liegt er im **Skript, im Text der Datei
+oder im Vertrag** (ein Wortlaut weicht ab, eine Zusage war falsch), wird die Korrektur auf dem Hauptzweig gemacht und ein **neuer, höherer
+Tag** gesetzt; der Tag des fehlerhaften Laufs bleibt, und jede Registry, die ihn trägt, behält ihn. Ein Digest, der abweicht, und ein
+abweichender Anhang verlangen immer einen neuen Tag.
+
+**Bezug nach dem Tag (Punkt 12).** Die Zeile der Version in der Änderungshistorie steht vor dem Tag (§9) und bleibt. Nach dem Lauf,
+in einem eigenen Commit, der nur `docs/user/`, `README.md` und Planung ändert, nennt der Kopf des Benutzerhandbuchs als
+*Software-Version* die Ausgabe von `pgwire-recorder version` des **veröffentlichten** Binaries (nicht von `make build`), und §2
+*Installation* bekommt die Abschnitte zum Bezug der Binaries (Plattformen, `SHA256SUMS`, Prüfung mit `sha256sum -c`) und der Images
+(`<Registry>/pt9912/pgwire-recorder:<Version>` aus beiden Registries) mit nur den Befehlen, die nach dem Tag einmal gelaufen sind. Ein Befehl
+ohne diesen Lauf steht nicht im Handbuch. `latest` wird genannt, weil der Lauf es gesetzt und der Smoke es belegt hat. `darwin` und
+`windows` sind gebaut, nicht ausgeführt (§2); das Handbuch sagt nur das.
 
 ## 11. Fehler, Wiederanlauf, Rollback
 
@@ -223,6 +308,7 @@ Die Tabelle nennt die Schritte der Pipeline.
 |---|---|---|---|
 | `eingaben` | jede Eingabe | nichts | Geheimnis oder Einstellung beheben und wiederholen; liegt der Fehler im Tag-Commit (`VERSION`, Zeile der Änderungshistorie), neuer Tag |
 | `binaries`, `image` | Bau, Summe, Dateiliste | nichts außerhalb des Runners | wiederholen |
+| `scan` | Befund über der Schwelle (Exit 1), Scan nicht gelaufen (Exit 2: Netz, Datenbank, Plattform) | nichts außerhalb des Runners | nicht gelaufen: wiederholen; Befund: den Befund beheben (Basis-Image oder Abhängigkeit heben) und einen neuen Tag setzen, es gibt keine Ausnahme |
 | `veröffentlichen` | `ghcr.io` ok, `docker.io` rot | Tag `<SemVer>` in `ghcr.io` | wiederholen: `ghcr.io` wird übersprungen (gleicher Digest), `docker.io` folgt; weicht der Digest ab (neuer Bau), neuer Tag |
 | `veröffentlichen` | Tag vorhanden mit anderem Digest | die vorhandene Registrierung | neuer, höherer Tag |
 | `vergleichen`, `smoke` | Digest, Zugriff, Plattformen, Smoke | beide Registries beschrieben, kein `latest`, kein GitHub-Release | Ursache beheben (zum Beispiel das Paket öffentlich stellen), wiederholen; bei Abweichung der Digests neuer Tag |
@@ -241,3 +327,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.6 | 2026-10-17 | `make binaries` und `make test-container` im Ist-Zustand; Abnahme-Umgebungen |
 | 0.7 | 2026-10-19 | Pipeline für Tag und Binaries (`release.yml`, `release.sh`), Datei `VERSION`, Trockenlauf, Fehlertabelle und Wiederanlauf für `eingaben`, `binaries` und `github-release` |
 | 0.8 | 2026-10-19 | Image: Bau, Veröffentlichung in beiden Registries, Vergleich der Digests, Smoke, `latest`; Geheimnisse der Registries; Fehlertabelle um die Schritte des Images ergänzt; die Formel gehört nicht zur Pipeline |
+| 0.9 | 2026-10-19 | Scan des Images vor dem Push (Schritt `Scan`, Zeile der Fehlertabelle); Freshness-Audit mit der Form seines Belegs (§5); Freigabe-Checkliste mit Anti-Punkten und Incident-Klausel (§10) |
