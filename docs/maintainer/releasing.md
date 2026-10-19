@@ -1,7 +1,7 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.6
-Stand: 2026-10-17
+Version: 0.7
+Stand: 2026-10-19
 
 ## 1. Zweck und Zielgruppe
 
@@ -15,13 +15,14 @@ wird. Es richtet sich an Maintainer, die einen Release-Tag setzen; es liegt unte
 `Dockerfile` baut das Binary in mehreren Stufen, die Stufe `runtime` ist das
 Produkt-Image; `make build` baut beide für die Plattform des Hosts
 (`pgwire-recorder:dev`), `make binaries` baut die Binaries aller Zielplattformen mit
-`SHA256SUMS`, und `make test-container` prüft sie (§2). Einen Release-Mechanismus gibt es
-nicht: keinen Workflow, der auf einen Tag reagiert, keine Veröffentlichung in einer
-Registry und keine Formel im Tap. Es ist noch kein Tag
+`SHA256SUMS`, und `make test-container` prüft sie (§2). Die Pipeline
+`.github/workflows/release.yml` reagiert auf einen Tag `v*`: Sie prüft die Eingaben, baut die
+Binaries mit `make binaries` und legt den GitHub-Release mit den Binaries und `SHA256SUMS` an (§6);
+`make release-gegenprobe` prüft sie mit Attrappen für `make` und `gh`, ein Lauf auf GitHub ist noch
+nicht belegt. Das Image veröffentlicht sie noch nicht, und eine Formel im Tap gibt es nicht. Es ist noch kein Tag
 gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
-Kennung („liefert `slice-…`“), nicht als Zusage. Sobald ein Mechanismus existiert,
-wird er hier beschrieben, einschließlich eines Belegs, dass er mit einem echten Tag
-durchgelaufen ist.
+Kennung („liefert `slice-…`“), nicht als Zusage. Der Beleg, dass die Pipeline mit einem echten
+Tag durchgelaufen ist, steht hier erst, wenn es ihn gibt.
 
 Es ersetzt keine Anwenderdokumentation: Betrieb, Optionen, Exit-Codes und
 Meldungskatalog stehen in der Betriebsdokumentation für Anwender.
@@ -46,8 +47,9 @@ Ein Release liefert:
 dieselbe Plattform liefern dieselbe Prüfsumme (`LH-QA-01`). Für das Image gilt das
 nicht; es wird über seinen Digest identifiziert.
 
-Die Pipeline, die beim Tag baut, und die Veröffentlichung in beiden Registries liefert
-`slice-erster-release-veroeffentlichung`, den Scan des Images vor dem Push und den ersten
+Die Pipeline, die beim Tag die Binaries baut und an den GitHub-Release hängt, liefert
+`slice-erster-release-veroeffentlichung`, das Image in beiden Registries
+`slice-erster-release-veroeffentlichung-image`, den Scan des Images vor dem Push und den ersten
 echten Tag `slice-erster-release-freigabe`; das Verfahren der Formel
 `slice-v1-abschluss-homebrew`.
 
@@ -76,8 +78,10 @@ Produktstufe „v1“ des Lastenhefts ist ein Umfang und keine Versionsnummer.
 Die Version des Lastenhefts ist davon unabhängig; ihre Zählregel steht in dessen
 Kopf.
 
-Welche Datei die Version der Software als Quelle der Wahrheit trägt, liefert
-`slice-erster-release-veroeffentlichung`.
+Die Version der Software steht in der Datei `VERSION` im Wurzelverzeichnis: genau eine Zeile
+`<SemVer>` ohne `v`, Anfangswert `0.1.0-dev`. Die Pipeline lehnt einen Tag ab, der nicht `v` plus
+dieser Inhalt ist. `make binaries VERSION=<SemVer>` trägt die Version in die Namen der Binaries
+und ins Binary; ohne Angabe bleibt es bei `dev`.
 
 Zwei Begriffe dieses Dokuments: Ein **Probe-Tag** ist ein Vorabversions-Tag
 (`v<SemVer>-probe.<N>`), mit dem das Release-Verfahren geprüft wird, ohne einen
@@ -107,7 +111,7 @@ Dokument.
 1. `make gates` ist grün.
 2. Die Änderungshistorie des Benutzerhandbuchs trägt die Zeile der neuen Version
    (§9).
-3. Die Versionsquelle (§3) trägt die neue Version und ist committet.
+3. Die Datei `VERSION` (§3) trägt die neue Version und ist committet.
 
 Das Freshness-Audit der Baseline und von d-check vor dem Tag liefert
 `slice-erster-release-freigabe`; die Prüfung des Tags gegen die Versionsdatei läuft in der
@@ -122,12 +126,27 @@ git tag v<SemVer>
 git push origin v<SemVer>
 ```
 
-Was der Push eines Tags auslöst — Build der Binaries für alle Zielplattformen mit
-`SHA256SUMS`, Build und Veröffentlichung des Images als Manifestliste in beiden
-Registries, GitHub-Release, Prüfung von Tag und Versionsdatei vor jedem Push —, liefert
-`slice-erster-release-veroeffentlichung`; den Scan des Images vor dem Push
-`slice-erster-release-freigabe`.
-Heute löst ein Tag nichts aus.
+Der Push löst `.github/workflows/release.yml` aus; ein Tag läuft nur dort (`ci.yml` lässt Tags
+aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
+
+1. `Eingaben` prüft vor jedem Schritt mit Außenwirkung, in dieser Reihenfolge: Ereignis und Ref,
+   die Form des Tags `v<SemVer>` (Build-Metadaten sind nicht zugelassen), die Form der Datei
+   `VERSION`, dass der Tag `v` plus ihr Inhalt ist, dass die Änderungshistorie des
+   Benutzerhandbuchs die Zeile der Version trägt (§9) und dass der Commit des Tags im
+   Standard-Zweig liegt. Jede Abweichung endet mit Exit 2, bevor etwas gebaut wird.
+2. `Binaries` ruft `make binaries` mit der Version des Tags und prüft `SHA256SUMS` und die
+   Dateiliste: die sechs Binaries und `SHA256SUMS`, sonst nichts. Es gibt keinen zweiten Bau;
+   die Gleichheit zweier Builds hält `make test-container`.
+3. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
+   Änderungshistorie, als Vorabversion bei einem Tag mit `-…`.
+
+Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
+(`workflow_dispatch`): `Eingaben` und `Binaries` mit der Version aus `VERSION` als Tag
+`v<VERSION>`, ohne GitHub-Release. Ein Probe-Tag gibt es nicht. Der Trockenlauf belegt nicht,
+dass das Token am Repository schreiben darf und dass der GitHub-Release angelegt wird; das zeigt
+erst der Lauf für den ersten Tag. Das Image (Bau, Veröffentlichung, Vergleich der Digests,
+Smoke, `latest`) liefert `slice-erster-release-veroeffentlichung-image`; den Scan des Images vor
+dem Push `slice-erster-release-freigabe`.
 
 ## 7. Homebrew
 
@@ -155,8 +174,9 @@ Das Projekt führt kein `CHANGELOG.md`. Die Änderungshistorie des
 Benutzerhandbuchs (`docs/user/benutzerhandbuch.md`, letztes Kapitel) ist die einzige
 Quelle: eine Zeile je Version in Betreibersicht, ohne interne Kennungen. Vor dem Tag
 trägt der Release dort seine Zeile ein; der Text des GitHub-Releases entsteht aus
-dieser Zeile. Das Übernehmen in den GitHub-Release liefert
-`slice-erster-release-veroeffentlichung`.
+dieser Zeile. Der Text des GitHub-Releases ist die dritte Zelle der Zeile, deren erste Zelle die
+Version ohne `v` ist, in der Tabelle des Abschnitts, dessen Überschrift auf `Änderungshistorie`
+endet (Spalten Version, Datum, Änderung). Fehlt die Zeile, endet `Eingaben` mit Exit 2.
 
 ## 10. Freigabe-Checkliste
 
@@ -169,8 +189,17 @@ Es gibt keinen automatisierten Rollback. Ein fehlerhafter Release wird durch
 einen neuen, höheren Tag mit einer korrigierten Version ersetzt; bereits
 gesetzte Tags werden nicht verändert oder gelöscht.
 
-Die Fehlertabelle je Schritt der Pipeline und den Wiederanlauf eines abgebrochenen Laufs
-liefert `slice-erster-release-veroeffentlichung`; heute gibt es keinen Lauf.
+Wiederanlauf eines roten Laufs ist „Re-run failed jobs“ derselben Ausführung oder ein erneuter
+Lauf desselben Tags; die Schritte sind so geschrieben, dass der zweite Lauf nichts verändert,
+was der erste hinterließ. Ein Fehler, den nur ein höherer Tag behebt, bekommt einen neuen Tag.
+Die Tabelle nennt die Schritte der Pipeline, soweit sie bestehen; die Zeilen für die Schritte des
+Images liefert `slice-erster-release-veroeffentlichung-image`.
+
+| Schritt | Fehler | hinterlässt | Wiederanlauf |
+|---|---|---|---|
+| `eingaben` | jede Eingabe | nichts | Einstellung beheben und wiederholen; liegt der Fehler im Tag-Commit (`VERSION`, Zeile der Änderungshistorie), neuer Tag |
+| `binaries` | Bau, Summe, Dateiliste | nichts außerhalb des Runners | wiederholen |
+| `github-release` | Anlegen oder Anhang | der Release fehlt oder trägt einen Teil der Anhänge | wiederholen: ergänzt fehlende Anhänge; weicht `SHA256SUMS` am Release von der lokalen Datei ab, neuer Tag |
 
 ### Änderungshistorie
 
@@ -182,3 +211,4 @@ liefert `slice-erster-release-veroeffentlichung`; heute gibt es keinen Lauf.
 | 0.4 | 2026-10-09 | Stand auf Code, `Dockerfile` und `make build` gezogen; neue Gliederung; `SHA256SUMS` und Formel nur bei stabilen Tags; Vorbedingungen um die Start-Bedingung von `welle-erster-release` ergänzt; was erst ein Slice liefert, mit Kennung |
 | 0.5 | 2026-10-09 | Nach dem Schnitt des Release-Slice: Scan, Freshness-Audit, Checkliste und erster echter Tag bei `slice-erster-release-freigabe`; Fehlertabelle und Wiederanlauf bei `slice-erster-release-veroeffentlichung` |
 | 0.6 | 2026-10-17 | `make binaries` und `make test-container` im Ist-Zustand; Abnahme-Umgebungen |
+| 0.7 | 2026-10-19 | Pipeline für Tag und Binaries (`release.yml`, `release.sh`), Datei `VERSION`, Trockenlauf, Fehlertabelle und Wiederanlauf für `eingaben`, `binaries` und `github-release` |
