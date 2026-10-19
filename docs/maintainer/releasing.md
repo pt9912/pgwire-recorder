@@ -147,8 +147,7 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
    Dateiliste: die sechs Binaries und `SHA256SUMS`, sonst nichts. Es gibt keinen zweiten Bau;
    die Gleichheit zweier Builds hält `make test-container`.
 3. `Image` baut das Image einmal für `linux/amd64` und `linux/arm64` in ein OCI-Layout mit genau
-   einem Index und zwei Manifesten (Builder `docker-container`, Image des Builders per Digest
-   gepinnt) und prüft, dass das Binary `/pgwire-recorder` jeder Plattform die Summe aus `SHA256SUMS` hat;
+   einem Index und zwei Manifesten (Treiber `docker-container`, das Image des Builders mit Digest) und prüft, dass das Binary `/pgwire-recorder` jeder Plattform die Summe aus `SHA256SUMS` hat;
    der Digest `D` des Index steht danach fest. Das Image ist nicht reproduzierbar zugesagt.
 4. `Veröffentlichen` kopiert genau dieses Layout ohne Neubau nach `ghcr.io`, dann nach `docker.io`, unter dem Tag
    `<SemVer>` ohne `v`. Ein vorhandener Tag mit demselben Digest wird übersprungen, einer mit einem anderen
