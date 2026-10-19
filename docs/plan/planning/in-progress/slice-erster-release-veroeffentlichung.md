@@ -109,12 +109,12 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `.github/workflows/release.yml` (Fassung `1a`, `SPEC-067` Punkt 1) | neu | nur `v*` und `workflow_dispatch`; Schritte `Eingaben`, `Binaries`, `GitHub-Release` (nur bei `push`); Pins und Rechte wie `ci.yml` |
-| `tools/harness/release.sh` (Schritte `eingaben`, `binaries`, `github-release`) | neu | die Logik steht im Skript, nicht im YAML (Schnittstelle des Vertrags); B ergänzt die Schritte `image`, `veroeffentlichen`, `vergleichen`, `smoke`, `latest` |
+| `tools/harness/release.sh` (Schritte `eingaben`, `binaries`, `github-release`) | neu | die Logik steht im Skript, nicht im YAML (Schnittstelle des Vertrags); der Zustand zwischen den Schritten liegt in `$RUNNER_TEMP/release` (Marken `eingaben.ok` und `binaries.ok`, Verzeichnis `dist/`), jeder Schritt prüft die Marke seines Vorgängers; B ergänzt die Schritte `image`, `veroeffentlichen`, `vergleichen`, `smoke`, `latest` und hängt seine Marken an |
 | `VERSION` (Wurzel) | neu | Version der Software, eine Zeile `0.1.0-dev`, gegen den Tag geprüft; `make binaries VERSION=` trägt sie ins Binary |
-| `tools/harness/release-gegenprobe.sh`, `harness/mk/release.mk`, Eintrag in `GEGENPROBEN_CONTAINER` | neu | Gegenprobe mit Attrappen für `make`, `sha256sum`, `gh` (und `docker`, `skopeo` für den Fall, dass der Trockenlauf sie nie ruft), ohne Netz: Fälle `p1-*`, `p2-*`, `p3-*` ohne (7), `p4-*`, `p9-*` ohne `p9-nicht-vor-registries`, `p10-*` ohne die Registries, `p11-*` für A, `p13-*`; je Zusage und je Element eine Mutation (`AGENTS.md` §3.10); die Zeilenliste von `release.yml` trägt die Herkunft A je Zeile |
+| `tools/harness/release-gegenprobe.sh`, `harness/mk/release.mk`, Eintrag in `GEGENPROBEN_CONTAINER` | neu | Gegenprobe mit Attrappen für `make`, `gh`, `docker` und `skopeo` (`git`, `sha256sum`, `awk`, `cmp` sind die echten Werkzeuge), ohne Netz: Fälle `p1-*`, `p2-*`, `p3-*` ohne (7), `p4-*`, `p9-*` ohne `p9-nicht-vor-registries`, `p10-*` ohne die Registries, `p11-*` für A, `p13-*`; je Zusage und je Element eine Mutation (`AGENTS.md` §3.10); die Zeilenliste von `release.yml` trägt die Herkunft A je Zeile |
 | `harness/README.md` §Sensors | update | Zeile für `make release-gegenprobe` (Gegenprobe), Bindung `SPEC-067` und [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md) |
-| `docs/maintainer/releasing.md` §3, §6, §9, §11 | update | vom beschriebenen auf das ausgeführte Verfahren bringen, soweit A es liefert: Versionsquelle (`VERSION`), was der Tag auslöst, Release-Notes, Fehlertabelle (Zeilen `eingaben`, `binaries`, `github-release`) und Wiederanlauf; auf dem Stand aufbauend, den `slice-v1-abschluss-container-doku` liefert. §8 (Kontrollen nach dem Push der Registries), §2 und §7 (Formel keine Lieferung des Release) ergänzt B beziehungsweise gehören nicht hierher |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung); nur Plattformen und `SHA256SUMS` der gebauten Binaries |
+| `docs/maintainer/releasing.md` §1, §2, §3, §5, §6, §9, §11 | update | vom beschriebenen auf das ausgeführte Verfahren bringen, soweit A es liefert: Stand, Versionsquelle (`VERSION`), was der Tag auslöst, Release-Notes, Fehlertabelle (Zeilen `eingaben`, `binaries`, `github-release`) und Wiederanlauf; auf dem Stand aufbauend, den `slice-v1-abschluss-container-doku` liefert. §8 (Kontrollen nach dem Push der Registries), §2 und §7 (Formel keine Lieferung des Release) ergänzt B beziehungsweise gehören nicht hierher |
+| `docs/user/benutzerhandbuch.md`, `README.md` | geprüft, unverändert | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung); die Sätze über Plattformen und `SHA256SUMS` der gebauten Binaries stehen schon im Ist-Zustand, §7 |
 
 ## 4. Trigger
 
@@ -191,6 +191,154 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+Stand: Kopf der Lieferung ohne die Plan-Commits `4178d430` auf dem Zweig `impl-rel-a` (Basis 11a2ba91); Lauf im Dev-Container pgr-dev3 (Docker im Container), die drei Läufe nacheinander am Endstand.
+
+| Lauf | Ergebnis | Dauer |
+|---|---|---|
+| `make release-gegenprobe` | `release-gegenprobe: grün (200 Läufe)`: die unveränderte Kopie, 197 Mutationen, der Rekursionsschutz und die Probe der Fallliste; 169 Fälle (96 `p1-*`, 67 `p2-*` bis `p11-*`, 6 `p13-*`) | 161 s |
+| `make gates-schnell-gegenprobe` | Exit 0 (Namens- und Zuordnungsregel der Gegenproben mit `release-gegenprobe` in `GEGENPROBEN_CONTAINER`) | 63 s |
+| `make gates` | Exit 0 (darunter `workflows-check: 2 Datei(en) geprüft, kein Befund`, `test-container`, `test-postgres-versionen`, `docs-check`, `kopf-check`) | 508 s |
+
+Während der Arbeit nur die engsten Sensoren: `bash -n`, Teilläufe der Gegenprobe mit `GP_MUT` und `GP_ENTDECKE` (die roten Fälle je Mutation gemessen, dann die Erwartung im Skript gesetzt), `make workflows-check` und `make docs-check`.
+
+**Messung der Größe** (`AGENTS.md` §3.14): `git diff --numstat 11a2ba91..4178d430 -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` ergibt als Summe aus Einfügungen und Löschungen **1303** (`release-gegenprobe.sh` 957, `release.sh` 218, `releasing.md` 76, `release.yml` 38, `release.mk` 12, `harness/README.md` 1, `VERSION` 1). Schätzung des Architect 820 bis 1070; die Gegenprobe trägt 73 % (197 Mutationen mit je einer benannten Menge roter Fälle, 169 Fälle). Meldeschwelle 1000 und Marke 1300 sind überschritten. 2026-10-19 (Implementer): Entscheidung „weiter“ oder „schneiden“ steht aus, der Bericht an die Koordination nennt die Zahl.
+
+**Mutationstabelle** (`AGENTS.md` §3.10): Zusage · Mutation (Textersatz in einer Kopie von `release.sh` bzw. in `pruefe_release`; Namen wie in `tools/harness/release-gegenprobe.sh`) · roter Fall. Je Mutation sind genau die genannten Fälle rot, jede Mutation einmal gesehen (`GP_ENTDECKE=1`), die unveränderte Kopie ist grün. Bei mehr als sechs roten Fällen nennt die Zeile die Zahl und drei Namen; die vollständige Menge steht im Skript.
+
+| Zusage (Punkt von SPEC-067) | Mutation | roter Fall |
+|---|---|---|
+| 1: jede der 38 Zeilen des Textes steht in der Datei | Zeile n ist optional (`m-p1-zeile-n-optional`, n = 1 bis 38) | `p1-fehlt-n`; bei der Zeile mit `if:` auch `p1-bedingung-github-release` |
+| 1: jede Zeile hat genau den Wortlaut | Inhalt der Zeile n wird nicht verglichen (`m-p1-zeile-n-nicht-verglichen`, n = 1 bis 38) | `p1-geaendert-n`; bei der Zeile des Pins auch die fünf `p1-pin-*` |
+| 1: kein `pull_request_target` | eine Zeile mit `pull_request_target:` wird überlesen (`m-p1-zusatz-pull-request-target-erlaubt`) | `p1-zusatz-pull-request-target` |
+| 1: kein `secrets.ACTIONS_RUNNER_DEBUG` | eine Zeile mit diesem Geheimnis wird überlesen (`m-p1-zusatz-secrets-debug-erlaubt`) | `p1-zusatz-secrets-debug` |
+| 1: kein weiterer Schritt mit `uses:` | eine Zeile `actions/cache@` wird überlesen (`m-p1-zusatz-schritt-cache-erlaubt`) | `p1-zusatz-schritt-cache` |
+| 1: kein `environment:` | eine Zeile `environment:` wird überlesen (`m-p1-zusatz-environment-erlaubt`) | `p1-zusatz-environment` |
+| 1: kein `continue-on-error: true` | diese Zeile wird überlesen (`m-p1-zusatz-continue-on-error-erlaubt`) | `p1-zusatz-continue-on-error` |
+| 1/11: kein Schritt läuft nach einem roten (`always()`) | eine Zeile mit `always()` wird überlesen (`m-p1-zusatz-always-erlaubt`) | `p1-zusatz-always` |
+| 1a: kein `packages: write` | eine Zeile `packages: write` wird überlesen (`m-p1-zusatz-packages-write-erlaubt`) | `p1-zusatz-packages-write` |
+| 1: die Datei hat nur die Zeilen des Textes | die Zahl der Zeilen wird nicht verglichen (`m-p1-zusatzzeilen-erlaubt`) | 7 Fälle, darunter `p1-zusatz-always`, `p1-zusatz-continue-on-error`, `p1-zusatz-environment` |
+| 1: Pin aus 40 Hexziffern in Kleinschrift | Großbuchstaben zugelassen (`m-p1-pin-grossbuchstaben`) | `p1-pin-gross` |
+| 1: Pin aus genau 40 Hexziffern | 39 Ziffern zugelassen (`m-p1-pin-39-ziffern`) | `p1-pin-kurz` |
+| 1: Pin mit Kommentar `# <Tag>` | Kommentar optional (`m-p1-pin-ohne-kommentar`) | `p1-pin-ohne-tag` |
+| 1: der Tag-Kommentar ist nicht leer | leerer Kommentar zugelassen (`m-p1-pin-kommentar-ohne-text`) | `p1-pin-tag-leer` |
+| 1: der Pin gilt `actions/checkout` | eine andere Aktion zugelassen (`m-p1-pin-andere-action`) | `p1-pin-andere-action` |
+| 1: Kommentarzeilen zählen nicht | Kommentarzeilen werden verglichen (`m-p1-kommentarzeilen-nicht-ignoriert`) | `p1-kommentarzeile`, `p1-kommentarzeile-eingerueckt` |
+| 1: Leerzeilen zählen nicht | Leerzeilen werden verglichen (`m-p1-leerzeilen-nicht-ignoriert`) | `p1-leerzeile` |
+| 1: Kommentarzeile beginnt mit `#` | `#` irgendwo in der Zeile genügt (`m-p1-kommentar-irgendwo-in-der-zeile`) | `p1-gleich`, `p1-kommentarzeile`, `p1-kommentarzeile-eingerueckt`, `p1-leerzeile`, `p1-text-gleich` |
+| 1: Kommentarzeile darf eingerückt sein | nur `#` in Spalte 1 zählt (`m-p1-kommentar-nur-am-zeilenanfang`) | `p1-kommentarzeile-eingerueckt` |
+| 1: Reihenfolge `Eingaben`, `Binaries` | vertauschte Schritte werden angenommen (`m-p1-reihenfolge-eingaben-binaries-tauschbar`) | `p1-reihenfolge-eingaben-binaries` |
+| 1: Reihenfolge `Binaries`, `GitHub-Release` | vertauschte Schritte werden angenommen (`m-p1-reihenfolge-binaries-release-tauschbar`) | `p1-reihenfolge-binaries-release` |
+| 2: der Trockenlauf ruft weder `skopeo` noch `gh` | `binaries` ruft im Trockenlauf `skopeo` (`m-p2-trockenlauf-ruft-skopeo`) | `p2-trockenlauf-ohne-aussenwirkung` |
+| 2: `github-release` lehnt ohne Push von `refs/tags/v…` ab (je Schritt mit Außenwirkung) | der Aufruf der Prüfung entfällt im Schritt (`m-p2-github-release-ohne-ereignispruefung`) | `p2-aussenwirkung-ohne-push`, `p2-ref-kein-tag` |
+| 2/3 (1): Ereignis `push` | die Prüfung des Ereignisses entfällt (`m-p2-ereignis-nicht-geprueft`) | `p2-aussenwirkung-ohne-push`, `p3-ereignis-fehlt`, `p3-ereignis-unbekannt` |
+| 2/3 (1): Ref `refs/tags/v…` | die Prüfung des Refs entfällt (`m-p2-ref-nicht-geprueft`) | `p2-ref-kein-tag`, `p3-ohne-v`, `p3-reihenfolge-1-2` |
+| 2: Ref `refs/tags/v…` mit `v` | Muster `refs/tags/*` (`m-p2-ref-ohne-v-praefix`) | `p3-ohne-v`, `p3-reihenfolge-1-2` |
+| 2/3 (1): `workflow_dispatch` ist der Trockenlauf | Trockenlauf wird wie ein Lauf geprüft (`m-p2-trockenlauf-wie-lauf`) | 7 Fälle, darunter `p2-trockenlauf-ohne-aussenwirkung`, `p3-trockenlauf-gueltig`, `p3-trockenlauf-im-standard-zweig` |
+| 3: Prüfung (1) Ereignis und Ref | Aufruf entfernt (`m-p3-1-ereignis-entfernt`) | `p2-ref-kein-tag`, `p3-ereignis-fehlt`, `p3-ereignis-unbekannt`, `p3-ohne-v`, `p3-reihenfolge-1-2` |
+| 3: Prüfung (2) Form des Tags | Aufruf entfernt (`m-p3-2-tag-form-entfernt`) | 12 Fälle, darunter `p3-build-metadaten`, `p3-fuehrende-null`, `p3-fuehrende-null-minor` |
+| 3: Prüfung (3) Form von `VERSION` | Aufruf entfernt (`m-p3-3-version-datei-entfernt`) | 46 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-reihenfolge-gruende` |
+| 3: Prüfung (4) Tag gleich `v` plus `VERSION` | Aufruf entfernt (`m-p3-4-tag-gleich-entfernt`) | `p3-reihenfolge-4-5`, `p3-tag-ungleich-datei`, `p3-tag-ungleich-gross`, `p3-tag-ungleich-tag-kuerzer`, `p3-tag-ungleich-tag-laenger` |
+| 3: Prüfung (5) Zeile der Änderungshistorie | Aufruf entfernt (`m-p3-5-notes-entfernt`) | `p3-notes-abschnitt`, `p3-notes-abschnitt-ende`, `p3-notes-fehlen`, `p3-notes-ueberschrift-endet`, `p3-reihenfolge-5-6`, `p3-trockenlauf-notes-fehlen` |
+| 3: Prüfung (6) Commit im Standard-Zweig | Aufruf entfernt (`m-p3-6-standard-zweig-entfernt`) | `p3-nicht-im-standard-zweig`, `p3-nicht-im-standard-zweig-vorwaerts`, `p3-trockenlauf-im-standard-zweig`, `p3-trockenlauf-nicht-im-standard-zweig` |
+| 3: Reihenfolge der Gründe (1) vor (2) | (1) und (2) vertauscht (`m-p3-reihenfolge-1-2-vertauscht`) | `p2-ref-kein-tag`, `p3-ohne-v`, `p3-reihenfolge-1-2` |
+| 3: Reihenfolge der Gründe (2) vor (3) | (2) und (3) vertauscht (`m-p3-reihenfolge-2-3-vertauscht`) | 11 Fälle, darunter `p3-build-metadaten`, `p3-fuehrende-null`, `p3-fuehrende-null-minor` |
+| 3: Reihenfolge der Gründe (3) vor (4) | (3) und (4) vertauscht (`m-p3-reihenfolge-3-4-vertauscht`) | 46 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-reihenfolge-gruende` |
+| 3: Reihenfolge der Gründe (4) vor (5) | (4) und (5) vertauscht (`m-p3-reihenfolge-4-5-vertauscht`) | `p3-reihenfolge-4-5`, `p3-tag-ungleich-datei`, `p3-tag-ungleich-gross`, `p3-tag-ungleich-tag-kuerzer`, `p3-tag-ungleich-tag-laenger` |
+| 3: Reihenfolge der Gründe (5) vor (6) | (5) und (6) vertauscht (`m-p3-reihenfolge-5-6-vertauscht`) | `p3-reihenfolge-5-6` |
+| 3 (2): Tag hat die Form `v<SemVer>` | der Vergleich mit der Form entfällt (Länge bleibt) (`m-p3-form-entfernt`) | 11 Fälle, darunter `p3-build-metadaten`, `p3-fuehrende-null`, `p3-fuehrende-null-minor` |
+| 3 (2): Länge bis 100 Zeichen | die Prüfung entfällt (`m-p3-laenge-entfernt`) | `p3-zu-lang` |
+| 3 (2): 101 Zeichen sind zu lang | Grenze 101 (`m-p3-laenge-101`) | `p3-zu-lang` |
+| 3 (2): 100 Zeichen sind zugelassen | Grenze 99 (`m-p3-laenge-99`) | `p3-laenge-100` |
+| 3 (2): MAJOR ohne führende Null | `[0-9]+` für MAJOR (`m-p3-null-major`) | `p3-fuehrende-null`, `p3-reihenfolge-2-3` |
+| 3 (2): MINOR ohne führende Null | `[0-9]+` für MINOR (`m-p3-null-minor`) | `p3-fuehrende-null-minor` |
+| 3 (2): PATCH ohne führende Null | `[0-9]+` für PATCH (`m-p3-null-patch`) | `p3-fuehrende-null-patch` |
+| 3 (2): `MAJOR.MINOR.PATCH`, drei Teile | PATCH optional (`m-p3-kern-zwei-teile`) | `p3-zwei-teile` |
+| 3 (2): genau drei Teile | vierter Teil zugelassen (`m-p3-kern-vier-teile`) | `p3-vier-teile` |
+| 3 (2): Vorabversion nach `-` nicht leer | `v1.2.3-` zugelassen (`m-p3-vor-leer-erlaubt`) | `p3-leere-vorabversion` |
+| 3 (2): Bezeichner der Vorabversion nicht leer | leerer Bezeichner zwischen Punkten zugelassen (`m-p3-vor-leerer-bezeichner`) | `p3-leerer-bezeichner` |
+| 3 (2): keine Build-Metadaten | `+…` zugelassen (`m-p3-vor-build-metadaten`) | `p3-build-metadaten` |
+| 3 (2): Bezeichner durch `.` getrennt | nur ein Bezeichner zugelassen (`m-p3-vor-ein-bezeichner`) | `p3-tag-gueltig`, `p3-tag-ungleich-gross`, `p3-tag-ungleich-tag-kuerzer`, `p3-tag-ungleich-tag-laenger`, `p9-vorabversion-prerelease` |
+| 3 (2): numerischer Bezeichner ohne führende Null | jede Zeichenfolge zugelassen (`m-p3-bez-fuehrende-null`) | `p3-vorabversion-fuehrende-null` |
+| 3 (2): Zeichen `0-9A-Za-z-` | `_` zugelassen (`m-p3-bez-zeichen`) | `p3-ungueltiges-zeichen` |
+| 3 (2): Bezeichner mit Buchstaben | nur Zahlen zugelassen (`m-p3-bez-nur-zahlen`) | 9 Fälle, darunter `p2-trockenlauf-ohne-aussenwirkung`, `p3-laenge-100`, `p3-tag-gueltig` |
+| 3 (2): Ziffern in alphanumerischen Bezeichnern | Ziffern nicht zugelassen (`m-p3-bez-ohne-ziffern`) | `p3-tag-gueltig` |
+| 3 (2): Großbuchstaben | nicht zugelassen (`m-p3-bez-ohne-grossbuchstaben`) | `p3-tag-gueltig`, `p3-tag-ungleich-gross` |
+| 3 (2): Kleinbuchstaben | nicht zugelassen (`m-p3-bez-ohne-kleinbuchstaben`) | 9 Fälle, darunter `p2-trockenlauf-ohne-aussenwirkung`, `p3-laenge-100`, `p3-tag-gueltig` |
+| 3 (2): Bindestrich im Bezeichner | nicht zugelassen (`m-p3-bez-ohne-bindestrich`) | `p3-tag-gueltig` |
+| 3 (2): Präfix `v` | `v` optional (äquivalent, siehe unten) (`m-p3-form-v-optional`) | keiner (äquivalent) |
+| 3 (3): Form von `VERSION` | der Vergleich mit der Form entfällt (`m-p3-vform-entfernt`) | 9 Fälle, darunter `p3-reihenfolge-3-4`, `p3-trockenlauf-version-datei-form`, `p3-version-datei-form-crlf` |
+| 3 (3): LF am Ende | Zeilenende optional (`m-p3-vdatei-kein-lf`) | `p3-trockenlauf-version-datei-form`, `p3-version-datei-form-kein-lf` |
+| 3 (3): LF, nicht CRLF | CR vor LF zugelassen (`m-p3-vdatei-crlf`) | `p3-reihenfolge-3-4`, `p3-version-datei-form-crlf` |
+| 3 (3): keine Leerzeichen | Leerzeichen vorn und hinten zugelassen (`m-p3-vdatei-leerzeichen`) | `p3-version-datei-form-leerzeichen-hinten`, `p3-version-datei-form-leerzeichen-vorn` |
+| 3 (3): `<SemVer>` ohne `v` | `v` zugelassen (`m-p3-vdatei-v`) | `p3-version-datei-form-v` |
+| 3 (3): genau eine Zeile | mehrere Zeilen zugelassen (`m-p3-vdatei-mehrere-zeilen`) | `p3-version-datei-form-zwei-zeilen` |
+| 3 (4): Vergleich `v` plus `VERSION` | Vergleich ohne `v` (`m-p3-gleich-ohne-v`) | 37 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-reihenfolge-gruende` |
+| 3 (4): Zeichen für Zeichen | Groß- und Kleinschrift gleich (`m-p3-gleich-gross`) | `p3-tag-ungleich-gross` |
+| 3 (4): Zeichen für Zeichen | Tag darf `v<VERSION>` fortsetzen (`m-p3-gleich-praefix-tag-laenger`) | `p3-tag-ungleich-tag-laenger` |
+| 3 (4): Zeichen für Zeichen | Tag darf Anfang von `v<VERSION>` sein (`m-p3-gleich-praefix-tag-kuerzer`) | `p3-tag-ungleich-tag-kuerzer` |
+| 3 (5): Tabelle im Abschnitt `Änderungshistorie` | jede Tabelle der Datei zählt (`m-p3-notes-abschnitt-ignoriert`) | `p3-notes-abschnitt`, `p3-notes-abschnitt-ende`, `p3-notes-ueberschrift-endet`, `p9-notes-aus-abschnitt` |
+| 3 (5): Überschrift endet auf `Änderungshistorie` | Überschrift enthält das Wort (`m-p3-notes-ueberschrift-ende-ignoriert`) | `p3-notes-ueberschrift-endet` |
+| 3 (5): nur die Tabelle dieses Abschnitts | Abschnitt endet nicht an der nächsten Überschrift (`m-p3-notes-abschnitt-ende-ignoriert`) | `p3-notes-abschnitt-ende` |
+| 3 (5)/9: Zeile mit erster Zelle gleich der Version | Anfang der ersten Zelle genügt (`m-p3-notes-praefix`) | `p9-notes-zeile-der-version` |
+| 9: Text ist die dritte Zelle | zweite Zelle (`m-p3-notes-zelle-datum`) | `p9-notes-aus-abschnitt`, `p9-notes-aus-zelle`, `p9-notes-zeile-der-version` |
+| 3 (6): Commit liegt im Standard-Zweig | `merge-base` ohne `--is-ancestor` (`m-p3-anc-ohne-is-ancestor`) | `p3-nicht-im-standard-zweig`, `p3-nicht-im-standard-zweig-vorwaerts`, `p3-trockenlauf-nicht-im-standard-zweig` |
+| 3 (6): Commit liegt im Standard-Zweig | Argumente vertauscht (`m-p3-anc-umgekehrt`) | `p3-nicht-im-standard-zweig`, `p3-nicht-im-standard-zweig-vorwaerts`, `p3-trockenlauf-nicht-im-standard-zweig` |
+| 3 (6): Standard-Zweig aus `RELEASE_DEFAULT_BRANCH` | fest `origin/main` (`m-p3-standard-zweig-main`) | `p3-standard-zweig-aus-umgebung` |
+| 3 (6): beim Lauf Eingabefehler | wie im Trockenlauf nur ein Hinweis (`m-p3-lauf-nur-hinweis`) | `p3-nicht-im-standard-zweig`, `p3-nicht-im-standard-zweig-vorwaerts` |
+| 3 (6): im Trockenlauf kein Fehler | Trockenlauf wird wie der Lauf behandelt (`m-p3-trockenlauf-fehler`) | `p3-trockenlauf-im-standard-zweig`, `p3-trockenlauf-nicht-im-standard-zweig` |
+| 3 (6): der Hinweis nennt die Antwort | immer „liegt im“ (`m-p3-hinweis-immer-ja`) | `p3-trockenlauf-nicht-im-standard-zweig` |
+| 3 (6): im Trockenlauf steht die Antwort als Hinweis | kein Hinweis (`m-p3-hinweis-fehlt`) | `p3-trockenlauf-im-standard-zweig`, `p3-trockenlauf-nicht-im-standard-zweig` |
+| 2: Tag des Trockenlaufs ist `v<VERSION>` | Tag aus dem Ref (`m-p3-trockenlauf-tag-aus-ref`) | 7 Fälle, darunter `p2-trockenlauf-ohne-aussenwirkung`, `p3-trockenlauf-gueltig`, `p3-trockenlauf-im-standard-zweig` |
+| 4: Aufruf mit `VERSION=<Version>` | `VERSION=` fehlt im Aufruf (`m-p4-version-fehlt`) | 18 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 4: `DIST` außerhalb des Arbeitsbaums | `DIST=dist` (`m-p4-dist-im-baum`) | 18 Fälle, darunter `p10-nicht-im-log`, `p11-alte-marke`, `p11-wiederanlauf-release-teilweise` |
+| 4: `DIST` ist neu | das Skript legt das Verzeichnis vorher an (`m-p4-dist-vorher-angelegt`) | `p4-aufruf` |
+| 4: `sha256sum -c` grün | die Prüfung entfällt (`m-p4-summe-entfernt`) | `p10-nicht-im-log`, `p11-alte-marke`, `p11-reihenfolge-gruende`, `p4-summe-falsch` |
+| 4: genau die sechs Dateien plus `SHA256SUMS` | die Dateiliste wird nicht geprüft (`m-p4-liste-entfernt`) | `p4-datei-fehlt`, `p4-datei-zu-viel` |
+| 4/11: ein Bau, der scheitert, ist rot | Exit von `make` wird überlesen (`m-p4-make-fehler-ignoriert`) | `p4-make-scheitert` |
+| 9: Anhänge genau die sieben Dateien | ein achter Anhang (`m-p9-achter-anhang`) | `p11-wiederanlauf-release-teilweise`, `p11-wiederanlauf-release-vollstaendig`, `p9-anhaenge`, `p9-release-existiert-gleich` |
+| 9: `--prerelease` genau bei einer Vorabversion | immer (`m-p9-prerelease-immer`) | `p9-stabil-ohne-prerelease` |
+| 9: `--prerelease` genau bei einer Vorabversion | nie (`m-p9-prerelease-nie`) | `p9-vorabversion-prerelease` |
+| 9: `--verify-tag` | fehlt (`m-p9-ohne-verify-tag`) | `p9-aufruf` |
+| 9: `--title v<Version>` | fehlt (`m-p9-ohne-title`) | `p9-aufruf` |
+| 9: `--notes-file` | fehlt (`m-p9-ohne-notes-file`) | `p9-aufruf`, `p9-notes-aus-abschnitt`, `p9-notes-aus-zelle`, `p9-notes-zeile-der-version` |
+| 9: nicht als Entwurf | `--draft` (`m-p9-entwurf`) | `p9-aufruf` |
+| 9: abweichende `SHA256SUMS` am Release ist rot | der Vergleich entfällt (`m-p9-vergleich-entfernt`) | `p10-nicht-im-log`, `p9-release-existiert-abweichend` |
+| 9: `SHA256SUMS` wird nie überschrieben | Hochladen mit `--clobber` statt Fehler (`m-p9-ueberschreiben-statt-vergleichen`) | `p10-nicht-im-log`, `p9-release-existiert-abweichend` |
+| 9/11: fehlende Anhänge ohne Überschreiben | `--clobber` beim Hochladen (`m-p9-upload-clobber`) | `p11-wiederanlauf-release-teilweise`, `p9-release-existiert-gleich` |
+| 9/11: vorhandener Release wird ergänzt, nicht neu angelegt | `create` auch bei vorhandenem Release (`m-p9-create-trotz-vorhandenem-release`) | `p10-nicht-im-log`, `p11-wiederanlauf-release-teilweise`, `p11-wiederanlauf-release-vollstaendig`, `p9-release-existiert-abweichend`, `p9-release-existiert-gleich` |
+| 9/11: nur fehlende Anhänge werden hochgeladen | alle Anhänge (`m-p9-upload-alle`) | `p11-wiederanlauf-release-teilweise`, `p11-wiederanlauf-release-vollstaendig`, `p9-release-existiert-gleich` |
+| 9: Fehler von `gh release view` ist rot | jeder Fehler gilt als „nicht gefunden“ (`m-p9-view-fehler-wie-fehlend`) | `p10-nicht-im-log`, `p9-view-fehler` |
+| 10: kein Wert des Tokens in der Ausgabe (Fehler im Vergleich) | das Skript gibt `$GH_TOKEN` aus (`m-p10-token-bei-fehler`) | `p10-nicht-im-log` |
+| 10: kein Wert des Tokens in der Ausgabe (Fehler der Summe) | das Skript gibt `$GH_TOKEN` aus (`m-p10-token-bei-fehler-binaries`) | `p10-nicht-im-log` |
+| 10: kein `set -x` | `set -x` im Skript (`m-p10-set-x`) | `p10-nicht-im-log` |
+| 10: kein `env` | `env` im Fehlerfall (`m-p10-env-bei-fehler`) | `p10-nicht-im-log` |
+| 11: `binaries` läuft nicht nach rotem `eingaben` | die Marke wird nicht geprüft (`m-p11-binaries-ohne-eingaben-marke`) | `p11-alte-marke`, `p11-reihenfolge-gruende` |
+| 11: `github-release` läuft nicht nach rotem `binaries` | die Marke wird nicht geprüft (`m-p11-release-ohne-binaries-marke`) | `p11-alte-marke`, `p11-reihenfolge-gruende` |
+| 11: kein Schritt läuft mit der Marke eines früheren Laufs | `eingaben` löscht die Marken nicht (`m-p11-eingaben-loescht-marken-nicht`) | `p11-alte-marke` |
+| 11: kein Schritt läuft mit der Marke eines früheren Laufs | `binaries` löscht seine Marke nicht (`m-p11-binaries-loescht-marke-nicht`) | `p11-alte-marke` |
+| 13: `release.sh` räumt bei Ende | die Falle für EXIT fehlt (`m-p13-ende-falle-fehlt`) | `p13-ende` |
+| 13: `release.sh` räumt bei `SIGINT` | die Falle fehlt (`m-p13-int-falle-fehlt`) | `p13-sigint` |
+| 13: `release.sh` räumt bei `SIGTERM` | die Falle fehlt (`m-p13-term-falle-fehlt`) | `p13-sigterm` |
+| 13: Unterprozesse zuerst beendet (`SIGINT`) | sie werden nicht beendet (`m-p13-int-kinder-bleiben`) | `p13-sigint` |
+| 13: Unterprozesse zuerst beendet (`SIGTERM`) | sie werden nicht beendet (`m-p13-term-kinder-bleiben`) | `p13-sigterm` |
+| 13: erst Unterprozesse, dann Verzeichnis (`SIGINT`) | Verzeichnis vor dem Ende der Unterprozesse entfernt (`m-p13-int-verzeichnis-zu-frueh`) | `p13-sigint` |
+| 13: erst Unterprozesse, dann Verzeichnis (`SIGTERM`) | Verzeichnis vor dem Ende der Unterprozesse entfernt (`m-p13-term-verzeichnis-zu-frueh`) | `p13-sigterm` |
+| 13: die Gegenprobe räumt bei Ende | die Falle für EXIT fehlt (`m-p13-gegenprobe-ende-falle-fehlt`) | `p13-gegenprobe-ende` |
+| 13: die Gegenprobe räumt bei `SIGINT` | die Falle fehlt (`m-p13-gegenprobe-int-falle-fehlt`) | `p13-gegenprobe-sigint` |
+| 13: die Gegenprobe räumt bei `SIGTERM` | die Falle fehlt (`m-p13-gegenprobe-term-falle-fehlt`) | `p13-gegenprobe-sigterm` |
+| 13: Unterprozesse der Gegenprobe zuerst beendet (`SIGINT`) | sie werden nicht beendet (`m-p13-gegenprobe-int-kinder-bleiben`) | `p13-gegenprobe-sigint` |
+| 13: Unterprozesse der Gegenprobe zuerst beendet (`SIGTERM`) | sie werden nicht beendet (`m-p13-gegenprobe-term-kinder-bleiben`) | `p13-gegenprobe-sigterm` |
+| 13: erst Unterprozesse, dann Verzeichnis (Gegenprobe, `SIGINT`) | Verzeichnis zu früh entfernt (`m-p13-gegenprobe-int-verzeichnis-zu-frueh`) | `p13-gegenprobe-sigint` |
+| 13: erst Unterprozesse, dann Verzeichnis (Gegenprobe, `SIGTERM`) | Verzeichnis zu früh entfernt (`m-p13-gegenprobe-term-verzeichnis-zu-frueh`) | `p13-gegenprobe-sigterm` |
+
+**Ein grüner Mutant, äquivalent** (`AGENTS.md` §3.10): `m-p3-form-v-optional` (die Form des Tags verlangt das `v` nicht mehr) färbt keinen Fall. (a) Invariante: Wenn `pruefe_tag_form` läuft, beginnt der Tag mit `v`. (b) Ort: beim Lauf `aussenwirkung_erlaubt` über `pruefe_ereignis` (Ref `refs/tags/v*`, Exit 2 sonst), beim Trockenlauf `tag_ableiten` (`v` plus erste Zeile von `VERSION`); beide sind Zusage dieses Slice und eigene Mutationen (`m-p2-ref-ohne-v-praefix`, `m-p3-trockenlauf-tag-aus-ref`) färben Fälle. (c) Sonde: Eingaben `push` mit Ref `refs/tags/1.2.3`, `VERSION` `1.2.3`, Zeile der Version im Handbuch, gegen das Original und den Mutanten: beide Exit 2 mit dem Kennwort `ereignis`. Gegenprobe der Sonde: Ohne die Prüfung des Refs (Invariante aufgehoben) endet das Original mit `tag-form` und der Mutant mit `tag-ungleich`, beide Exit 2; die Sonde trennt also Original und Mutant am Kennwort, sobald die Invariante nicht mehr gilt. Gemessen am 2026-10-19 mit `bash <Kopie von release.sh> eingaben` im Dev-Container, Umgebung `RELEASE_EVENT=push`, `RELEASE_REF=refs/tags/1.2.3`: Original Kennwort `ereignis`, Exit 2 · Mutant `ereignis`, Exit 2 · Original ohne die Zeile `# P2ref` `tag-form`, Exit 2 · Mutant ohne die Zeile `# P2ref` `tag-ungleich`, Exit 2.
+
+**Trockenlauf auf GitHub:** nicht gefahren (der Auftrag des Implementers verbietet einen Push auf GitHub); der Beleg der DoD (Lauf-Kennung, Dauer, `SPEC-067` Punkt 12) steht aus. Gemessen auf dem Stand der Lieferung mit den Eingaben eines Trockenlaufs (`RELEASE_EVENT=workflow_dispatch`, `VERSION` `0.1.0-dev`): `bash tools/harness/release.sh eingaben` endet mit `release: eingaben: notes: die Änderungshistorie des Benutzerhandbuchs hat keine Zeile mit Text für 0.1.0-dev`, Exit 2, weil das Handbuch (letztes Kapitel: „Es gibt keine veröffentlichte Version.“) keine Tabelle führt.
+
+**Handbuch und README:** keine Zeile neu oder geändert. Gelesen gegen `make binaries` und `make test-container` (im grünen `make gates`): Voraussetzungen (sechs Plattformen, nur `linux/amd64` ausgeführt), Installation (`make binaries`, Namen mit `VERSION`, `SHA256SUMS`, `dist/` leer oder fehlend) und der Absatz von `README.md` stehen schon im Ist-Zustand; der Abschnitt zum Bezug vom GitHub-Release gehört `slice-erster-release-freigabe` (§1).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
