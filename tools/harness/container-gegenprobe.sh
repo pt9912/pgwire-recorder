@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # container-gegenprobe — prüft `binaries` und `test-container` (harness/mk/container.mk,
-# tools/harness/binaries.sh, run-container.sh, container-eingabe.sh) gegen die Punkte 1 bis 9,
+# tools/harness/binaries.sh, run-container.sh, container-smoke.sh, container-eingabe.sh) gegen die Punkte 1 bis 9,
 # 11 und 12 von SPEC-055 (harness/vertraege/SPEC-055-container-und-binaries.md) in Kopien des
 # Arbeitsbaums in einem Temp-Verzeichnis; der Arbeitsbaum bleibt unberührt. docker ist eine
 # Attrappe (über DOCKER): Sie protokolliert jeden Aufruf, führt Buch über Container, Netz und
@@ -187,7 +187,7 @@ fixture() {
   mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/.harness/state"
   cp "$wurzel/Makefile" "$wurzel/Dockerfile" "$w/"
   cp "$wurzel/harness/mk/integration.mk" "$wurzel/harness/mk/container.mk" "$w/harness/mk/"
-  cp "$wurzel/tools/harness/binaries.sh" "$wurzel/tools/harness/run-container.sh" "$wurzel/tools/harness/container-eingabe.sh" "$w/tools/harness/"
+  cp "$wurzel/tools/harness/binaries.sh" "$wurzel/tools/harness/run-container.sh" "$wurzel/tools/harness/container-smoke.sh" "$wurzel/tools/harness/container-eingabe.sh" "$w/tools/harness/"
   printf '#!/usr/bin/env bash\n: > marke-gegenprobe\n' > "$w/tools/harness/container-gegenprobe.sh"
 }
 
@@ -600,7 +600,7 @@ mut() {
   if [ "$ist" != "$soll" ]; then melde "Mutation '$name': erwartet rot: ${soll:-nichts}; rot sind: ${ist:-nichts}"; fi
 }
 
-L_=tools/harness/container-eingabe.sh B_=tools/harness/binaries.sh G_=tools/harness/run-container.sh F_=harness/mk/container.mk
+L_=tools/harness/container-eingabe.sh B_=tools/harness/binaries.sh G_=tools/harness/run-container.sh S_=tools/harness/container-smoke.sh F_=harness/mk/container.mk
 
 # --- Die unveränderte Kopie besteht jeden Fall; im Arbeitsbaum hängt test-container an GATE_CHECKS, die Gegenprobe steht in der Liste ---
 nur=""
@@ -650,7 +650,7 @@ mut p2-gueltig-minus "$L_" 'rest="0-9A-Za-z.+_-"' 'rest="0-9A-Za-z.+_"' p2-guelt
 mut p2-vorgabe "$F_" 'test-container: VERSION := 0.0.0-test' '' p2-vorgabe-test p2-vorgabe-test
 mut p2-dev-gate "$G_" %P2dev p2-dev-gate p2-dev-gate
 mut p2-dockerfile-x Dockerfile ' -X main.version=$VERSION' '' p2-dockerfile-x p2-dockerfile-x
-mut p2-dev "$G_" "'pgwire-recorder %s\\n' \"\$VERSION\"" "'pgwire-recorder %s\\n' dev" "p2-gueltig" p2-gueltig
+mut p2-dev "$S_" "'pgwire-recorder %s\\n' \"\$VERSION\"" "'pgwire-recorder %s\\n' dev" "p2-gueltig" p2-gueltig
 
 
 
@@ -722,30 +722,30 @@ mut p6-runtime-run Dockerfile 'USER nonroot' $'RUN true\nUSER nonroot' p6-runtim
 mut p7-server "$G_" %P7server p7-server-fremd p7-server-fremd
 mut p7-server-amd64 "$G_" 'amd64 | arm64) ;;' 'amd64) ;;' p7-server-arm64 p7-server-arm64
 mut p7-server-arm64 "$G_" 'amd64 | arm64) ;;' 'arm64) ;;' "p7-gruen p7-server-fremd" p7-gruen
-mut p7-tag "$G_" 'tag="$lauf:linux-$arch"' 'tag="$lauf:linux-amd64"' p7-server-arm64 p7-server-arm64
-mut p7-intern "$G_" 'network create --internal' 'network create' p7-intern p7-intern
-mut p7a-exit "$G_" '|| rot "version endet mit einem Exit-Code ungleich 0" # P7a-exit' '|| true # P7a-exit' p7a-exit p7a-exit
-mut p7a-ausgabe "$G_" %P7a-ausgabe p7a p7a-ausgabe-abweichend p7a-ohne-lf p7a-zusatzzeile
-mut p7a-lf "$G_" 'cmp -s "$werk/version" "$werk/version-soll"' '[ "$(cat "$werk/version")" = "$(cat "$werk/version-soll")" ]' p7a p7a-ohne-lf
-mut p7a-zeile "$G_" 'cmp -s "$werk/version" "$werk/version-soll"' 'cmp -s <(head -n1 "$werk/version") "$werk/version-soll"' p7a p7a-zusatzzeile
-mut p7b-leer "$G_" %P7a-leer "p7b-sicht-a-leer p7b-beide-leer" p7b-sicht-a-leer p7b-beide-leer
-mut p7b-eins "$G_" %P7a-eins p7b-ohne-eins p7b-ohne-eins
-mut p7b-pg-bereit "$G_" '|| rot "PostgreSQL nicht bereit"' '|| true' p7b-pg-nicht-bereit p7b-pg-nicht-bereit
-mut p7b-cp "$G_" '|| rot "die Aufzeichnung ist dem Container nicht zu entnehmen" # P7cp' '|| true # P7cp' p7b-cp-rot p7b-cp-rot
-mut p7b-aufz "$G_" %P7aufz p7b-aufzeichnung-leer p7b-aufzeichnung-leer
-mut p7-exit-rec "$G_" '[ "$c" = 0 ] ||' '[ "$c" = 0 ] || [ "$2" = record ] ||' "p7b-exit-rec p7c-exit-rep" p7b-exit-rec
-mut p7-exit-rep "$G_" '[ "$c" = 0 ] ||' '[ "$c" = 0 ] || [ "$2" = replay ] ||' "p7b-exit-rec p7c-exit-rep" p7c-exit-rep
-mut p7c-pg "$G_" %P7pg p7c-pg-lebt p7c-pg-lebt
-mut p7c-gleich "$G_" %P7gleich p7c-sicht-ungleich p7c-sicht-ungleich
-mut p7-terminal "$G_" 'run -d --name "$rec"' 'run -d -t --name "$rec"' p7-kein-terminal p7-kein-terminal
-mut p7-user "$G_" 'run -d --name "$rec"' 'run -d --user 0 --name "$rec"' p7-kein-user p7-kein-user
-mut p7-volume "$G_" 'run -d --name "$rec"' 'run -d -v /tmp:/tmp --name "$rec"' p7-kein-volume p7-kein-volume
-mut p7-volume-kurz "$G_" 'run -d --name "$rec"' 'run -dv /tmp:/tmp --name "$rec"' "p7-kein-volume p7-kein-user" p7-kein-volume
-mut p7-user-kurz "$G_" 'run -d --name "$rec"' 'run -d -u0 --name "$rec"' "p7-kein-volume p7-kein-user" p7-kein-user
-mut p7-mount "$G_" 'run -d --name "$rec"' 'run -d --mount type=tmpfs,dst=/x --name "$rec"' p7-kein-mount p7-kein-mount
-mut p7-cp-hinein "$G_" 'l "$docker" cp "$werk/aufzeichnung.yaml" "$rep:/tmp/aufzeichnung.yaml"' ':' p7-cp-hinein p7-cp-hinein
-mut p7-cp-entnehmen "$G_" 'l "$docker" cp "$rec:/tmp/aufzeichnung.yaml"' 'l "$docker" cp "$rec:/tmp/anders.yaml"' p7-cp-entnehmen p7-cp-entnehmen
-mut p7-rm-pg "$G_" 'l "$docker" rm -fv "$pg" > /dev/null' ':' p7-pg-vor-replay p7-pg-vor-replay
+mut p7-tag "$G_" 'container-smoke.sh" "$lauf:linux-$arch"' 'container-smoke.sh" "$lauf:linux-amd64"' p7-server-arm64 p7-server-arm64
+mut p7-intern "$S_" 'network create --internal' 'network create' p7-intern p7-intern
+mut p7a-exit "$S_" '|| rot "version endet mit einem Exit-Code ungleich 0" # P7a-exit' '|| true # P7a-exit' p7a-exit p7a-exit
+mut p7a-ausgabe "$S_" %P7a-ausgabe p7a p7a-ausgabe-abweichend p7a-ohne-lf p7a-zusatzzeile
+mut p7a-lf "$S_" 'cmp -s "$werk/version" "$werk/version-soll"' '[ "$(cat "$werk/version")" = "$(cat "$werk/version-soll")" ]' p7a p7a-ohne-lf
+mut p7a-zeile "$S_" 'cmp -s "$werk/version" "$werk/version-soll"' 'cmp -s <(head -n1 "$werk/version") "$werk/version-soll"' p7a p7a-zusatzzeile
+mut p7b-leer "$S_" %P7a-leer "p7b-sicht-a-leer p7b-beide-leer" p7b-sicht-a-leer p7b-beide-leer
+mut p7b-eins "$S_" %P7a-eins p7b-ohne-eins p7b-ohne-eins
+mut p7b-pg-bereit "$S_" '|| rot "PostgreSQL nicht bereit"' '|| true' p7b-pg-nicht-bereit p7b-pg-nicht-bereit
+mut p7b-cp "$S_" '|| rot "die Aufzeichnung ist dem Container nicht zu entnehmen" # P7cp' '|| true # P7cp' p7b-cp-rot p7b-cp-rot
+mut p7b-aufz "$S_" %P7aufz p7b-aufzeichnung-leer p7b-aufzeichnung-leer
+mut p7-exit-rec "$S_" '[ "$c" = 0 ] ||' '[ "$c" = 0 ] || [ "$2" = record ] ||' "p7b-exit-rec p7c-exit-rep" p7b-exit-rec
+mut p7-exit-rep "$S_" '[ "$c" = 0 ] ||' '[ "$c" = 0 ] || [ "$2" = replay ] ||' "p7b-exit-rec p7c-exit-rep" p7c-exit-rep
+mut p7c-pg "$S_" %P7pg p7c-pg-lebt p7c-pg-lebt
+mut p7c-gleich "$S_" %P7gleich p7c-sicht-ungleich p7c-sicht-ungleich
+mut p7-terminal "$S_" 'run -d --name "$rec"' 'run -d -t --name "$rec"' p7-kein-terminal p7-kein-terminal
+mut p7-user "$S_" 'run -d --name "$rec"' 'run -d --user 0 --name "$rec"' p7-kein-user p7-kein-user
+mut p7-volume "$S_" 'run -d --name "$rec"' 'run -d -v /tmp:/tmp --name "$rec"' p7-kein-volume p7-kein-volume
+mut p7-volume-kurz "$S_" 'run -d --name "$rec"' 'run -dv /tmp:/tmp --name "$rec"' "p7-kein-volume p7-kein-user" p7-kein-volume
+mut p7-user-kurz "$S_" 'run -d --name "$rec"' 'run -d -u0 --name "$rec"' "p7-kein-volume p7-kein-user" p7-kein-user
+mut p7-mount "$S_" 'run -d --name "$rec"' 'run -d --mount type=tmpfs,dst=/x --name "$rec"' p7-kein-mount p7-kein-mount
+mut p7-cp-hinein "$S_" 'l "$docker" cp "$werk/aufzeichnung.yaml" "$rep:/tmp/aufzeichnung.yaml"' ':' p7-cp-hinein p7-cp-hinein
+mut p7-cp-entnehmen "$S_" 'l "$docker" cp "$rec:/tmp/aufzeichnung.yaml"' 'l "$docker" cp "$rec:/tmp/anders.yaml"' p7-cp-entnehmen p7-cp-entnehmen
+mut p7-rm-pg "$S_" 'l "$docker" rm -fv "$pg" > /dev/null' ':' p7-pg-vor-replay p7-pg-vor-replay
 
 
 # --- Punkt 8: Reihenfolge der Gründe ---
@@ -760,8 +760,9 @@ mut p9-exit "$G_" %P9exit p9 p9-gruen-container p9-gruen-netz p9-gruen-tags p9-g
 mut p9-int "$G_" "trap 'beenden 130' INT # P9int" "trap 'kill -KILL \$\$' INT # P9int" p9-sigINT p9-sigINT-build-signal p9-sigINT-build-stage p9-sigINT-build-werk p9-sigINTg-build-signal p9-sigINTg-build-stage p9-sigINTg-build-werk p9-sigINT-psql-container p9-sigINT-psql-netz p9-sigINT-psql-signal p9-sigINT-psql-tags p9-sigINT-psql-volume p9-sigINT-psql-werk
 mut p9-term "$G_" "trap 'beenden 143' TERM # P9term" "trap 'kill -KILL \$\$' TERM # P9term" p9-sigTERM p9-sigTERM-build-signal p9-sigTERM-build-stage p9-sigTERM-build-werk p9-sigTERM-psql-container p9-sigTERM-psql-netz p9-sigTERM-psql-signal p9-sigTERM-psql-tags p9-sigTERM-psql-volume p9-sigTERM-psql-werk
 mut p9-volume-aufraeumen "$G_" 'rm -fv "$pg" "$rec" "$rep"' 'rm -f "$pg" "$rec" "$rep"' "p9-gruen p9-rot7 p9-sigINT-psql p9-sigTERM-psql" p9-sigINT-psql-volume p9-sigTERM-psql-volume
-mut p9-volume-replay "$G_" 'rm -fv "$pg" > /dev/null # P9pg-replay' 'rm -f "$pg" > /dev/null # P9pg-replay' "p7-pg-vor-replay p9-gruen p9-rot7 p9-sigINT-psql p9-sigTERM-psql" p7-pg-vor-replay p9-gruen-volume p9-rot7-volume
+mut p9-volume-replay "$S_" 'rm -fv "$pg" > /dev/null # P9pg-replay' 'rm -f "$pg" > /dev/null # P9pg-replay' "p7-pg-vor-replay p9-gruen p9-rot7 p9-sigINT-psql p9-sigTERM-psql" p7-pg-vor-replay p9-gruen-volume p9-rot7-volume
 mut p9-weiter "$G_" 'kill -TERM "$laeuft" 2> /dev/null || true' ':' p9 p9-sigINT-build-signal p9-sigINTg-build-signal p9-sigINT-psql-signal p9-sigTERM-build-signal p9-sigTERM-psql-signal
+mut p9-smoke-weiter "$S_" 'kill -TERM "$laeuft" 2> /dev/null || true' ':' p9 p9-sigINT-psql-signal p9-sigTERM-psql-signal
 mut p9-stage-exit "$B_" "trap 'rm -rf \"\$stage\"' EXIT" ':' p9 p9-binINT-stage p9-binTERM-stage p9-gruen-stage p9-rot4-stage p9-rot5-stage p9-rot6-stage p9-rot7-stage p9-sigINT-build-stage p9-sigINTg-build-stage p9-sigINT-psql-stage p9-sigTERM-build-stage p9-sigTERM-psql-stage
 mut p9-stage-int "$B_" "trap 'beenden 130' INT" "trap 'kill -KILL \$\$' INT" p9 p9-binINT-signal p9-binINT-stage
 mut p9-stage-term "$B_" "trap 'beenden 143' TERM" "trap 'kill -KILL \$\$' TERM" p9 p9-binTERM-signal p9-binTERM-stage p9-sigINT-build-signal p9-sigINT-build-stage p9-sigINTg-build-signal p9-sigINTg-build-stage p9-sigTERM-build-signal p9-sigTERM-build-stage
