@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-replay-semantik · **Geschlossen:** 2026-10-06
 **Hervorgegangen:** — keine —
+**Bezug:** — keine —

@@ -6,3 +6,4 @@
 **Welle:** [welle-replay-semantik](welle-replay-semantik.md)
 **Archiviert mit:** welle-replay-semantik · **Geschlossen:** 2026-10-06
 **Hervorgegangen:** [slice-v1-abschluss-betrieb](../../done/welle-v1-abschluss/slice-v1-abschluss-betrieb.md) · [slice-v1-abschluss-einspielen](../../done/welle-v1-abschluss/slice-v1-abschluss-einspielen.md)
+**Bezug:** LH-FA-10, LH-FA-13, LH-FA-14, LH-FA-17, LH-FA-18, LH-QA-05
