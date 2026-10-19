@@ -1,3 +1,5 @@
 **Stand:** offen
 
 Unter der Schwelle (1×). Adresse der offenen Hälfte: `slice-harness-ci` setzt den Eintrag des Moduls `workflows` in `.d-check.yml` mit `ci.yml` und prüft die Pins zum ersten Mal an einer echten Datei (§1, DoD Liefer-Punkt 1 und §6 dort, mit der Kennung des Gebers `slice-harness-ci-workflows`; geprüft nach `AGENTS.md` §3.13). Kein Ausgang `geplant`: die Zuweisung gehört ab 3× dem Lese-Schritt.
+
+Kein Auftreten, Vermerk (`slice-harness-ci`, Urteil des Planners, 2026-10-19): Der Eintrag `workflows` an der echten Datei `ci.yml` meldet 0 Befunde; im gepinnten Image (Digest `3e0b9779…`) werden 41 Ziffern, Großschrift, `@main` und ein fehlender Tag-Kommentar rot (Implementer und Verifikation gemessen), und der grüne Lauf `39189651083` auf GitHub fuhr `make docs-check` in `make gates`. Die Adresse hat angenommen und geliefert. Offen bleibt, was nicht gefahren ist: `.yaml`-Dateien, die Blockform von `uses:`, ein Nicht-Hex-Zeichen im SHA und `#` ohne Leerzeichen vor dem Tag; `SPEC-064` Punkt 1 gibt die beiden letzten Formen als Grenze an `make docs-check` ab, ohne dass sie gegen das Image gefahren sind (Verifikation V-1). Der Zähler bleibt 1×.

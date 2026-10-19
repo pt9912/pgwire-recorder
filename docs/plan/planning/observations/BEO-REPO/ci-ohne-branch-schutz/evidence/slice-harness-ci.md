@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci
+**Fund:** Risiko 4 aus §6 („Die CI ist ohne Branch-Schutz ein Hinweis, kein Sperrriegel“), Ausgang *weiter offen* bei der Closure. Die Läufe `39189651083` und `39190523174` endeten grün, der Lauf `39190523004` mit einem Verstoß gegen die Range rot (`gh run view`); ob ein roter Lauf einen Merge hält, hängt allein an der Einstellung auf GitHub, die weder der Slice noch ein Gate prüft. Quelle: Slice-Plan §6 und §7 (Planner, Closure, 2026-10-19).
