@@ -374,6 +374,8 @@ Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` me
 5. Punkt 2 (1) „nicht leer“: `welle-` ohne Rest ist eine ungültige Form (Fall `p2-form-welle-nur-praefix`). Frage: bestätigt?
 6. Plan (Planner, nicht Vertrag): §1 „Befund“, §2 Liefer-Punkt 3 und §5 nennen als Erwartung eine Waise (`LH-FA-19`); gemessen sind vorher sieben, nachher keine (oben). §3 ist in der Aufteilung der Fragmente (`archiv-bezug.mk` und `archiv-bezug-gegenprobe.mk`) schon richtig.
 
+**Stop-Hook** (`.claude/hooks/stop-require-gates.sh`, Eingabe `{\"stop_hook_active\": false}`): Nach `make gates` am Endstand und einer Änderung allein von §7 (Positivliste) mit `make gates-schnell` (17 s): Antwort `approve`. Probe: eine Zeile in `tools/harness/archiv-bezug.sh` angehängt, dieselbe Eingabe: `block` („A changed path is not on the inert list“); die Zeile zurückgenommen: `approve`.
+
 - **Was hat funktioniert:** —
 - **Was ging anders als geplant:** —
 - **Steering-Loop-Eintrag:** —
