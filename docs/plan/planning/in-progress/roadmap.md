@@ -16,7 +16,6 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 `Welle:`-Feld der Slices in `in-progress/`. Ziel, Trigger und
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
-- [welle-erster-release](../welle-erster-release.md)
 - [welle-v1-nachtrag](../welle-v1-nachtrag.md)
 - [welle-dev-container](../welle-dev-container.md)
 - [welle-gegenproben-und-mutanten](../welle-gegenproben-und-mutanten.md)
@@ -45,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | erreicht — [welle-walking-skeleton-results](../done/welle-walking-skeleton-results.md) |
 | M2 | welle-extended-query | Clients mit Standardtreibern (Extended Query) funktionieren mit Host/Port-Umstellung: Abnahmeszenario 7 nachweisbar | erreicht — [welle-extended-query-results](../done/welle-extended-query-results.md) |
 | M3 | welle-replay-semantik, welle-v1-abschluss; wellenlos `slice-harness-abdeckung-gate`, `slice-harness-coverage` | Produkt fertig bis auf zwei Nachträge: alle Anforderungen (MUSS und SOLL) außer `LH-FA-19` (Homebrew) und dem `CancelRequest` ohne Schlüssel (`LH-FA-05.e`) umgesetzt, die Abnahmeszenarien 1 bis 10 und 12 bis 18 nachweisbar | offen |
-| M4 | welle-erster-release | erster Release veröffentlicht | offen |
+| M4 | welle-erster-release | erster Release veröffentlicht | erreicht — [welle-erster-release-results](../done/welle-erster-release-results.md) |
 | M5 | welle-v1-nachtrag | Homebrew-Formel im Tap, Abnahmeszenario 11 (Homebrew) nachgewiesen, `CancelRequest` ohne Schlüssel behandelt: alle Anforderungen (MUSS und SOLL) umgesetzt | offen |
 
 ## Abhängigkeitsgraph
@@ -95,6 +94,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | welle-extended-query | 2026-10-05 | [welle-extended-query-results](../done/welle-extended-query-results.md) |
 | welle-replay-semantik | 2026-10-06 | [welle-replay-semantik-results](../done/welle-replay-semantik-results.md) |
 | welle-v1-abschluss | 2026-10-18 | [welle-v1-abschluss-results](../done/welle-v1-abschluss-results.md) |
+| welle-erster-release | 2026-10-19 | [welle-erster-release-results](../done/welle-erster-release-results.md) |
 
 ## Historische Trigger-Verschiebungen
 

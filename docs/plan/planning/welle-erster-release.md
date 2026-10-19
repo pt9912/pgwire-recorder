@@ -98,5 +98,5 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-traceability.md`
 beiden Zeiger unten sind so zu schreiben, wie sie vom Ruheort `done/` auflösen,
 nicht vom Schreibort.
 
-Ergebnis: `welle-erster-release-results.md` als Geschwister im Ruheort `done/` (entsteht bei Closure).
+Ergebnis: `welle-erster-release-results.md` als Geschwister im Ruheort `done/`.
 Zähler: Beobachtungs-Register `../observations/README.md` (eine Ebene über dem Ruheort).
