@@ -135,9 +135,9 @@ dasteht.
 16. **Plattform und Aufrufarten von `make`.** **Entschieden:** `SPEC-064` Kopf, Plattform (`linux/amd64`, `ubuntu-24.04`; andere nicht zugesagt) und Punkt 14 (kein Fall: kein Hook und kein Stand liest das Ergebnis).
 17. **Teilung der Gegenprobe.** **Entschieden:** `SPEC-064` Kopf („Zwei Slices, zwei Ziele“): dieser Slice liefert `ci-gegenprobe` (Fragment `harness/mk/ci.mk`, Skript `tools/harness/ci-gegenprobe.sh`) mit den Fällen `p1-*` bis `p9-*`, ohne Docker und ohne `make`; der Eintrag `workflows` in `.d-check.yml` (Punkt 13) gehört diesem Slice.
 
-18. **Abbruch und Herunterfahren von `ci-gegenprobe`.** **Entschieden:** `SPEC-064` Punkt 18 (Aufräumen bei Ende, `SIGINT`, `SIGTERM`; Fälle `p18-sigint`, `p18-sigterm`; ohne Unterprozesse bei dieser Gegenprobe, die Mutation „Unterprozesse nicht beendet“ entfällt).
+18. **Abbruch und Herunterfahren von `ci-gegenprobe`.** **Entschieden:** `SPEC-064` Punkt 18 (Aufräumen bei Ende, `SIGINT`, `SIGTERM`; Fälle `p18-sigint`, `p18-sigterm`; die Mutation „Unterprozesse nicht beendet“ gilt auch hier).
 
-19. **Meldungstexte, Reihenfolge innerhalb einer Stufe, Zusatzzeile aus Leerraum, Tag-Kommentar, Hinweis bei Fehler** (Rückgabe des Implementers). **Entschieden:** `SPEC-064` Punkt 8 (Wortlaut nicht zugesagt), Punkt 9 (Reihenfolge innerhalb einer Stufe nicht zugesagt), Punkt 1 (leere Zeilen und Kommentarzeilen frei; Leerraum-Zeile nicht zugesagt; Tag beginnt mit einem Zeichen, das kein Leerzeichen ist, Fall `p1-pin-tag-leer`).
+19. **Meldungstexte, Reihenfolge innerhalb einer Stufe, Zusatzzeile aus Leerraum, Tag-Kommentar, Hinweis bei Fehler** (Rückgabe des Implementers). **Entschieden:** `SPEC-064` Punkt 8 (Wortlaut nicht zugesagt außer Variablenname und Hinweis auf `fetch-depth: 0`), Punkt 9 (Reihenfolge innerhalb einer Stufe nicht zugesagt), Punkt 1 (leere Zeilen und Kommentarzeilen frei; Leerraum-Zeile nicht zugesagt; Tag beginnt mit einem Zeichen, das kein Leerzeichen ist, Fall `p1-pin-tag-leer`).
 
 **Fragen an den Nutzer** (jede mit Empfehlung des Planners; eine Empfehlung ist keine Entscheidung):
 
