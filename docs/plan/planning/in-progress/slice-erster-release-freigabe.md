@@ -132,8 +132,8 @@ Architect die Randformen aus §6 (`AGENTS.md` §3.12).
   Pipeline, der den Diff über eine Review-Sitzung hebt; Schnitt dann: *Scan* (DoD-Punkt 1)
   und *Freigabe mit erstem Tag* (DoD-Punkte 2 und 3). Marke (Metrik nach `AGENTS.md` §3.14): die
   Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'`
-  liegt über 1200, Tests und Gegenprobe eingeschlossen; Basis: beim Anspruch (HEAD vor dem
-  Anspruch, hier einzutragen). Schätzung des Planners in dieser Metrik (2026-10-17, ohne Basis
+  liegt über 1200, Tests und Gegenprobe eingeschlossen; Basis: 760c51d4 (HEAD vor dem
+  Anspruch). Schätzung des Planners in dieser Metrik (2026-10-17, ohne Basis
   gemessen): Scan in der Pipeline 120 bis 200, Gegenprobe des Scans mit Attrappe das Doppelte
   (240 bis 400), `docs/maintainer/releasing.md` §5 und §10 150 bis 250, Handbuch und `README.md`
   40 bis 80, zusammen 550 bis 930 (die Abschnitte zum Bezug im Handbuch und die Anpassung der Zeilenliste der Gegenprobe aus den Sendungen vom 2026-10-19 kommen hinzu: rund 60 bis 120, zusammen 610 bis 1050, Mitte 830, 69 % der Marke; Planner, Schätzung ohne Messung; die Sendung aus `slice-erster-release-veroeffentlichung` vom 2026-10-19 fügt höchstens das Nachziehen des Musters von `gh release view` mit Fall und Mutation hinzu, 20 bis 60, zusammen 630 bis 1110, Mitte 870, 73 % der Marke; die Sendung aus `slice-erster-release-veroeffentlichung-image` vom 2026-10-19 fügt höchstens das Nachziehen der Muster der Wortlaute von `skopeo` hinzu (Muster, Attrappe, Fall und Mutation je Wortlaut, 30 bis 80), zusammen 660 bis 1190, Mitte 925, 77 % der Marke, obere Grenze 99 %; der Messwert aus jenem Slice, Faktor Gegenprobe zu Produktcode rund 3,7 statt 2, ist in dieser Schätzung nicht eingerechnet, der Planner rechnet sie beim Anspruch damit nach); die Schätzung überschreitet die Marke nicht, ein Schnitt vor dem
