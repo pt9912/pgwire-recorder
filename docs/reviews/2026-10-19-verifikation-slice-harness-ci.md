@@ -1,6 +1,6 @@
 # Verifikation: slice-harness-ci
 
-**Rolle:** Verifier. **Datum:** 2026-10-19. **Spanne:** Basis `39f1ce8a` bis `fc63d5ad` (Zweig `impl-ci`). **Gegenstand:** [slice-harness-ci](../plan/planning/in-progress/slice-harness-ci.md) gegen DoD, [SPEC-063](../../harness/vertraege/SPEC-063-workflows-check.md), [SPEC-064](../../harness/vertraege/SPEC-064-ci.md), [ADR-0050](../plan/adr/0050-ci-auf-github-actions.md) und `AGENTS.md` §3.9 bis §3.14.
+**Rolle:** Verifier. **Datum:** 2026-10-19. **Spanne:** Basis `39f1ce8a` bis `fc63d5ad` (Zweig `impl-ci`). **Gegenstand:** [slice-harness-ci](../plan/planning/done/slice-harness-ci.md) gegen DoD, [SPEC-063](../../harness/vertraege/SPEC-063-workflows-check.md), [SPEC-064](../../harness/vertraege/SPEC-064-ci.md), [ADR-0050](../plan/adr/0050-ci-auf-github-actions.md) und `AGENTS.md` §3.9 bis §3.14.
 
 Die Review-Reports (Zweig `rev-ci`, Runde 1 und 2) sind nicht als Beleg gewertet; alles unten ist in diesem Lauf selbst erzeugt. Der Code ist seit `7d80d9f2` unverändert (`git diff 7d80d9f2..fc63d5ad -- tools harness .github .d-check.yml` zeigt nur `SPEC-064`, 4 + 4 Zeilen), die Belege des Implementers gelten damit für den Endstand.
 
