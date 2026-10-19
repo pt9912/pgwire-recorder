@@ -6,3 +6,4 @@
 **Welle:** [welle-erster-release](welle-erster-release.md)
 **Archiviert mit:** welle-erster-release · **Geschlossen:** 2026-10-19
 **Hervorgegangen:** — keine —
+**Bezug:** LH-FA-01, LH-FA-19, LH-QA-01, LH-QA-03

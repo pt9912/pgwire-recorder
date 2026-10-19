@@ -6,3 +6,4 @@
 **Welle:** [welle-erster-release](welle-erster-release.md)
 **Archiviert mit:** welle-erster-release · **Geschlossen:** 2026-10-19
 **Hervorgegangen:** — keine —
+**Bezug:** — keine —
