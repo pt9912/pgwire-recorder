@@ -115,7 +115,9 @@ Der Zähler steht in [`../observations/`](../observations/). Was in dieser Welle
 
 ## Archivierung
 
-(Wird mit der Archivierung der Zeitdokumente ergänzt.)
+- `make archive-welle WELLE=welle-erster-release` (Träger `.harness/state/bin/ai-harness-init`) hat 7 Slice-Dateien (6 Mitglieder, 1 wellenloser seit der letzten Closure: `slice-harness-doc-trace-archiv`) und den Welle-Plan nach `done/welle-erster-release/archiv.zip` (171792 Bytes) archiviert, Stubs daneben; zwei Commits (reiner Move, dann Archiv, Stubs und Verweis-Nachzug über 12 Dateien). Review-Reports archivierte der Lauf keine (Zählung des Werkzeugs: 0); `docs/reviews/` bleibt unverändert. Die Zeile `Bezug` der Stubs schrieb `make archiv-bezug WELLE=welle-erster-release` (7 Stubs, eigener Commit).
+- Geltungsbereich der Sensoren nach dem Lauf: `make docs-check` ist grün (0 Befunde); der Commit-Träger sucht eine Slice-Kennung mit `docs/plan/planning/*/<kennung>.md` und findet die Stubs; `make doc-trace` liest die Stubs über die Zeile `Bezug` (die Zeilen zu `LH-FA-16` und `LH-QA-03` nennen `slice-erster-release-freigabe` weiter).
+- Der Lauf hat keinen Pfad in `.claude/` oder `AGENTS.md` nachgezogen (`git diff` über beide leer).
 
 ## Verifikation
 
