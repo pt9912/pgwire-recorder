@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-035` · `SPEC-055` (Punkt 7: der Smoke wird ausgelagert, der Text von `SPEC-055` bleibt) · `SPEC-063` und `SPEC-064` (gelesen: Gate der Workflows und Konventionen der CI) · `SPEC-067` (Fassung B: Punkte 1b, 2 (Ergänzung), 3 (7), 5, 6, 7, 8, 9 (Vorbedingung), 10 (Registries), 11 (Zeilen der Registries), 12 (Ergänzung), 13 bis 15 (Ergänzung); Zuordnung in der Tabelle des Vertrags)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-19.
 
