@@ -1,0 +1,38 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: release-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      RELEASE_EVENT: ${{ github.event_name }}
+      RELEASE_REF: ${{ github.ref }}
+      RELEASE_SHA: ${{ github.sha }}
+      RELEASE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Eingaben
+        run: bash tools/harness/release.sh eingaben
+      - name: Binaries
+        run: bash tools/harness/release.sh binaries
+      - name: GitHub-Release
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/harness/release.sh github-release
