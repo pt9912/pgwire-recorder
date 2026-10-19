@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-harness-lh-links-pflicht](../../open/slice-harness-lh-links-pflicht.md)
+**Bezug:** — keine —
