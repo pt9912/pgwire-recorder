@@ -1,0 +1,458 @@
+# Slice slice-harness-doc-trace-archiv: Archivierte Slices tragen ihre Anforderungen in der Matrix (`make archiv-bezug`)
+
+**Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
+Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
+wechselt nur durch `git mv`, siehe
+Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
+Übernimmt ein anderer Slice den Gegenstand oder entfällt er, geht diese Datei
+aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
+Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
+(§Ein Slice, dessen Gegenstand ein anderer übernimmt).
+
+**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; eingesammelt wird er von der nächsten Welle-Closure.
+Angelegt am 2026-10-19 nach Befund des Nutzers: `make doc-trace` zeigte neun Waisen, seit `welle-v1-abschluss` archiviert ist (Messung des Planners; im Lauf des Werkzeugs gemessen sind es vorher sieben und nachher keine, §7).
+
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Prüfbarkeit durch Werkzeuge des Harness, Messmethode 4; das Werkzeug dieses Slice ist keine Zusage des Produkts). Betroffen in der Matrix von `make doc-trace`, nicht geändert: `LH-FA-04`, `LH-FA-08`, `LH-FA-14`, `LH-FA-15`, `LH-FA-16`, `LH-FA-19`, `LH-QA-04`, `LH-QA-05`, `LH-RB-02` (Waisen laut §1; geliefert wird keine davon). Keine aktive ADR; ob die Form des Stubs eine ADR verlangt, entscheidet der Architect (§6).
+
+**Berührte Spec-Stellen:** `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt) · `SPEC-068` (neu; nächste freie Nummer nach `SPEC-067`, `SPEC-065` und `SPEC-066` sind gehalten; die Nummer vergibt der Architect; Vertrag in `harness/vertraege/`, Ort nach `MR-002`, vor dem ersten Code-Commit)
+
+**Verantwortlich:** pt9912 (Zweig impl-dt)
+
+**Autor:** pt9912 (Entwurf: Planner). **Datum:** 2026-10-19.
+
+---
+
+## 1. Ziel und Abgrenzung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
+ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung** (Out-of-Scope-Disziplin
+des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
+Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
+zusammen mit der Begründungs-Pflicht je Punkt.
+
+**Befund (gemessen am 2026-10-19, `make doc-trace` im Klon, d-check-Image aus `DCHECK_REF`, Quelltext von d-check gelesen):**
+`trace.slices.dir` ist `docs/plan/planning/done`, und d-check liest dieses Verzeichnis **rekursiv** (`DiscoverFiles`, `walkMarkdown`):
+die 97 Stubs unter `done/welle-*/` werden gefunden und tragen ihren Namen als Slice. Sie zählen aber nur für die Anforderungs-Kennungen,
+die im Text der Datei stehen, und ein Stub trägt keine (nur Archiv-Zeiger, `BEO-`, `ADR-` und Folge-Slices in `Hervorgegangen:`). Eine Probe
+mit `**Bezug:** LH-FA-14, LH-FA-15` in einem Stub senkte die Waisen von neun auf sieben (Änderung zurückgenommen). Die Konfiguration
+`trace.slices` ist also nicht die Ursache, und die Zeile in `harness/README.md` §Werkzeuge („ein archivierter Slice unter
+`done/<welle-id>/` zählt nicht“) beschreibt sie falsch. Die neun Waisen: `LH-FA-04`, `-08`, `-14`, `-15`, `-16`, `-19`,
+`LH-QA-04`, `-05`, `LH-RB-02`. Aus den Köpfen der Volltexte in den vier `archiv.zip` (Schätzung des Planners mit `unzip` und `awk`, nicht mit dem
+Werkzeug gemessen) blieb danach nach Schätzung eine Waise (`LH-FA-19`); gemessen sind es vorher sieben und nachher keine, weil zwei der neun schon zählten und der Rest über ein lebendes Dokument gedeckt ist (Messung in §7).
+
+**Ziel:** `make archiv-bezug` liest aus `docs/plan/planning/done/<welle-id>/archiv.zip` den Kopf des Volltexts jedes Slice, sammelt die
+Kennungen `LH-FA-<n>`, `LH-QA-<n>`, `LH-RB-<n>` aus der Zeile `**Bezug:**` und schreibt sie als Zeile `**Bezug:**` in den Stub
+(idempotent, sonst ändert es nichts); angewandt auf die vier vorhandenen Archive zählt `make doc-trace` die archivierten Slices wieder, ohne
+dass `.d-check.yml` sich ändert.
+
+**Aufnahme:** Die Liefer-Punkte sind (1) das Werkzeug mit seinem Vertrag, (2) seine Gegenprobe, (3) die Anwendung auf die 97 Stubs mit der
+Berichtigung der Zeile in `harness/README.md`. Die Konfiguration `trace.slices` bleibt unverändert (Befund oben: Rekursion ist da).
+
+**Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
+
+- Eine Änderung der Archivierung in `ai-harness-init` (`archive-welle` soll die Zeile `Bezug:` selbst schreiben, damit künftige Stubs sie
+  tragen) — anderer Vorgang (Klasse 3): Das Werkzeug gehört einem anderen Repo. Der Slice stellt dort einen **Antrag** (Text im Plan,
+  Weitergabe durch den Nutzer): `archive-welle` übernimmt die Kennungen der Anforderungen (Präfix aus `harness/conventions.md`) aus dem
+  Kopf des Volltexts in den Stub, in `Hervorgegangen:` oder in einer eigenen Zeile. Bis dahin gilt für jede künftige Archivierung ein Lauf
+  von `make archiv-bezug`; das ist eine Handlung, kein Sensor (siehe nächster Punkt).
+- Ein Sensor, der einen Stub ohne `Bezug:` rot färbt, oder die Aufnahme von `archiv-bezug` in `GATE_CHECKS` — anderer Vorgang: Das Werkzeug
+  schreibt, es prüft nicht; ein Sensor wäre ein vierter Liefer-Punkt und eine Zusage über die Archivierung eines fremden Werkzeugs.
+  Ob der Architect einen Modus „prüfen ohne zu schreiben“ im Werkzeug für nötig hält, ist Frage 1 in §6; ohne Antwort bleibt es beim
+  Schreiben. Eine Adresse gibt es dafür nicht: Kein Slice in diesem Repo nimmt es an.
+- Ein Antrag an d-check — Klasse 3: Das Werkzeug ist Bestand eines anderen Repos und liest bereits rekursiv. Als **Antrag** (Text im Plan)
+  bleibt, dass `spec/spezifikation.md` von d-check die Rekursion von `trace.slices.dir` ausdrücklich zusagt; eine Änderung am Quelltext verlangt
+  dieser Slice nicht.
+- Die Stubs der Wellen (`welle-*-results.md` flach in `done/`) und die Review-Reports — Bestand bleibt bewusst stehen: Sie sind keine Slices,
+  `file-pattern` trifft sie nicht, und die Ergebnisnotiz bleibt vollständig und flach (Modul 6, Schritt 4).
+- Ein Rückschreiben von `Berührte Spec-Stellen`, ADR-Kennungen oder Bezug auf `SPEC-`/`ARC-` — Bestand bleibt bewusst stehen: Die Matrix
+  braucht nur die Anforderungs-Kennungen, und jede weitere Kennung im Stub vergrößerte das Risiko, dass das Doku-Gate (Linkpflicht der
+  ADR-Kennungen) gegen Stubs meldet.
+- Benutzerhandbuch, `README.md`, Produkt-Code, `spec/` — Schicht-Abgrenzung: Der Slice ändert Werkzeug, Vertrag, eine Zeile der Gate-Tabelle
+  und Planung; das Produkt zeigt kein neues Verhalten (`AGENTS.md` §3.11).
+- Ein Vergleich, ob die Anforderung im Volltext *geliefert* oder nur *genannt* ist („beschriebenes Verhalten, nicht geändert“) — Bestand
+  bleibt bewusst stehen: `d-check` zählt in lebenden Slices genauso jede Nennung im Text; das Werkzeug übernimmt die Nennung der Zeile
+  `Bezug:` und urteilt nicht darüber.
+
+Was hier steht, ist die Grenze, an der ein wachsender Slice sich messen lässt: Wer später etwas
+mitnimmt, das hier ausgeschlossen war, hat den Plan **geändert**, nicht nur ergänzt.
+
+## 2. Definition of Done
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
+gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
+Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
+
+- [x] **Liefer-Punkt 1 (Werkzeug und Vertrag):** `tools/harness/archiv-bezug.sh` mit dem Fragment `harness/mk/archiv-bezug.mk`
+      (Ziel `archiv-bezug`, `.PHONY`, Rezept ohne `$(MAKE)`; Werkzeug, kein Gate, nicht in `GATE_CHECKS`) und dem Vertrag `SPEC-068`
+      in `harness/vertraege/` (Eintrag im Index und in der Historie von `harness/vertraege/README.md`), der die Randformen aus §6 entscheidet.
+      Aufruf: `make archiv-bezug` für alle Archive unter `docs/plan/planning/done/*/archiv.zip`, `make archiv-bezug WELLE=<welle-id>` für eines.
+      Das Werkzeug schreibt nur die Stubs und committet nichts.
+- [x] **Liefer-Punkt 2 (Gegenprobe):** `make archiv-bezug-gegenprobe` (Fragment `harness/mk/archiv-bezug-gegenprobe.mk`, Skript
+      `tools/harness/archiv-bezug-gegenprobe.sh`, Liste `GEGENPROBEN_CONTAINER` nach `SPEC-060` Punkt 2, nicht `GATE_CHECKS`) in Temp-Repos mit selbst
+      gebauten Archiven, ohne Docker: je Zusage und je Element einer Aufzählung von `SPEC-068` ein Fall und eine Mutation, die genau die benannten
+      Fälle rot färbt (`AGENTS.md` §3.10); die Zeile im Gate-Index von `harness/README.md` §Sensors nennt Ziel, Vertrag und Bindung.
+- [x] **Liefer-Punkt 3 (Anwendung und Berichtigung):** `make archiv-bezug` ist über die vier Archive (`welle-walking-skeleton`,
+      `welle-extended-query`, `welle-replay-semantik`, `welle-v1-abschluss`; 97 Stubs) gelaufen, das Ergebnis in **einem** Inhalts-Commit je
+      Welle; `make doc-trace` zeigt danach die Waisen, die §7 mit Zahl und Namen nennt (gemessen: vorher sieben, nachher keine; `LH-FA-19` zählt über einen lebenden Slice); die Zeile von `make doc-trace`
+      in `harness/README.md` §Werkzeuge nennt die Regel an den Schreiber (ein Stub trägt seine Anforderungen in `**Bezug:**`; Quelle der Matrix ist
+      `trace:` in `.d-check.yml`) statt der falschen Beschreibung des Verhaltens (`AGENTS.md` §3.11).
+- [x] Mutation je Zusage der Gegenprobe selbst (`AGENTS.md` §3.10), vom Implementer rot gesehen; der Bericht nennt je Zusage: Zusage · Mutation · roter Test.
+- [x] Wirkung auf bestehende Gates gemessen und in §7 belegt: `make docs-check` (Stubs mit Anforderungs-Kennungen ohne Befund, einschließlich
+      der Matrix-Regeln für die Klasse Slice), `make kopf-check` (liest nur `open/`, `next/`, `in-progress/`), `make abdeckung-check` (liest `docs/user/`,
+      unberührt), und der Lauf des Stop-Hooks über Positivliste und Dateiliste.
+- [x] `make gates` grün; `make archiv-bezug-gegenprobe` und `make gates-schnell-gegenprobe` (Namensregel der Gegenproben) grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+
+## 3. Plan (vor Code)
+
+Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
+§Was ist eine Sub-Area? — diese Liste liefert die **Pfad-Kandidaten** für §8,
+nicht die Antwort: Pfad-Berührung ist nicht hinreichend, und eine
+Aussagen-Berührung steht hier gar nicht.
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `harness/vertraege/SPEC-068-archiv-bezug.md` | neu | Vertrag mit den Randformen aus §6, vor dem ersten Code-Commit; Index und Historie in `harness/vertraege/README.md` |
+| `tools/harness/archiv-bezug.sh` | neu | bash, netzlos (Meldungen mit Präfix und Stichwörtern nach Punkt 2, leere Menge mit der Zeile `keine Stubs`); liest `archiv.zip` mit `unzip -p`, schreibt die Zeile `**Bezug:**` in jeden Stub; Pfad der Welle und Prüfung vor dem ersten Schreiben |
+| `harness/mk/archiv-bezug.mk` | neu | Ziel `archiv-bezug`, `.PHONY`, kein Anschluss an `GATE_CHECKS` |
+| `tools/harness/archiv-bezug-gegenprobe.sh` | neu | Fälle und Mutationen je Zusage in Temp-Repos; nach `SPEC-068` — Happy/Boundary/Negative |
+| `harness/mk/archiv-bezug-gegenprobe.mk` | neu | Ziel `archiv-bezug-gegenprobe`, `GEGENPROBEN_CONTAINER += …` |
+| `harness/README.md` | update | Zeile für `make archiv-bezug` unter Werkzeuge, Zeile für `make archiv-bezug-gegenprobe` unter Sensors, Berichtigung der Zeile `make doc-trace` |
+| `docs/plan/planning/done/welle-*/slice-*.md` (97 Stubs) | update | je Stub eine Zeile `**Bezug:**` hinter `**Hervorgegangen:**`, erzeugt vom Werkzeug, in einem Commit je Welle |
+
+Tests und Gates: neue Gegenprobe `archiv-bezug-gegenprobe`. Reihenfolge: Vertrag (Architect), Werkzeug, Gegenprobe gegen es, Gate-Verdrahtung
+und README-Zeilen, zuletzt die Anwendung auf die Stubs (damit der Beleg in §7 den Lauf des fertigen Werkzeugs zeigt).
+
+**Optional — Ansatz als Liste:**
+
+- Der Kopf eines Volltexts endet an der ersten Zeile `---`; die Zeile `**Bezug:**` kann über mehrere Zeilen laufen (bis zur nächsten Zeile, die
+  mit `**` beginnt, oder bis zum Kopfende). Aus diesem Bereich liest das Werkzeug Tokens der Form `LH-(FA|QA|RB)-[0-9]+` — rein lexikalisch,
+  wie d-check selbst liest (`LH-(?:FA|QA|RB)-\d+`); ein Suffix wie `.e` in `LH-FA-05.e` gehört nicht zur Kennung.
+- Der Stub trägt Kennungen, nicht Adressen (Zitier-Form des Stub-Vorlage): die Zeile enthält die Kennungen **ohne** Link.
+- Antrag an `ai-harness-init` und an d-check stehen als Text in §1 (Klasse 3), nicht als Arbeit.
+
+## 4. Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Trigger je Lifecycle-Übergang und WIP-Limit.
+
+**Start** (`next` → `in-progress`): wellenlos und von den Release-Slices unabhängig; er blockiert kein Gate und keinen Schritt. Die Stelle in der
+Reihenfolge ist Entscheidung des Nutzers. WIP-Limit 1 je Lauf: Läuft ein zweiter Implementer parallel zu `slice-erster-release-veroeffentlichung`,
+trägt `Verantwortlich:` Person und Zweig (`modul-05`, parallel). Die Basis der Metrik ist der Stand des Hauptzweigs vor dem Anspruch.
+
+**Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
+
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von
+  `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness`, Tests und Gegenprobe eingeschlossen, **über 800**; die 97 Stubs
+  unter `docs/plan/planning/` zählen nicht in die Summe (Daten, vom Werkzeug erzeugt, je Stub eine Zeile; ihre Zahl prüft §2 Punkt 3). Basis: dc7f0a69 (HEAD vor dem Anspruch);
+  beim Anspruch bestätigt der Implementer sie oder ersetzt sie
+  durch den Stand des Hauptzweigs vor dem Anspruch. **Meldeschwelle 650:** Erreicht die Summe 650, hält der Implementer an und meldet dem Planner,
+  bevor er weiterarbeitet (`BEO-REPO/meldeschwelle-ohne-artefakt`). Schätzung des Planners in dieser Metrik: 480 bis 640, Mitte 560, 70 % der Marke.
+  Aufbau: Skript rund 110, Fragmente rund 30, Vertrag rund 110 bis 140 (Zeilen, `harness/` zählt mit), README-Zeilen rund 6, Gegenprobe 230 bis 340
+  (das Doppelte des Produktcodes, `AGENTS.md` §3.14; Fälle: Zip fehlt, beschädigt, Stub ohne Eintrag, leerer Kopf, mehrere Anforderungen, Suffix,
+  mehrzeiliges `Bezug:`, vorhandene Zeile gleich und verschieden, `WELLE=`, Aufrufarten von `make`). Faktor Tests zu Produktcode: 2 bis 3
+  (Beleg: `slice-harness-ci-workflows`, Roadmap-Drift-Log 2026-10-18, Messung 899 gegen Schätzung 545 bis 695); eine eigene Messung für
+  eine Gegenprobe über einem bash-Werkzeug dieser Größe gibt es nicht (keine Messung).
+- `in-progress` → `next`: Der Architect findet, dass der Stub neben `Bezug:` weitere Kennungen tragen muss (ADR, `SPEC-`), oder dass die Form
+  des Stubs eine Adaption nach `harness/conventions.md` verlangt (§6, Frage 3) — dann gehört die Entscheidung vor den Code, und der Slice geht
+  zurück, wenn sie den Umfang über die Marke hebt.
+- `in-progress` → `open`: `make docs-check` meldet gegen die Stubs mit Anforderungs-Kennungen einen Befund, den eine Änderung von `.d-check.yml`
+  verlangt (Änderung des Gates, `AGENTS.md` §3.6), oder das gepinnte d-check liest nicht mehr rekursiv — der Slice wartet auf die Entscheidung.
+
+**Basis der Metrik:** dc7f0a69 (Stand des Hauptzweigs vor dem Anspruch).
+
+## 5. Closure-Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
+Lerneintrag; ohne ihn ist der Slice nur abgelegt.
+
+DoD vollständig; `make doc-trace` zeigt nach dem Lauf die in §7 genannte Zahl von Waisen (gemessen: vorher sieben, nachher keine); Review-Report liegt vor;
+`make gates` grün; Closure-Notiz mit Lerneintrag (Form: neuer Sensor `make archiv-bezug-gegenprobe`, oder benannte Spec-Lücke zu `archive-welle`:
+Der Stub verliert die Anforderungs-Kennung, die die Matrix braucht).
+
+## 6. Risiken und offene Punkte
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
+**einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
+dasteht.
+
+**Vom Architect entschieden am 2026-10-19 (Ort: `SPEC-068`):** (1) Modus „prüfen“: **nein** (`SPEC-068` Punkt 11 a). (2) Wirkung auf die Matrix als Zusage mit Docker-Fall: **nein**; einmalige Messung in §7 (Punkt 11 b). (3) Form: eigene Zeile `**Bezug:**` hinter `**Hervorgegangen:**`, keine Adaption `MR-<NNN>` (die Kennungen der Anforderungen gehören zu denen, die den Vorgang überlebt haben, Baseline `modul-06-roadmap.md` Schritt 4), Vorlage unverändert (Kopf von `SPEC-068`). (4) Eine ADR: **nicht nötig** (kein Gate gelockert, keine Architekturregel; Gründe im Kopf von `SPEC-068`). (5) Nummer `SPEC-068`. (6) Alle Randformen unten: entschieden in `SPEC-068`, je Zeile mit Punkt. (7) `unzip` und `zip`: in Dev- und Gegenproben-Container gemessen vorhanden (`/usr/bin/unzip` 6.0, `/usr/bin/zip`); der Lauf prüft das Werkzeug vorab (Exit 2, kein Überspringen). (8) Wirkung auf `docs-check`, `kopf-check`, `abdeckung-check` und den Stop-Hook: Vorhersage in `SPEC-068` Punkt 11 c, Messung in §7.
+
+Die Fragen unten bleiben als Herkunft stehen:
+
+1. *Modus „prüfen“:* Soll das Werkzeug neben dem Schreiben einen Lauf ohne Änderung bieten, der mit Exit 1 endet, wenn ein Stub die Zeile nicht
+   trägt (kein Gate, kein Anschluss an eine Kette)? Vorschlag des Planners: nein (ein Sensor ohne Anschluss prüft nichts, und `archive-welle`
+   upstream soll die Zeile schreiben); der Architect entscheidet, mit Folge für Zählung und Marke.
+2. *Wirkung auf die Matrix als Zusage:* Die Gegenprobe läuft ohne Docker. Soll ein Fall zeigen, dass d-check die Zeile liest (Image aus
+   `DCHECK_REF`, wie `range-konfiguration-gegenprobe`)? Vorschlag des Planners: nein; der Satz in `harness/README.md` nennt nur die Regel an den
+   Schreiber (`AGENTS.md` §3.11), die Wirkung steht als einmalige Messung in §7. Sagt der Architect ja, wächst die Gegenprobe um einen Docker-Fall
+   und gehört dann zu den Gegenproben mit Image.
+3. *Form des Stubs:* Die Stub-Vorlage der Baseline führt „vier Dinge und sonst nichts“ (Identität, Archiv-Zeiger, Zustand, die Kennungen, die den
+   Vorgang überlebt haben). Ist eine eigene Zeile `**Bezug:**` eine Adaption nach `harness/conventions.md` (`MR-<NNN>`, mit ADR) oder zählen die
+   Anforderungs-Kennungen zu „den Kennungen, die überlebt haben“ (dann reicht eine Entscheidung im Vertrag)? Alternative: die Kennungen in
+   `Hervorgegangen:` schreiben. Vorschlag des Planners: eigene Zeile (kein Parsen der von `ai-harness-init` geschriebenen Zeile, einfache
+   Idempotenz) und keine MR, weil die Kennungen zur Zitier-Form des Stubs gehören; der Architect entscheidet, und die Vorlage der Baseline
+   (`archiv-stub-slice.template.md`) bleibt unverändert.
+4. *Eine ADR?* Neue Werkzeuge dieser Art tragen eine ADR mit Entscheidung und Gründen ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), [ADR-0049](../../adr/0049-nachweis-aus-anderer-umgebung-uebernehmen.md)); der Architect entscheidet, ob
+   „Anforderungen im Stub statt Konfiguration von d-check“ eine ist (`AGENTS.md` §3.8: die ADR zeigt mit `Schärft:` auf `SPEC-068`).
+
+**Randformen des Werkzeugs** (`AGENTS.md` §3.12; Ort der Entscheidung: `SPEC-068`; Vorschlag des Planners je Zeile, entschieden ist erst, was der
+Architect in den Vertrag schreibt):
+
+- **Entschieden:** `SPEC-068` Punkt 4 (Leerwert `**Bezug:** — keine —`, zweiter Lauf ohne Änderung). *Leerer Kopf* (kein `**Bezug:**` im Volltext, oder kein Token): Vorschlag: die Zeile `**Bezug:** — keine —` (Leerwert der Vorlage), damit der Stub
+  als verarbeitet gilt und der zweite Lauf nichts ändert; Fall und Mutation.
+- **Entschieden:** `SPEC-068` Punkt 3 (alle Stubs geprüft vor dem ersten Schreiben, Exit 1, alle Befunde genannt). *Stub ohne Eintrag im Archiv* (Datei `slice-*.md` im Welle-Verzeichnis, aber kein Eintrag gleichen Pfads in `archiv.zip`): Vorschlag: Exit 2 vor dem
+  ersten Schreiben, die Meldung nennt den Stub; keine Datei der Lauf-Menge ändert sich.
+- **Entschieden:** `SPEC-068` Punkt 2 (Exit 2, Reihenfolge: Form der Welle, Verzeichnis, `unzip`, Archiv fehlt, Archiv beschädigt). *Archiv fehlt* (Welle-Verzeichnis ohne `archiv.zip`; `WELLE=` unbekannt) und *Zip beschädigt* (`unzip -t` scheitert): Vorschlag: Exit 2 vor dem ersten
+  Schreiben, ohne Änderung, mit Namen; Reihenfolge der Gründe (`AGENTS.md` §3.12): Eingabe der Welle, Archiv fehlt, Archiv beschädigt, Stub ohne Eintrag.
+- **Entschieden:** `SPEC-068` Punkt 5. *Mehrere Anforderungen:* sortiert, ohne Duplikate, durch `, ` getrennt; Vorschlag der Ordnung: `LH-FA`, `LH-QA`, `LH-RB`, innerhalb nach Zahl
+  (nicht bytewise: `LH-FA-9` vor `LH-FA-10`).
+- **Entschieden:** `SPEC-068` Punkt 4. *Mehrzeiliges `Bezug:` und Suffixe* (`LH-FA-05.e`, `LH-QA-03 und -04`): Vorschlag: gelesen werden nur volle Tokens `LH-(FA|QA|RB)-[0-9]+`; die Kurzform `-04`
+  ist keine Kennung (d-check liest sie ebenso nicht); die Kennung vor dem Suffix zählt.
+- **Entschieden:** `SPEC-068` Punkt 6. *Schon vorhandene Zeile:* gleich → keine Änderung (Bytes, Zeitstempel); abweichend → Vorschlag: nicht überschreiben, Exit 1 mit Stub und beiden Werten
+  (eine von Hand gepflegte Zeile geht nicht verloren); zwei Zeilen `**Bezug:**` im Stub → Exit 1.
+- **Entschieden:** `SPEC-068` Punkte 7 und 8 (CRLF im Stub ist Befund; Volltext mit CRLF nicht zugesagt). *Stelle der Zeile:* hinter `**Hervorgegangen:**`, vor einer Leerzeile; fehlt `**Hervorgegangen:**`: Vorschlag Exit 1 (Stub hat nicht die Form der Vorlage).
+  Letzte Zeile ohne Zeilenumbruch: Zeile wird angehängt; CRLF im Stub: nicht zugesagt (`BEO-REPO/zeilenende-crlf-im-gelesenen-wert`), Entscheidung des Architect.
+- **Entschieden:** `SPEC-068` Punkt 9 (ein Aufruf nach dem anderen; gleichzeitige nicht zugesagt). *Aufruf-Voraussetzung:* ein Aufruf nach dem anderen im Arbeitsbaum; der Lauf braucht keinen sauberen Baum und committet nicht. Gleichzeitige Aufrufe sind nicht
+  zugesagt (Entscheidung offen).
+- **Entschieden:** `SPEC-068` Punkt 10 (Fälle `-n`, `-q`, `-t`, `-i`, `MAKEFLAGS`). *Aufrufarten des Treibers* (`AGENTS.md` §3.12): das Werkzeug liefert kein Ergebnis, das ein Hook oder ein Gate glaubt; Vorschlag: `make -n` druckt und schreibt
+  nichts (Rezept ohne `$(MAKE)`), `-q` und `-t` ändern nichts, `-i` ändert am Exit nichts; der Architect bestätigt oder streicht die Nennung mit Grund.
+- **Entschieden:** `SPEC-068` Kopf, Plattform. *Plattform* (`AGENTS.md` §3.12, `LH-QA-03`): geprüft nur unter Linux mit bash und `unzip`; macOS und Windows als Grenze im Vertrag (akzeptiertes Negativ). `unzip`
+  ist im Dev-Container vorhanden (`/usr/bin/unzip`); ob die Container der Gegenproben es führen, belegt der Implementer vor dem Code (nicht gemessen).
+
+**Risiken:**
+
+- Künftige Archivierungen schreiben den Stub weiter ohne Anforderungs-Kennung, und die Waisen kehren zurück, ohne dass ein Gate es meldet (`make doc-trace` ist
+  kein Gate). — **Ausgang:** weiter offen → `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` (neu, 1×, `offen`; bis `ai-harness-init` den Antrag aus §1 aufnimmt; die
+  Handlung bis dahin ist `make archiv-bezug` nach jeder Archivierung)
+- Die Zeile `**Bezug:**` im Stub verletzt eine Prüfung, die ich nicht gemessen habe (Matrix-Regeln des Doku-Gates für die Klasse Slice, Linkpflicht, Form-Prüfung eines
+  Stubs). — **Ausgang:** entfallen (Grund: `make docs-check` meldet nach dem ersten Lauf über 3 Stubs und am Endstand 0 Befunde, `make kopf-check` und `make abdeckung-check` Exit 0; Messung in §7)
+- Die Nennung im Kopf ist keine Lieferung (`LH-…` nur zitiert), und die Matrix zählt mehr als geliefert. — **Ausgang:** entfallen (Grund: `d-check` zählt in lebenden Slices jede Nennung im Text; das Werkzeug übernimmt die
+  Nennung der Zeile `Bezug:` und urteilt nicht darüber, §1 letzter Ausschluss; die 12 Stubs ohne Kennung im Kopf tragen `— keine —`, `SPEC-068` Punkt 4)
+- Das Werkzeug ändert 97 Dateien in einem Lauf; ein Fehler in der Mitte hinterließe einen halben Stand. — **Ausgang:** entfallen (Grund: Das Gegenmittel trägt. Alle Stubs und Archive werden vor dem ersten Schreiben geprüft
+  (`SPEC-068` Punkt 3, Fälle `p3-alle-befunde`, `p2-keine-teilschreibung`, Mutation `m-p3-schreiben-vor-pruefung`). Scheitert das Schreiben selbst, endet das Werkzeug mit Exit 2 ohne Temp-Datei
+  und ohne weiteren Stub (`p3-schreiben-scheitert`); ein halber Stand bleibt dann möglich, ist aber Grenze im Vertrag und ohne Verlust, weil der zweite Aufruf fortsetzt und der dritte nichts ändert
+  (Verifikation, Bruch von Hand, `md5sum`))
+
+**Entschieden vom Architect am 2026-10-19 nach dem Review** (`SPEC-068` Punkte 2, 3, 6, 7): Schreibfehler endet mit Exit 2 (Stichwort `Schreiben fehlgeschlagen`, Temp-Datei entfernt, kein weiterer Stub); fehlende Wurzel Exit 2; gleiche Zeile an falscher Stelle Befund; eine genannte Welle ohne Stub und ohne Archiv ist die leere Menge (Exit 0); Modus und Besitzer nach `mv` sind Grenze; Gegenprobe bash ≥ 4.3.
+
+## 7. Closure-Notiz
+
+Closure am 2026-10-19 (Planner, `/close-welle`-Anweisung für wellenlose Slices); die Messungen aus §2 (Waisen vor und nach dem Lauf, Gates) stehen darunter.
+
+### Belege des Implementers
+
+Zweig `impl-dt`, Basis der Metrik `dc7f0a69`. Commits (alle mit Kennung): `408d4bba` Werkzeug und Fragment · `45f66843` Gegenprobe, Fragment, Gate-Index (`harness/README.md`) · `7ee8887e`, `38689308`, `c1d6e8e6`, `197dbcd2` je ein Inhalts-Commit der Stubs (3 + 4 + 5 + 85 = 97) · `58b9627c` Zeile zu `make doc-trace` · `ec94f93b` Wächter ohne Wirkung entfernt, Fall `p1-eine-ohne-stub` · Merge von `origin/arch-dt2` (Entscheidungen des Architect zu `SPEC-068`) · `e6a5e03b` Werkzeug und Gegenprobe nach diesen Entscheidungen · Merge von `origin/rev-dt` (Review-Runde 1) und `origin/arch-dt3` (Entscheidungen zu Schreibfehler, Wurzel, falscher Stelle, Welle ohne Stub) · `4dec8155` Behebung der Befunde F-1 bis F-10. Der Vertrag `SPEC-068` ist vom Implementer unverändert (Stand `arch-dt2`). · Merge von `origin/ver-dt` (Verifikation) und `origin/arch-dt4` · `9388da0f` Verifikation V-1 und V-5.
+
+**Metrik** (`AGENTS.md` §3.14): Summe aus Einfügungen und Löschungen von `git diff --numstat dc7f0a69..9388da0f -- tools harness` = **630** (Marke 800, Meldeschwelle 650 nicht erreicht; Schätzung 470 bis 710). Darin liegen der Vertragstext von `SPEC-068` aus `arch-dt2` bis `arch-dt4` und die Zeilen von `harness/README.md` (3 Einfügungen, 1 Löschung); vor `arch-dt2` waren es 504, vor `arch-dt3` 552, vor der Verifikation 625. Die 97 Stubs sind nicht gezählt.
+
+**Waisen vor und nach dem Lauf** (`make doc-trace`, Image aus `DCHECK_REF`):
+
+| Stand | Waisen |
+|---|---|
+| vor dem ersten Lauf (`5f68ebef`) | 34 Anforderung(en), **7** Waise(n): `LH-FA-04`, `LH-FA-08`, `LH-FA-14`, `LH-FA-15`, `LH-QA-04`, `LH-QA-05`, `LH-RB-02` |
+| nach `welle-walking-skeleton` (3 Stubs) | 6 |
+| nach allen vier Wellen (`197dbcd2`), unverändert am Endstand | 34 Anforderung(en), **0** Waise(n) |
+
+Abweichung von der Erwartung des Plans (§1, §2 Punkt 3, §5: neun vor, eine danach, `LH-FA-19`): vor dem Lauf waren es sieben (`LH-FA-16` und `LH-FA-19` zählten schon), und `LH-FA-19` trägt in der Matrix `slice-erster-release-veroeffentlichung` (flach in `done/`). Nach dem Lauf gibt es keine Waise. Zweiter Lauf von `make archiv-bezug` über alle Wellen: `git status` leer, Exit 0. Von den 97 Zeilen tragen 12 den Leerwert `— keine —` (Kopf ohne Kennung) und 19 genau `LH-QA-07` (`grep` über die Stubs).
+
+**Läufe am Endstand** (`9388da0f`, Klon `pgr-dev2`, nacheinander):
+
+| Lauf | Ergebnis | Dauer |
+|---|---|---|
+| `make archiv-bezug-gegenprobe` | grün (128 Läufe: 127 Mutationen und die unveränderte Kopie, 92 Fälle) | 1 min 5 s |
+| `make gates-schnell-gegenprobe` (Namensregel der Gegenproben) | grün | 1 min 12 s |
+| `make gates` | grün, Exit 0, Nachweis geschrieben | 4 min 36 s |
+| `make docs-check` | 1221 Datei(en) geprüft, 0 Befunde (auch nach dem ersten Lauf über 3 Stubs und am Endstand) | 2 s |
+| `make kopf-check` | Exit 0 | unter 1 s |
+| `make abdeckung-check` | Exit 0 | unter 1 s |
+
+Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` meldet nichts gegen die Zeile, `kopf-check` und `abdeckung-check` unberührt, wie vorhergesagt. Die Wirkung auf die Matrix ist Messung, keine Zusage (Punkt 11 b): `doc-trace` oben. Der Lauf des Stop-Hooks steht am Ende dieses Abschnitts.
+
+**Mutationen** (`AGENTS.md` §3.10; Zusage · Mutation · roter Fall; rot sind genau die genannten Fälle, die Gegenprobe verlangt das je Mutation; jeder der 92 Fälle steht in mindestens einer Liste, die Gegenprobe prüft das). Die Gegenprobe läuft ohne Docker, das Problem „Mutant kommt nicht im Build an“ besteht nicht: jede Mutation ist eine Kopie unter eigenem Pfad.
+
+| Zusage (Punkt von SPEC-068) | Mutation (Textersatz) | rote Fälle |
+|---|---|---|
+| 1: flache Dateien in done/ bleiben unberührt | `m-p1-done-selbst-zaehlt` | p1-welle-flach |
+| 1: die Zeile steht auf stdout | `m-p1-keine-stubs-auf-stderr` | p1-eine-ohne-stub, p1-leere-menge, p2-welle-ohne-stub-ohne-archiv |
+| 1: die Zeile nur bei leerer Menge | `m-p1-keine-stubs-immer` | p1-alle |
+| 1: leere Menge ⇒ Zeile `archiv-bezug: keine Stubs` | `m-p1-keine-stubs-still` | p1-eine-ohne-stub, p1-leere-menge, p2-welle-ohne-stub-ohne-archiv |
+| Schnittstelle: WELLE=… erreicht das Skript | `m-p1-make-ohne-welle` | p1-make-welle |
+| 1: ohne <welle-id> jedes Verzeichnis mit Stub | `m-p1-nur-erste-welle` | p1-alle, p2-keine-teilschreibung, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
+| 1: Stubs sind nur slice-*.md, nie welle-*.md | `m-p1-welle-datei-zaehlt` | p1-welle-datei |
+| 1: mit <welle-id> genau diese Welle | `m-p1-welle-ignoriert` | p1-eine, p1-make-welle |
+| 1/2: eine Welle ohne Stub gehört nicht zur Menge (auch die genannte, ohne Archiv) | `m-p1-welle-ohne-stub-zaehlt` | p1-eine-ohne-stub, p1-leere-menge, p1-ohne-stub, p2-welle-ohne-stub-ohne-archiv |
+| 2: Meldung nennt die Datei (beschädigt) | `m-name-archiv-beschaedigt` | p2-archiv-beschaedigt, p2-archiv-crc |
+| 2: Meldung nennt die Welle (Form) | `m-name-form` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
+| 2: Meldung nennt das Verzeichnis | `m-name-verzeichnis` | p2-reihenfolge-2-3, p2-welle-unbekannt |
+| 2: Meldung nennt das Werkzeug | `m-name-werkzeug` | p2-kein-unzip, p2-reihenfolge-3-4 |
+| 2 (0): Meldung nennt die Wurzel | `m-name-wurzel` | p2-wurzel-kein-verzeichnis |
+| 2 (5): archiv.zip beschädigt | `m-p2-archiv-beschaedigt-gestrichen` | p2-archiv-beschaedigt, p2-archiv-crc |
+| 2 (4): archiv.zip fehlt, Meldung nennt die Welle | `m-p2-archiv-fehlt-gestrichen` | p2-archiv-fehlt, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
+| 2 (2): Verzeichnis existiert | `m-p2-dir-gestrichen` | p2-reihenfolge-2-3, p2-welle-unbekannt |
+| 2 (1): Form der <welle-id> geprüft | `m-p2-form-gestrichen` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
+| 2 (1): Zeichen a-z0-9-, kein Großbuchstabe (auch Zeichen außerhalb in en_US.UTF-8: p8-sprache) | `m-p2-form-grossbuchstaben` | p2-form-welle-zeichen, p2-reihenfolge-1-2 |
+| 2 (1): nicht leer (nach welle-) | `m-p2-form-nichtleer` | p2-form-welle-nur-praefix |
+| 2 (1): Präfix welle- | `m-p2-form-ohne-praefix` | p2-form-welle-nur-praefix, p2-form-welle-praefix |
+| 2 (1): kein .. | `m-p2-form-punkt` | p2-form-welle-punkt |
+| 2 (1): kein / | `m-p2-form-slash` | p2-form-welle-slash |
+| 2: Eingaben aller Wellen vor jeder Verarbeitung | `m-p2-geprueft-je-welle` | p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
+| 2: Reihenfolge (0) vor (1) | `m-p2-reihenfolge-0-1` | p2-reihenfolge-0-1 |
+| 2: Reihenfolge der Gründe (1) vor (2) | `m-p2-reihenfolge-1-2` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
+| 2: Reihenfolge (2) vor (3) | `m-p2-reihenfolge-2-3` | p2-reihenfolge-2-3 |
+| 2: Reihenfolge (3) vor (4) | `m-p2-reihenfolge-3-4` | p2-reihenfolge-3-4 |
+| 2: Reihenfolge (4) vor (5), über den ganzen Aufruf | `m-p2-reihenfolge-4-5` | p2-archiv-fehlt, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
+| 2/3: ein Fehler dieser Stufe schreibt nichts (auch keinen Stub einer anderen Welle) | `m-p2-schreiben-je-welle` | p10-i, p2-keine-teilschreibung, p2-reihenfolge-4-5, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-reihenfolge-aufruf, p3-schreiben-scheitert, p3-schreiben-temp-aufgeraeumt, p3-stub-ohne-eintrag |
+| 2 (5): unzip -tq prüft die Daten, nicht nur das Verzeichnis | `m-p2-test-nur-liste` | p2-archiv-crc |
+| 2 (3): unzip im PATH | `m-p2-unzip-gestrichen` | p2-kein-unzip, p2-reihenfolge-3-4 |
+| 2/1: leere <welle-id> heißt alle | `m-p2-welle-leer-ist-form` | p10-i, p2-welle-leer |
+| 2 (0): Wurzel fehlt, ist leer oder kein Verzeichnis | `m-p2-wurzel-gestrichen` | p2-reihenfolge-0-1, p2-wurzel-fehlt, p2-wurzel-kein-verzeichnis, p2-wurzel-leer |
+| 2: Stichwort `archiv.zip beschädigt` | `m-stichwort-archiv-beschaedigt` | p2-archiv-beschaedigt, p2-archiv-crc |
+| 2: Stichwort `archiv.zip fehlt` | `m-stichwort-archiv-fehlt` | p2-archiv-fehlt, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
+| 2: Stichwort `Stub enthält CR` | `m-stichwort-cr` | p3-alle-befunde, p3-reihenfolge-grund-c-c, p3-reihenfolge-grund-c-d, p8-stub-crlf |
+| 2/6: Stichwort `Zeile an falscher Stelle` | `m-stichwort-falsche-stelle` | p6-gleich-falsche-stelle |
+| 2: Stichwort `Form der Welle` | `m-stichwort-form` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
+| 2: Stichwort `Stub hat nicht genau eine Zeile **Hervorgegangen:**` | `m-stichwort-hervorgegangen` | p7-ohne-hervorgegangen, p7-zweimal-hervorgegangen |
+| 2: Stichwort `kein Eintrag im Archiv` | `m-stichwort-kein-eintrag` | p10-i, p3-alle-befunde, p3-erster-grund, p3-fast-gleicher-pfad, p3-reihenfolge-grund-a-b, p3-stub-ohne-eintrag |
+| 2: Stichwort `mehr als eine Zeile **Bezug:**` | `m-stichwort-mehr-als-eine-zeile` | p6-zwei-zeilen |
+| 2: Stichwort `nicht beschreibbar` | `m-stichwort-nicht-beschreibbar` | p3-datei-nicht-beschreibbar, p3-verzeichnis-nicht-beschreibbar |
+| 2: Stichwort `Eintrag im Archiv ohne Kopf` | `m-stichwort-ohne-kopf` | p3-kein-kopf, p3-reihenfolge-grund-b-c |
+| 2: Befunde `archiv-bezug: <Pfad>: <Stichwort>` | `m-stichwort-praefix-befund` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-erster-grund, p3-fast-gleicher-pfad, p3-kein-kopf … (19 Fälle) |
+| 2: Meldungen der Eingabe beginnen mit `archiv-bezug: ` | `m-stichwort-praefix-eingabe` | p2-archiv-beschaedigt, p2-archiv-crc, p2-archiv-fehlt, p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt … (20 Fälle) |
+| 2/3: Stichwort `Schreiben fehlgeschlagen` | `m-stichwort-schreiben-fehlgeschlagen` | p3-schreiben-scheitert |
+| 2: Stichwort `Verzeichnis fehlt` | `m-stichwort-verzeichnis` | p2-reihenfolge-2-3, p2-welle-unbekannt |
+| 2: Stichwort `Zeile weicht ab` | `m-stichwort-weicht-ab` | p3-reihenfolge-grund-d-e, p6-abweichend |
+| 2: Stichwort `Werkzeug fehlt` | `m-stichwort-werkzeug` | p2-kein-unzip, p2-reihenfolge-3-4 |
+| 2: Stichwort `Wurzel` | `m-stichwort-wurzel` | p2-reihenfolge-0-1, p2-wurzel-fehlt, p2-wurzel-kein-verzeichnis, p2-wurzel-leer |
+| 3 (e): Datei beschreibbar | `m-p3-datei-nicht-beschreibbar-geduldet` | p3-datei-nicht-beschreibbar |
+| 3 (a): Eintrag gleichen Pfads (ganze Zeile, nicht Teilzeichenkette) | `m-p3-eintrag-als-teilzeichenkette` | p3-fast-gleicher-pfad |
+| 3: je Stub nur der erste Grund (a) bis (e) | `m-p3-erster-grund-nicht-beschreibbar-und-weitere` | p3-erster-grund, p3-fast-gleicher-pfad, p3-reihenfolge-grund-a-b |
+| 3: Reihenfolge der Gründe (a) vor (b) | `m-p3-grund-b-vor-a` | p10-i, p3-alle-befunde, p3-erster-grund, p3-fast-gleicher-pfad, p3-reihenfolge-grund-a-b, p3-stub-ohne-eintrag |
+| 3: Reihenfolge (b) vor (c) | `m-p3-grund-c-vor-b` | p3-reihenfolge-grund-b-c |
+| 3: Reihenfolge (c) vor (d) | `m-p3-grund-d-vor-c` | p3-reihenfolge-grund-c-d |
+| 3: Reihenfolge innerhalb (c): CR vor Hervorgegangen | `m-p3-grund-hervorgegangen-vor-cr` | p3-reihenfolge-grund-c-c |
+| 3: Reihenfolge (d) vor (e) | `m-p3-grund-nicht-beschreibbar-vor-d` | p3-nicht-beschreibbar-gleich, p3-reihenfolge-grund-d-e |
+| 3: Exit 1 und nichts geschrieben bei einem Befund | `m-p3-kein-abbruch-bei-befund` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-erster-grund, p3-fast-gleicher-pfad, p3-kein-kopf … (19 Fälle) |
+| 3 (b): Eintrag ohne Kopf ist Befund | `m-p3-kein-kopf-geduldet` | p3-kein-kopf, p3-reihenfolge-grund-b-c |
+| 3: Schreiben über Temp-Datei und mv (neuer Inode) | `m-p3-mv-direkt` | p3-schreiben-scheitert, p3-temp-und-mv |
+| 3 (e): nur zu ändernde Stubs; gleiche Zeile ⇒ Exit 0 | `m-p3-nicht-beschreibbar-fuer-alle` | p3-nicht-beschreibbar-gleich |
+| 3: alle Befunde genannt | `m-p3-nur-erster-befund` | p3-alle-befunde |
+| 3 (a): Stub ohne Eintrag im Archiv ist Befund | `m-p3-ohne-eintrag-uebersprungen` | p10-i, p3-alle-befunde, p3-erster-grund, p3-fast-gleicher-pfad, p3-reihenfolge-grund-a-b, p3-stub-ohne-eintrag |
+| Schnittstelle: ändert nur die zu ändernden Stubs (Zeit der übrigen) | `m-p3-schreiben-beruehrt-alle-stubs` | p3-nur-stubs |
+| Schnittstelle: berührt archiv.zip nicht | `m-p3-schreiben-beruehrt-archiv` | p3-nur-stubs |
+| Schnittstelle: legt keine Datei in done/ an | `m-p3-schreiben-extra-datei-done` | p3-nur-stubs |
+| Schnittstelle: legt keine Datei in der Wurzel an | `m-p3-schreiben-extra-datei-wurzel` | p3-nur-stubs |
+| 3: Schreibfehler ⇒ Exit 2 | `m-p3-schreiben-scheitert-exit-0` | p3-schreiben-scheitert |
+| 3: Schreibfehler ⇒ Temp-Datei entfernt | `m-p3-schreiben-scheitert-temp-bleibt` | p3-schreiben-temp-aufgeraeumt |
+| 3: Schreibfehler ⇒ kein weiterer Stub | `m-p3-schreiben-scheitert-weiter` | p3-schreiben-scheitert |
+| 3: Schreiben erst nach der Prüfung aller Stubs | `m-p3-schreiben-vor-pruefung` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-schreiben-scheitert, p3-schreiben-temp-aufgeraeumt, p3-stub-ohne-eintrag |
+| 3: keine Temp-Datei bleibt im Verzeichnis | `m-p3-temp-bleibt` | p3-nur-stubs, p3-schreiben-scheitert, p3-schreiben-temp-aufgeraeumt, p3-temp-und-mv |
+| 3 (e): Verzeichnis beschreibbar | `m-p3-verzeichnis-nicht-beschreibbar-geduldet` | p3-verzeichnis-nicht-beschreibbar |
+| 4: nur die erste Zeile **Bezug:** | `m-p4-alle-bezug-zeilen` | p4-zwei-bezug |
+| 4: Kleinbuchstaben (Anker) sind keine Kennung | `m-p4-anker-klein-gelesen` | p4-anker-klein |
+| 4: Kennungsart LH-FA gelesen | `m-p4-art-fa-nicht-gelesen` | p1-alle, p1-eine, p1-make-welle, p1-ohne-stub, p1-welle-flach, p12-adr … (34 Fälle) |
+| 4: Kennungsart LH-QA gelesen | `m-p4-art-qa-nicht-gelesen` | p4-ende-kopf, p4-kopfende-genau, p4-kurzform, p4-mehrzeilig, p4-suffix-buchstabe, p4-vorn-buchstabe … (10 Fälle) |
+| 4: Kennungsart LH-RB gelesen | `m-p4-art-rb-nicht-gelesen` | p4-mehrzeilig, p5-ordnung |
+| 4: die Fortsetzung endet nicht an der Leerzeile | `m-p4-fortsetzung-endet-an-leerzeile` | p4-mehrzeilig |
+| 4: sie endet an der nächsten Zeile mit ** | `m-p4-fortsetzung-ohne-ende-bei-sternen` | p4-mehrzeilig, p4-zwei-bezug |
+| 4: Leerwert — keine — | `m-p4-kein-leerwert` | p4-anker-klein, p4-kein-bezug, p4-kein-token, p4-leer-wert |
+| 4: Zeilen nach **Bezug:** werden mitgelesen | `m-p4-keine-fortsetzung` | p4-ende-kopf, p4-kopfende-genau, p4-mehrzeilig |
+| 4: Kopf endet an der ersten Zeile --- | `m-p4-kopfende-nicht-erkannt` | p4-ende-kopf, p4-kopfende-genau |
+| 4: die Zeile lautet genau --- | `m-p4-kopfende-ungenau` | p4-kopfende-genau |
+| 4: Kurzform -04 ist keine Kennung | `m-p4-kurzform-gelesen` | p4-kurzform |
+| 4: Suffix a gehört nicht zur Kennung | `m-p4-suffix-buchstabe` | p4-suffix-buchstabe |
+| 4: Suffix .e gehört nicht zur Kennung | `m-p4-suffix-punkt` | p4-suffix-punkt, p5-duplikat |
+| 4: vor der Kennung kein Großbuchstabe | `m-p4-vorn-grossbuchstabe-erlaubt` | p4-vorn-buchstabe |
+| 4: vor der Kennung kein Kleinbuchstabe | `m-p4-vorn-kleinbuchstabe-erlaubt` | p4-vorn-buchstabe |
+| 4: vor der Kennung kein - | `m-p4-vorn-strich-erlaubt` | p4-vorn-strich |
+| 4: vor der Kennung keine Ziffer | `m-p4-vorn-ziffer-erlaubt` | p4-vorn-ziffer |
+| 5: ohne Duplikat | `m-p5-duplikat-bleibt` | p5-duplikat |
+| 5: Gruppe LH-FA vor LH-QA | `m-p5-fa-nach-qa` | p4-ende-kopf, p4-kopfende-genau, p4-mehrzeilig, p5-ordnung, p8-volltext-crlf |
+| 5: bei gleicher Zahl die kürzere Schreibweise zuerst (nicht bytewise) | `m-p5-gleiche-zahl-bytewise` | p5-gleiche-zahl |
+| 5: beide Schreibweisen sind verschiedene Kennungen | `m-p5-gleiche-zahl-verschmolzen` | p5-gleiche-zahl |
+| 5: bei gleicher Zahl die längere Schreibweise nicht zuerst | `m-p5-laengere-zuerst` | p5-gleiche-zahl |
+| 5: nach Zahl (9 vor 10), nicht bytewise | `m-p5-ordnung-bytewise` | p5-gleiche-zahl, p5-zahl |
+| 5: Gruppe LH-QA vor LH-RB | `m-p5-qa-nach-rb` | p4-mehrzeilig, p5-ordnung |
+| 6: abweichende Zeile ⇒ Befund | `m-p6-abweichend-geduldet` | p3-reihenfolge-grund-d-e, p6-abweichend |
+| 6: Meldung nennt den vorhandenen Wert | `m-p6-abweichend-ohne-ist` | p6-abweichend |
+| 6: Meldung nennt den berechneten Wert | `m-p6-abweichend-ohne-soll` | p6-abweichend |
+| 6: gleiche Zeile an falscher Stelle ⇒ Befund | `m-p6-falsche-stelle-geduldet` | p6-gleich-falsche-stelle |
+| 6: gleiche Zeile ⇒ keine Änderung (Bytes, Inode, Zeit) | `m-p6-gleiche-zeile-neu` | p3-nicht-beschreibbar-gleich, p3-nur-stubs, p4-leer-wert, p6-gleich, p6-zweiter-lauf |
+| 6: zwei Zeilen ⇒ Befund | `m-p6-zwei-zeilen-geduldet` | p6-zwei-zeilen |
+| 7: fehlender Zeilenumbruch am Ende wird ergänzt | `m-p7-kein-umbruch-ergaenzt` | p7-mitte, p7-ohne-umbruch-weitere, p7-rest-unveraendert, p8-umlaute |
+| 7: alles andere Byte für Byte (Leerzeichen am Ende) | `m-p7-leerzeichen-entfernt` | p7-rest-unveraendert |
+| 7: alles andere Byte für Byte (Zeile aus Leerzeichen) | `m-p7-leerzeilen-geleert` | p7-rest-unveraendert |
+| 7: ohne **Hervorgegangen:** ⇒ Befund | `m-p7-ohne-hervorgegangen-geduldet` | p7-ohne-hervorgegangen |
+| 7: unmittelbar dahinter, weitere Zeilen wandern nach hinten | `m-p7-zeile-am-ende` | p7-mitte, p7-ohne-umbruch-weitere |
+| 7: Zeile steht hinter **Hervorgegangen:** (nicht davor) | `m-p7-zeile-vor-hervorgegangen` | 38 Fälle (Liste SCHREIBT im Skript: alle Fälle, die den vollen Inhalt eines geschriebenen Stubs vergleichen) |
+| 7: zweimal **Hervorgegangen:** ⇒ Befund | `m-p7-zweimal-hervorgegangen-geduldet` | p7-zweimal-hervorgegangen |
+| 8: Bytes unberührt (UTF-8 und ungültige Bytes) | `m-p8-nichtascii-entfernt` | p8-umlaute |
+| 8: LC_ALL=C, die Sprache der Umgebung ändert nichts | `m-p8-sprache-der-umgebung` | p8-sprache |
+| 8: CR im Stub ⇒ Befund | `m-p8-stub-cr-geduldet` | p3-alle-befunde, p3-reihenfolge-grund-c-c, p3-reihenfolge-grund-c-d, p8-stub-crlf |
+| 8: Volltext mit CRLF: Kennungen gelesen, Kopfende erkannt | `m-p8-volltext-cr-nicht-entfernt` | p8-volltext-crlf |
+| 9: urteilt über die Wurzel des Arguments | `m-p9-wurzel-ist-arbeitsverzeichnis` | p2-reihenfolge-0-1, p2-wurzel-fehlt, p2-wurzel-kein-verzeichnis, p2-wurzel-leer, p9-wurzel |
+| 10: ebenso (kein $(MAKE) im Rezept) | `m-p10-make-im-rezept` | p10-makeflags, p10-n, p10-q, p10-t |
+| 10: -n, -q, -t, MAKEFLAGS ändern nichts (kein Plus im Rezept) | `m-p10-plus-vor-rezept` | p10-makeflags, p10-n, p10-q, p10-t |
+| 10: unter -i läuft das Skript, make endet mit 0 | `m-p10-skript-nicht-unter-i` | p10-i |
+| Kopf/11: nicht in GATE_CHECKS | `m-p11-gate_checks` | p11-keine-kette |
+| Kopf/11: nicht in GEGENPROBEN_CONTAINER | `m-p11-gegenproben_container` | p11-keine-kette |
+| Kopf/11: nicht in GEGENPROBEN_HOST | `m-p11-gegenproben_host` | p11-keine-kette |
+| 12: keine ADR-Kennung im Stub | `m-p12-adr` | p12-adr |
+| 12: keine ARC-Kennung im Stub | `m-p12-arc` | p12-arc |
+| 12: keine SPEC-Kennung im Stub | `m-p12-spec` | p12-spec |
+
+**Ein Mutant, der zuerst grün blieb:** `m-p8-sprache-der-umgebung` (`export LC_ALL=C` entfernt) blieb gegen einen Fall mit ungültigem UTF-8-Byte grün; gemessen (Skript ohne die Zeile, `LC_ALL=C.UTF-8` und `en_US.UTF-8`, Stubs mit `\xff`, `\xc3`, Umlauten): kein Unterschied, weil `mawk` bytetreu ist und `grep` nur Zeilen ausgibt, die gleich der berechneten Zeile sein müssen. Gefunden ist die Wirkung dort, wo die Sprache etwas ändert: `[[ welle-ä =~ ^welle-[a-z0-9-]+$ ]]` trifft in `en_US.UTF-8` und nicht in `C`/`C.UTF-8` (gemessen). Fall `p8-sprache` ruft das Skript mit `welle-ä` unter `en_US.UTF-8`; ohne die Locale entfällt der Fall laut (wie die Fälle mit Dateirechten als root).
+
+**Ohne Mutation, mit Grund:** (1) Der Wortlaut der Meldungen jenseits des Präfixes und der Stichwörter von `SPEC-068` Punkt 2 ist nicht zugesagt. (2) `trap … rm -rf "$tmp"` (Temp-Verzeichnis unter `TMPDIR`): der Vertrag sagt „legt keine Datei außer Temp-Dateien an“, nicht, dass sie verschwinden; kein Test. (3) Atomarität über alle Stubs ist die Grenze von Punkt 3 (akzeptiertes Negativ im Vertrag), nicht Zusage. (4) Ein Wächter `[ -d "$d" ] || continue` für die Schleife über `done/*/` war bei einer Messung ohne Wirkung (leeres `done/`, fehlendes `done/`, nur eine Datei darin: Exit 0, gleiche Ausgabe) und ist entfernt (`ec94f93b`); der Wächter `[ -e "$stub" ] || continue` entfällt seit `4dec8155`, weil die Menge nur Wellen mit Stub enthält (Mutation `m-p1-welle-ohne-stub-zaehlt`, Fälle `p1-eine-ohne-stub`, `p2-welle-ohne-stub-ohne-archiv`). (5) Keine Aussage: gleichzeitige Aufrufe (Punkt 9, Grenze im Vertrag), Dateisystem ohne `-w`-Semantik, macOS und Windows (Plattform im Kopf des Vertrags).
+
+**Entscheidungen des Architect (`arch-dt2`) umgesetzt** (`e6a5e03b`): Ordnung bei gleicher Zahl = das Beispiel (Fall `p5-gleiche-zahl`, Mutationen „bytewise“ und „längere zuerst“) · `Werkzeug fehlt` an der Stelle von Punkt 2 (3); `zip` und die Locale prüft die Gegenprobe vor ihrem ersten Fall · leere Menge: Exit 0 und die Zeile `archiv-bezug: keine Stubs` auf stdout (Fälle `p1-leere-menge`, `p1-eine-ohne-stub`; Mutationen: ohne die Zeile, auf stderr, immer) · (e) nur für zu ändernde Stubs (`p3-nicht-beschreibbar-gleich`), je Stub der erste Grund (`p3-erster-grund`) · `welle-` ohne Rest ungültig (`p2-form-welle-nur-praefix`) · Stichwörter und Präfix der Meldungen sind zugesagt: je Stichwort ein Fall (`befund_hat`, `archiv-bezug: <Pfad>: <Stichwort>`) und eine Mutation „weicht ab“, dazu je eine Mutation für den Präfix der Eingabe- und der Stub-Meldungen · `p8-sprache`: Locale `en_US.UTF-8` ist Voraussetzung, sonst entfallen Fall und Mutation laut. Der Lauf über die Stubs wird nicht wiederholt: die Änderung berührt ihn nicht; `make archiv-bezug` über alle Wellen am Endstand: Exit 0, `git status` ohne Änderung an den Stubs (Idempotenz).
+
+**Review-Runde 1 (`rev-dt`, 0 HIGH, 5 MEDIUM) und `arch-dt3` behoben** (`4dec8155`): F-1 Schreibfehler ⇒ Temp-Datei dieses Stubs entfernt, `Schreiben fehlgeschlagen` mit Pfad, kein weiterer Stub, Exit 2 (Fälle `p3-schreiben-scheitert` mit Attrappe von `mv`, `p3-schreiben-temp-aufgeraeumt`; drei Mutationen) · F-2 Reihenfolge (a) bis (e) je benachbartes Paar ein Fall (`p3-reihenfolge-grund-a-b`, `-b-c`, `-c-c`, `-c-d`, `-d-e`) und je eine Mutation, darunter die zwei Mutanten des Reviews (CR vor Kopf, zwei Bezug-Zeilen vor CR) · F-3 Fall `p3-nur-stubs` (Dateiliste und Zeiten außerhalb des geschriebenen Stubs) mit vier Grenzmutationen · F-4 die Listen erwarteter roter Fälle werden um die entfallenen Fälle gekürzt; gemessen mit Attrappen von `id` (root) und `locale` (ohne `en_US`) im `PATH`: grün (120 Läufe) · F-5 die Meldungen nennen Welle, Datei, Verzeichnis und Werkzeug, die Fälle prüfen den Namen, fünf Mutationen ohne Namen · F-6 je Kennungsart eine Mutation · F-7, F-8, F-9 Sätze berichtigt (README-Zeile, Kopf der Gegenprobe, Fragment, bash ≥ 4.3, README-Zählung) · F-10 (Architect) Wurzel fehlt, leer oder kein Verzeichnis ⇒ Exit 2 `Wurzel` als erste Stufe (`p2-wurzel-fehlt`, `p2-wurzel-leer`, `p2-wurzel-kein-verzeichnis`, `p2-reihenfolge-0-1`), gleiche Zeile an falscher Stelle ⇒ Befund `Zeile an falscher Stelle` ohne Verschieben (`p6-gleich-falsche-stelle`), genannte Welle ohne Stub und ohne `archiv.zip` ⇒ Exit 0 `keine Stubs` (`p2-welle-ohne-stub-ohne-archiv`; der Wächter `[ -e "$stub" ] || continue` ist damit überflüssig und entfernt, die Auswahl der Wellen mit Stub trägt Mutation `m-p1-welle-ohne-stub-zaehlt`), Modus und Besitzer nach `mv` sind Grenze ohne Fall. Idempotenz für den Verifier: `make archiv-bezug` über alle Wellen am Endstand ⇒ Exit 0, `git status` leer.
+
+**Verifikation (`ver-dt`) und `arch-dt4`** (`9388da0f`): V-1 Der Mutant `grep -Fxq --` → `grep -Fq --` blieb grün; Fall `p3-fast-gleicher-pfad` (Archiv enthält nur `slice-a.md.orig`, Stub `slice-a.md`: Meldung `kein Eintrag im Archiv`, der Mutant meldet `Eintrag im Archiv ohne Kopf`) und Mutation `m-p3-eintrag-als-teilzeichenkette`, in `GP_ENTDECKE` gesehen: rot ist genau dieser Fall. V-5 `set -o pipefail` ist entfernt: Die einzige Pipeline (`kennungen`) läuft in einer Prozess-Ersetzung, deren Status niemand liest, und kein Schritt hängt an `pipefail`. Messung: der Mutant `:` statt der Zeile blieb grün (Verifikation), nach dem Entfernen ist die vollständige Gegenprobe grün (128 Läufe) und `make archiv-bezug` über alle Wellen endet mit Exit 0 ohne Änderung im Arbeitsbaum. `arch-dt4` (Reihenfolge innerhalb von (c), Fallnamen) ist übernommen; die Fallnamen des Skripts stimmen mit dem Vertrag überein.
+
+
+**Stop-Hook** (`.claude/hooks/stop-require-gates.sh`, Eingabe `{"stop_hook_active": false}`): Nach `make gates` am Endstand und einer Änderung allein von §7 (Positivliste) mit `make gates-schnell` (17 s): Antwort `approve`. Probe: eine Zeile in `tools/harness/archiv-bezug.sh` angehängt, dieselbe Eingabe: `block` („A changed path is not on the inert list“); die Zeile zurückgenommen: `approve`.
+
+- **Was hat funktioniert:** Der Vertrag `SPEC-068` stand vor dem ersten Code-Commit, und die Entscheidungen des Architect (`arch-dt2` bis `arch-dt4`) kamen in drei Runden ohne Umbau des Schnitts; die Gegenprobe baute ihre Archive selbst (`zip` im Temp-Repo) und ließ sich mit Attrappen von `id` und `locale` unter root und fremder Sprache fahren. Die Stubs liefen als Daten: ein Inhalts-Commit je Welle, 97 Zeilen, und die Neuableitung aus den Bytes der vier `archiv.zip` (Review mit eigenem Perl-Skript, Verifikation unabhängig davon) fand 97 von 97 gleich. Die Verifikation brach jede Behebung der Review-Runde von Hand und sah den benannten Fall rot (Bewusstes Brechen, Modul 11) — das erneute Sehen der Nacharbeit, das die Beobachtung `nacharbeit-nach-review-ohne-erneuten-lauf` verlangt.
+- **Was ging anders als geplant:** (1) Die Erwartung des Plans (neun Waisen, danach eine) stimmte nicht; am Basisstand `5f68ebef` waren es sieben, danach keine (`LH-FA-19` zählt über `slice-erster-release-veroeffentlichung`). Kopf und §1 folgten erst nach dem Review (F-8). (2) Die Gegenprobe trug 477 von 630 Zeilen (Faktor rund 4,6 zum Skript mit 104 Zeilen), die Summe lag dennoch in der Spanne des Architect (470 bis 710); die Meldeschwelle 650 wurde nicht erreicht. (3) Die Randformen kamen in vier Stößen (Rückgabe des Implementers nach dem Code, Review F-1 und F-10, Verifikation V-2), obwohl §6 bei der Planung jede Zeile mit einem Punkt von `SPEC-068` versah; die Lücken lagen in Randformen, die §6 nicht nannte (Exit-Code beim Schreibfehler, Wurzel, leere Menge, Welle ohne Stub).
+- **Steering-Loop-Eintrag:** Form: **neuer Sensor und benannte Spec-Lücke.** *Sensor:* `make archiv-bezug-gegenprobe` (91 Fälle, 126 Mutationen, Liste `GEGENPROBEN_CONTAINER`) hält das Werkzeug `make archiv-bezug`; sie hält nicht die Archivierung — dass ein künftiger Stub die Zeile trägt, prüft kein Sensor, und `make doc-trace` ist kein Gate. *Lücke (benannt):* `archive-welle` in `ai-harness-init` schreibt die Anforderungs-Kennungen des Slice nicht in den Stub; die Matrix verliert mit jeder Archivierung Anforderungen. Der Antrag steht als Text in §1 (Weitergabe durch den Nutzer); die Handlung bis dahin ist `make archiv-bezug` nach jeder Archivierung. Register: `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` (neu, 1×, offen). Eine geschärfte Regel trägt der Slice nicht ein; ein Herkunfts-Anker `seit slice-harness-doc-trace-archiv` entfällt, weil nichts in `AGENTS.md` oder `.claude/` verkörpert wurde. **Vorschläge an den Nutzer, nicht eingetragen** (Eintragungen in `AGENTS.md` und `.claude/` brauchen sein Ja): (a) `.claude/commands/close-welle.md`, Schritt der Archivierung: danach `make archiv-bezug`, damit die Waisen nicht mit der nächsten Welle zurückkehren (Register `archiv-stub-verliert-anforderungs-kennung`); (b) `AGENTS.md` §3.10: eine Zusage der Form „nur X“ trägt eine Grenzmutation, und eine Reihenfolge von n Gründen trägt je benachbartes Paar einen Fall mit einer Mutation, die beide vertauscht (F-2, F-3; Register `negativtests-fehlen-bei-neuem-vertrag`, Zähler 60, zweites Auftreten der Form „nur X“, Vorschlag steht seit `slice-erster-release-veroeffentlichung`); (c) `AGENTS.md` §3.12 oder `.claude/commands/implement-slice.md`: sagt ein Vertrag, dass Fälle unter root oder ohne Locale laut entfallen, fährt der Implementer die Gegenprobe vor der Übergabe einmal mit Attrappen von `id` und `locale`, und die erwarteten Listen der Mutationen entfallen mit (F-4; Register `gegenprobe-haengt-an-umgebung-des-hosts`, Zähler 8, die Empfehlung dort steht weiter aus); (d) `.claude/commands/plan-welle.md`: eine Zahl, die der Plan aus einer Messung nennt, trägt den Stand (Hash), an dem sie gemessen ist (F-8; Register `plan-folgt-korrektur-nicht`, Zähler 72).
+- **Beobachtungs-Register (`../observations/`):** Neu: `BEO-REPO/archiv-stub-verliert-anforderungs-kennung` (1×, offen). Evidence: `negativtests-fehlen-bei-neuem-vertrag` (60; F-2, F-3, F-5, F-6, V-1), `spec-randform-erst-im-review-entschieden` (44; F-1, F-10, V-2), `randform-im-code-entschieden-dann-zurueckgegeben` (24; Rückgabe nach dem Code), `plan-folgt-korrektur-nicht` (72; F-8), `gegenprobe-haengt-an-umgebung-des-hosts` (8; F-4, root und Locale), `spezifikation-widerspricht-sich-im-wortlaut` (4; zwei Widersprüche in `SPEC-068`, der Ausgang `geplant` bleibt). Vermerke ohne Auftreten (die ersten beiden mit Zeile in deren `state.md`, die übrigen nur hier): `schaetzung-in-zeilen-unterschaetzt-tests` (630 in der Spanne 470 bis 710, Zähler bleibt 18), `nacharbeit-nach-review-ohne-erneuten-lauf` (die Nacharbeit wurde erneut gesehen, Zähler bleibt 3), `gruener-mutant-faelschlich-aequivalent` (kein Mutant als äquivalent geführt, V-1 ist ein grüner Mutant ohne Fall und steht unter `negativtests-fehlen-bei-neuem-vertrag`; Zähler bleibt 9), `meldeschwelle-ohne-artefakt` und `groessenprobe-ohne-messbaren-stand` (Marke mit Metrik in §4, Meldeschwelle nicht erreicht). Zuordnung nach Form: F-4 zu `gegenprobe-haengt-an-umgebung-des-hosts` (Gegenprobe grün in der Umgebung des Entstehens, rot aus dem falschen Grund in einer anderen), nicht zu `make-ausgabe-locale-abhaengig-gelesen` (diese führt die Ursache „Sprache von `make` gelesen“); F-1 und F-10 zu `spec-randform-erst-im-review-entschieden` (das Review fand die Randform), die Rückgabe nach dem Code zu `randform-im-code-entschieden-dann-zurueckgegeben` (der Implementer gab sie selbst zurück). Die Einträge über der Schwelle (`negativtests…`, `spec-randform…`, `randform-im-code…`, `plan-folgt…`, `spezifikation-widerspricht…` mit Ausgang; `gegenprobe-haengt…` und `nacharbeit…` ohne) liest die Welle-Closure; der Planner weist nichts zu.
+- **Folge-Slices:** keine. Alle Befunde sind behoben oder vom Architect entschieden: F-1 bis F-10 (`4dec8155`, `98f0f407`), V-1 und V-5 (`9388da0f`), V-2 und V-4 (`bf41c694`); V-3 sind die Closure-Pflichten dieser Notiz. Der Antrag an `ai-harness-init` ist Text in §1, keine Sendung an einen Slice in diesem Repo (`AGENTS.md` §3.13).
+- **Risiken aus §6:** Risiko 1 (Archivierungen schreiben den Stub weiter ohne Kennung) *weiter offen* → `BEO-REPO/archiv-stub-verliert-anforderungs-kennung`; Risiko 2 (Prüfung gegen die Zeile unbekannt) *entfallen*: `make docs-check` 0 Befunde, `make kopf-check` und `make abdeckung-check` Exit 0; Risiko 3 (Nennung ist keine Lieferung) *entfallen*: dieselbe Lesart wie bei lebenden Slices, §1 letzter Ausschluss; Risiko 4 (halber Stand) *entfallen*: Prüfung aller Stubs vor dem ersten Schreiben, Schreibfehler endet mit Exit 2 ohne Temp-Datei, ein halber Stand ist Grenze im Vertrag und durch den zweiten Aufruf ohne Verlust fortsetzbar. Die Begründungen stehen in §6 am Risiko.
+- **Drei Paarungen:** *Anker:* keiner — keine Regel verkörpert (die Vorschläge oben warten auf das Ja des Nutzers). *Folge-Slice:* keiner; dieser Slice weist keinem anderen Slice etwas zu und nimmt nichts an (Nachzählung in §8: keine Sendung). *Register:* oben. Wellen-Zugehörigkeit: keine (wellenlos); die Roadmap nennt den Slice nicht, das Drift-Log trägt keine Zeile, ein Zustandsfeld ist nicht betroffen (`AGENTS.md` §3.7).
+
+## 8. Sub-Area-Prüfungen und Modus-Begründung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Sub-Area-Modus-Begründung.
+
+**Vorgelagert — Sub-Area-Wahl prüfen:** Berührt ist die Default-Sub-Area `REPO` (`harness/conventions.md` §Modus-Deklaration); das Repo deklariert nur diese eine,
+eine Ausdifferenzierung ist nicht Gegenstand dieses Slice.
+
+**Vorgelagert — offene Beobachtungen sichten:** Register (`docs/plan/planning/observations/BEO-REPO/`) durchgegangen, 2026-10-19. Treffer, die den Slice berühren:
+`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (§3.10: Mutation je Zusage, hier in §2 verlangt), `BEO-REPO/spec-randform-erst-im-review-entschieden` (§3.12: Randformen
+in §6), `BEO-REPO/zeilenende-crlf-im-gelesenen-wert` (CRLF im Stub, §6), `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` und `BEO-REPO/groessenprobe-ohne-messbaren-stand`
+(§3.14, Marke mit Metrik in §4), `BEO-REPO/meldeschwelle-ohne-artefakt` (Meldeschwelle in §4). Zähler-Stände habe ich nicht neu gezählt; der Zähler folgt aus den Dateien
+im Register. Kein Eintrag nennt die Archivierung, die Matrix oder `archive-welle`: dafür keine Treffer.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Nachzählung (`AGENTS.md` §3.13):** Dieser Slice trägt keine Sendung in einen Nehmer ein; es gibt keine Folge-Slice-Adresse (die Anträge an `ai-harness-init` und d-check sind
+Text). Liefer-Punkte: drei (Werkzeug mit Vertrag · Gegenprobe · Anwendung mit Berichtigung). Schichten: eine — Werkzeug des Harness (`tools/harness/`, `harness/`); die
+Stubs unter `docs/plan/planning/` sind Planung und zählen nicht, `harness/README.md` ist Harness-Datei und keine Nutzer- oder Wartungs-Doku (`docs/user/`, `docs/maintainer/`,
+`README.md` bleiben unberührt). Damit höchstens zwei Schichten und höchstens drei Punkte.
+
+**Schätzung des Architect nach dem Vertrag (2026-10-19; Metrik von §4; Faktor der Gegenprobe wie `slice-harness-ci-workflows` gemessen 899 gegen 545 bis 695):** Skript 130 bis 170 (zwei Phasen, Kopf lesen, Zeile schreiben), Fragmente 30, README-Zeilen 6, Gegenprobe 300 bis 430 (rund 55 Fälle, 40 Mutationen, Archive mit `zip`); roh zusammen 470 bis 640; `SPEC-068` (rund 60 Zeilen Vertragstext, `harness/` zählt mit, wenn die Basis vor ihrem Commit liegt) kommt mit 60 bis 70 hinzu; zusammen **470 bis 710**, Mitte um 590; die Meldeschwelle 650 kann erreicht werden, die Marke 800 liegt darüber. Schnitt, falls sie eintritt: Fälle zu Punkt 3 (halber Stand) und Punkt 10 (Aufrufarten) in einen Folge-Slice nur dann, wenn der Planner es will; der Architect sieht keinen Schnitt vor.
+
+**Messung (Implementer):** Summe der Metrik 630 (504 vor `arch-dt2`, 552 vor `arch-dt3`, 625 vor der Verifikation), im Bereich der Schätzung; Meldeschwelle 650 nicht erreicht.

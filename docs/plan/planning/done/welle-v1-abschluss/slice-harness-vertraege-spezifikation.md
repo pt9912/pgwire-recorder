@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-harness-abdeckung-gate](slice-harness-abdeckung-gate.md) · [slice-harness-coverage](slice-harness-coverage.md) · [slice-harness-lint](slice-harness-lint.md) · [slice-harness-mutation](../../open/slice-harness-mutation.md)
+**Bezug:** LH-QA-07

@@ -1,0 +1,5 @@
+**Stand:** offen
+
+Erstes Auftreten (Urteil des Planners, Closure von `slice-harness-doc-trace-archiv`, 2026-10-19): Seit `welle-v1-abschluss` archiviert ist, zählte `make doc-trace` sieben Waisen (`LH-FA-04`, `-08`, `-14`, `-15`, `LH-QA-04`, `-05`, `LH-RB-02`); das Werkzeug `make archiv-bezug` schrieb die Zeile `**Bezug:**` in 97 Stubs, danach null Waisen. Das Risiko 1 aus §6 des Slice-Plans (künftige Archivierungen schreiben den Stub weiter ohne Anforderungs-Kennung) hat den Ausgang *weiter offen* und steht hier (Beleg `evidence/slice-harness-doc-trace-archiv.md`).
+
+Ausgang offen. Der Antrag an `ai-harness-init` (`archive-welle` übernimmt die Anforderungs-Kennungen aus dem Kopf des Volltexts in den Stub) steht als Text in §1 des Slice-Plans; die Weitergabe ist Sache des Nutzers, ein Slice in diesem Repo nimmt ihn nicht an. Nimmt `ai-harness-init` ihn auf, wandert der Eintrag nach `gestrichen` mit dieser Begründung (und `archiv-bezug` wird überflüssig); erreicht er 3× ohne Aufnahme, liest ihn die Welle-Closure.

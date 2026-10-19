@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-abschluss](welle-v1-abschluss.md)
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-v1-abschluss-sessions](slice-v1-abschluss-sessions.md) · [slice-v1-abschluss-sqlite-format-doku](slice-v1-abschluss-sqlite-format-doku.md) · [slice-v1-abschluss-sqlite-format-lesen](slice-v1-abschluss-sqlite-format-lesen.md)
+**Bezug:** LH-FA-07, LH-FA-22

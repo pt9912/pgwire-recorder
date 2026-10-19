@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-abschluss](welle-v1-abschluss.md)
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-harness-lint-warten-ohne-frist](../../open/slice-harness-lint-warten-ohne-frist.md)
+**Bezug:** LH-FA-02, LH-FA-03, LH-FA-13, LH-FA-15, LH-FA-17

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-doc-trace-archiv
+**Fund:** `make doc-trace` zeigte nach der Archivierung von `welle-v1-abschluss` Waisen: Die 97 Stubs unter `done/welle-*/` tragen keine Anforderungs-Kennung, obwohl d-check das Verzeichnis rekursiv liest (Probe mit einer Zeile `**Bezug:**` in einem Stub senkte die Waisen); am Basisstand `5f68ebef` gemessen sieben, nach dem Lauf von `make archiv-bezug` keine. `archive-welle` schreibt die Zeile nicht; künftige Archivierungen bringen die Waisen zurück. Quelle: §1, §6 Risiko 1 und §7 des Slice-Plans (Planner, Closure, 2026-10-19).

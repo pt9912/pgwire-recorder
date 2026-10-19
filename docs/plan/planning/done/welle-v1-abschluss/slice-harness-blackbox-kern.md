@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-lint-bestand-kern-driven](slice-lint-bestand-kern-driven.md)
+**Bezug:** LH-QA-07

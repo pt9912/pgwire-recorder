@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-v1-abschluss-sessions-doku](slice-v1-abschluss-sessions-doku.md)
+**Bezug:** LH-FA-14, LH-FA-17, LH-FA-20

@@ -6,3 +6,4 @@
 **Welle:** [welle-walking-skeleton](welle-walking-skeleton.md)
 **Archiviert mit:** welle-walking-skeleton · **Geschlossen:** 2026-10-04
 **Hervorgegangen:** [`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`](../../observations/BEO-REPO/gate-regel-ersetzt-statt-ergaenzt/observation.md) · [`BEO-REPO/plan-folgt-korrektur-nicht`](../../observations/BEO-REPO/plan-folgt-korrektur-nicht/observation.md) · [`BEO-REPO/record-fehlerantwort-im-aufbau-ungeregelt`](../../observations/BEO-REPO/record-fehlerantwort-im-aufbau-ungeregelt/observation.md) · [`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`](../../observations/BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/observation.md) · [slice-v1-abschluss-anmeldung](../../done/welle-v1-abschluss/slice-v1-abschluss-anmeldung.md) · [slice-walking-skeleton-replay](slice-walking-skeleton-replay.md)
+**Bezug:** LH-FA-02, LH-FA-06, LH-FA-07, LH-QA-06

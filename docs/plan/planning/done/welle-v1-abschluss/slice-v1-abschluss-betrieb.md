@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-abschluss](welle-v1-abschluss.md)
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [`BEO-REPO/slice-waechst-durch-uebernahmen`](../../observations/BEO-REPO/slice-waechst-durch-uebernahmen/observation.md) · [slice-v1-abschluss-herunterfahren](slice-v1-abschluss-herunterfahren.md) · [slice-v1-abschluss-konfiguration](slice-v1-abschluss-konfiguration.md)
+**Bezug:** LH-FA-01, LH-FA-03, LH-FA-07, LH-FA-08, LH-FA-13, LH-FA-15, LH-FA-17

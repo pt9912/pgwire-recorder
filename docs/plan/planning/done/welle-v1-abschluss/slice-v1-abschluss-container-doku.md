@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-abschluss](welle-v1-abschluss.md)
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** — keine —
+**Bezug:** LH-FA-16, LH-QA-03, LH-QA-04, LH-RB-01

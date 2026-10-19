@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-doc-trace-archiv
+**Fund:** Review F-8 (LOW): Kopf und Einleitung des Plans nannten „neun Waisen“ und führten im Feld `Betroffen` Anforderungen, die am Basisstand `5f68ebef` keine Waisen waren (`LH-FA-16`, `LH-FA-19`), und ließen zwei aus (`LH-FA-08`, `LH-QA-05`); gemessen waren es sieben. §7 sprach von „zwei Zeilen“ in `harness/README.md`, `numstat` zeigt 3 Einfügungen und 1 Löschung. Der Plan folgte der Messung des Implementers erst im Commit nach dem Review (`4dec8155`). Quelle: Review-Report F-8 (Planner, Closure, 2026-10-19).

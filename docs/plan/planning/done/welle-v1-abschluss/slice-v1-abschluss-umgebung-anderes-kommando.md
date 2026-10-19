@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** — keine —
+**Bezug:** LH-FA-01, LH-FA-03, LH-FA-17

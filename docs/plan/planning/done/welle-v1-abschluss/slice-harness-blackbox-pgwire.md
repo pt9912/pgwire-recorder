@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-v1-abschluss-betrieb](slice-v1-abschluss-betrieb.md)
+**Bezug:** LH-QA-07

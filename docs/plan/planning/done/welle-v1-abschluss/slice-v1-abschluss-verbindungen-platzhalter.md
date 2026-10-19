@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-abschluss](welle-v1-abschluss.md)
 **Archiviert mit:** welle-v1-abschluss · **Geschlossen:** 2026-10-18
 **Hervorgegangen:** [slice-v1-abschluss-upstream-verbinden](slice-v1-abschluss-upstream-verbinden.md)
+**Bezug:** LH-FA-17
