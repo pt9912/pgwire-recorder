@@ -132,8 +132,9 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
 1. `Eingaben` prüft vor jedem Schritt mit Außenwirkung, in dieser Reihenfolge: Ereignis und Ref,
    die Form des Tags `v<SemVer>` (Build-Metadaten sind nicht zugelassen), die Form der Datei
    `VERSION`, dass der Tag `v` plus ihr Inhalt ist, dass die Änderungshistorie des
-   Benutzerhandbuchs die Zeile der Version trägt (§9) und dass der Commit des Tags im
-   Standard-Zweig liegt. Jede Abweichung endet mit Exit 2, bevor etwas gebaut wird.
+   Benutzerhandbuchs die Zeile der Version mit nicht leerer dritter Zelle trägt (§9) und dass
+   der Commit des Tags im Standard-Zweig liegt. Jede Abweichung endet mit Exit 2, bevor etwas
+   gebaut wird; jede Meldung beginnt mit `release: ` und einem Schlüsselwort, das den Grund nennt.
 2. `Binaries` ruft `make binaries` mit der Version des Tags und prüft `SHA256SUMS` und die
    Dateiliste: die sechs Binaries und `SHA256SUMS`, sonst nichts. Es gibt keinen zweiten Bau;
    die Gleichheit zweier Builds hält `make test-container`.
@@ -142,7 +143,8 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
 
 Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
 (`workflow_dispatch`): `Eingaben` und `Binaries` mit der Version aus `VERSION` als Tag
-`v<VERSION>`, ohne GitHub-Release. Ein Probe-Tag gibt es nicht. Der Trockenlauf belegt nicht,
+`v<VERSION>`, ohne GitHub-Release; fehlt dort die Zeile der Änderungshistorie oder liegt der Commit
+nicht im Standard-Zweig, steht das als Hinweis `release: hinweis: …`, kein Fehler. Ein Probe-Tag gibt es nicht. Der Trockenlauf belegt nicht,
 dass das Token am Repository schreiben darf und dass der GitHub-Release angelegt wird; das zeigt
 erst der Lauf für den ersten Tag. Das Image (Bau, Veröffentlichung, Vergleich der Digests,
 Smoke, `latest`) liefert `slice-erster-release-veroeffentlichung-image`; den Scan des Images vor
@@ -176,7 +178,8 @@ Quelle: eine Zeile je Version in Betreibersicht, ohne interne Kennungen. Vor dem
 trägt der Release dort seine Zeile ein; der Text des GitHub-Releases entsteht aus
 dieser Zeile. Der Text des GitHub-Releases ist die dritte Zelle der Zeile, deren erste Zelle die
 Version ohne `v` ist, in der Tabelle des Abschnitts, dessen Überschrift auf `Änderungshistorie`
-endet (Spalten Version, Datum, Änderung). Fehlt die Zeile, endet `Eingaben` mit Exit 2.
+endet (Spalten Version, Datum, Änderung). Fehlt die Zeile oder ist die Zelle leer, endet `Eingaben`
+mit Exit 2; im Trockenlauf ist eine fehlende Zeile ein Hinweis, eine leere Zelle ein Fehler.
 
 ## 10. Freigabe-Checkliste
 

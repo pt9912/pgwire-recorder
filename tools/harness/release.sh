@@ -4,7 +4,7 @@
 # Umgebung: RELEASE_EVENT, RELEASE_REF, RELEASE_SHA, RELEASE_DEFAULT_BRANCH, RELEASE_REPOSITORY (gesetzt von .github/workflows/release.yml),
 # RUNNER_TEMP (Ort des Zustands zwischen den Schritten: $RUNNER_TEMP/release mit den Dateien eingaben.ok, binaries.ok und dist/), GH_TOKEN (github-release).
 # Ausgang: 0 grün; 1 ein Schritt scheitert (Bau, Summe, Dateiliste, Release); 2 Eingabe oder Vorbedingung (ein Schritt, dessen Vorgänger nicht grün war). Eine abgelehnte Eingabe
-# steht als `release: <Schritt>: <Kennwort>: …` auf stderr, das Kennwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig).
+# steht als `release: <Schlüsselwort>: …` auf stderr, das Schlüsselwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig); ein Hinweis beginnt mit `release: hinweis: `.
 # Das Skript gibt keinen Wert eines Geheimnisses aus (Punkt 10): kein `set -x`, kein `env`.
 # Braucht bash, git, make, sha256sum, awk, cmp, grep, sort, pgrep, mktemp und gh (nur github-release); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
 # GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p13-*, je Zusage eine Mutation dieser Datei).
@@ -14,7 +14,8 @@ export LC_ALL=C
 schritt="${1-}"
 rc=0
 melde() { echo "release: $schritt: $*" >&2; }
-eingabe() { melde "$1: $2"; exit 2; }
+eingabe() { echo "release: $1: $2" >&2; exit 2; }
+hinweis() { echo "release: hinweis: $*" >&2; }
 rot() { melde "ROT — $*"; exit 1; }
 
 # --- Aufräumen und Abbruch (Punkt 13) ----------------------------------------------------------------------------------------------------------------
@@ -103,25 +104,35 @@ pruefe_version_datei() {
 pruefe_tag_gleich() {
   [ "$tag" = "v$version" ] || eingabe tag-ungleich "der Tag ${tag@Q} ist nicht v$version (VERSION)" # P3gleich
 }
-# notiz_der_version <Version> — dritte Zelle der Zeile der Version in der Tabelle des Abschnitts, dessen Überschrift auf Änderungshistorie endet.
+# notiz_der_version <Version> — `Z` und die dritte Zelle der Zeile der Version in der Tabelle des Abschnitts, dessen Überschrift auf Änderungshistorie endet; nichts ohne Zeile.
 notiz_der_version() {
   awk -F'|' -v v="$1" '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
     /^#+[ \t].*Änderungshistorie[ \t]*$/ { ab = 1; next }
     /^#/ { ab = 0 }
-    ab && /^\|/ && trim($2) == v { print trim($4); exit }
+    ab && /^\|/ && trim($2) == v { print "Z" trim($4); exit }
   ' "$HANDBUCH" 2> /dev/null
 }
-# (5) Zeile der Version in der Änderungshistorie
+# (5) Zeile der Version in der Änderungshistorie mit nicht leerer dritter Zelle; im Trockenlauf ist eine fehlende Zeile ein Hinweis und eine vorhandene wird als Hinweis gezeigt
 pruefe_notes() {
-  [ -n "$(notiz_der_version "$version")" ] || eingabe notes "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile mit Text für $version" # P3notes
+  local z
+  z="$(notiz_der_version "$version")"
+  if [ -z "$z" ]; then
+    if [ "$trockenlauf" -eq 1 ]; then # P3zeiletrocken
+      hinweis "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile für $version"
+      return 0
+    fi
+    eingabe notes "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile für $version" # P3notes
+  fi
+  [ -n "${z#Z}" ] || eingabe notes "die Zeile für $version hat eine leere dritte Zelle" # P3zelle
+  if [ "$trockenlauf" -eq 1 ]; then hinweis "Änderungshistorie $version: ${z#Z}"; fi # P3zeiletext
 }
 # (6) Commit des Tags im Standard-Zweig; im Trockenlauf ein Hinweis
 pruefe_standard_zweig() {
   local ref="origin/${RELEASE_DEFAULT_BRANCH-}" ok=1
   git merge-base --is-ancestor "${RELEASE_SHA-}" "$ref" 2> /dev/null || ok=0 # P3anc
   if [ "$trockenlauf" -eq 1 ]; then
-    if [ "$ok" -eq 1 ]; then melde "Hinweis: der Commit liegt im Standard-Zweig $ref"; else melde "Hinweis: der Commit liegt nicht im Standard-Zweig $ref"; fi
+    if [ "$ok" -eq 1 ]; then hinweis "der Commit liegt im Standard-Zweig $ref"; else hinweis "der Commit liegt nicht im Standard-Zweig $ref"; fi
   elif [ "$ok" -eq 0 ]; then
     eingabe standard-zweig "der Commit ${RELEASE_SHA-} liegt nicht im Standard-Zweig $ref"
   fi
@@ -174,11 +185,12 @@ schritt_github_release() {
   aussenwirkung_erlaubt
   zustand
   [ -f "$zdir/binaries.ok" ] || eingabe vorbedingung "der Schritt binaries war nicht grün" # P11binaries
-  [ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt"
+  [ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt" # P9token
   tag_ableiten
   v="${tag#v}"
   dist="$zdir/dist"
   n="$(notiz_der_version "$v")"
+  n="${n#Z}"
   [ -n "$n" ] || eingabe notes "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile mit Text für $v"
   printf '%s\n' "$n" > "$scratch/notes.md"
   [[ $v != *-* ]] || prerelease=(--prerelease) # P9pre
