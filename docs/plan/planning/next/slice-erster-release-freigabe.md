@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-067` (Punkte 1 und 5: der Scan-Schritt zwischen `Image` und `Veröffentlichen` ändert den Text von `release.yml`; gelesen: Punkte 6, 8, 11, 12 zum ersten Tag; Sendungen aus `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image`, §1)
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-fr)
 
 **Autor:** pt9912. **Datum:** 2026-10-09.
 
