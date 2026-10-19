@@ -1,10 +1,10 @@
 # ADR-0051: Die Veröffentlichung läuft auf GitHub Actions bei einem Tag, mit Trockenlauf statt Probe-Tag und ohne Veränderung eines Tags
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-19
 
-**Autor:** Architect; Empfehlung, bis der Nutzer sie annimmt.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-19 (Option A; kein Probe-Tag; Repository-Geheimnisse; Tag-Satz `<Version>` und `latest`).
 
 **Bezug:** [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../spec/lastenheft.md#lh-qa-01--determinismus), [ADR-0043](0043-binaries-und-container-gate.md), [ADR-0050](0050-ci-auf-github-actions.md)
 
@@ -22,7 +22,7 @@ Ein Tag und ein Push in eine öffentliche Registry sind nicht zurückzunehmen: e
 
 ## Entscheidung
 
-Wir empfehlen **Option A: GitHub Actions veröffentlicht bei einem Tag `v*`; dieselbe Datei läuft als Trockenlauf auf einem Zweig und tut alles außer dem, was nach außen wirkt; kein Probe-Tag.**
+Wir wählen **Option A: GitHub Actions veröffentlicht bei einem Tag `v*`; dieselbe Datei läuft als Trockenlauf auf einem Zweig und tut alles außer dem, was nach außen wirkt; kein Probe-Tag.**
 
 1. **Träger und Auslöser.** `.github/workflows/release.yml` auf `ubuntu-24.04`, ausgelöst durch den Push eines Tags `v*` (`ci.yml` lässt Tags aus) und durch `workflow_dispatch` als Trockenlauf. Werkzeuge: `docker buildx`, `skopeo` und `gh` des Runner-Images, keine Aktion außer dem Checkout; die Logik liegt in einem Skript, das die Gegenprobe mit Attrappen ohne Netz prüft.
 2. **Fail-closed vor der Außenwirkung.** Form des Tags (SemVer), Gleichheit mit der Datei `VERSION`, die Zeile der Änderungshistorie, die Geheimnisse und (beim Lauf) die Lage des Tag-Commits im Standard-Zweig werden geprüft, bevor etwas in eine Registry geschrieben wird. Die erste Außenwirkung ist der Push nach `ghcr.io`.
@@ -33,7 +33,7 @@ Wir empfehlen **Option A: GitHub Actions veröffentlicht bei einem Tag `v*`; die
 
 Die Regeln im Einzelnen (Text der Datei, Eingaben, Reihenfolge, Fehlertabelle, Fälle) stehen in [`SPEC-067`](../../../harness/vertraege/SPEC-067-release.md).
 
-Zur Entscheidung des Nutzers vorgelegt (Empfehlung des Architect, keine Annahme): die Annahme dieser ADR; **kein Probe-Tag** (sonst bleibt ein `v0.1.0-rc.1` dauerhaft in beiden Registries und am GitHub-Release); Repository-Geheimnisse statt eines Environments `release` (ein Environment schützt die Geheimnisse besser, nimmt dem Trockenlauf auf einem Zweig aber den Zugriff auf `DOCKERHUB_TOKEN`; die Prüfung des Namens entfiele); `latest` nur beim neuesten stabilen Tag; kein Tag `<MAJOR>.<MINOR>`.
+Entscheidung des Nutzers vom 2026-10-19 (Empfehlung des Architect angenommen): die Annahme dieser ADR; **kein Probe-Tag** (die Pipeline wird vor `v0.1.0` durch den Trockenlauf belegt, sonst bliebe ein `v0.1.0-rc.1` dauerhaft in beiden Registries und am GitHub-Release); Repository-Geheimnisse statt eines Environments `release`; Tag-Satz nur `<Version>` und `latest`, kein `<MAJOR>.<MINOR>`.
 
 ## Verglichene Alternativen
 
@@ -73,5 +73,6 @@ Wenn der erste Lauf mit einem Tag an einer Stelle scheitert, die ein Probe-Tag o
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-19 | Proposed (Empfehlung des Architect nach dem Auftrag des Nutzers, den Release voranzubringen) | — |
+| 2026-10-19 | Accepted: Entscheidung des Nutzers, Option A ohne Probe-Tag, mit Repository-Geheimnissen und Tag-Satz `<Version>` und `latest` | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

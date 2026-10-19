@@ -196,7 +196,7 @@ ersten Code-Commit in der Spezifikation (für das Werkzeug unter `harness/vertra
   bleibt, gelöscht wird oder nur in einen eigenen Namensraum geht; ob der GitHub-Release des
   Probe-Tags als Vorabversion stehen bleibt.
 
-**Entschieden vom Architect am 2026-10-19** (Empfehlung bis zur Annahme von [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md); Ort: [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md)):
+**Entschieden vom Architect am 2026-10-19** (vom Nutzer am 2026-10-19 angenommen: [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md); Ort: [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md)):
 
 - *Träger der Automatisierung:* GitHub Actions, `release.yml`, nur Tags `v*`, wörtlicher Text; Pins und Rechte wie `ci.yml` — Punkt 1 (Text), [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md).
 - *Reihenfolge der Schritte:* `eingaben`, `binaries`, `image`, (Scan), `veröffentlichen`, `vergleichen`, `smoke`, `latest`, `github-release`; die erste Außenwirkung ist der Push nach `ghcr.io` — Punkt 2, 6.
@@ -209,7 +209,7 @@ ersten Code-Commit in der Spezifikation (für das Werkzeug unter `harness/vertra
 - *Versionsdatei:* `VERSION` im Wurzelverzeichnis, eine Zeile `<SemVer>` ohne `v`, Anfangswert `0.1.0-dev`; das Binary trägt sie über `VERSION=` des Baus, `make binaries` ohne Angabe bleibt bei `dev` — Schnittstelle, Punkt 3, 4.
 - *SemVer-Prüfung (Punkt 7):* in der Pipeline vor jedem Schritt mit Außenwirkung; Build-Metadaten abgelehnt; führende Nullen abgelehnt — Punkt 3. Ein Prüfen vor `git push` des Tags gibt es nicht (der Hook liegt nicht im Repo).
 - *Wiederanlauf und Fehlertabelle:* Punkt 11; ein Git-Tag wird nie verändert.
-- *Probe-Tag in den Registries:* entfällt; Trockenlauf auf einem Zweig statt dessen — Punkt 2, 12, [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md). Eine Entscheidung des Nutzers steht aus.
+- *Probe-Tag in den Registries:* nicht vorgesehen (Entscheidung des Nutzers vom 2026-10-19); Trockenlauf auf einem Zweig statt dessen — Punkt 2, 12, [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md).
 - *Beispiel und `:latest` in `LH-FA-16.a`:* Beispiel mit Registry und Version, Regel zu `latest` im Text von `LH-FA-16.a` (Spezifikation, 2026-10-19); die Prüfung der Regel hält Punkt 8.
 - *Plattform, Aufrufarten von `make`, Abbruch, Reihenfolge der Gründe:* Kopf, Punkt 3, 11, 13, 15.
 - *Einhängepunkt für den Scan (`slice-erster-release-freigabe`):* zwischen `Image` und `Veröffentlichen`, der Scan liest das Layout, `D` bleibt unverändert; der Folge-Slice ändert den Text von `release.yml` und `SPEC-067` Punkt 1 und 5 — Punkt 5.

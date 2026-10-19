@@ -9,9 +9,9 @@ der erste Tag der erste Lauf mit Außenwirkung, ohne einen Probe-Tag in den Regi
 die Registries und Tags heißen und warum kein Probe-Tag nötig ist, steht in [ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md);
 diese Kennung wiederholt es nicht. Das Gate der Datei ist [`SPEC-063`](SPEC-063-workflows-check.md), die Konventionen der CI sind [`SPEC-064`](SPEC-064-ci.md).
 
-**Stand der Entscheidung.** Alles in dieser Kennung ist Entscheidung des Architect und **Empfehlung**, bis der Nutzer
-[ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md) annimmt. Rahmen des Nutzers vom 2026-10-18: der erste Tag `v0.1.0` und das Veröffentlichen sind
-erlaubt; Probe-Tags und weitere Tags nur mit neuem Ja; Zugangsdaten kommen nur als Geheimnisse von GitHub und nur vom Nutzer.
+**Stand der Entscheidung.** Der Nutzer hat [ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md) am 2026-10-19 angenommen und dabei entschieden: **kein Probe-Tag** (Trockenlauf statt dessen), Repository-Geheimnisse statt eines Environments, Tag-Satz nur `<Version>` und `latest`. Rahmen des Nutzers vom 2026-10-18: der erste Tag `v0.1.0` und das Veröffentlichen sind erlaubt; weitere Tags nur mit neuem Ja; Zugangsdaten kommen nur als Geheimnisse von GitHub und nur vom Nutzer. Die übrigen Festlegungen dieser Kennung sind Entscheidung des Architect, vom Nutzer mit der ADR bestätigt.
+
+**Zwei Slices** (Schnitt vom 2026-10-19, Entscheidung des Architect nach der Größe). **Slice A** `slice-erster-release-veroeffentlichung` (Tag und Binaries) liefert die Eingaben ohne Geheimnisse, die Binaries, den GitHub-Release, die Datei `VERSION` und den Trockenlauf; seine Fassung von `release.yml` ist Punkt 1a und setzt nichts von B voraus. **Slice B** `slice-erster-release-veroeffentlichung-image` (Image) liefert Bau, Veröffentlichung, Vergleich, Smoke und `latest`; seine Fassung ist die Endfassung Punkt 1b, die Fassung A um Zeilen ergänzt, ohne eine Zeile von A zu ändern oder zu streichen, und hängt die Zeilen an der in 1b gezeigten Stelle ein. Welcher Punkt zu welchem Slice gehört, zeigt die Tabelle nach der Randform-Liste; in jedem Punkt steht die Marke **(A)**, **(B)** oder **(A, ergänzt von B)**.
 
 **Schnittstelle.** `.github/workflows/release.yml` hat den Text von Punkt 1. Die Logik steht in `tools/harness/release.sh <Schritt>` (Schritte:
 `eingaben`, `binaries`, `image`, `veroeffentlichen`, `vergleichen`, `smoke`, `latest`, `github-release`), nicht im YAML, wo sie ungeprüft bliebe. Die Version steht in
@@ -52,8 +52,71 @@ Exit-Code des Falls.
 | Reihenfolge mehrerer Gründe | 3, 11 |
 | Stelle des Scans vor dem Push | 5 |
 
-1. **Der Text.** `.github/workflows/release.yml` besteht, außer leeren Zeilen und Kommentarzeilen (erstes Zeichen außer Leerzeichen `#`), aus genau diesen Zeilen in dieser Reihenfolge
-   (Einzug und Anführungszeichen sind Teil des Textes; für `<SHA>` und `<Tag>` gilt dasselbe wie in [`SPEC-064`](SPEC-064-ci.md) Punkt 1; `<N>` ist die Zeile des Schritts):
+**Zuordnung zu den Slices.**
+
+| Punkt | Slice | Anteil |
+|---|---|---|
+| 1a | A | Text von `release.yml` ohne Image-Schritte |
+| 1b | B | Endfassung (Text 1a plus die Zeilen von B); die Fälle `p1-*` halten die Zeilenliste, B hängt seine Zeilen an |
+| 2 | A, ergänzt von B | Trockenlauf, Auslöser; A: Außenwirkung nur `GitHub-Release`; B: die weiteren vier Schritte (Fälle je Schritt) |
+| 3 (1) bis (6) | A | Eingaben ohne Geheimnisse |
+| 3 (7) | B | Geheimnisse; Fälle `p3-secret-*` |
+| 4 | A | Binaries |
+| 5 | B | Image und Stelle des Scans |
+| 6, 7, 8 | B | Veröffentlichen, Vergleichen und Smoke, `latest` |
+| 9 | A, ergänzt von B | GitHub-Release; B ergänzt die Vorbedingung `vergleichen` (Fall `p9-nicht-vor-registries`) |
+| 10 | A, ergänzt von B | A: `GITHUB_TOKEN` und das Verbot von Ausgabe und `set -x`; B: Geheimnisse der Registries und Anmeldung |
+| 11 | A, ergänzt von B | Fehlertabelle: A die Zeilen `eingaben`, `binaries`, `github-release`; B die übrigen |
+| 12 | A, ergänzt von B | Trockenlauf: A belegt Eingaben, Binaries, Dauer; B ergänzt Bau und Prüfung des Images |
+| 13, 14, 15 | A, ergänzt von B | Aufrufarten, Abbruch, Aufbau der Gegenprobe, Grenzen |
+
+1. **Der Text (A: 1a; B: 1b).** `.github/workflows/release.yml` besteht, außer leeren Zeilen und Kommentarzeilen (erstes Zeichen außer Leerzeichen `#`), aus genau den Zeilen der Fassung seines Slice in dieser Reihenfolge
+   (Einzug und Anführungszeichen sind Teil des Textes; für `<SHA>` und `<Tag>` gilt dasselbe wie in [`SPEC-064`](SPEC-064-ci.md) Punkt 1).
+
+   **1a: Fassung von Slice A** (Tag und Binaries; kein Geheimnis außer `GITHUB_TOKEN`, kein `packages: write`):
+
+   ```
+   name: release
+   on:
+     push:
+       tags:
+         - 'v*'
+     workflow_dispatch:
+   permissions: {}
+   concurrency:
+     group: release
+     cancel-in-progress: false
+   jobs:
+     release:
+       name: release
+       runs-on: ubuntu-24.04
+       timeout-minutes: 60
+       permissions:
+         contents: write
+       env:
+         RELEASE_EVENT: ${{ github.event_name }}
+         RELEASE_REF: ${{ github.ref }}
+         RELEASE_SHA: ${{ github.sha }}
+         RELEASE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+         RELEASE_REPOSITORY: ${{ github.repository }}
+       steps:
+         - name: Checkout
+           uses: actions/checkout@<SHA> # <Tag>
+           with:
+             fetch-depth: 0
+             persist-credentials: false
+         - name: Eingaben
+           run: bash tools/harness/release.sh eingaben
+         - name: Binaries
+           run: bash tools/harness/release.sh binaries
+         - name: GitHub-Release
+           if: ${{ github.event_name == 'push' }}
+           env:
+             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           run: bash tools/harness/release.sh github-release
+   ```
+
+   **1b: Endfassung von Slice B** (Fassung 1a plus die Zeilen von B; in 1a stehende Zeilen bleiben unverändert und in ihrer Reihenfolge, B fügt hinzu: die Zeile `packages: write` hinter `contents: write`, den Block `env:` mit den zwei Geheimnissen im Schritt `Eingaben`, und die fünf Schritte `Image`, `Veröffentlichen`, `Vergleichen`, `Smoke` und `Latest` zwischen `Binaries` und `GitHub-Release`):
 
    ```
    name: release
@@ -124,54 +187,54 @@ Exit-Code des Falls.
            run: bash tools/harness/release.sh github-release
    ```
 
-   Jede Änderung der Datei ist eine Änderung dieser Kennung; der Scan-Schritt von `slice-erster-release-freigabe` kommt zwischen `Image` und `Veröffentlichen` (Punkt 5) und ändert diesen Text.
+   Die Gegenprobe hält die Zeilenliste mit der Herkunft A oder B je Zeile; B hängt seine Zeilen an die Liste an und lässt die Fälle von A unverändert (die Fälle `p1-fehlt-<n>` und `p1-geaendert-<n>` entstehen in einer Schleife über die Liste). Jede Änderung der Datei ist eine Änderung dieser Kennung; der Scan-Schritt von `slice-erster-release-freigabe` kommt zwischen `Image` und `Veröffentlichen` (Punkt 5) und ändert diesen Text.
    Ein Schritt mit Außenwirkung (`Veröffentlichen`, `Vergleichen`, `Smoke`, `Latest`, `GitHub-Release`) trägt die Bedingung auf das Ereignis `push`; die Geheimnisse stehen nur in den
    Schritten, die sie lesen. Fälle und Mutationen wie in [`SPEC-064`](SPEC-064-ci.md) Punkt 1: `p1-gleich`, je Zeile `p1-fehlt-<n>` und `p1-geaendert-<n>`, Zusatzzeilen
    (`pull_request_target`, `secrets.ACTIONS_RUNNER_DEBUG`, ein weiterer Schritt mit `uses:` außer dem Checkout, `environment:`, `continue-on-error: true`), die Pin-Fälle `p1-pin-*`, die Reihenfolge der Schritte, und je Schritt mit
    Außenwirkung ein Fall `p1-bedingung-<Schritt>` (Bedingung entfernt: rot) mit Mutation.
-2. **Auslöser, Trockenlauf, Außenwirkung.** Ein Push eines Tags `v*` löst den **Lauf** aus; `workflow_dispatch` (nur im Standard-Zweig oder in einem Zweig, den der Aufrufer wählt) löst den **Trockenlauf** aus.
+2. **Auslöser, Trockenlauf, Außenwirkung (A, ergänzt von B).** Ein Push eines Tags `v*` löst den **Lauf** aus; `workflow_dispatch` (nur im Standard-Zweig oder in einem Zweig, den der Aufrufer wählt) löst den **Trockenlauf** aus.
    `ci.yml` hat `tags-ignore`, `release.yml` nimmt nur `v*`: ein Tag läuft nur hier. Der Trockenlauf fährt die Schritte `Eingaben`, `Binaries` und `Image` (und später `Scan`) mit der Version aus `VERSION`
-   als Tag `v<VERSION>`, schreibt nichts in eine Registry, legt keinen GitHub-Release an, setzt kein `latest` und nimmt keine Anmeldung vor. **Außenwirkung** haben genau die Schritte `Veröffentlichen`, `Vergleichen`, `Smoke`, `Latest` und `GitHub-Release`;
+   als Tag `v<VERSION>`, schreibt nichts in eine Registry, legt keinen GitHub-Release an, setzt kein `latest` und nimmt keine Anmeldung vor. **Außenwirkung** haben genau die Schritte `Veröffentlichen`, `Vergleichen`, `Smoke`, `Latest` und `GitHub-Release`; in Fassung 1a hat nur `GitHub-Release` Außenwirkung, die vier anderen kommen mit Slice B;
    `release.sh` lehnt sie zusätzlich selbst ab, wenn `RELEASE_EVENT` nicht `push` ist oder `RELEASE_REF` nicht `refs/tags/v…` (Exit 2, vor jedem Aufruf von `docker`, `skopeo` und `gh`). Die erste Außenwirkung ist der Push nach `ghcr.io`. Fälle:
    `p2-trockenlauf-ohne-aussenwirkung` (Ereignis `workflow_dispatch`: alle Schritte bis `image` laufen, die Attrappen von `skopeo` und `gh` werden nie gerufen, kein `login`), `p2-aussenwirkung-ohne-push` (je Schritt mit Außenwirkung bei `workflow_dispatch`: Exit 2), `p2-ref-kein-tag` (Ereignis `push`, Ref
    `refs/heads/main`: Exit 2). Mutationen: der Trockenlauf ruft `skopeo`; ein Schritt mit Außenwirkung prüft das Ereignis nicht (je Schritt).
-3. **Eingaben (Schritt `eingaben`).** Vor jedem Schritt mit Außenwirkung; Exit 2 und eine Meldung, die den Grund nennt, beim ersten Treffer in dieser Reihenfolge: (1) Ereignis und Ref (Punkt 2); (2) die **Form** des Tags
+3. **Eingaben (Schritt `eingaben`; (1) bis (6) A, (7) B).** Vor jedem Schritt mit Außenwirkung; Exit 2 und eine Meldung, die den Grund nennt, beim ersten Treffer in dieser Reihenfolge: (1) Ereignis und Ref (Punkt 2); (2) die **Form** des Tags
    `v<SemVer>` nach SemVer 2.0: `v`, dann `MAJOR.MINOR.PATCH` aus Zahlen ohne führende Null (außer `0`), danach optional `-` und Vorabversions-Bezeichner (Zahlen ohne führende Null oder Zeichen aus `0-9A-Za-z-`, durch `.` getrennt, nicht leer); Build-Metadaten (`+…`)
    sind nicht zugelassen (ein Docker-Tag trägt kein `+`); Länge bis 100 Zeichen; (3) die Datei `VERSION` hat die Form (eine Zeile, LF, `<SemVer>` ohne `v` nach derselben Regel); (4) der Tag ist `v` plus der Inhalt von `VERSION`, Zeichen für Zeichen; (5) die Änderungshistorie des
-   Benutzerhandbuchs trägt die Zeile der Version (Punkt 9), sonst Eingabefehler; (6) nur beim Lauf: der Commit des Tags liegt im Standard-Zweig (`git merge-base --is-ancestor $RELEASE_SHA origin/<Standard-Zweig>`); im Trockenlauf steht die Antwort als Hinweis und ist kein Fehler; (7) die Geheimnisse `DOCKERHUB_USERNAME`
+   Benutzerhandbuchs trägt die Zeile der Version (Punkt 9), sonst Eingabefehler; (6) nur beim Lauf: der Commit des Tags liegt im Standard-Zweig (`git merge-base --is-ancestor $RELEASE_SHA origin/<Standard-Zweig>`); im Trockenlauf steht die Antwort als Hinweis und ist kein Fehler; (7) **(B)** die Geheimnisse `DOCKERHUB_USERNAME`
    und `DOCKERHUB_TOKEN` sind gesetzt und nicht leer (Trockenlauf und Lauf; die Meldung nennt den Namen, nie den Wert); fehlt eines, ist es ein Eingabefehler **vor dem ersten Push**. Der Trockenlauf ersetzt (1) durch den Trockenlauf und (4) bis (7) bleiben wirksam. Fälle: `p3-tag-gueltig` (`v1.2.3`, `v0.1.0-rc.1`, `v1.0.0-x.7.z.92`),
    `p3-ohne-v`, `p3-zwei-teile` (`v1.2`), `p3-fuehrende-null` (`v01.2.3`), `p3-leere-vorabversion` (`v1.2.3-`), `p3-build-metadaten` (`v1.2.3+x`), `p3-zu-lang`, `p3-version-datei-form` (zwei Zeilen; `v` in der Datei; Leerzeichen; CRLF), `p3-tag-ungleich-datei`, `p3-notes-fehlen`, `p3-nicht-im-standard-zweig`, `p3-trockenlauf-nicht-im-standard-zweig` (grün mit Hinweis), `p3-secret-fehlt-user`,
    `p3-secret-fehlt-token`, `p3-reihenfolge-<Paar>` (je Paar benachbarter Gründe ein Fall mit beiden Verstößen: die Meldung nennt den früheren). Mutationen: je Form-Element, je Prüfung (2) bis (7) entfernt, je Paar vertauscht; Vergleich ohne `v`; Build-Metadaten zugelassen; leere Vorabversion zugelassen.
-4. **Binaries (Schritt `binaries`).** `make binaries VERSION=<Version> DIST=<neues Verzeichnis außerhalb des Arbeitsbaums>`; danach `sha256sum -c SHA256SUMS` in diesem Verzeichnis grün, genau die sechs Dateien [`SPEC-055`](SPEC-055-container-und-binaries.md) Punkt 3 plus `SHA256SUMS`, sonst Exit 1. Es gibt keinen zweiten Bau und keinen Vergleich zweier Builds (das hält `make test-container`).
+4. **Binaries (Schritt `binaries`; A).** `make binaries VERSION=<Version> DIST=<neues Verzeichnis außerhalb des Arbeitsbaums>`; danach `sha256sum -c SHA256SUMS` in diesem Verzeichnis grün, genau die sechs Dateien [`SPEC-055`](SPEC-055-container-und-binaries.md) Punkt 3 plus `SHA256SUMS`, sonst Exit 1. Es gibt keinen zweiten Bau und keinen Vergleich zweier Builds (das hält `make test-container`).
    Fälle: `p4-aufruf` (der Aufruf von `make` trägt `VERSION=<Version>` und ein `DIST` außerhalb des Arbeitsbaums), `p4-summe-falsch` (Attrappe schreibt eine falsche Summe: rot), `p4-datei-fehlt`, `p4-datei-zu-viel`. Mutationen: `VERSION` fehlt im Aufruf; `sha256sum -c` entfällt; die Dateiliste wird nicht gezählt.
-5. **Image (Schritt `image`).** Ein Bau für beide Plattformen in **ein** OCI-Layout (`buildx build` mit Treiber `docker-container`, dessen Image per Digest gepinnt ist; `--platform linux/amd64,linux/arm64`, `--target runtime`, `--build-arg VERSION=<Version>`,
+5. **Image (Schritt `image`; B).** Ein Bau für beide Plattformen in **ein** OCI-Layout (`buildx build` mit Treiber `docker-container`, dessen Image per Digest gepinnt ist; `--platform linux/amd64,linux/arm64`, `--target runtime`, `--build-arg VERSION=<Version>`,
    `--build-arg SOURCE_DATE_EPOCH=<Commit-Zeit>`, `--provenance=false --sbom=false`, `--output type=oci,dest=…,rewrite-timestamp=true`). Das Layout enthält genau einen Index mit genau zwei Manifesten (`linux/amd64`, `linux/arm64`); `release.sh` berechnet seinen
    Index-Digest `D` (SHA-256 des Index-Blobs). Das Binary `/pgwire-recorder` jedes Manifests hat die Summe des Eintrags für `linux/<Arch>` in `SHA256SUMS` aus Punkt 4 (Export des Dateisystems je Plattform aus demselben Builder), sonst Exit 1 mit Plattform. Das Image trägt kein Binary aus `dist/`, sondern wird aus demselben Quellstand
    neu gebaut; die Gleichheit der Summen ist die Prüfung (das Binary ist reproduzierbar, `LH-QA-01`). Das Image wird nicht als reproduzierbar zugesagt; das Setzen von `SOURCE_DATE_EPOCH` ist ein Versuch, der den Wiederanlauf (Punkt 11) erleichtert. **Stelle des Scans:** zwischen Bau und Push; der Scan liest das Layout, und der Push in
    Punkt 6 veröffentlicht genau dieses Layout (`D` ist unverändert); `slice-erster-release-freigabe` trägt den Schritt ein. Fälle: `p5-aufruf` (alle genannten Argumente, je Element: Plattformen, Ziel, `VERSION`, `SOURCE_DATE_EPOCH`, kein Provenance), `p5-zwei-manifeste` (Attrappe liefert drei Manifeste: rot), `p5-plattform-fehlt`,
    `p5-summe-amd64`, `p5-summe-arm64` (Binary im Image weicht ab: rot mit Plattform), `p5-digest` (`D` wird aus dem Layout berechnet und an die folgenden Schritte weitergereicht). Mutationen: je Argument entfällt; die Prüfung der Manifeste entfällt; die Prüfung der Summe je Plattform entfällt (je Plattform); `D` wird aus einem anderen Ort gelesen.
-6. **Veröffentlichen (Schritt `veröffentlichen`).** Reihenfolge: Anmeldung bei `ghcr.io` (Benutzer `github.actor`, Token `GITHUB_TOKEN`, Rechte `packages: write`), Push nach `ghcr.io`, Anmeldung bei `docker.io` (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`), Push nach `docker.io`. Der Push kopiert das Layout aus Punkt 5 ohne Neubau
+6. **Veröffentlichen (Schritt `veröffentlichen`; B).** Reihenfolge: Anmeldung bei `ghcr.io` (Benutzer `github.actor`, Token `GITHUB_TOKEN`, Rechte `packages: write`), Push nach `ghcr.io`, Anmeldung bei `docker.io` (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`), Push nach `docker.io`. Der Push kopiert das Layout aus Punkt 5 ohne Neubau
    (`skopeo copy --all --preserve-digests oci-archive:… docker://<Registry>/pt9912/pgwire-recorder:<Version>`), das heißt, beide Registries bekommen dieselben Bytes und dieselbe Manifestliste. **Tag-Satz je Version:** `<Version>` (SemVer ohne `v`), bei einem stabilen Tag zusätzlich `latest` (Punkt 8); keine Tags `<MAJOR>` oder `<MAJOR>.<MINOR>`.
    **Ein vorhandener Tag wird nie überschrieben:** liegt `<Version>` in einer Registry schon mit dem Index-Digest `D`, wird sie übersprungen (Wiederanlauf); liegt er mit einem anderen Digest da, ist der Lauf rot (Exit 1, Registry und beide Digests in der Meldung), und der Weg ist ein höherer Tag (Punkt 11). Das Anlegen des Repositorys auf Docker Hub und die Sichtbarkeit des Pakets
    in `ghcr.io` (öffentlich, mit dem Repository verknüpft) sind Handlungen des Betreibers; Punkt 7 prüft die Folge. Fälle: `p6-reihenfolge` (Aufrufe der Attrappe: login ghcr, copy ghcr, login docker, copy docker), `p6-all-und-digests` (`--all --preserve-digests`), `p6-tag-vorhanden-gleich` (übersprungen, Exit 0), `p6-tag-vorhanden-anders` (Exit 1, kein Copy dorthin),
    `p6-zweite-registry-faellt` (Copy nach `docker.io` scheitert: Exit 1, `ghcr.io` bleibt beschrieben, Meldung nennt den Zustand), `p6-tag-satz` (nur `<Version>`, keine weiteren Tags). Mutationen: Reihenfolge vertauscht; `--all` entfällt; `--preserve-digests` entfällt; ein vorhandener Tag wird überschrieben; ein vorhandener gleicher Tag ist rot; zusätzlicher Tag `<MAJOR>.<MINOR>`.
-7. **Vergleichen und Smoke (Schritte `vergleichen`, `smoke`), fail-closed.** Nach dem Push lesen ohne Anmeldung (`--no-creds`) den Index beider Registries: Der Digest ist die SHA-256 der **rohen** Bytes des Index (`skopeo inspect --raw … | sha256sum`), nicht eine Anzeige eines Werkzeugs. Rot (Exit 1), wenn einer der drei Werte
+7. **Vergleichen und Smoke (Schritte `vergleichen`, `smoke`; B), fail-closed.** Nach dem Push lesen ohne Anmeldung (`--no-creds`) den Index beider Registries: Der Digest ist die SHA-256 der **rohen** Bytes des Index (`skopeo inspect --raw … | sha256sum`), nicht eine Anzeige eines Werkzeugs. Rot (Exit 1), wenn einer der drei Werte
    `D`, Digest `ghcr.io`, Digest `docker.io` abweicht, wenn der anonyme Zugriff scheitert (Paket nicht öffentlich: die Meldung nennt die Registry und die Handlung des Betreibers), wenn der Index nicht genau die zwei Plattformen enthält oder wenn der Tag `<Version>` fehlt. Kein Löschen, kein Zurücksetzen (Tags werden nicht verändert). Dann der Smoke (`container-smoke.sh`) mit der Referenz `<Registry>/pt9912/pgwire-recorder@<D>` aus **jeder** Registry für die Plattform
    des Docker-Servers (`amd64`): `version` gibt `pgwire-recorder <Version>`, Record und Replay nach [`SPEC-055`](SPEC-055-container-und-binaries.md) Punkt 7. Rot: weder `latest` noch GitHub-Release. Fälle: `p7-gleich` (grün), `p7-digest-ghcr`, `p7-digest-docker`, `p7-digest-lokal` (je einer weicht ab: rot mit Namen), `p7-anonym-ghcr`, `p7-anonym-docker` (Zugriff ohne Anmeldung scheitert), `p7-eine-plattform` (Index mit einem Manifest),
    `p7-tag-fehlt`, `p7-rohbytes` (Attrappe liefert zwei Anzeigen desselben Index in verschiedener Formatierung: gleich, weil die rohen Bytes gleich sind), `p7-smoke-<Registry>` (der Smoke scheitert für eine Registry: rot, kein `latest`). Mutationen: je Vergleich entfällt (drei); der anonyme Zugriff nutzt die Anmeldung; der Digest kommt aus einer formatierten Anzeige; die Plattformzahl wird nicht geprüft;
    der Smoke läuft nur für eine Registry.
-8. **`latest` (Schritt `latest`).** Nur wenn (a) die Version stabil ist (kein `-`), (b) Punkt 7 für beide Registries grün war und (c) die Version höher ist als jede andere stabile Version unter den Tags `v*` des Repositorys (`git tag -l 'v*'` mit allen Tags, Vergleich nach SemVer, Vorabversionen zählen nicht). Dann setzt der Schritt `latest` auf `D` in beiden Registries
+8. **`latest` (Schritt `latest`; B).** Nur wenn (a) die Version stabil ist (kein `-`), (b) Punkt 7 für beide Registries grün war und (c) die Version höher ist als jede andere stabile Version unter den Tags `v*` des Repositorys (`git tag -l 'v*'` mit allen Tags, Vergleich nach SemVer, Vorabversionen zählen nicht). Dann setzt der Schritt `latest` auf `D` in beiden Registries
    (`skopeo copy --all --preserve-digests docker://…@<D> docker://…:latest`), `ghcr.io` zuerst. Eine Vorabversion und der Patch eines älteren Zweigs lassen `latest` unverändert (Exit 0 mit Meldung); scheitert das Setzen in der zweiten Registry, ist der Lauf rot und die Meldung nennt, welche Registry auf welchen Digest zeigt (Punkt 11). Das Beispiel in `LH-FA-16.a` nennt eine Referenz mit Registry und Version
    und sagt nur, dass `latest` auf den neuesten stabilen Release zeigt. Fälle: `p8-stabil-hoechste` (gesetzt, beide Registries), `p8-vorabversion` (nicht gesetzt), `p8-aelterer-zweig` (`v1.0.1` bei vorhandenem `v1.1.0`: nicht gesetzt), `p8-erster-stabiler` (kein anderer stabiler Tag: gesetzt), `p8-vorabversion-hoeher-zaehlt-nicht` (`v1.2.0-rc.1` vorhanden, `v1.1.1`
    stabil und höchste stabile: gesetzt), `p8-nach-rotem-vergleich` (Aufruf nach rotem Punkt 7: Exit 2), `p8-zweite-registry-faellt`. Mutationen: Vorabversion setzt `latest`; Vorabversionen zählen als höher; die Prüfung auf die höchste Version entfällt; `latest` vor dem Vergleich; Reihenfolge der Registries vertauscht.
-9. **GitHub-Release (Schritt `github-release`).** Zuletzt, nach den Registries: `gh release create v<Version> --verify-tag --title v<Version> --notes-file <Datei>` mit `--prerelease` genau bei einer Vorabversion, nicht als Entwurf, mit den Anhängen **genau**: die sechs Binaries und `SHA256SUMS` aus Punkt 4, sonst nichts. Der Text ist die dritte Zelle der Zeile der Änderungshistorie des Benutzerhandbuchs
+9. **GitHub-Release (Schritt `github-release`; A, Vorbedingung `vergleichen` von B).** Zuletzt, nach den Registries: `gh release create v<Version> --verify-tag --title v<Version> --notes-file <Datei>` mit `--prerelease` genau bei einer Vorabversion, nicht als Entwurf, mit den Anhängen **genau**: die sechs Binaries und `SHA256SUMS` aus Punkt 4, sonst nichts. Der Text ist die dritte Zelle der Zeile der Änderungshistorie des Benutzerhandbuchs
    (die Tabelle im Abschnitt, dessen Überschrift auf `Änderungshistorie` endet, Zeile mit erster Zelle gleich der Version ohne `v`); ohne Zeile Eingabefehler (Punkt 3 (5)). Existiert der Release schon (Wiederanlauf), werden fehlende Anhänge hochgeladen und `SHA256SUMS` am Release mit der lokalen Datei verglichen; eine abweichende Summe ist rot (Exit 1), nie überschrieben. Fälle: `p9-anhaenge` (genau sieben Dateien), `p9-stabil-ohne-prerelease`,
-   `p9-vorabversion-prerelease`, `p9-notes-aus-zelle`, `p9-release-existiert-gleich` (fehlende Anhänge werden ergänzt), `p9-release-existiert-abweichend` (rot), `p9-nicht-vor-registries` (Aufruf, bevor `vergleichen` grün war: Exit 2). Mutationen: ein achter Anhang; `--prerelease` immer oder nie; Notes aus der falschen Zelle; überschreiben statt vergleichen; Release vor den Registries.
-10. **Zugangsdaten.** Die Namen sind `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` (Zugriffstoken mit Lesen und Schreiben) als **Repository-Geheimnisse**; `ghcr.io` nutzt `GITHUB_TOKEN` mit `packages: write`; der GitHub-Release nutzt `GITHUB_TOKEN` mit `contents: write`. Kein anderes Geheimnis, kein Eintrag im Repository, kein `environment:`
-   (Punkt 1; die Frage nach Umgebungsgeheimnissen ist dem Nutzer vorgelegt, [ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md)). Anmeldung nur per `--password-stdin`; das Skript gibt keinen Wert eines Geheimnisses aus (kein `set -x`, kein `env`, keine Echo-Zeile über Zugangsdaten), auch nicht bei einem Fehler. Der Token wird nur den Schritten übergeben, die sich anmelden (Punkt 1). Fälle: `p10-nicht-im-log` (die Attrappe merkt sich die Token-Zeichenketten; weder stdout noch stderr von `release.sh` tragen sie, in keinem
+   `p9-vorabversion-prerelease`, `p9-notes-aus-zelle`, `p9-release-existiert-gleich` (fehlende Anhänge werden ergänzt), `p9-release-existiert-abweichend` (rot), `p9-nicht-vor-registries` **(B)** (Aufruf, bevor `vergleichen` grün war: Exit 2; die Zustandsdatei `vergleichen.ok` legt `release.sh vergleichen` an, B ergänzt die Fixture der Fälle von A um diese Datei und ändert keinen Fall von A). Mutationen: ein achter Anhang; `--prerelease` immer oder nie; Notes aus der falschen Zelle; überschreiben statt vergleichen; Release vor den Registries.
+10. **Zugangsdaten (A: `GITHUB_TOKEN`, Ausgabe; B: Registries).** Die Namen sind `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` (Zugriffstoken mit Lesen und Schreiben) als **Repository-Geheimnisse**; `ghcr.io` nutzt `GITHUB_TOKEN` mit `packages: write`; der GitHub-Release nutzt `GITHUB_TOKEN` mit `contents: write`. Kein anderes Geheimnis, kein Eintrag im Repository, kein `environment:`
+   (Punkt 1; Entscheidung des Nutzers vom 2026-10-19: Repository-Geheimnisse statt eines Environments, [ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md)). Anmeldung nur per `--password-stdin`; das Skript gibt keinen Wert eines Geheimnisses aus (kein `set -x`, kein `env`, keine Echo-Zeile über Zugangsdaten), auch nicht bei einem Fehler. Der Token wird nur den Schritten übergeben, die sich anmelden (Punkt 1). Fälle: `p10-nicht-im-log` (die Attrappe merkt sich die Token-Zeichenketten; weder stdout noch stderr von `release.sh` tragen sie, in keinem
    Schritt, auch nicht im Fehlerfall `p6-tag-vorhanden-anders`), `p10-stdin` (Anmeldung der Attrappe mit `--password-stdin`, nie als Argument), `p10-fehlendes-geheimnis` (Punkt 3 (7)). Mutationen: das Skript gibt den Token aus (bei Fehler); die Anmeldung übergibt den Token als Argument; `set -x` im Skript. Ob die Rechte der Token ausreichen (Schreibrecht auf Docker Hub, Verknüpfung des Pakets mit dem
    Repository), belegt nur der erste Lauf (Punkt 12).
-11. **Wiederanlauf und Fehlertabelle.** Wiederanlauf eines roten Laufs ist „Re-run failed jobs“ derselben Ausführung oder ein erneuter Lauf desselben Tags; die Schritte sind so geschrieben, dass der zweite Lauf nichts verändert, was der erste hinterließ (Punkte 6, 8, 9). Ein bereits gesetzter Git-Tag wird nie verändert oder gelöscht ([`docs/maintainer/releasing.md`](../../docs/maintainer/releasing.md) §11); ein Fehler, der nur ein höherer Tag behebt (ein vorhandener Tag mit anderem Digest, ein abweichender Anhang), bekommt einen neuen Tag mit höherer Version.
+11. **Wiederanlauf und Fehlertabelle (A: Zeilen `eingaben`, `binaries`, `github-release`; B: die übrigen).** Wiederanlauf eines roten Laufs ist „Re-run failed jobs“ derselben Ausführung oder ein erneuter Lauf desselben Tags; die Schritte sind so geschrieben, dass der zweite Lauf nichts verändert, was der erste hinterließ (Punkte 6, 8, 9). Ein bereits gesetzter Git-Tag wird nie verändert oder gelöscht ([`docs/maintainer/releasing.md`](../../docs/maintainer/releasing.md) §11); ein Fehler, der nur ein höherer Tag behebt (ein vorhandener Tag mit anderem Digest, ein abweichender Anhang), bekommt einen neuen Tag mit höherer Version.
    Die Tabelle steht im Dokument `releasing.md` §11 und deckt sich mit dieser:
 
    | Schritt | Fehler | hinterlässt | Wiederanlauf |
@@ -185,11 +248,11 @@ Exit-Code des Falls.
    | `github-release` | Anlegen oder Anhang | Registries vollständig, Release fehlt oder teilweise | wiederholen: ergänzt fehlende Anhänge; abweichende Summe: neuer Tag |
 
    Fälle: `p11-wiederanlauf-ghcr-vorhanden` (zweiter Lauf nach `p6-zweite-registry-faellt`: `ghcr.io` übersprungen, `docker.io` kopiert, Exit 0), `p11-wiederanlauf-latest`, `p11-wiederanlauf-release-teilweise`, `p11-reihenfolge-gruende` (Fehler in zwei Schritten: der frühere Schritt endet den Lauf; ein späterer Schritt läuft nie nach einem roten). Mutationen: ein zweiter Lauf kopiert erneut über den vorhandenen Tag; er endet rot bei gleichem Digest; ein Schritt läuft nach rotem Vorgänger.
-12. **Trockenlauf statt Probe-Tag; was er nicht belegt.** Der Trockenlauf (Punkt 2) belegt auf GitHub: Checkout, Werkzeuge des Runners (`docker buildx`, `skopeo`, `gh`), Eingaben, die Geheimnisse sind gesetzt, `make binaries`, den Bau und die Prüfung des Images, die Dauer. Er belegt **nicht**: das Schreibrecht der Token, die Verknüpfung und die Sichtbarkeit des Pakets in `ghcr.io`, die Existenz des Repositorys auf Docker Hub, das Anlegen des
-    GitHub-Release, den Smoke aus den Registries. Diese Stellen zeigt erst der erste Lauf mit einem Tag; ein Fehler dort ist nach Punkt 11 behebbar, ohne einen Tag zu verändern. Der Trockenlauf wird einmal auf dem Stand der Lieferung gefahren und in §7 des Slice belegt (Lauf-Kennung, Dauer); ein Probe-Tag in den Registries entfällt.
-13. **Aufrufarten, Abbruch, Gleichzeitigkeit.** `release.sh` läuft nie unter `make`; `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` haben keinen Fall (Grund: kein Hook und kein Stand liest das Ergebnis, die Pipeline ist der Aufrufer). Zwei Tags gleichzeitig laufen nacheinander (`concurrency: release`, `cancel-in-progress: false`); ein Tag wird nie durch einen späteren abgebrochen. Bricht der Runner den Lauf ab (`SIGTERM`, Zeitgrenze 60 Minuten),
+12. **Trockenlauf statt Probe-Tag; was er nicht belegt (A, ergänzt von B).** Der Trockenlauf (Punkt 2) belegt auf GitHub: Checkout, Werkzeuge des Runners (`docker buildx`, `skopeo`, `gh`), Eingaben, mit Slice B dass die Geheimnisse gesetzt sind, `make binaries`, mit Slice B den Bau und die Prüfung des Images, die Dauer. Er belegt **nicht**: das Schreibrecht der Token, die Verknüpfung und die Sichtbarkeit des Pakets in `ghcr.io`, die Existenz des Repositorys auf Docker Hub, das Anlegen des
+    GitHub-Release, den Smoke aus den Registries. Diese Stellen zeigt erst der erste Lauf mit einem Tag; ein Fehler dort ist nach Punkt 11 behebbar, ohne einen Tag zu verändern. Der Trockenlauf wird einmal auf dem Stand der Lieferung jedes Slice gefahren und in §7 belegt (Lauf-Kennung, Dauer). **Ein Probe-Tag ist nicht vorgesehen** (Entscheidung des Nutzers vom 2026-10-19); die erste Außenwirkung in Registries und am GitHub-Release ist der Lauf für `v0.1.0`. Slice A belegt Eingaben, Binaries und Dauer; Slice B ergänzt den Bau und die Prüfung des Images (Punkt 5).
+13. **Aufrufarten, Abbruch, Gleichzeitigkeit (A, ergänzt von B).** `release.sh` läuft nie unter `make`; `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` haben keinen Fall (Grund: kein Hook und kein Stand liest das Ergebnis, die Pipeline ist der Aufrufer). Zwei Tags gleichzeitig laufen nacheinander (`concurrency: release`, `cancel-in-progress: false`); ein Tag wird nie durch einen späteren abgebrochen. Bricht der Runner den Lauf ab (`SIGTERM`, Zeitgrenze 60 Minuten),
     gilt die Fehlertabelle von Punkt 11 für den Schritt, in dem er stand; das Skript räumt sein Temp-Verzeichnis bei Ende, `SIGINT` und `SIGTERM` und beendet seine Unterprozesse zuerst (wie [`SPEC-064`](SPEC-064-ci.md) Punkt 18; Fälle `p13-sigint`, `p13-sigterm` mit Mutationen). Die Gegenprobe selbst räumt ebenso.
-14. **Aufbau der Gegenprobe.** `make release-gegenprobe` legt je Fall einen Temp-Baum mit einem Git-Repository (Commits, Tags, `origin/main`), Kopien von `release.sh`, `VERSION`, `docs/user/benutzerhandbuch.md`-Auszug und einem `PATH` an, in dem `docker`, `skopeo`, `gh`, `make`, `sha256sum` Attrappen sind, die ihre Aufrufe aufzeichnen; ohne Netz, ohne Docker. Der Arbeitsbaum bleibt unberührt. Der Text von `release.yml` wird von
+14. **Aufbau der Gegenprobe (A, ergänzt von B).** `make release-gegenprobe` legt je Fall einen Temp-Baum mit einem Git-Repository (Commits, Tags, `origin/main`), Kopien von `release.sh`, `VERSION`, `docs/user/benutzerhandbuch.md`-Auszug und einem `PATH` an, in dem `docker`, `skopeo`, `gh`, `make`, `sha256sum` Attrappen sind, die ihre Aufrufe aufzeichnen; ohne Netz, ohne Docker. Der Arbeitsbaum bleibt unberührt. Der Text von `release.yml` wird von
     einer Funktion gehalten wie in [`SPEC-064`](SPEC-064-ci.md) Punkt 14. Keine Abdeckungs-Deklaration.
-15. **Grenzen** (akzeptierte Negative, jeweils mit Grund). Ein grüner Lauf auf GitHub ist ein Beleg, kein Gate. Die Geheimnisse, das Paket auf `ghcr.io`, das Repository auf Docker Hub und der Branch-Schutz sind Einstellungen des Betreibers, aus dem Klon nicht auditierbar. Das Image ist nicht reproduzierbar zugesagt (Punkt 5); der Wiederanlauf eines teilweise veröffentlichten Tags kann daran scheitern und endet dann rot mit dem Weg „neuer Tag“.
+15. **Grenzen (A, ergänzt von B)** (akzeptierte Negative, jeweils mit Grund). Ein grüner Lauf auf GitHub ist ein Beleg, kein Gate. Die Geheimnisse, das Paket auf `ghcr.io`, das Repository auf Docker Hub und der Branch-Schutz sind Einstellungen des Betreibers, aus dem Klon nicht auditierbar. Das Image ist nicht reproduzierbar zugesagt (Punkt 5); der Wiederanlauf eines teilweise veröffentlichten Tags kann daran scheitern und endet dann rot mit dem Weg „neuer Tag“.
     Die Pipeline führt Werkzeuge des Runners (`skopeo`, `gh`, `buildx`) in der Version des Runner-Images aus; eine Änderung des Runner-Images kann das Verhalten ändern (Punkt 1: `ubuntu-24.04` fest, die Werkzeuge nicht). Ein Tag auf einem Commit, dessen `release.yml` verändert ist, führt die veränderte Datei aus (Verhalten von GitHub für Tag-Ereignisse): Wer taggen darf, bestimmt die Konfiguration des Repositorys. Das Homebrew-Tap, die Formel und der Scan des Images sind nicht Teil dieser Kennung.
