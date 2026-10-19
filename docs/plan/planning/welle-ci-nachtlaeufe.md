@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-erster-release](welle-erster-release.md) done (Entscheidung des Nutzers vom 2026-10-18).
+- Welle [welle-erster-release](done/welle-erster-release.md) done (Entscheidung des Nutzers vom 2026-10-18).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -61,7 +61,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: keine Welle.
-- Wird blockiert von: Welle [welle-erster-release](welle-erster-release.md) (Start) und den Slices `slice-harness-ci` (liefert `ci.yml` und die Konventionen der Workflows) und `slice-harness-gegenproben-aus-gates-sammelziele` (liefert `make gegenproben`), beide schon Voraussetzung von welle-erster-release bzw. `done/`.
+- Wird blockiert von: Welle [welle-erster-release](done/welle-erster-release.md) (Start) und den Slices `slice-harness-ci` (liefert `ci.yml` und die Konventionen der Workflows) und `slice-harness-gegenproben-aus-gates-sammelziele` (liefert `make gegenproben`), beide schon Voraussetzung von welle-erster-release bzw. `done/`.
 - Innerhalb der Welle: `slice-harness-ci-freshness` setzt `slice-harness-ci` voraus, `slice-harness-ci-freshness-images` setzt `slice-harness-ci-freshness` voraus (Skript, Workflow, Vertrag), `slice-harness-ci-gegenproben` setzt `slice-harness-ci` und `slice-harness-gegenproben-aus-gates-sammelziele` voraus.
 
 **Reihenfolge** (wie in welle-erster-release bis zur Entscheidung des Nutzers vom 2026-10-18; Schnitt und Reihenfolge der drei Slices: Empfehlung des Planners, `slice-harness-ci-workflows` §6 Frage 1; WIP-Limit 1):
@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- `ci.yml`, das Gate der Workflows und `release.yml` — `slice-harness-ci-workflows`, `slice-harness-ci`, `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` in [welle-erster-release](welle-erster-release.md); diese Welle ändert sie nicht.
+- `ci.yml`, das Gate der Workflows und `release.yml` — `slice-harness-ci-workflows`, `slice-harness-ci`, `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` in [welle-erster-release](done/welle-erster-release.md); diese Welle ändert sie nicht.
 - Das Freshness-Audit vor dem ersten Tag — `slice-erster-release-freigabe` führt es von Hand; ein Nachtlauf dieser Welle ist dafür weder Beleg noch Bedingung (Entscheidung des Nutzers vom 2026-10-18).
 - Das Fahren der Gegenproben im Gegenproben-Container vor einem Release — Pflicht nach `AGENTS.md` §6, bleibt; ein Nachtlauf beweist den Stand des Standard-Zweigs, nicht den eines Releases.
 - Branch-Schutz („required status check“), Geheimnisse und Sichtbarkeit des Repos auf GitHub — Einstellungen des Betreibers, aus dem Klon nicht auditierbar; die Welle nennt sie als Handlung, ohne sie zu behaupten.

@@ -125,7 +125,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 `slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen in `done/` (Start-Trigger von
 welle-erster-release), dazu `slice-harness-devcontainer-u-boot-0-10`
 (wellenlos, nicht `slice-harness-devcontainer-einrichten`; Entscheidung des Nutzers vom 2026-10-17, Drift-Log der Roadmap). `slice-harness-ci-workflows` und `slice-harness-ci` liegen in `done/` (Sendung in §1; Auftrag des Nutzers vom 2026-10-18). Schritt 4 der Reihenfolge in §5 von
-[welle-erster-release](../welle-erster-release.md) (A; B folgt als Schritt 5, `slice-erster-release-freigabe` als Schritt 6). Die Randformen aus §6 sind entschieden ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), `AGENTS.md` §3.12); der Implementer hält an und gibt eine nicht genannte Randform an den Architect zurück.
+[welle-erster-release](welle-erster-release.md) (A; B folgt als Schritt 5, `slice-erster-release-freigabe` als Schritt 6). Die Randformen aus §6 sind entschieden ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), `AGENTS.md` §3.12); der Implementer hält an und gibt eine nicht genannte Randform an den Architect zurück.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

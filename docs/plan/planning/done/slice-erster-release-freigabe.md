@@ -129,7 +129,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` liegen in `done/`
 (Pipeline für Tag, Binaries und Image mit dem Trockenlauf belegt; ein Probe-Tag ist nicht vorgesehen, Entscheidung des Nutzers vom 2026-10-19). Schritt 6 der Reihenfolge in §5 von
-[welle-erster-release](../welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
+[welle-erster-release](welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
 Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**

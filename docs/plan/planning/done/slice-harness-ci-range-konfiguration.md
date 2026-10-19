@@ -81,7 +81,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-ci-workflows` und `slice-harness-gegenproben-aus-gates` liegen in `done/` (jener als Schritt 1 der Reihenfolge, dieser für die Listen der Gegenproben), dazu der Start-Trigger von [welle-erster-release](../welle-erster-release.md), und der Architect hat `SPEC-064` geteilt (Punkt 16: die Gegenprobe der Konfiguration als eigenes Ziel; `slice-harness-ci` behält Punkt 14 mit den Fällen zu `ci.yml` und `ci-range.sh`) und jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Am 2026-10-18 geprüft: beide Slices in `done/`, Teilung vorhanden.
+**Start** (`next` → `in-progress`): `slice-harness-ci-workflows` und `slice-harness-gegenproben-aus-gates` liegen in `done/` (jener als Schritt 1 der Reihenfolge, dieser für die Listen der Gegenproben), dazu der Start-Trigger von [welle-erster-release](welle-erster-release.md), und der Architect hat `SPEC-064` geteilt (Punkt 16: die Gegenprobe der Konfiguration als eigenes Ziel; `slice-harness-ci` behält Punkt 14 mit den Fällen zu `ci.yml` und `ci-range.sh`) und jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Am 2026-10-18 geprüft: beide Slices in `done/`, Teilung vorhanden.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

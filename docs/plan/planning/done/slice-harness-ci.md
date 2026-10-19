@@ -84,7 +84,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-ci-workflows`, `slice-harness-ci-range-konfiguration` und `slice-harness-gegenproben-aus-gates` liegen in `done/` (der erste für das Gate der Workflows, der zweite für die Blöcke `commits` und `vcs` in `.d-check.yml`, der dritte, weil `make gates` ohne ihn die Gegenproben fährt und die Zeitgrenze des Jobs nicht trägt), dazu der Start-Trigger von [welle-erster-release](../welle-erster-release.md), und der Architect hat `SPEC-064` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 2 der Reihenfolge in §5 der Welle.
+**Start** (`next` → `in-progress`): `slice-harness-ci-workflows`, `slice-harness-ci-range-konfiguration` und `slice-harness-gegenproben-aus-gates` liegen in `done/` (der erste für das Gate der Workflows, der zweite für die Blöcke `commits` und `vcs` in `.d-check.yml`, der dritte, weil `make gates` ohne ihn die Gegenproben fährt und die Zeitgrenze des Jobs nicht trägt), dazu der Start-Trigger von [welle-erster-release](welle-erster-release.md), und der Architect hat `SPEC-064` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 2 der Reihenfolge in §5 der Welle.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

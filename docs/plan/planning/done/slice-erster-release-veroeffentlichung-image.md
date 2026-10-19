@@ -102,7 +102,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-erster-release-veroeffentlichung` liegt in `done/` (Fassung `1a` von `release.yml`, `release.sh` mit den drei Schritten, `VERSION`, Gegenprobe mit Zeilenliste und der Trockenlauf belegt). Schritt 5 der Reihenfolge in §5 von [welle-erster-release](../welle-erster-release.md). Die Randformen aus §6 sind entschieden ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), `AGENTS.md` §3.12); der Implementer hält an und gibt eine nicht genannte Randform an den Architect zurück.
+**Start** (`next` → `in-progress`): `slice-erster-release-veroeffentlichung` liegt in `done/` (Fassung `1a` von `release.yml`, `release.sh` mit den drei Schritten, `VERSION`, Gegenprobe mit Zeilenliste und der Trockenlauf belegt). Schritt 5 der Reihenfolge in §5 von [welle-erster-release](welle-erster-release.md). Die Randformen aus §6 sind entschieden ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), `AGENTS.md` §3.12); der Implementer hält an und gibt eine nicht genannte Randform an den Architect zurück.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

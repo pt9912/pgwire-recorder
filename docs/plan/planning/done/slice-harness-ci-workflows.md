@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-gegenproben-aus-gates` liegt in `done/` (Listen und Namensregel), dazu der Start-Trigger von [welle-erster-release](../welle-erster-release.md) (§2 dort), und der Architect hat `SPEC-063` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12).
+**Start** (`next` → `in-progress`): `slice-harness-gegenproben-aus-gates` liegt in `done/` (Listen und Namensregel), dazu der Start-Trigger von [welle-erster-release](welle-erster-release.md) (§2 dort), und der Architect hat `SPEC-063` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
