@@ -104,13 +104,13 @@ pruefe_version_datei() {
 pruefe_tag_gleich() {
   [ "$tag" = "v$version" ] || eingabe tag-ungleich "der Tag ${tag@Q} ist nicht v$version (VERSION)" # P3gleich
 }
-# notiz_der_version <Version> — `Z` und die dritte Zelle der Zeile der Version in der Tabelle des Abschnitts, dessen Überschrift auf Änderungshistorie endet; nichts ohne Zeile.
+# notiz_der_version <Version> — `Z` und die dritte Zelle der Zeile der Version in der Tabelle des Abschnitts, dessen Überschrift auf Änderungshistorie endet; `X`, wenn die Zeile nicht genau drei Zellen hat (ein `|` im Text, auch `\|`); nichts ohne Zeile.
 notiz_der_version() {
   awk -F'|' -v v="$1" '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
     /^#+[ \t].*Änderungshistorie[ \t]*$/ { ab = 1; next }
     /^#/ { ab = 0 }
-    ab && /^\|/ && trim($2) == v { print "Z" trim($4); exit }
+    ab && /^\|/ && trim($2) == v { if (NF != 5) print "X"; else print "Z" trim($4); exit }
   ' "$HANDBUCH" 2> /dev/null
 }
 # (5) Zeile der Version in der Änderungshistorie mit nicht leerer dritter Zelle; im Trockenlauf ist eine fehlende Zeile ein Hinweis und eine vorhandene wird als Hinweis gezeigt
@@ -124,6 +124,7 @@ pruefe_notes() {
     fi
     eingabe notes "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile für $version" # P3notes
   fi
+  [[ $z != X* ]] || eingabe notes "die Zeile für $version hat nicht genau drei Zellen (ein | im Text)" # P3pipe
   [ -n "${z#Z}" ] || eingabe notes "die Zeile für $version hat eine leere dritte Zelle" # P3zelle
   if [ "$trockenlauf" -eq 1 ]; then hinweis "Änderungshistorie $version: ${z#Z}"; fi # P3zeiletext
 }
@@ -190,7 +191,7 @@ schritt_github_release() {
   v="${tag#v}"
   dist="$zdir/dist"
   n="$(notiz_der_version "$v")"
-  n="${n#Z}"
+  if [[ $n == Z* ]]; then n="${n#Z}"; else n=""; fi
   [ -n "$n" ] || eingabe notes "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile mit Text für $v"
   printf '%s\n' "$n" > "$scratch/notes.md"
   [[ $v != *-* ]] || prerelease=(--prerelease) # P9pre

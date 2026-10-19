@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 permissions: {}
 concurrency:
-  group: release
+  group: release-${{ github.event_name }}
   cancel-in-progress: false
 jobs:
   release:

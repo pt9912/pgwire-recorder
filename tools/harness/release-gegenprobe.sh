@@ -71,7 +71,7 @@ A|      - 'v*'
 A|  workflow_dispatch:
 A|permissions: {}
 A|concurrency:
-A|  group: release
+A|  group: release-${{ github.event_name }}
 A|  cancel-in-progress: false
 A|jobs:
 A|  release:
@@ -253,6 +253,7 @@ case "$1 $2" in
     case "${GP_GH-fehlt}" in
       fehlt) echo "release not found" >&2; exit 1 ;;
       fehler) echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;
+      http404) echo "HTTP 404: Not Found" >&2; exit 1 ;;
       da) for n in ${GP_GH_ASSETS-}; do echo "$n"; done; exit 0 ;;
     esac ;;
   "release create")
@@ -292,7 +293,7 @@ welt() {
 }
 # handbuch <Version> <Modus> — der Auszug des Benutzerhandbuchs nach $w/repo. Modi: normal (eine Zeile der Version) · zeile (Zeilen mit Vorabversion davor und Nachfolger danach) ·
 # abschnitt (dieselbe Version in einem anderen Abschnitt davor) · nur-anderer (die Version nur in einem anderen Abschnitt davor) · ueberschrift (die Version nur unter einer
-# Überschrift, die nicht auf Änderungshistorie endet) · spaeter (die Version nur in einem Abschnitt danach) · leer (Zeile der Version mit leerer dritter Zelle) · ohne (keine Zeile).
+# Überschrift, die nicht auf Änderungshistorie endet) · pipe, pipe-maskiert (ein weiteres `|` im Text, roh und als `\|`) · spaeter (die Version nur in einem Abschnitt danach) · leer (Zeile der Version mit leerer dritter Zelle) · ohne (keine Zeile).
 handbuch() {
   local v="$1" m="${2:-normal}" f="$w/repo/docs/user/benutzerhandbuch.md"
   mkdir -p "$w/repo/docs/user"
@@ -305,6 +306,8 @@ handbuch() {
       normal | abschnitt | ueberschrift) printf '| %s | Datum-%s | Text-%s |\n' "$v" "$v" "$v" ;;
       zeile) printf '| %s-rc.1 | 2026-10-01 | Text-Vorabversion |\n| %s | Datum-%s | Text-%s |\n| %s0 | 2026-10-03 | Text-Nachfolger |\n' "$v" "$v" "$v" "$v" "$v" ;;
       leer) printf '| %s | Datum-%s | |\n' "$v" "$v" ;;
+      pipe) printf '| %s | Datum-%s | Text | mehr |\n' "$v" "$v" ;;
+      pipe-maskiert) printf '| %s | Datum-%s | Text \\| mehr |\n' "$v" "$v" ;;
       nur-anderer | spaeter | ohne) printf '| 9.9.9 | 2026-10-02 | Anderes |\n' ;;
     esac
     if [ "$m" = spaeter ]; then printf '\n## 12. Anhang\n\n| Version | Datum | Änderung |\n|---|---|---|\n| %s | 2020-01-01 | Falscher-Abschnitt |\n' "$v"; fi
@@ -443,6 +446,13 @@ f_p3_trockenlauf_nicht_im_standard_zweig() {
   sei "Hinweis: liegt nicht im Standard-Zweig" hat_hinweis "der Commit liegt nicht im Standard-Zweig origin/main"
 }
 f_p3_notes_zelle_leer() { notes_fehlen leer; }
+f_p3_notes_pipe() {
+  local m
+  for m in pipe pipe-maskiert; do
+    fix 0.1.0 "$m"; umg lauf; lauf eingaben; grund 2 eingaben notes
+    fix 0.1.0 "$m"; umg trocken; lauf eingaben; grund 2 eingaben notes
+  done
+}
 f_p3_trockenlauf_notes_fehlen() {
   fix 0.1.0 ohne; umg trocken; lauf eingaben; gruen
   sei "Hinweis: keine Zeile" hat_hinweis "keine Zeile"
@@ -529,6 +539,9 @@ f_p9_view_anderer_fehler() {
   fix 0.1.0; umg lauf; bis eingaben binaries
   lauf github-release GP_GH=fehler
   sei "Exit 1" test "$code" -eq 1; sei "kein create" ohne "$(aufrufe gh)" "release create"
+  fix 0.1.0; umg lauf; bis eingaben binaries
+  lauf github-release GP_GH=http404
+  sei "HTTP 404: Exit 1" test "$code" -eq 1; sei "HTTP 404: kein create" ohne "$(aufrufe gh)" "release create"
 }
 # jeder Aufruf von gh trägt --repo
 repo_in_jedem_aufruf() {
@@ -671,7 +684,7 @@ FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-k
   p3-leere-vorabversion p3-leerer-bezeichner p3-ungueltiges-zeichen p3-build-metadaten p3-zu-lang p3-ereignis-unbekannt p3-ereignis-fehlt
   p3-version-datei-form-fehlt p3-version-datei-form-zwei-zeilen p3-version-datei-form-v p3-version-datei-form-leerzeichen-vorn p3-version-datei-form-leerzeichen-hinten
   p3-version-datei-form-crlf p3-version-datei-form-kein-lf p3-tag-ungleich-datei p3-tag-ungleich-gross p3-tag-ungleich-tag-laenger p3-tag-ungleich-tag-kuerzer
-  p3-notes-fehlen p3-notes-zelle-leer p3-notes-abschnitt p3-notes-ueberschrift-endet p3-notes-abschnitt-ende p3-nicht-im-standard-zweig p3-nicht-im-standard-zweig-vorwaerts
+  p3-notes-fehlen p3-notes-zelle-leer p3-notes-pipe p3-notes-abschnitt p3-notes-ueberschrift-endet p3-notes-abschnitt-ende p3-nicht-im-standard-zweig p3-nicht-im-standard-zweig-vorwaerts
   p3-standard-zweig-aus-umgebung p3-trockenlauf-gueltig p3-trockenlauf-im-standard-zweig p3-trockenlauf-nicht-im-standard-zweig p3-trockenlauf-notes-fehlen p3-trockenlauf-notes-zelle-leer p3-trockenlauf-notes-vorhanden
   p3-trockenlauf-version-datei-form p3-schluesselwort-ereignis p3-schluesselwort-tag-form p3-schluesselwort-version-datei p3-schluesselwort-tag-ungleich p3-schluesselwort-notes p3-schluesselwort-standard-zweig p3-reihenfolge-1-2 p3-reihenfolge-2-3 p3-reihenfolge-3-4 p3-reihenfolge-4-5 p3-reihenfolge-5-6
   p4-aufruf p4-summe-falsch p4-datei-fehlt p4-datei-zu-viel p4-make-scheitert
@@ -868,11 +881,11 @@ mutr m-p2-trockenlauf-wie-lauf "p2-trockenlauf-ohne-aussenwirkung p3-trockenlauf
 TAGFORM="p3-zwei-teile p3-vier-teile p3-fuehrende-null p3-fuehrende-null-minor p3-fuehrende-null-patch p3-vorabversion-fuehrende-null p3-leere-vorabversion p3-leerer-bezeichner p3-ungueltiges-zeichen p3-build-metadaten p3-zu-lang p3-reihenfolge-2-3 p3-schluesselwort-tag-form"
 VDATEI="p3-version-datei-form-fehlt p3-version-datei-form-zwei-zeilen p3-version-datei-form-v p3-version-datei-form-leerzeichen-vorn p3-version-datei-form-leerzeichen-hinten p3-version-datei-form-crlf p3-version-datei-form-kein-lf p3-schluesselwort-version-datei"
 UNGLEICH="p3-tag-ungleich-datei p3-tag-ungleich-gross p3-tag-ungleich-tag-laenger p3-tag-ungleich-tag-kuerzer p3-schluesselwort-tag-ungleich"
-NOTES="p3-notes-fehlen p3-notes-zelle-leer p3-notes-abschnitt p3-notes-ueberschrift-endet p3-notes-abschnitt-ende p3-schluesselwort-notes"
+NOTES="p3-notes-fehlen p3-notes-zelle-leer p3-notes-pipe p3-notes-abschnitt p3-notes-ueberschrift-endet p3-notes-abschnitt-ende p3-schluesselwort-notes"
 # GRUEN: die Fälle, die eine grüne Prüfung der Eingaben brauchen oder deren Prüfung hinter (4) liegt; sie werden rot, wenn (4) nichts Gleiches mehr vergleicht.
 # BIN: die Fälle, die `binaries` grün fahren und an der Dateiliste des Baus hängen; sie werden rot, wenn der Aufruf von make nicht die Version oder ein Verzeichnis außerhalb des Baums nennt.
 BIN="p9-gh-token-fehlt p9-repo-argument p10-nicht-im-log p11-alte-marke p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p2-aussenwirkung-ohne-push p2-ref-kein-tag p2-trockenlauf-ohne-aussenwirkung p4-aufruf p9-anhaenge p9-aufruf p9-notes-aus-abschnitt p9-notes-aus-zelle p9-notes-zeile-der-version p9-release-existiert-abweichend p9-release-existiert-gleich p9-stabil-ohne-prerelease p9-view-anderer-fehler p9-vorabversion-prerelease"
-GRUEN="p13-release-ohne-binaries p3-trockenlauf-notes-vorhanden p3-trockenlauf-notes-zelle-leer p3-schluesselwort-standard-zweig p3-vorabversion-fuehrende-null p10-nicht-im-log p11-alte-marke p11-reihenfolge-gruende p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p2-aussenwirkung-ohne-push p2-ref-kein-tag p2-trockenlauf-ohne-aussenwirkung p3-laenge-100 p3-nicht-im-standard-zweig p3-nicht-im-standard-zweig-vorwaerts p3-notes-abschnitt p3-notes-abschnitt-ende p3-notes-fehlen p3-notes-ueberschrift-endet p3-reihenfolge-5-6 p3-standard-zweig-aus-umgebung p3-tag-gueltig p3-trockenlauf-gueltig p3-trockenlauf-im-standard-zweig p3-trockenlauf-nicht-im-standard-zweig p3-trockenlauf-notes-fehlen p4-aufruf p4-datei-fehlt p4-datei-zu-viel p4-make-scheitert p4-summe-falsch p9-anhaenge p9-aufruf p9-notes-aus-abschnitt p9-notes-aus-zelle p9-notes-zeile-der-version p9-release-existiert-abweichend p9-release-existiert-gleich p9-stabil-ohne-prerelease p9-view-anderer-fehler p9-vorabversion-prerelease"
+GRUEN="p3-notes-pipe p13-release-ohne-binaries p3-trockenlauf-notes-vorhanden p3-trockenlauf-notes-zelle-leer p3-schluesselwort-standard-zweig p3-vorabversion-fuehrende-null p10-nicht-im-log p11-alte-marke p11-reihenfolge-gruende p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p2-aussenwirkung-ohne-push p2-ref-kein-tag p2-trockenlauf-ohne-aussenwirkung p3-laenge-100 p3-nicht-im-standard-zweig p3-nicht-im-standard-zweig-vorwaerts p3-notes-abschnitt p3-notes-abschnitt-ende p3-notes-fehlen p3-notes-ueberschrift-endet p3-reihenfolge-5-6 p3-standard-zweig-aus-umgebung p3-tag-gueltig p3-trockenlauf-gueltig p3-trockenlauf-im-standard-zweig p3-trockenlauf-nicht-im-standard-zweig p3-trockenlauf-notes-fehlen p4-aufruf p4-datei-fehlt p4-datei-zu-viel p4-make-scheitert p4-summe-falsch p9-anhaenge p9-aufruf p9-notes-aus-abschnitt p9-notes-aus-zelle p9-notes-zeile-der-version p9-release-existiert-abweichend p9-release-existiert-gleich p9-stabil-ohne-prerelease p9-view-anderer-fehler p9-vorabversion-prerelease"
 # Je Prüfung (1) bis (6) eine Mutation, die den Aufruf entfernt.
 mutr m-p3-1-ereignis-entfernt "p2-ref-kein-tag p3-ereignis-fehlt p3-ereignis-unbekannt p3-ohne-v p3-reihenfolge-1-2 p3-schluesselwort-ereignis" sh $'  pruefe_ereignis\n' ''
 mutr m-p3-2-tag-form-entfernt "$TAGFORM" sh $'  pruefe_tag_form\n' ''
@@ -982,6 +995,14 @@ mutr m-p9-repo-fehlt-create "p9-repo-argument" sh 'release create "$tag" --repo 
 mutr m-p9-repo-fehlt-download "p9-repo-argument" sh 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern' 'release download "$tag" --pattern'
 mutr m-p9-repo-fehlt-upload "p9-repo-argument" sh 'release upload "$tag" --repo "$RELEASE_REPOSITORY" "${fehlend[@]}"' 'release upload "$tag" "${fehlend[@]}"'
 mutr m-p9-gh-ohne-token-pruefung "p9-gh-token-fehlt" sh 'L:# P9token' ''
+mutr m-p9-view-muster-geweitet "p9-view-anderer-fehler" sh "grep -q 'release not found'" "grep -qi 'not found'"
+# Anhänge: je Element von erwartete_namen eine Mutation
+for el in darwin_amd64 darwin_arm64 linux_amd64 linux_arm64 windows_amd64 windows_arm64; do
+  r="$BIN"; if [ "$el" = linux_arm64 ]; then r+=" p4-datei-fehlt"; fi
+  mutr "m-p9-name-fehlt-$el" "$r" sh '      echo "pgwire-recorder_${1}_${os}_${a}$e"' "      [ \"\${os}_\${a}\" = $el ] || echo \"pgwire-recorder_\${1}_\${os}_\${a}\$e\""
+done
+mutr m-p9-name-fehlt-sha256sums "$BIN" sh 'L:  echo SHA256SUMS' ''
+mutr m-p3-pipe-abgeschnitten-angenommen "p3-notes-pipe" sh 'L:# P3pipe' ''
 # Punkt 10
 mutr m-p10-token-bei-fehler "p10-nicht-im-log" sh '|| rot "SHA256SUMS am Release' '|| { echo "$GH_TOKEN" >&2; false; } || rot "SHA256SUMS am Release'
 mutr m-p10-token-bei-fehler-binaries "p10-nicht-im-log" sh '|| { sed '"'"'s/^/release: binaries: /'"'"' "$scratch/summen" >&2;' '|| { echo "$GH_TOKEN" >&2; sed '"'"'s/^/release: binaries: /'"'"' "$scratch/summen" >&2;'

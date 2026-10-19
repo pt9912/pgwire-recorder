@@ -83,7 +83,8 @@ Die Version der Software steht in der Datei `VERSION` im Wurzelverzeichnis: gena
 dieser Inhalt ist. `make binaries VERSION=<SemVer>` trägt die Version in die Namen der Binaries
 und ins Binary; ohne Angabe bleibt es bei `dev`.
 
-Zwei Begriffe dieses Dokuments: Ein **Probe-Tag** ist ein Vorabversions-Tag
+Zwei Begriffe, die nur das Verfahren der Formel (§7) benutzt; für die Veröffentlichung der
+Binaries (§6) gibt es keinen Probe-Tag, dort ersetzt ihn der Trockenlauf: Ein **Probe-Tag** ist ein Vorabversions-Tag
 (`v<SemVer>-probe.<N>`), mit dem das Release-Verfahren geprüft wird, ohne einen
 Release zu veröffentlichen. Ein **Probe-Tap** ist ein Tap außerhalb von
 `pt9912/homebrew-pgwire-recorder`, in den die Formel eines Probe-Tags geschrieben
@@ -178,7 +179,8 @@ Quelle: eine Zeile je Version in Betreibersicht, ohne interne Kennungen. Vor dem
 trägt der Release dort seine Zeile ein; der Text des GitHub-Releases entsteht aus
 dieser Zeile. Der Text des GitHub-Releases ist die dritte Zelle der Zeile, deren erste Zelle die
 Version ohne `v` ist, in der Tabelle des Abschnitts, dessen Überschrift auf `Änderungshistorie`
-endet (Spalten Version, Datum, Änderung). Fehlt die Zeile oder ist die Zelle leer, endet `Eingaben`
+endet (Spalten Version, Datum, Änderung). Die Zeile hat genau drei Zellen; ein weiteres `|` im Text, auch als `\|`, ist ein
+Fehler. Fehlt die Zeile oder ist die Zelle leer, endet `Eingaben`
 mit Exit 2; im Trockenlauf ist eine fehlende Zeile ein Hinweis, eine leere Zelle ein Fehler.
 
 ## 10. Freigabe-Checkliste
