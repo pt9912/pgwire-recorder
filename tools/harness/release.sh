@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# release — Schritte der Veröffentlichung bei einem Tag (harness/vertraege/SPEC-067-release.md, Fassung A): eingaben, binaries, github-release.
+# release — Schritte der Veröffentlichung bei einem Tag (harness/vertraege/SPEC-067-release.md): eingaben, binaries, image, veroeffentlichen, vergleichen, smoke, latest, github-release.
 # Aufruf: bash tools/harness/release.sh <Schritt> im Wurzelverzeichnis des Klons; die Pipeline ruft es nie unter make (Punkt 13).
 # Umgebung: RELEASE_EVENT, RELEASE_REF, RELEASE_SHA, RELEASE_DEFAULT_BRANCH, RELEASE_REPOSITORY (gesetzt von .github/workflows/release.yml),
-# RUNNER_TEMP (Ort des Zustands zwischen den Schritten: $RUNNER_TEMP/release mit den Dateien eingaben.ok, binaries.ok und dist/), GH_TOKEN (github-release).
+# RUNNER_TEMP (Ort des Zustands zwischen den Schritten: $RUNNER_TEMP/release mit den Dateien eingaben.ok, binaries.ok, vergleichen.ok und den Verzeichnissen dist/ und image/), GH_TOKEN (github-release),
+# RELEASE_DOCKERHUB_USER und RELEASE_DOCKERHUB_TOKEN (eingaben, veroeffentlichen, latest), RELEASE_GHCR_USER und RELEASE_GHCR_TOKEN (veroeffentlichen, latest).
 # Ausgang: 0 grün; 1 ein Schritt scheitert (Bau, Summe, Dateiliste, Release); 2 Eingabe oder Vorbedingung (ein Schritt, dessen Vorgänger nicht grün war). Eine abgelehnte Eingabe
-# steht als `release: <Schlüsselwort>: …` auf stderr, das Schlüsselwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig); ein Hinweis beginnt mit `release: hinweis: `.
+# steht als `release: <Schlüsselwort>: …` auf stderr, das Schlüsselwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig, geheimnis); ein Hinweis beginnt mit `release: hinweis: `.
 # Das Skript gibt keinen Wert eines Geheimnisses aus (Punkt 10): kein `set -x`, kein `env`.
-# Braucht bash, git, make, sha256sum, awk, cmp, grep, sort, pgrep, mktemp und gh (nur github-release); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
+# Braucht bash, git, make, sha256sum, awk, cmp, grep, sed, tar, sort (GNU, mit -V), pgrep, mktemp, docker mit buildx (image), skopeo (veroeffentlichen, vergleichen, latest) und gh (github-release); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
 # GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p13-*, je Zusage eine Mutation dieser Datei).
 set -uo pipefail
 export LC_ALL=C
@@ -139,9 +140,19 @@ pruefe_standard_zweig() {
   fi
 }
 
+# (7) Geheimnisse der Registries gesetzt und nicht leer; die Meldung nennt die Namen, nie einen Wert
+pruefe_geheimnisse() {
+  local fehlt=""
+  [ -n "${RELEASE_DOCKERHUB_USER-}" ] || fehlt+=" DOCKERHUB_USERNAME" # P3secret-user
+  [ -n "${RELEASE_DOCKERHUB_TOKEN-}" ] || fehlt+=" DOCKERHUB_TOKEN" # P3secret-token
+  [ -z "$fehlt" ] || eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt"
+}
+
 schritt_eingaben() {
   zustand
   rm -f "$zdir/eingaben.ok" "$zdir/binaries.ok"
+  rm -rf "$zdir/vergleichen.ok" "$zdir/image" # P11loescht-b
+  rm -f "$zdir/smoke.ok" # P11loescht-smoke
   tag_ableiten
   pruefe_ereignis
   pruefe_tag_form
@@ -149,6 +160,7 @@ schritt_eingaben() {
   pruefe_tag_gleich
   pruefe_notes
   pruefe_standard_zweig
+  pruefe_geheimnisse
   : > "$zdir/eingaben.ok"
   echo "release: eingaben: grün für $tag ($([ "$trockenlauf" -eq 1 ] && echo Trockenlauf || echo Lauf))"
 }
@@ -186,6 +198,7 @@ schritt_github_release() {
   aussenwirkung_erlaubt
   zustand
   [ -f "$zdir/binaries.ok" ] || eingabe vorbedingung "der Schritt binaries war nicht grün" # P11binaries
+  [ -f "$zdir/smoke.ok" ] || eingabe vorbedingung "der Schritt smoke war nicht grün" # P9registries
   [ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt" # P9token
   tag_ableiten
   v="${tag#v}"
@@ -223,9 +236,178 @@ schritt_github_release() {
   echo "release: github-release: $tag vorhanden, ${#fehlend[@]} Anhänge ergänzt"
 }
 
+# --- Image, Registries (Punkte 5 bis 8) ---------------------------------------------------------------------------------------------------------------
+IMAGE_NAME=pt9912/pgwire-recorder
+BUILDKIT_IMAGE='moby/buildkit@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea' # v0.33.1
+FEHLT_RE='manifest unknown|name unknown|not found' # Meldungen von skopeo inspect, die „der Tag fehlt“ heißen (ohne Beachtung der Schreibweise)
+REGISTRIES=(ghcr.io docker.io)
+# verlange <Datei unter dem Zustand> <Schritt> — Exit 2, wenn der Vorgänger nichts hinterlassen hat.
+verlange() { [ -e "$zdir/$1" ] || eingabe vorbedingung "der Schritt $2 war nicht grün"; }
+# manifeste <Index> — Zahl der Manifeste; plattformen <Index> — ihre Plattformen `os/arch`, sortiert, je mit Leerzeichen dahinter.
+manifeste() { tr -d ' \t\n' < "$1" | grep -o '"digest":"sha256:[0-9a-f]*"' | wc -l; }
+plattformen() {
+  local p o a
+  tr -d ' \t\n' < "$1" | grep -o '"platform":{[^}]*}' | while IFS= read -r p; do
+    o="${p#*\"os\":\"}"; a="${p#*\"architecture\":\"}"
+    echo "${o%%\"*}/${a%%\"*}"
+  done | sort | tr '\n' ' '
+}
+# index_pruefen <Index> <Ort> — genau zwei Manifeste, für linux/amd64 und linux/arm64.
+index_pruefen() {
+  [ "$(manifeste "$1")" -eq 2 ] || rot "$2 hat nicht genau zwei Manifeste" # P5zahl
+  [ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ] || rot "$2 nennt die Plattformen '$(plattformen "$1")' statt linux/amd64 linux/arm64" # P5plattformen
+}
+# anmelden <Registry> — Anmeldung per --password-stdin, der Token steht nie in einem Argument.
+anmelden() {
+  local u t
+  if [ "$1" = ghcr.io ]; then u="${RELEASE_GHCR_USER-}"; t="${RELEASE_GHCR_TOKEN-}"; else u="${RELEASE_DOCKERHUB_USER-}"; t="${RELEASE_DOCKERHUB_TOKEN-}"; fi
+  printf '%s' "$t" | skopeo login --authfile "$scratch/auth.json" --username "$u" --password-stdin "$1" > /dev/null 2>&1 || rot "Anmeldung bei $1 scheitert" # P10stdin
+}
+# zustand_tag <Tag> — je Registry der Digest der rohen Bytes des Tags oder -.
+zustand_tag() {
+  local reg out=""
+  for reg in "${REGISTRIES[@]}"; do
+    if skopeo inspect --raw --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME:$1" > "$scratch/zroh" 2> /dev/null; then
+      out+=" $reg:$1=sha256:$(sha256sum "$scratch/zroh" | cut -d' ' -f1)"
+    else
+      out+=" $reg:$1=-"
+    fi
+  done
+  echo "Zustand:$out"
+}
+
+schritt_image() {
+  local dist v zeit arch soll ist idx hex
+  local -a bargs
+  zustand
+  verlange binaries.ok binaries # P13image
+  tag_ableiten
+  v="${tag#v}"
+  dist="$zdir/dist"
+  rm -rf "$zdir/image"; mkdir -p "$zdir/image"
+  zeit="$(git log -1 --format=%ct "${RELEASE_SHA-}")" || rot "die Commit-Zeit von ${RELEASE_SHA-} ist nicht zu lesen"
+  fuehre docker buildx create --name pgr-release --driver docker-container --driver-opt "image=$BUILDKIT_IMAGE" --bootstrap
+  [ "$rc" -eq 0 ] || rot "docker buildx create endet mit Exit $rc"
+  bargs=(buildx build --builder pgr-release --target runtime --build-arg "VERSION=$v" --build-arg "SOURCE_DATE_EPOCH=$zeit" --provenance=false --sbom=false)
+  fuehre docker "${bargs[@]}" --platform linux/amd64,linux/arm64 --output "type=oci,dest=$zdir/image/layout.tar,rewrite-timestamp=true" . # P5aufruf
+  [ "$rc" -eq 0 ] || rot "docker buildx build endet mit Exit $rc"
+  tar -xOf "$zdir/image/layout.tar" index.json > "$scratch/index.json" 2> /dev/null || rot "das Layout enthält keine index.json"
+  [ "$(manifeste "$scratch/index.json")" -eq 1 ] || rot "das Layout enthält nicht genau einen Index" # P5ein-index
+  grep -q '"manifests":\[{"mediaType":"application/vnd.oci.image.index.v1+json"' <(tr -d ' \t\n' < "$scratch/index.json") || rot "der Eintrag des Layouts ist kein Index" # P5index-typ
+  hex="$(grep -o '"digest": *"sha256:[0-9a-f]*"' "$scratch/index.json" | grep -o '[0-9a-f]\{64\}')"
+  tar -xOf "$zdir/image/layout.tar" "blobs/sha256/$hex" > "$scratch/index" 2> /dev/null || rot "das Layout enthält den Index sha256:$hex nicht"
+  index_pruefen "$scratch/index" "der Index des Layouts" # P5manifeste
+  for arch in amd64 arm64; do
+    fuehre docker "${bargs[@]}" --platform "linux/$arch" --output "type=local,dest=$scratch/fs-$arch" .
+    [ "$rc" -eq 0 ] || rot "docker buildx build für linux/$arch endet mit Exit $rc"
+    soll="$(awk -v n="pgwire-recorder_${v}_linux_$arch" '$2 == n { print $1 }' "$dist/SHA256SUMS")"
+    ist="$(sha256sum "$scratch/fs-$arch/pgwire-recorder" 2> /dev/null | cut -d' ' -f1)"
+    [ -n "$soll" ] && [ "$ist" = "$soll" ] || rot "linux/$arch: das Binary im Image hat die Summe '$ist' statt '$soll'" # P5summe
+  done
+  idx="sha256:$(sha256sum "$scratch/index" | cut -d' ' -f1)" # P5digest
+  printf '%s\n' "$idx" > "$zdir/image/digest"
+  echo "release: image: Index-Digest $idx"
+}
+
+schritt_veroeffentlichen() {
+  local reg v d have
+  aussenwirkung_erlaubt # P2veroeffentlichen
+  zustand
+  verlange image/digest image # P13veroeffentlichen
+  tag_ableiten
+  v="${tag#v}"
+  d="$(cat "$zdir/image/digest")"
+  for reg in "${REGISTRIES[@]}"; do # P6reg
+    anmelden "$reg"
+    fuehre skopeo inspect --raw --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME:$v" > "$scratch/roh" 2> "$scratch/skopeo.err"
+    if [ "$rc" -ne 0 ]; then sed 's/^/release: skopeo: /' "$scratch/skopeo.err" >&2; fi # P6meldung
+    if [ "$rc" -eq 0 ]; then
+      have="sha256:$(sha256sum "$scratch/roh" | cut -d' ' -f1)"
+      [ "$have" = "$d" ] || rot "$reg trägt $v mit dem Digest $have statt $d; der Weg ist ein höherer Tag" # P6anders
+      echo "release: veroeffentlichen: $reg trägt $v schon mit $d"
+      continue # P6gleich
+    fi
+    grep -qiE "$FEHLT_RE" "$scratch/skopeo.err" || rot "skopeo inspect für $reg endet mit Exit $rc" # P6fehler
+    fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "oci-archive:$zdir/image/layout.tar" "docker://$reg/$IMAGE_NAME:$v" # P6copy
+    [ "$rc" -eq 0 ] || rot "skopeo copy nach $reg endet mit Exit $rc; $(zustand_tag "$v")"
+    echo "release: veroeffentlichen: $v nach $reg kopiert"
+  done
+}
+
+schritt_vergleichen() {
+  local reg v d dg dd
+  aussenwirkung_erlaubt # P2vergleichen
+  zustand
+  verlange image/digest image # P13vergleichen
+  rm -f "$zdir/vergleichen.ok" # P11vergleichen-marke
+  tag_ableiten
+  v="${tag#v}"
+  d="$(cat "$zdir/image/digest")"
+  for reg in "${REGISTRIES[@]}"; do
+    fuehre skopeo inspect --raw --no-creds "docker://$reg/$IMAGE_NAME:$v" > "$scratch/roh-$reg" 2> "$scratch/skopeo.err" # P7anonym
+    if [ "$rc" -ne 0 ]; then
+      sed 's/^/release: skopeo: /' "$scratch/skopeo.err" >&2 # P7meldung
+      if grep -qiE "$FEHLT_RE" "$scratch/skopeo.err"; then rot "$reg trägt den Tag $v nicht"; fi # P7tag
+      rot "$reg ist ohne Anmeldung nicht lesbar (Exit $rc); das Paket muss öffentlich sein (Handlung des Betreibers)"
+    fi
+    index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen
+  done
+  dg="sha256:$(sha256sum "$scratch/roh-ghcr.io" | cut -d' ' -f1)"
+  dd="sha256:$(sha256sum "$scratch/roh-docker.io" | cut -d' ' -f1)"
+  [ "$dg" = "$d" ] || rot "ghcr.io weicht ab: $dg statt $d" # P7ghcr
+  [ "$dd" = "$d" ] || rot "docker.io weicht ab: $dd statt $d" # P7docker
+  : > "$zdir/vergleichen.ok"
+  echo "release: vergleichen: $d in ghcr.io und docker.io"
+}
+
+schritt_smoke() {
+  local reg v d pg
+  aussenwirkung_erlaubt # P2smoke
+  zustand
+  verlange vergleichen.ok vergleichen # P13smoke
+  rm -f "$zdir/smoke.ok" # P11smoke-marke
+  tag_ableiten
+  v="${tag#v}"
+  d="$(cat "$zdir/image/digest")"
+  pg="$(awk '/^POSTGRES_IMAGE[ \t]*\?=/ { sub(/^[^=]*=[ \t]*/, ""); print; exit }' harness/mk/integration.mk 2> /dev/null)"
+  [ -n "$pg" ] || eingabe vorbedingung "POSTGRES_IMAGE steht nicht in harness/mk/integration.mk"
+  for reg in "${REGISTRIES[@]}"; do
+    mkdir "$scratch/smoke-$reg"
+    fuehre env VERSION="$v" POSTGRES_IMAGE="$pg" SMOKE_LAUF="pgr-rel-$$-${reg%%.*}" SMOKE_WERK="$scratch/smoke-$reg" SMOKE_NAME="release: smoke" \
+      bash tools/harness/container-smoke.sh "$reg/$IMAGE_NAME@$d" # P7smoke
+    [ "$rc" -eq 0 ] || rot "der Smoke aus $reg endet mit Exit $rc"
+    echo "release: smoke: grün aus $reg"
+  done
+  : > "$zdir/smoke.ok" # P7smoke-ok
+}
+
+schritt_latest() {
+  local reg v d hoechste
+  aussenwirkung_erlaubt # P2latest
+  zustand
+  verlange smoke.ok smoke # P8vergleich
+  tag_ableiten
+  v="${tag#v}"
+  d="$(cat "$zdir/image/digest")"
+  if [[ $v == *-* ]]; then echo "release: latest: $tag ist eine Vorabversion, latest bleibt unverändert"; return 0; fi # P8stabil
+  hoechste="$({ git tag -l 'v*' | grep -E "^v$KERN\$" | sed 's/^v//'; echo "$v"; } | sort -V | tail -n 1)" # P8hoechste
+  if [ "$hoechste" != "$v" ]; then echo "release: latest: $hoechste ist höher als $v, latest bleibt unverändert"; return 0; fi
+  for reg in "${REGISTRIES[@]}"; do # P8reg
+    anmelden "$reg"
+    fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:latest" # P8copy
+    [ "$rc" -eq 0 ] || rot "latest in $reg nicht gesetzt (Exit $rc); $(zustand_tag latest)"
+    echo "release: latest: $reg zeigt auf $d"
+  done
+}
+
 case "$schritt" in
   eingaben) schritt_eingaben ;;
   binaries) schritt_binaries ;;
+  image) schritt_image ;;
+  veroeffentlichen) schritt_veroeffentlichen ;;
+  vergleichen) schritt_vergleichen ;;
+  smoke) schritt_smoke ;;
+  latest) schritt_latest ;;
   github-release) schritt_github_release ;;
   *) echo "release: unbekannter Schritt '$schritt'" >&2; exit 2 ;;
 esac

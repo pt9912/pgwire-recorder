@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.7
+Version: 0.8
 Stand: 2026-10-19
 
 ## 1. Zweck und Zielgruppe
@@ -17,9 +17,12 @@ Produkt-Image; `make build` baut beide für die Plattform des Hosts
 (`pgwire-recorder:dev`), `make binaries` baut die Binaries aller Zielplattformen mit
 `SHA256SUMS`, und `make test-container` prüft sie (§2). Die Pipeline
 `.github/workflows/release.yml` reagiert auf einen Tag `v*`: Sie prüft die Eingaben, baut die
-Binaries mit `make binaries` und legt den GitHub-Release mit den Binaries und `SHA256SUMS` an (§6);
-`make release-gegenprobe` prüft sie mit Attrappen für `make` und `gh`, ein Lauf auf GitHub ist noch
-nicht belegt. Das Image veröffentlicht sie noch nicht, und eine Formel im Tap gibt es nicht. Es ist noch kein Tag
+Binaries mit `make binaries`, baut das Image einmal für beide Plattformen, veröffentlicht es in
+`ghcr.io` und `docker.io`, vergleicht die Digests, startet das Image aus beiden Registries,
+setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit den Binaries und
+`SHA256SUMS` an (§6); `make release-gegenprobe` prüft sie mit Attrappen für `make`, `docker`,
+`skopeo`, `gh` und den Smoke, ein Lauf auf GitHub für den Bau des Images und gegen die Registries
+ist noch nicht belegt. Der Scan des Images fehlt, und eine Formel im Tap gibt es nicht. Es ist noch kein Tag
 gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
 Kennung („liefert `slice-…`“), nicht als Zusage. Der Beleg, dass die Pipeline mit einem echten
 Tag durchgelaufen ist, steht hier erst, wenn es ihn gibt.
@@ -39,9 +42,9 @@ Ein Release liefert:
   Manifestliste, das das Binary ohne weitere Laufzeitabhängigkeit enthält, in
   `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder`
   (`LH-FA-16.a`, `SPEC-031`);
-- **nur bei einem stabilen Tag** eine Formel im Homebrew-Tap
-  `pt9912/homebrew-pgwire-recorder` für macOS und Linux; eine Vorabversion ändert
-  den Tap nicht (`LH-FA-19.a`, `SPEC-042`).
+
+Eine Formel im Homebrew-Tap `pt9912/homebrew-pgwire-recorder` (`LH-FA-19.a`, `SPEC-042`) entsteht
+nicht in dieser Pipeline (§7).
 
 **Reproduzierbar ist nur das Binary:** Zwei Builds desselben Quellstands für
 dieselbe Plattform liefern dieselbe Prüfsumme (`LH-QA-01`). Für das Image gilt das
@@ -49,8 +52,8 @@ nicht; es wird über seinen Digest identifiziert.
 
 Die Pipeline, die beim Tag die Binaries baut und an den GitHub-Release hängt, liefert
 `slice-erster-release-veroeffentlichung`, das Image in beiden Registries
-`slice-erster-release-veroeffentlichung-image`, den Scan des Images vor dem Push und den ersten
-echten Tag `slice-erster-release-freigabe`; das Verfahren der Formel
+`slice-erster-release-veroeffentlichung-image`; den Scan des Images vor dem Push und den ersten
+echten Tag liefert `slice-erster-release-freigabe`, das Verfahren der Formel
 `slice-v1-abschluss-homebrew`.
 
 **Was lokal läuft:** `make binaries` baut je Zielplattform ein Binary in das Verzeichnis
@@ -101,8 +104,12 @@ Vor dem ersten Release gilt:
    vor dem ersten Release).
 3. Der Release selbst ist Gegenstand von `welle-erster-release`.
 4. Die Zugangsdaten für `ghcr.io` und `docker.io` sind im Repository hinterlegt;
-   das ist eine Handlung des Betreibers. Wie der Mechanismus sie liest, liefert
-   `slice-erster-release-veroeffentlichung`.
+   das ist eine Handlung des Betreibers: die Repository-Geheimnisse `DOCKERHUB_USERNAME` und
+   `DOCKERHUB_TOKEN` (Zugriffstoken mit Lesen und Schreiben), das Repository auf Docker Hub und das
+   Paket in `ghcr.io`, öffentlich und mit dem Repository verknüpft. Die Pipeline liest die Geheimnisse
+   nur in den Schritten, die sie brauchen; fehlt oder ist leer eines der beiden, endet `Eingaben` mit Exit 2,
+   bevor etwas veröffentlicht wird. Ob die Token schreiben dürfen und das Paket öffentlich ist, zeigt erst der
+   Lauf für den ersten Tag.
 
 Wer taggen darf, bestimmt die Konfiguration des Repositorys, nicht dieses
 Dokument.
@@ -139,17 +146,30 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
 2. `Binaries` ruft `make binaries` mit der Version des Tags und prüft `SHA256SUMS` und die
    Dateiliste: die sechs Binaries und `SHA256SUMS`, sonst nichts. Es gibt keinen zweiten Bau;
    die Gleichheit zweier Builds hält `make test-container`.
-3. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
-   Änderungshistorie, als Vorabversion bei einem Tag mit `-…`.
+3. `Image` baut das Image einmal für `linux/amd64` und `linux/arm64` in ein OCI-Layout mit genau
+   einem Index und zwei Manifesten (Treiber `docker-container`, das Image des Builders mit Digest gepinnt) und prüft in einem zweiten Bau je Plattform (`type=local`, derselbe Builder), dass das Binary `/pgwire-recorder` die Summe aus `SHA256SUMS` hat;
+   das kopierte Layout liest diese Prüfung nicht. Der Digest `D` des Index steht danach fest. Das Image ist nicht reproduzierbar zugesagt.
+4. `Veröffentlichen` kopiert genau dieses Layout ohne Neubau nach `ghcr.io`, dann nach `docker.io`, unter dem Tag
+   `<SemVer>` ohne `v`. Ein vorhandener Tag mit demselben Digest wird übersprungen, einer mit einem anderen
+   Digest ist rot und wird nie überschrieben.
+5. `Vergleichen` liest den Index beider Registries ohne Anmeldung als rohe Bytes; `D`, der Digest aus
+   `ghcr.io` und der aus `docker.io` müssen gleich sein, der Index nennt genau `linux/amd64` und
+   `linux/arm64`. Ist das Paket nicht öffentlich, ist der Schritt rot.
+6. `Smoke` startet das Image `<Registry>/pt9912/pgwire-recorder@<D>` aus jeder der beiden Registries
+   (Aufzeichnen und Wiedergeben, `tools/harness/container-smoke.sh`).
+7. `Latest` setzt `latest` auf `D`, in `ghcr.io` zuerst, nur nach grünem `Smoke` und nur bei einer stabilen Version, die höher ist als jede
+   andere stabile Version unter den Tags `v*`. Eine Vorabversion und der Patch eines älteren Zweigs lassen
+   `latest` unverändert.
+8. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
+   Änderungshistorie, als Vorabversion bei einem Tag mit `-…`; der Schritt läuft nur, wenn `Smoke` grün war.
 
 Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
-(`workflow_dispatch`): `Eingaben` und `Binaries` mit der Version aus `VERSION` als Tag
-`v<VERSION>`, ohne GitHub-Release; fehlt dort die Zeile der Änderungshistorie oder liegt der Commit
+(`workflow_dispatch`): `Eingaben`, `Binaries` und `Image` mit der Version aus `VERSION` als Tag
+`v<VERSION>`, ohne Anmeldung, ohne Veröffentlichung und ohne GitHub-Release; fehlt dort die Zeile der Änderungshistorie oder liegt der Commit
 nicht im Standard-Zweig, steht das als Hinweis `release: hinweis: …`, kein Fehler. Ein Probe-Tag gibt es nicht. Der Trockenlauf belegt nicht,
-dass das Token am Repository schreiben darf und dass der GitHub-Release angelegt wird; das zeigt
-erst der Lauf für den ersten Tag. Das Image (Bau, Veröffentlichung, Vergleich der Digests,
-Smoke, `latest`) liefert `slice-erster-release-veroeffentlichung-image`; den Scan des Images vor
-dem Push `slice-erster-release-freigabe`.
+dass die Token schreiben dürfen, dass das Paket in `ghcr.io` öffentlich ist und das Repository auf Docker Hub
+besteht, dass der Smoke aus den Registries gelingt und dass der GitHub-Release angelegt wird; das zeigt
+erst der Lauf für den ersten Tag. Den Scan des Images vor dem Push liefert `slice-erster-release-freigabe`.
 
 ## 7. Homebrew
 
@@ -166,10 +186,10 @@ Tag; Windows bedient Homebrew nicht.
 
 ## 8. Nach dem Push kontrollieren
 
-Das veröffentlichte Image besteht den Smoke aus Abnahmeszenario 9 mit
-`linux/amd64` und `linux/arm64` aus beiden Registries; das liefert
-`slice-erster-release-veroeffentlichung`. Weitere Kontrollen nach dem Push liefert
-derselbe Slice.
+Der Smoke aus Abnahmeszenario 9 läuft in der Pipeline aus beiden Registries auf dem Docker-Server des
+Runners (`ubuntu-24.04`, `amd64`; §6, Schritt `Smoke`); für `linux/arm64` prüft die Pipeline die Plattformen des
+Index und die Summe des Binaries, sie startet das Image nicht. Nach dem Push ist zu kontrollieren, dass der Lauf grün endete und `latest` bei einem stabilen Tag
+auf den Digest des Laufs zeigt; weitere Kontrollen liefert `slice-erster-release-freigabe`.
 
 ## 9. Release-Notes
 
@@ -197,13 +217,16 @@ gesetzte Tags werden nicht verändert oder gelöscht.
 Wiederanlauf eines roten Laufs ist „Re-run failed jobs“ derselben Ausführung oder ein erneuter
 Lauf desselben Tags; die Schritte sind so geschrieben, dass der zweite Lauf nichts verändert,
 was der erste hinterließ. Ein Fehler, den nur ein höherer Tag behebt, bekommt einen neuen Tag.
-Die Tabelle nennt die Schritte der Pipeline, soweit sie bestehen; die Zeilen für die Schritte des
-Images liefert `slice-erster-release-veroeffentlichung-image`.
+Die Tabelle nennt die Schritte der Pipeline.
 
 | Schritt | Fehler | hinterlässt | Wiederanlauf |
 |---|---|---|---|
-| `eingaben` | jede Eingabe | nichts | Einstellung beheben und wiederholen; liegt der Fehler im Tag-Commit (`VERSION`, Zeile der Änderungshistorie), neuer Tag |
-| `binaries` | Bau, Summe, Dateiliste | nichts außerhalb des Runners | wiederholen |
+| `eingaben` | jede Eingabe | nichts | Geheimnis oder Einstellung beheben und wiederholen; liegt der Fehler im Tag-Commit (`VERSION`, Zeile der Änderungshistorie), neuer Tag |
+| `binaries`, `image` | Bau, Summe, Dateiliste | nichts außerhalb des Runners | wiederholen |
+| `veröffentlichen` | `ghcr.io` ok, `docker.io` rot | Tag `<SemVer>` in `ghcr.io` | wiederholen: `ghcr.io` wird übersprungen (gleicher Digest), `docker.io` folgt; weicht der Digest ab (neuer Bau), neuer Tag |
+| `veröffentlichen` | Tag vorhanden mit anderem Digest | die vorhandene Registrierung | neuer, höherer Tag |
+| `vergleichen`, `smoke` | Digest, Zugriff, Plattformen, Smoke | beide Registries beschrieben, kein `latest`, kein GitHub-Release | Ursache beheben (zum Beispiel das Paket öffentlich stellen), wiederholen; bei Abweichung der Digests neuer Tag |
+| `latest` | zweite Registry rot | `latest` in einer Registry neu | wiederholen: setzt beide auf `D` |
 | `github-release` | Anlegen oder Anhang | der Release fehlt oder trägt einen Teil der Anhänge | wiederholen: ergänzt fehlende Anhänge; weicht `SHA256SUMS` am Release von der lokalen Datei ab, neuer Tag |
 
 ### Änderungshistorie
@@ -217,3 +240,4 @@ Images liefert `slice-erster-release-veroeffentlichung-image`.
 | 0.5 | 2026-10-09 | Nach dem Schnitt des Release-Slice: Scan, Freshness-Audit, Checkliste und erster echter Tag bei `slice-erster-release-freigabe`; Fehlertabelle und Wiederanlauf bei `slice-erster-release-veroeffentlichung` |
 | 0.6 | 2026-10-17 | `make binaries` und `make test-container` im Ist-Zustand; Abnahme-Umgebungen |
 | 0.7 | 2026-10-19 | Pipeline für Tag und Binaries (`release.yml`, `release.sh`), Datei `VERSION`, Trockenlauf, Fehlertabelle und Wiederanlauf für `eingaben`, `binaries` und `github-release` |
+| 0.8 | 2026-10-19 | Image: Bau, Veröffentlichung in beiden Registries, Vergleich der Digests, Smoke, `latest`; Geheimnisse der Registries; Fehlertabelle um die Schritte des Images ergänzt; die Formel gehört nicht zur Pipeline |

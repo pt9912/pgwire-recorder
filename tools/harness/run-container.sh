@@ -3,7 +3,7 @@
 # Aufruf über `make test-container`, das VERSION, BINARY_PLATTFORMEN, IMAGE_PLATTFORMEN,
 # POSTGRES_IMAGE und DOCKER aus harness/mk/container.mk als Umgebung übergibt. Die Punkte laufen
 # in der Ordnung 1, 2 (Eingabe), 4 mit 3 (zwei Builds, gleiche Summen), 5 (Kopf), 6 (Image je
-# Plattform), 7 (Smoke); der erste rote Punkt beendet den Lauf. Die Marken `# P…` am Zeilenende
+# Plattform), 7 (Smoke, tools/harness/container-smoke.sh); der erste rote Punkt beendet den Lauf. Die Marken `# P…` am Zeilenende
 # benennen die Form für die Gegenprobe.
 #
 # Ausgang: ungleich 0 bei einem Fehler der Eingabe (vor dem ersten Aufruf von docker) und bei einem
@@ -150,60 +150,13 @@ punkt6() {
   echo "test-container: Punkt 6 grün — Image je Plattform mit dem Binary aus Punkt 4"
 }
 
-# Punkt 7: Smoke mit dem Image der Plattform des Docker-Servers.
-bereit() { # <Container> — wartet auf die Startmeldung im Log
-  local i
-  for i in $(seq 1 120); do
-    if "$docker" logs "$1" 2>&1 | grep -q 'gestartet'; then return 0; fi
-    sleep 0.5
-  done
-  rot "$1 meldet keinen Start"
-}
-anhalten() { # <Container> <Name> — SIGTERM, Exit-Code 0
-  local c
-  l "$docker" stop "$1" > /dev/null
-  c="$("$docker" inspect --format '{{.State.ExitCode}}' "$1")"
-  [ "$c" = 0 ] || rot "Exit-Code $c des Containers mit $2 (erwartet 0)" # P7exit
-}
-client() { # <Ziel> <Datei> — eine Anfrage über psql aus dem PostgreSQL-Image
-  l "$docker" run --rm --name "$lauf-psql" --network "$netz" "$pg_image" \
-    psql -h "$1" -U postgres -c 'SELECT 1 AS eins' > "$2" || rot "Anfrage an $1 scheitert"
-}
+# Punkt 7: Smoke mit dem Image der Plattform des Docker-Servers; die Schritte a bis c stehen in container-smoke.sh.
 punkt7() {
-  local arch tag i
+  local arch
   arch="$("$docker" version --format '{{.Server.Arch}}')"
   case "$arch" in amd64 | arm64) ;; *) rot "Plattform $arch des Docker-Servers ist weder amd64 noch arm64" ;; esac # P7server
-  tag="$lauf:linux-$arch"
-  l "$docker" network create --internal "$netz" > /dev/null # P7intern
-  # a. version
-  l "$docker" run --rm --name "$lauf-version" "$tag" version > "$werk/version" || rot "version endet mit einem Exit-Code ungleich 0" # P7a-exit
-  printf 'pgwire-recorder %s\n' "$VERSION" > "$werk/version-soll"
-  cmp -s "$werk/version" "$werk/version-soll" || rot "version gibt '$(cat "$werk/version")' aus statt 'pgwire-recorder $VERSION' und LF" # P7a-ausgabe
-  # b. Aufzeichnen
-  l "$docker" run -d --name "$pg" --network "$netz" -e POSTGRES_HOST_AUTH_METHOD=trust "$pg_image" > /dev/null
-  for i in $(seq 1 120); do
-    if l "$docker" exec "$pg" pg_isready -q -h 127.0.0.1 -U postgres; then break; fi
-    sleep 0.5
-    [ "$i" -lt 120 ] || rot "PostgreSQL nicht bereit"
-  done
-  l "$docker" run -d --name "$rec" --network "$netz" "$tag" record --listen 0.0.0.0:5432 --upstream "$pg:5432" --output /tmp/aufzeichnung.yaml > /dev/null
-  bereit "$rec"
-  client "$rec" "$werk/sicht-a"
-  [ -s "$werk/sicht-a" ] || rot "Sicht A ist leer" # P7a-leer
-  grep -q eins "$werk/sicht-a" || rot "Sicht A nennt 'eins' nicht" # P7a-eins
-  anhalten "$rec" record
-  l "$docker" cp "$rec:/tmp/aufzeichnung.yaml" "$werk/aufzeichnung.yaml" || rot "die Aufzeichnung ist dem Container nicht zu entnehmen" # P7cp
-  [ -s "$werk/aufzeichnung.yaml" ] || rot "die Aufzeichnung ist leer" # P7aufz
-  # c. Wiedergeben ohne PostgreSQL
-  l "$docker" rm -fv "$pg" > /dev/null # P9pg-replay
-  if "$docker" container inspect "$pg" > /dev/null 2>&1; then rot "der PostgreSQL-Container lebt beim Start des Wiedergebens noch"; fi # P7pg
-  l "$docker" create --name "$rep" --network "$netz" "$tag" replay --listen 0.0.0.0:5432 --input /tmp/aufzeichnung.yaml > /dev/null
-  l "$docker" cp "$werk/aufzeichnung.yaml" "$rep:/tmp/aufzeichnung.yaml"
-  l "$docker" start "$rep" > /dev/null
-  bereit "$rep"
-  client "$rep" "$werk/sicht-b"
-  cmp -s "$werk/sicht-a" "$werk/sicht-b" || rot "Sicht B ist ungleich Sicht A" # P7gleich
-  anhalten "$rep" replay
+  l env VERSION="$VERSION" POSTGRES_IMAGE="$pg_image" DOCKER="$docker" SMOKE_LAUF="$lauf" SMOKE_WERK="$werk" SMOKE_NAME="$name" \
+    bash "$hier/container-smoke.sh" "$lauf:linux-$arch"
   echo "test-container: Punkt 7 grün — Smoke auf linux/$arch"
 }
 
