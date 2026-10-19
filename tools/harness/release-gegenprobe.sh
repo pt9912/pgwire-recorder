@@ -1455,7 +1455,7 @@ mutr m-p3-secret-user-leer-gilt-als-gesetzt "p3-secret-leer-user" b '[ -n "${REL
 mutr m-p3-secret-token-leer-gilt-als-gesetzt "p3-secret-leer-token" b '[ -n "${RELEASE_DOCKERHUB_TOKEN-}" ] ||' '[ "${RELEASE_DOCKERHUB_TOKEN+x}" ] ||'
 mutr m-p3-7-geheimnisse-entfernt "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlen-beide p3-secret-fehlt-token p3-secret-fehlt-user p3-secret-leer-token p3-secret-leer-user" b $'  pruefe_geheimnisse\n' ''
 mutr m-p3-reihenfolge-6-7-vertauscht "p3-reihenfolge-6-7" b $'  pruefe_standard_zweig\n  pruefe_geheimnisse\n' $'  pruefe_geheimnisse\n  pruefe_standard_zweig\n'
-mutr m-p3-schluesselwort-geheimnis-weicht-ab "p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-schluesselwort-geheimnis" b 'eingabe() { echo "release: $1: $2" >&2; exit 2; }' 'eingabe() { local k="$1"; [ "$k" != geheimnis ] || k="${k}x"; echo "release: $k: $2" >&2; exit 2; }'
+mutr m-p3-schluesselwort-geheimnis-weicht-ab "p3-schluesselwort-geheimnis p3-secret-fehlen-beide p3-secret-fehlt-token p3-secret-fehlt-user p3-secret-leer-token p3-secret-leer-user" b 'eingabe() { echo "release: $1: $2" >&2; exit 2; }' 'eingabe() { local k="$1"; [ "$k" != geheimnis ] || k="${k}x"; echo "release: $k: $2" >&2; exit 2; }'
 mutr m-p3-secret-wert-in-meldung "p10-nicht-im-log-image p3-secret-fehlt-user p3-secret-leer-user" b 'eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt"' 'eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt (${RELEASE_DOCKERHUB_TOKEN-})"'
 # Punkt 5: je Argument des Baus
 mutr m-p5-plattformen-entfallen "p5-aufruf" b ' --platform linux/amd64,linux/arm64 --output "type=oci' ' --output "type=oci'
@@ -1550,7 +1550,7 @@ mutr m-p13-smoke-ohne-vergleichen "p11-alte-marke-b p11-reihenfolge-gruende-b p7
 # Punkt 10 (B)
 mutr m-p10-token-bei-fehler-registry "p10-nicht-im-log-image" b '[ "$have" = "$d" ] || rot "$reg trägt' '[ "$have" = "$d" ] || { echo "$RELEASE_DOCKERHUB_TOKEN" >&2; false; } || rot "$reg trägt'
 mutr m-p10-env-bei-fehler-registry "p10-nicht-im-log-image" b '[ "$have" = "$d" ] || rot "$reg trägt' '[ "$have" = "$d" ] || { env >&2; false; } || rot "$reg trägt'
-mutr m-p10-set-x-image "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlt-user p3-secret-leer-user" b $'set -uo pipefail\nexport LC_ALL=C\n' $'set -uo pipefail\nset -x\nexport LC_ALL=C\n'
+mutr m-p10-set-x-image "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlen-beide p3-secret-fehlt-user p3-secret-leer-user" b $'set -uo pipefail\nexport LC_ALL=C\n' $'set -uo pipefail\nset -x\nexport LC_ALL=C\n'
 mutr m-p10-token-als-argument "p10-stdin" b 'printf '"'"'%s'"'"' "$t" | skopeo login --authfile "$scratch/auth.json" --username "$u" --password-stdin "$1"' 'skopeo login --authfile "$scratch/auth.json" --username "$u" --password "$t" "$1"'
 # Punkt 11 (B): kein Schritt läuft mit dem Zustand eines früheren Laufs
 mutr m-p11-eingaben-loescht-vergleichen-nicht "p11-alte-marke-b" b 'rm -rf "$zdir/vergleichen.ok" "$zdir/image" # P11loescht-b' 'rm -rf "$zdir/image" # P11loescht-b'
