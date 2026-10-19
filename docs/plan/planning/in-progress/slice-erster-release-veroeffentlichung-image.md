@@ -147,6 +147,8 @@ dasteht.
 - *Aufrufarten von `make`, Abbruch, Reihenfolge der Gründe:* Punkt 13, 11 (`release.sh` läuft nie unter `make`).
 - *Stelle des Scans:* zwischen `Image` und `Veröffentlichen`, der Scan liest das Layout, `D` bleibt unverändert — Punkt 5.
 
+**Entschieden vom Architect am 2026-10-19 nach der Rückgabe des Implementers** ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md) Punkte 5, 6, 7, 8, 9, 11): (1) Pin des Builders `moby/buildkit@sha256:<Index-Digest von v0.33.1>` mit Tag-Kommentar `# v0.33.1` (gemessen 2026-10-19: `sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea`), ein Platzhalter ist ungültig, die Gegenprobe prüft Form und Platzhalter; (2) `POSTGRES_IMAGE` aus `harness/mk/integration.mk`, fehlt es Exit 2 `vorbedingung`; (3) Vorbedingungen je Schritt als Marken, Exit 2; (4) Marke `smoke.ok`, `latest` und `github-release` verlangen sie (nicht nur der Workflow-Text); (5) `SOURCE_DATE_EPOCH` ist die Committer-Zeit; (6) „Tag fehlt“ bei `manifest unknown`, `name unknown`, `not found`, sonst rot, nicht gemessen (Grenze); (7) nur stabile SemVer-Tags zählen für `latest`, `latest` wird immer kopiert; (8) Form des Layouts bei zwei Plattformen: Grenze, der Trockenlauf zeigt sie, jede andere Form ist rot; (9) Wirkung von `SOURCE_DATE_EPOCH` ohne `ARG`: Grenze, keine Zusage; (10) Limit anonymer Pulls von PostgreSQL im Smoke: rot, kein Anmelden, Wiederanlauf; (11) beide Geheimnisse fehlend: eine Meldung nennt beide Namen.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
