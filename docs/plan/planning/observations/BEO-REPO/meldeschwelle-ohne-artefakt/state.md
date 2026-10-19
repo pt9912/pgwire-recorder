@@ -13,3 +13,5 @@ Gegenbeleg, kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungs
 Gegenbeleg, kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-upstream`, 2026-10-16): Die Meldeschwellen 900 und 650 standen in §4 des Plans neben der Marke 1200; der Implementer meldete bei 941, und die Entscheidung („Fortsetzung, kein Schnitt“, Orchestrator) steht als datierte Zeile in §7. Das Artefakt war da. Der Zähler bleibt bei 2.
 
 Gegenbeleg, kein Auftreten (Urteil des Planners, `slice-harness-devcontainer-doku`, 2026-10-17): Die Meldeschwelle 400 stand neben der Marke 500 in §4 des Plans; der Implementer meldete bei 407 (Verifikation V-3), die Entscheidung „weiter, kein Schnitt“ steht als datierte Zeile in §7. Das Artefakt war da. Der Zähler bleibt bei 2.
+
+Gegenbeleg, kein Auftreten (Urteil des Planners, `slice-erster-release-veroeffentlichung`, 2026-10-19): Die Meldeschwelle 1000 stand neben der Marke 1300 in §4 des Plans; der Implementer meldete bei 1425 (nach der Marke), und die Entscheidung „weiter, kein Schnitt“ steht als datierte Zeile in §7 mit Gründen. Das Artefakt war da. Der Zähler bleibt bei 2.

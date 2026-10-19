@@ -1,0 +1,2 @@
+**Vorgang:** slice-erster-release-veroeffentlichung
+**Fund:** DoD Liefer-Punkt 3 verlangte „ein roter Lauf ist nach ihr wieder angestoßen (Beleg in §7)“ und belegte die Pipeline zugleich mit dem Trockenlauf, der grün gebaut ist und keinen roten Lauf erzeugt; die Verifikation nannte es closure-blockierend (V-1 b). Der Planner gab den Beleg bei der Closure an `slice-erster-release-freigabe` weiter (Lauf des ersten echten Tags) und änderte den Satz der DoD. Quelle: Verifikationsbericht V-1 (Planner, Closure, 2026-10-19).

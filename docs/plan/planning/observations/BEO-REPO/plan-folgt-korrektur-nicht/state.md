@@ -78,3 +78,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gegenproben-
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci-range-konfiguration` (P-1, F-9) — Kopf, §1 und DoD folgten der Nacharbeit (Punkt 18, Form der Muster, zwei Läufe) nicht, weil die Nacharbeit nur §3 und §7 ändern durfte; nachgezogen bei der Closure (Beleg `evidence/slice-harness-ci-range-konfiguration.md`). Zähler 69.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci` (F-4, Runde 2 LOW; V-2, V-7) — Vertrag und Plan widersprachen dem Skript, ein Zählsatz und die Metrik in §7 nannten den Stand davor, §1, ein DoD-Punkt und die Einleitung der Randformen folgten den Entscheidungen nicht; nachgezogen bei der Closure (Beleg `evidence/slice-harness-ci.md`). Zähler 70.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-erster-release-veroeffentlichung` (F-3 LOW) — `releasing.md` §3 nannte den Probe-Tag nach der Entscheidung, keinen zu haben, weiter als Verfahren; ein Dokument der Wartung statt einer Plan-Zeile, dieselbe Form; behoben (Beleg `evidence/slice-erster-release-veroeffentlichung.md`). Zähler 71.

@@ -103,3 +103,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gegenproben
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-ci-range-konfiguration` (F-5 LOW, F-8 INFO; V-4 LOW) — Versionen im Kopf des Skripts ohne Prüfung, der Schlusssatz einer Messung als Aussage über das Werkzeug, ein Kommentar zu `GP_INNEN` weiter als der Code; behoben (Beleg `evidence/slice-harness-ci-range-konfiguration.md`). Zähler 84.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-ci` (F-5 LOW; V-1 LOW) — zwei Sätze in Kopf und Fragment der Gegenprobe weiter als der Test; der Satz zur Grenze der Pin-Fälle in `SPEC-064` Punkt 1 nennt zwei Formen ohne Messung; behoben bzw. beim Architect (Beleg `evidence/slice-harness-ci.md`). Zähler 85.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-erster-release-veroeffentlichung` (F-2 MEDIUM) — die Zusage „nie abgebrochen“ über `concurrency` reichte weiter als die dokumentierte Semantik der Plattform; eingegrenzt auf den laufenden Lauf, Grenze in `SPEC-067` Punkt 13 (Beleg `evidence/slice-erster-release-veroeffentlichung.md`). Zähler 86.

@@ -15,3 +15,5 @@ Vermerk, kein Zählerzuwachs (Urteil des Planners, 2026-10-16): Der Ausgang `gep
 Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-record`, 2026-10-16): Die Spanne des Planners beim Anlegen (700 bis 1300) deckte sich mit der des Architect (750 bis 1350); die Größe war vor dem Anspruch sichtbar, gemessen 873. Der Zähler bleibt.
 
 Kein Auftreten, Vermerk (Urteil des Planners, `slice-v1-abschluss-container`, 2026-10-17): Die Spanne des Architect (780 bis 1080) lag vor dem Code vor, die Größe war vor dem Anspruch sichtbar; sie wurde überschritten (siehe `schaetzung-in-zeilen-unterschaetzt-tests`), die Marke nicht. Kein Evidence, der Zähler bleibt.
+
+Kein Auftreten, Vermerk (Urteil des Planners, `slice-erster-release-veroeffentlichung`, 2026-10-19): Die Größe des ungeteilten Slice (1970 bis 2570 gegen die Marke 1800) war vor dem Anspruch sichtbar, der Schnitt in A und B lief davor; A überschritt seine Marke 1300 erst in der Messung (1425, siehe `schaetzung-in-zeilen-unterschaetzt-tests`). Kein Evidence, der Zähler bleibt.
