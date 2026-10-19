@@ -6,3 +6,4 @@
 **Welle:** [welle-walking-skeleton](welle-walking-skeleton.md)
 **Archiviert mit:** welle-walking-skeleton · **Geschlossen:** 2026-10-04
 **Hervorgegangen:** [`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`](../../observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/observation.md) · [`BEO-REPO/plan-folgt-korrektur-nicht`](../../observations/BEO-REPO/plan-folgt-korrektur-nicht/observation.md) · [slice-extended-query-modell](../../done/welle-extended-query/slice-extended-query-modell.md) · [slice-replay-semantik-mismatch](../../done/welle-replay-semantik/slice-replay-semantik-mismatch.md) · [slice-v1-abschluss-sessions](../../done/welle-v1-abschluss/slice-v1-abschluss-sessions.md)
+**Bezug:** LH-FA-03, LH-FA-09, LH-FA-10, LH-FA-12, LH-FA-13, LH-QA-01
