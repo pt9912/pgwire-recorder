@@ -92,3 +92,74 @@ Bis zum Probe-Push bleiben die Punkte 1 bis 3 ausdrücklich **offen**; sie sind 
 **Closure-fähig: nein, noch nicht.** Die Code-Seite (`ci.yml`, `ci-range.sh`, Gegenprobe, Gate-Eintrag, Ketten) erfüllt DoD und `SPEC-064` Punkte 1 bis 9, 14, 17, 18 nach eigener Messung. Offen bleiben: (a) Closure-Trigger §5, der grüne Lauf und der rote Lauf mit Verstoß gegen die Range auf GitHub samt Dauer, (b) die Entscheidung des Architect zu V-5 (MEDIUM, vor dem ersten Push eines abgezweigten Zweigs auf GitHub zu entscheiden; sie ändert Vertrag, Skript und Fälle), (c) V-1 und V-2 (LOW, mit der Nacharbeit zu erledigen oder in der Closure zuzuweisen), (d) Closure-Notiz, Lerneintrag, Register, Ausgänge.
 
 **Volles `make gates` für die Merge-Entscheidung:** nicht nötig für das Urteil über den Slice. Seit `a31f4a7f` änderten sich nur die Gegenprobe (in keiner Kette, `GEGENPROBEN_CONTAINER`), Kommentarzeilen in `ci.mk`, eine Zeile in `harness/README.md`, `SPEC-064` und der Plan; die Gates, die diese Dateien lesen (`docs-check`, `kopf-check`, `abdeckung-check`, `workflows-check`, `baseline-verify`, `meldungskatalog-check`, Namensregel in `gates-schnell-gegenprobe`), habe ich in diesem Lauf einzeln gefahren: grün. Der Merge fährt `make gates` ohnehin in der Integrations-Worktree (Sache des Orchestrators); wird V-5 geändert, ist `ci-gegenprobe` voll neu zu fahren.
+
+## Runde 2
+
+Stand `d3818443` (Zweig `impl-ci`; Änderung seit `fc63d5ad`: `SPEC-064` Punkte 1, 7, 9, `ci-range.sh`, `ci-gegenprobe.sh`, Plan §3/§6/§7). Alles unten selbst gemessen, nicht aus §7 übernommen.
+
+### V-5 (Merge-Base) — behoben
+
+Temp-Repo (`main` lief nach dem Abzweig weiter, `refs/remotes/origin/main` auf der Spitze), `ci-range.sh` mit Push und Nullen als Vorgänger:
+
+| Fall | Ergebnis |
+|---|---|
+| Zweig abgezweigt von `c1`, `main` bei `c3` | Exit 0, Basis = `c1` (Merge-Base), nicht die Spitze |
+| Vorgänger nicht im Klon (`1111…`) | Hinweis auf stderr, Exit 0, gleiche Basis `c1` |
+| Zweig ohne gemeinsamen Vorfahr (`--orphan`) | Exit 2, Meldung „keine Merge-Base …“ |
+| flacher Klon | Exit 2 `fetch-depth: 0` |
+| Kopf = Stand des Standard-Zweigs | Exit 1, leere Range |
+| Criss-Cross (zwei Merge-Basen, `merge-base --all` liefert 2) | Exit 0, zweimal dieselbe Basis (git wählt deterministisch); **kein Fall** in der Gegenprobe |
+
+Mehrere Merge-Basen: `SPEC-064` Punkt 7 sagt „die Wahl von `git merge-base` ist maßgeblich“. Das ist keine eigene Zusage des Skripts, sondern ein Verweis; nach §3.10/§3.12 vertretbar (Randform genannt und entschieden, Zusage nicht über git hinaus). Befund V-6 (INFO): kein Fall, kein Bedarf, solange der Vertrag so formuliert bleibt.
+
+### Mutanten (`GP_ENTDECKE=1`, Teilmenge, danach grün)
+
+| Mutant | Rot |
+|---|---|
+| `m-p7-spitze-statt-merge-base` | `p7-leer`, `p7-push-neu`, `p7-push-neu-ohne-vorfahr`, `p7-push-vorgaenger-fehlt`, `p8-stdout-eine-zeile` (genau die benannten) |
+| `m-p7-merge-base-fehler-ohne-exit` | `p7-push-neu-ohne-standard`, `p7-push-neu-ohne-vorfahr` |
+| `m-p7-namen-statt-shas` | `p7-pr-tag-objekt` (nur dieser) |
+| `m-p7-pr-nimmt-vorgaenger` | wie benannt, jetzt mit `p7-pr-tag-objekt` |
+
+Eigener Mutant außerhalb der Liste: fehlender Vorfahr fällt auf die Spitze von `origin/<Standard>` zurück (`merge-base … || rev-parse origin/main`). Im Temp-Repo liefert er mit dem Orphan-Zweig Exit 0 mit Range; `p7-push-neu-ohne-vorfahr` erwartet Exit 2 und färbt ihn also rot (direkt am Skript gesehen, nicht über `mutr`).
+
+`p7-pr-tag-objekt` prüft die Zusage „aufgelöste Commit-SHAs“ (Punkt 7): ein Pull-Request-Kopf, der ein annotiertes Tag-Objekt ist, wird zum Commit geschält (`^{commit}`). Einzige Mutation: `aufloesen` gibt die Eingabe zurück (`m-p7-namen-statt-shas`); die alte Zuordnung hing an Fällen, in denen die Eingabe ohnehin ein Commit-SHA war, der Mutant war dort faktisch äquivalent, jetzt ist er gefangen. Gut.
+
+### Zählung
+
+Skript: 99 `p1` (+ `mut1`-Schleife), 39 `mutr`, 7 `mut18`; Fälle p1 99, p6 26, p7 12, p8 4, p9 6, p18 3 = **150**; Mutationen 99 + 39 + 7 = **145**; Läufe 145 + unveränderte Kopie + `rekursion-schutz` + `fall-ohne-funktion` = **148**. Das stimmt mit §3 (150/145, `p7` 12, `ci-range.sh` 39), §7 (148 Läufe, 150 Fälle) und dem Vertrag (Fallnamen von Punkt 7 und 9). Volle `make ci-gegenprobe` am Endstand: `grün (148 Läufe)`, 79 s.
+
+Metrik: `git diff --numstat 39f1ce8a..d3818443 -- .github tools harness .d-check.yml Makefile` = 785 + 17 = **802** (Gegenprobe 638, `ci-range.sh` 75, `ci.yml` 39, `ci.mk` 11, `SPEC-064` 31, `.d-check.yml` 7, README 1); bestätigt, unter der Marke 900.
+
+### V-1, V-2
+
+- V-1: als Grenze entschieden (`SPEC-064` Punkt 1, Satz „Grenze der Fälle zum Pin“, Grund: das Modul `workflows` hält die Form über `make docs-check`). Der Satz ist in meiner Runde-1-Messung belegt (41 Ziffern, Großschrift, `@main`, fehlender Tag werden im gepinnten Image rot). Offene Form: „Nicht-Hex-Zeichen“ und `#v7` ohne Leerzeichen habe ich in Runde 1 nicht gegen d-check gefahren (nur die vier genannten); die Grenze nennt sie als von `docs-check` gefangen. **V-1 geschlossen unter dem Vorbehalt**, dass die Aussage für diese beiden Formen ungemessen ist (Vertragssatz reicht weiter als der Beleg, `AGENTS.md` §3.11; LOW, der Planner kann sie in der Closure mitnehmen oder der Implementer fährt zwei Fälle gegen das Image).
+- V-2: §7-Metrik **behoben** (802 bei `c55bf42f`, gleich dem Endstand). `SPEC-064` nennt Punkt 1 weiter `p1-zusatz-schritt` (Zeilen 104 und 134), das Skript führt `p1-zusatz-schritt-cache` und `-artefakt`; **offen**, der Implementer hat es richtig an den Architect zurückgegeben (Vertragstext, Rückgabe-Regel). Außerdem steht in §7 im Absatz „Mutationen (145)“ noch „(147 Läufe: 144 Mutationen …)“ aus dem Stand davor (Zeile 187); der Absatz zu den Läufen sagt es („gelten für den Stand davor“), die Zahl im Absatz selbst ist veraltet (LOW, V-7).
+
+### Sensoren dieser Runde
+
+`bash -n` beider Skripte, `make docs-check` 0 Befunde, `make kopf-check` Exit 0, `make gates-schnell-gegenprobe` grün (65 s), `make ci-gegenprobe` `grün (148 Läufe)`. Kein `make gates`: geändert sind `ci-range.sh`, die Gegenprobe (in keiner Kette), `SPEC-064`, Plan.
+
+### Echte GitHub-Läufe (nur gelesen)
+
+| Lauf | Stand | Befund |
+|---|---|---|
+| `39189651083` (`probe/ci-2026-10-19`, `fc63d5ad`) | `success` | `ci-gates` 10 min 35 s (Job; 10m38s im Lauf); Schritte Set up, Checkout, Commit-Messages, ADR-Immutabilität, Gates, Post alle grün |
+| `39190523004` (`probe/ci-rot-2026-10-19`, `16c2f563`, Commit ohne Kennung) | `failure` nach 13 s | Schritt „Commit-Messages der Range“ rot: `history-range-guard … 16 Commit(s) — OK`, dann d-check `commit-untraceable 16c2f56 Probe: Commit ohne Kennung`, `make: doc-commits Error 1`; ADR-Immutabilität grün, **Gates übersprungen** (`-`). Das ist der rote Fall des Closure-Triggers §5, wie vorgesehen |
+| `39190523174` (`probe/ci-2026-10-19`, `d3818443`) | bei Abschluss dieser Runde `in_progress`, Schritte Commit-Messages und ADR-Immutabilität (Merge-Base-Pfad: Push auf bestehenden Zweig, Vorgänger bekannt) grün, `Gates` läuft (rund 10 min zu erwarten) | nicht abgewartet; **offen** |
+
+Risiko 1 bis 3 (§6) bleiben bis zum Ende von `39190523174` offen; der erste grüne Lauf zeigt bereits: `make gates` läuft auf dem Runner als `runner`, anonymer Pull von `ghcr.io/pt9912/d-check` gelingt (sichtbar im roten Lauf), Dauer 10m35s liegt unter 15 min (Risiko 2 entfällt nach Vorschlag), kein Docker-Hub-Fehler im grünen Lauf. Der neue Lauf prüft zusätzlich den Pfad mit bekanntem Vorgänger auf dem neuen Skript; der Pfad „neuer Zweig“ mit Merge-Base ist auf GitHub noch nicht gefahren worden (der rote Lauf ist ein neuer Zweig, aber seine Range `afd4518d..16c2f563` hat nicht den V-5-Fall: er zweigt vom aktuellen `main` ab).
+
+### Findings Runde 2
+
+| # | Schwere | Befund |
+|---|---|---|
+| V-5 | geschlossen | Merge-Base gemessen, Orphan Exit 2, flach Exit 2, gleicher Stand Exit 1; Mutanten rot wie genannt |
+| V-1 | geschlossen (LOW-Vorbehalt) | Grenze im Vertrag; Nicht-Hex und `#` ohne Leerzeichen gegen `docs-check` ungemessen |
+| V-2 | teilweise | §7-Metrik behoben; `p1-zusatz-schritt` in `SPEC-064` offen (Architect) |
+| V-6 | INFO | mehrere Merge-Basen: kein Fall; Verweis auf `git merge-base` im Vertrag genügt |
+| V-7 | LOW | §7 Absatz „Mutationen (145)“ nennt noch „147 Läufe: 144 Mutationen“ |
+
+### Verdikt Runde 2
+
+**Closure-fähig: noch nicht, aber nur noch durch Außenstehendes:** (a) Lauf `39190523174` muss grün enden (Beleg des Closure-Triggers §5 zusammen mit dem roten Lauf `39190523004`, den es schon gibt); (b) `SPEC-064` Punkt 1 `p1-zusatz-schritt` → die Namen des Skripts (Architect); (c) V-7 und die Vorbehalte V-1 in der Closure-Notiz bzw. durch den Implementer; (d) Closure-Notiz, Lerneintrag, Register, Ausgänge der Risiken (Vorschläge in Runde 1; für Risiko 1 bis 3 nach grünem Lauf: entfallen). Kein HIGH/MEDIUM offen.
