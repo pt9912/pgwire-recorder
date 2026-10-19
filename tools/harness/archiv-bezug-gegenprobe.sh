@@ -27,7 +27,7 @@ for f in tools/harness/archiv-bezug.sh harness/mk/archiv-bezug.mk; do
 done
 ENTFALLEN=(); ENT_MUT=()
 if [ "$(id -u)" -eq 0 ]; then
-  ENTFALLEN=(p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar); ENT_MUT+=(nicht-beschreibbar)
+  ENTFALLEN=(p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar p3-nicht-beschreibbar-gleich p3-erster-grund); ENT_MUT+=(nicht-beschreibbar)
   echo "archiv-bezug-gegenprobe: als root entfallen ${ENTFALLEN[*]} und ihre Mutationen" >&2
 fi
 LOC=en_US.UTF-8
@@ -61,6 +61,11 @@ lauf() {
 ok() { if ! "$@"; then bad=1; printf 'FAIL: %s\nExit %s, stderr:\n%s\n' "$*" "${code-}" "${err-}" >> "$run/log.$fallname"; fi; }
 rc() { [ "$code" -eq "$1" ]; }
 err_hat() { [[ $err == *"$1"* ]]; }
+out_hat() { [[ "$(cat "$w.out")" == *"$1"* ]]; }
+# befund_hat <welle> <stub> <Stichwort> — eine Zeile `archiv-bezug: <Pfad des Stubs>: <Stichwort>` (SPEC-068 Punkt 2, Meldungen).
+befund_hat() { err_hat "archiv-bezug: $DONE/$1/$2: $3"; }
+# einmal <welle> <stub> — der Stub kommt in der Fehlerausgabe genau einmal vor.
+einmal() { [ "$(grep -c "$DONE/$1/$2" "$w.err")" -eq 1 ]; }
 unveraendert() { [ "$(snap)" = "$vor" ]; }
 inhalt() { [ "$(cat "$1"; printf x)" = "$2"$'\n'x ]; }
 # bezug <welle> <name> <Text> — der Stub ist der Standard-Stub mit der Zeile **Bezug:** <Text> dahinter.
@@ -77,10 +82,11 @@ mk() { ( cd "$w" && env -u MAKEFLAGS -u MFLAGS -u MAKELEVEL ${ME[@]+"${ME[@]}"} 
 nicht_root() { if [ "$(id -u)" -eq 0 ]; then exit 0; fi; }
 
 # --- Punkt 1: Lauf-Menge ----------------------------------------------------------------------------------------------------------------------------
-f_p1_alle() { baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; lauf; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok bezug welle-b slice-b.md LH-FA-01; }
+f_p1_alle() { baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; lauf; ok rc 0; ok eval '! out_hat "keine Stubs"'; ok bezug welle-a slice-a.md LH-FA-01; ok bezug welle-b slice-b.md LH-FA-01; }
 f_p1_eine() { baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; lauf welle-a; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok inhalt "$w/$DONE/welle-b/slice-b.md" "$STUB"; }
 f_p1_ohne_stub() { baum; sv welle-a slice-a.md; mkdir -p "$w/$DONE/welle-leer"; fertig; lauf; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; }
-f_p1_eine_ohne_stub() { baum; sv welle-leer slice-x.md; fertig; rm "$w/$DONE/welle-leer/slice-x.md"; vor="$(snap)"; lauf welle-leer; ok rc 0; ok unveraendert; }
+f_p1_leere_menge() { baum; mkdir -p "$w/$DONE/welle-leer"; vor="$(snap)"; lauf; ok rc 0; ok out_hat "archiv-bezug: keine Stubs"; ok unveraendert; }
+f_p1_eine_ohne_stub() { baum; sv welle-leer slice-x.md; fertig; rm "$w/$DONE/welle-leer/slice-x.md"; vor="$(snap)"; lauf welle-leer; ok rc 0; ok out_hat "archiv-bezug: keine Stubs"; ok unveraendert; }
 f_p1_welle_flach() {
   baum; sv welle-a slice-a.md; printf 'flach\n' > "$w/$DONE/welle-x-results.md"; printf 'flach\n' > "$w/$DONE/slice-flach.md"; fertig; lauf
   ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok inhalt "$w/$DONE/welle-x-results.md" flach; ok inhalt "$w/$DONE/slice-flach.md" flach
@@ -89,45 +95,47 @@ f_p1_welle_datei() { baum; sv welle-a slice-a.md; printf 'welle\n' > "$w/$DONE/w
 f_p1_make_welle() { mbaum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; mk archiv-bezug WELLE=welle-a; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok inhalt "$w/$DONE/welle-b/slice-b.md" "$STUB"; }
 
 # --- Punkt 2: Eingaben und Reihenfolge der Gründe ---------------------------------------------------------------------------------------------------
-form() { baum; lauf "$1"; ok rc 2; ok err_hat "Form der Welle"; }
+form() { baum; lauf "$1"; ok rc 2; ok err_hat "archiv-bezug: Form der Welle"; }
 f_p2_form_welle_praefix() { form foo-bar; }
 f_p2_form_welle_zeichen() { form welle-Ab; }
 f_p2_form_welle_slash() { form welle-a/b; }
 f_p2_form_welle_punkt() { form welle-a..b; }
 f_p2_form_welle_nur_praefix() { form welle-; }
 f_p2_welle_leer() { baum; sv welle-a slice-a.md; fertig; lauf ""; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; }
-f_p2_welle_unbekannt() { baum; lauf welle-nope; ok rc 2; ok err_hat "Verzeichnis fehlt"; }
-f_p2_kein_unzip() { baum; sv welle-a slice-a.md; fertig; P="$arbeit/bin"; lauf; ok rc 2; ok err_hat "Werkzeug fehlt"; ok unveraendert; }
-f_p2_archiv_fehlt() { baum; sv welle-a slice-a.md; vor="$(snap)"; lauf; ok rc 2; ok err_hat "archiv.zip fehlt: welle-a"; ok unveraendert; }
-f_p2_archiv_beschaedigt() { baum; sv welle-a slice-a.md; printf 'kein zip' > "$w/$DONE/welle-a/archiv.zip"; vor="$(snap)"; lauf; ok rc 2; ok err_hat "beschädigt"; ok unveraendert; }
+f_p2_welle_unbekannt() { baum; lauf welle-nope; ok rc 2; ok err_hat "archiv-bezug: Verzeichnis fehlt"; }
+f_p2_kein_unzip() { baum; sv welle-a slice-a.md; fertig; P="$arbeit/bin"; lauf; ok rc 2; ok err_hat "archiv-bezug: Werkzeug fehlt"; ok unveraendert; }
+f_p2_archiv_fehlt() { baum; sv welle-a slice-a.md; vor="$(snap)"; lauf; ok rc 2; ok err_hat "archiv-bezug: archiv.zip fehlt: welle-a"; ok unveraendert; }
+f_p2_archiv_beschaedigt() { baum; sv welle-a slice-a.md; printf 'kein zip' > "$w/$DONE/welle-a/archiv.zip"; vor="$(snap)"; lauf; ok rc 2; ok err_hat "archiv-bezug: archiv.zip beschädigt"; ok unveraendert; }
 f_p2_archiv_crc() {
   baum; sv welle-a slice-a.md; ZIPOPT=-0 fertig; LC_ALL=C sed -i 's/Rumpf/Rumpg/' "$w/$DONE/welle-a/archiv.zip"; vor="$(snap)"; lauf
-  ok rc 2; ok err_hat "beschädigt"; ok unveraendert
+  ok rc 2; ok err_hat "archiv-bezug: archiv.zip beschädigt"; ok unveraendert
 }
-f_p2_reihenfolge_1_2() { baum; lauf welle-Bad; ok rc 2; ok err_hat "Form der Welle"; }
-f_p2_reihenfolge_2_3() { baum; P="$arbeit/bin"; lauf welle-nope; ok rc 2; ok err_hat "Verzeichnis fehlt"; }
-f_p2_reihenfolge_3_4() { baum; sv welle-a slice-a.md; P="$arbeit/bin"; lauf; ok rc 2; ok err_hat "Werkzeug fehlt"; }
+f_p2_reihenfolge_1_2() { baum; lauf welle-Bad; ok rc 2; ok err_hat "archiv-bezug: Form der Welle"; }
+f_p2_reihenfolge_2_3() { baum; P="$arbeit/bin"; lauf welle-nope; ok rc 2; ok err_hat "archiv-bezug: Verzeichnis fehlt"; }
+f_p2_reihenfolge_3_4() { baum; sv welle-a slice-a.md; P="$arbeit/bin"; lauf; ok rc 2; ok err_hat "archiv-bezug: Werkzeug fehlt"; }
 f_p2_reihenfolge_4_5() {
   baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; printf 'kein zip' > "$w/$DONE/welle-a/archiv.zip"; rm "$w/$DONE/welle-b/archiv.zip"; lauf
-  ok rc 2; ok err_hat "archiv.zip fehlt: welle-b"
+  ok rc 2; ok err_hat "archiv-bezug: archiv.zip fehlt: welle-b"
 }
 f_p2_keine_teilschreibung() { baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; rm "$w/$DONE/welle-b/archiv.zip"; vor="$(snap)"; lauf; ok rc 2; ok unveraendert; }
 
 # --- Punkt 3: Prüfung aller Stubs vor dem ersten Schreiben ------------------------------------------------------------------------------------------
 f_p3_stub_ohne_eintrag() {
   baum; sv welle-a slice-a.md; sv welle-a slice-b.md; sv welle-a slice-z.md; rm "$w.s/$DONE/welle-a/slice-z.md"; fertig; lauf
-  ok rc 1; ok err_hat "slice-z.md"; ok unveraendert
+  ok rc 1; ok befund_hat welle-a slice-z.md "kein Eintrag im Archiv"; ok unveraendert
 }
 f_p3_alle_befunde() {
   baum; sv welle-a slice-a.md; sv welle-a slice-b.md; sv welle-a slice-c.md; rm "$w.s/$DONE/welle-a/slice-a.md"; stubdatei welle-a slice-b.md "$STUB\r\n"; fertig; lauf
-  ok rc 1; ok err_hat "slice-a.md"; ok err_hat "slice-b.md"; ok unveraendert
+  ok rc 1; ok befund_hat welle-a slice-a.md "kein Eintrag im Archiv"; ok befund_hat welle-a slice-b.md "Stub enthält CR"; ok unveraendert
 }
-f_p3_datei_nicht_beschreibbar() { nicht_root; baum; sv welle-a slice-a.md; sv welle-a slice-b.md; fertig; chmod a-w "$w/$DONE/welle-a/slice-b.md"; vor="$(snap)"; lauf; ok rc 1; ok err_hat "slice-b.md"; ok unveraendert; }
-f_p3_verzeichnis_nicht_beschreibbar() { nicht_root; baum; sv welle-a slice-a.md; fertig; chmod a-w "$w/$DONE/welle-a"; vor="$(snap)"; lauf; ok rc 1; ok err_hat "slice-a.md"; ok unveraendert; }
-f_p3_kein_kopf() { baum; sv welle-a slice-a.md; printf '# x\n**Bezug:** LH-FA-01\nText\n' > "$w.s/$DONE/welle-a/slice-a.md"; fertig; lauf; ok rc 1; ok err_hat "slice-a.md"; ok unveraendert; }
+f_p3_datei_nicht_beschreibbar() { nicht_root; baum; sv welle-a slice-a.md; sv welle-a slice-b.md; fertig; chmod a-w "$w/$DONE/welle-a/slice-b.md"; vor="$(snap)"; lauf; ok rc 1; ok befund_hat welle-a slice-b.md "nicht beschreibbar"; ok unveraendert; }
+f_p3_verzeichnis_nicht_beschreibbar() { nicht_root; baum; sv welle-a slice-a.md; fertig; chmod a-w "$w/$DONE/welle-a"; vor="$(snap)"; lauf; ok rc 1; ok befund_hat welle-a slice-a.md "nicht beschreibbar"; ok unveraendert; }
+f_p3_nicht_beschreibbar_gleich() { nicht_root; baum; sv welle-a slice-a.md; stubdatei welle-a slice-a.md "$STUB\n**Bezug:** LH-FA-01\n"; chmod a-w "$w/$DONE/welle-a/slice-a.md"; fertig; lauf; ok rc 0; ok unveraendert; }
+f_p3_erster_grund() { nicht_root; baum; sv welle-a slice-a.md; fertig; rm "$w.s/$DONE/welle-a/slice-a.md"; zip -q -d "$w/$DONE/welle-a/archiv.zip" "$DONE/welle-a/slice-a.md"; chmod a-w "$w/$DONE/welle-a/slice-a.md"; vor="$(snap)"; lauf; ok rc 1; ok befund_hat welle-a slice-a.md "kein Eintrag im Archiv"; ok einmal welle-a slice-a.md; ok unveraendert; }
+f_p3_kein_kopf() { baum; sv welle-a slice-a.md; printf '# x\n**Bezug:** LH-FA-01\nText\n' > "$w.s/$DONE/welle-a/slice-a.md"; fertig; lauf; ok rc 1; ok befund_hat welle-a slice-a.md "Eintrag im Archiv ohne Kopf"; ok unveraendert; }
 f_p3_reihenfolge_aufruf() {
   baum; sv welle-a slice-a.md; sv welle-b slice-b.md; rm "$w.s/$DONE/welle-a/slice-a.md"; fertig; rm "$w/$DONE/welle-b/archiv.zip"; lauf
-  ok rc 2; ok err_hat "archiv.zip fehlt: welle-b"; ok eval '! err_hat "kein Eintrag"'
+  ok rc 2; ok err_hat "archiv-bezug: archiv.zip fehlt: welle-b"; ok eval '! err_hat "kein Eintrag"'
 }
 f_p3_temp_und_mv() {
   local ino
@@ -157,14 +165,14 @@ f_p4_zwei_bezug() { eins '**Bezug:** LH-FA-01\n**Berührte Spec-Stellen:** SPEC-
 # --- Punkt 5: die Zeile -----------------------------------------------------------------------------------------------------------------------------
 f_p5_ordnung() { eins '**Bezug:** LH-RB-02, LH-QA-03, LH-FA-05, LH-RB-01, LH-QA-01' 'LH-FA-05, LH-QA-01, LH-QA-03, LH-RB-01, LH-RB-02'; }
 f_p5_zahl() { eins '**Bezug:** LH-FA-10 LH-FA-9 LH-FA-100' 'LH-FA-9, LH-FA-10, LH-FA-100'; }
-f_p5_schreibweise() { eins '**Bezug:** LH-FA-04 LH-FA-4' 'LH-FA-4, LH-FA-04'; }
+f_p5_gleiche_zahl() { eins '**Bezug:** LH-FA-04 LH-FA-4' 'LH-FA-4, LH-FA-04'; }
 f_p5_duplikat() { eins '**Bezug:** LH-FA-01, LH-FA-01 und LH-FA-01.e' LH-FA-01; }
 
 # --- Punkt 6: vorhandene Zeile, Idempotenz ----------------------------------------------------------------------------------------------------------
 mit_zeilen() { baum; sv welle-a slice-a.md; stubdatei welle-a slice-a.md "$STUB\n$1\n"; touch -d 2020-01-01 "$w/$DONE/welle-a/slice-a.md"; fertig; lauf; }
 f_p6_gleich() { mit_zeilen '**Bezug:** LH-FA-01'; ok rc 0; ok unveraendert; }
-f_p6_abweichend() { mit_zeilen '**Bezug:** LH-FA-99'; ok rc 1; ok err_hat "LH-FA-99"; ok err_hat "LH-FA-01"; ok unveraendert; }
-f_p6_zwei_zeilen() { mit_zeilen '**Bezug:** LH-FA-01\n**Bezug:** LH-FA-01'; ok rc 1; ok unveraendert; }
+f_p6_abweichend() { mit_zeilen '**Bezug:** LH-FA-99'; ok rc 1; ok befund_hat welle-a slice-a.md "Zeile weicht ab"; ok err_hat "LH-FA-99"; ok err_hat "LH-FA-01"; ok unveraendert; }
+f_p6_zwei_zeilen() { mit_zeilen '**Bezug:** LH-FA-01\n**Bezug:** LH-FA-01'; ok rc 1; ok befund_hat welle-a slice-a.md "mehr als eine Zeile **Bezug:**"; ok unveraendert; }
 f_p6_zweiter_lauf() { eins '**Bezug:** LH-FA-01' LH-FA-01; vor="$(snap)"; lauf; ok rc 0; ok unveraendert; }
 
 # --- Punkt 7: Stelle der Zeile und Form des Stubs ---------------------------------------------------------------------------------------------------
@@ -173,8 +181,8 @@ f_p7_ende() { eins '**Bezug:** LH-FA-01' LH-FA-01; }
 f_p7_mitte() { mit_stub "$STUB\nWeitere Zeile\n**Letzte:** x\n"; ok rc 0; ok inhalt "$w/$DONE/welle-a/slice-a.md" "$STUB"$'\n**Bezug:** LH-FA-01\nWeitere Zeile\n**Letzte:** x'; }
 f_p7_ohne_umbruch() { mit_stub "$STUB"; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; }
 f_p7_ohne_umbruch_weitere() { mit_stub "$STUB\nrest"; ok rc 0; ok inhalt "$w/$DONE/welle-a/slice-a.md" "$STUB"$'\n**Bezug:** LH-FA-01\nrest'; }
-f_p7_ohne_hervorgegangen() { mit_stub '# Stub\n\nText\n'; ok rc 1; ok err_hat "Hervorgegangen"; ok unveraendert; }
-f_p7_zweimal_hervorgegangen() { mit_stub "$STUB\n**Hervorgegangen:** x\n"; ok rc 1; ok err_hat "Hervorgegangen"; ok unveraendert; }
+f_p7_ohne_hervorgegangen() { mit_stub '# Stub\n\nText\n'; ok rc 1; ok befund_hat welle-a slice-a.md "Stub hat nicht genau eine Zeile **Hervorgegangen:**"; ok unveraendert; }
+f_p7_zweimal_hervorgegangen() { mit_stub "$STUB\n**Hervorgegangen:** x\n"; ok rc 1; ok befund_hat welle-a slice-a.md "Stub hat nicht genau eine Zeile **Hervorgegangen:**"; ok unveraendert; }
 f_p7_rest_unveraendert() {
   local o="$run/orig.$fallname"
   printf '%b' "$STUB \t\n\n   \nZeile mit Leerzeichen am Ende  \n" > "$o"
@@ -183,21 +191,21 @@ f_p7_rest_unveraendert() {
 }
 
 # --- Punkt 8: Zeilenende und Kodierung --------------------------------------------------------------------------------------------------------------
-f_p8_stub_crlf() { mit_stub "$STUB\r\n"; ok rc 1; ok unveraendert; }
+f_p8_stub_crlf() { mit_stub "$STUB\r\n"; ok rc 1; ok befund_hat welle-a slice-a.md "Stub enthält CR"; ok unveraendert; }
 f_p8_volltext_crlf() { baum; sv welle-a slice-a.md '**Bezug:** LH-FA-01, LH-QA-02'; sed -i 's/$/\r/' "$w.s/$DONE/welle-a/slice-a.md"; fertig; lauf; ok rc 0; ok bezug welle-a slice-a.md 'LH-FA-01, LH-QA-02'; }
 f_p8_umlaute() {
   local o="$run/orig.$fallname"
   printf '%b' "$STUB\nGröße äöü \xff\n" > "$o"; mit_stub "$STUB\nGröße äöü \xff\n"; ok rc 0
   ok eval "LC_ALL=C grep -av '^\\*\\*Bezug:\\*\\*' '$w/$DONE/welle-a/slice-a.md' | cmp -s - '$o'"; ok eval "LC_ALL=C grep -aq '^\\*\\*Bezug:\\*\\* LH-FA-01\$' '$w/$DONE/welle-a/slice-a.md'"
 }
-f_p8_sprache() { baum; LC="$LOC" lauf welle-ä; ok rc 2; ok err_hat "Form der Welle"; }
+f_p8_sprache() { baum; LC="$LOC" lauf welle-ä; ok rc 2; ok err_hat "archiv-bezug: Form der Welle"; }
 
 # --- Punkt 9 und 10 ---------------------------------------------------------------------------------------------------------------------------------
 f_p9_wurzel() { baum; sv welle-a slice-a.md; fertig; LAUFDIR="$w/docs"; lauf; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; }
 f_p10_n() { mbaum; sv welle-a slice-a.md; fertig; mk -n archiv-bezug; ok rc 0; ok eval '[[ $(cat "$w.out") == *archiv-bezug.sh* ]]'; ok unveraendert; }
 f_p10_q() { mbaum; sv welle-a slice-a.md; fertig; mk -q archiv-bezug; ok rc 1; ok unveraendert; }
 f_p10_t() { mbaum; sv welle-a slice-a.md; fertig; mk -t archiv-bezug; ok rc 0; ok unveraendert; }
-f_p10_i() { mbaum; sv welle-a slice-a.md; sv welle-a slice-z.md; rm "$w.s/$DONE/welle-a/slice-z.md"; fertig; mk -i archiv-bezug; ok rc 0; ok err_hat "slice-z.md"; ok unveraendert; }
+f_p10_i() { mbaum; sv welle-a slice-a.md; sv welle-a slice-z.md; rm "$w.s/$DONE/welle-a/slice-z.md"; fertig; mk -i archiv-bezug; ok rc 0; ok befund_hat welle-a slice-z.md "kein Eintrag im Archiv"; ok unveraendert; }
 f_p10_makeflags() { mbaum; sv welle-a slice-a.md; fertig; ME=(MAKEFLAGS=n); mk archiv-bezug; ok rc 0; ok unveraendert; }
 
 # --- Punkt 11: kein Gate, an keiner Kette ------------------------------------------------------------------------------------------------------------
@@ -277,11 +285,11 @@ L_FEHLT='for w in "${wellen[@]}"; do [ -f "$done_dir/$w/archiv.zip" ] || sperre 
 L_BESCH='for w in "${wellen[@]}"; do unzip -tq "$done_dir/$w/archiv.zip" > /dev/null 2>&1 || sperre "archiv.zip beschädigt: $w/archiv.zip"; done'
 FORMEN='p2-form-welle-praefix p2-form-welle-zeichen p2-form-welle-slash p2-form-welle-punkt p2-form-welle-nur-praefix p8-sprache'
 # Fälle, die den vollen Inhalt eines geschriebenen Stubs vergleichen (Stelle und Form der Zeile)
-SCHREIBT='p1-alle p1-eine p1-make-welle p1-ohne-stub p1-welle-flach p12-adr p12-arc p12-spec p2-welle-leer p3-temp-und-mv p4-anker-klein p4-ein-token p4-ende-kopf p4-kein-bezug p4-kein-token p4-kopfende-genau p4-kurzform p4-leer-wert p4-mehrzeilig p4-suffix-buchstabe p4-suffix-punkt p4-vorn-buchstabe p4-vorn-strich p4-vorn-ziffer p4-zwei-bezug p5-duplikat p5-ordnung p5-schreibweise p5-zahl p6-zweiter-lauf p7-ende p7-mitte p7-ohne-umbruch p7-ohne-umbruch-weitere p8-volltext-crlf p9-wurzel'
+SCHREIBT='p1-alle p1-eine p1-make-welle p1-ohne-stub p1-welle-flach p12-adr p12-arc p12-spec p2-welle-leer p3-temp-und-mv p4-anker-klein p4-ein-token p4-ende-kopf p4-kein-bezug p4-kein-token p4-kopfende-genau p4-kurzform p4-leer-wert p4-mehrzeilig p4-suffix-buchstabe p4-suffix-punkt p4-vorn-buchstabe p4-vorn-strich p4-vorn-ziffer p4-zwei-bezug p5-duplikat p5-ordnung p5-gleiche-zahl p5-zahl p6-zweiter-lauf p7-ende p7-mitte p7-ohne-umbruch p7-ohne-umbruch-weitere p8-volltext-crlf p9-wurzel'
 
 # Punkt 1
 mut m-p1-welle-ignoriert "p1-eine p1-make-welle" skript $'if [ -n "$welle" ]; then\n  wellen=' $'if false; then\n  wellen='
-mut m-p1-leeres-verzeichnis-zaehlt "p1-ohne-stub" skript 'compgen -G "${d}slice-*.md" > /dev/null && ' ''
+mut m-p1-leeres-verzeichnis-zaehlt "p1-ohne-stub p1-leere-menge" skript 'compgen -G "${d}slice-*.md" > /dev/null && ' ''
 mut m-p1-welle-datei-zaehlt "p1-welle-datei" skript '"${d}slice-*.md"' '"${d}"*.md' '"$d"/slice-*.md' '"$d"/*.md'
 mut m-p1-done-selbst-zaehlt "p1-welle-flach" skript 'for d in "$done_dir"/*/; do' 'for d in "$done_dir"/*/ "$done_dir/"; do'
 mut m-p1-nur-erste-welle "p1-alle p2-keine-teilschreibung p2-reihenfolge-4-5 p3-reihenfolge-aufruf" skript '&& wellen+=("$(basename "$d")")' '&& [ "${#wellen[@]}" -eq 0 ] && wellen+=("$(basename "$d")")'
@@ -307,12 +315,12 @@ mut m-p2-reihenfolge-4-5 "p2-archiv-fehlt p2-reihenfolge-4-5 p3-reihenfolge-aufr
 # je Welle geprüft statt vor allem Lesen: die Prüfung 4 und 5 steht in der Schleife über die Wellen
 PRO_WELLE=("$L_FEHLT$LF" '' "$L_BESCH$LF" '' $'  unzip -Z1 "$d/archiv.zip" > "$tmp/liste"' $'  [ -f "$d/archiv.zip" ] || sperre "archiv.zip fehlt: $w"\n  unzip -tq "$d/archiv.zip" > /dev/null 2>&1 || sperre "archiv.zip beschädigt: $w/archiv.zip"\n  unzip -Z1 "$d/archiv.zip" > "$tmp/liste"')
 mut m-p2-geprueft-je-welle "p2-reihenfolge-4-5 p3-reihenfolge-aufruf" skript "${PRO_WELLE[@]}"
-mut m-p2-schreiben-je-welle "p2-reihenfolge-4-5 p3-reihenfolge-aufruf p2-keine-teilschreibung p3-stub-ohne-eintrag p3-alle-befunde p3-datei-nicht-beschreibbar p10-i" skript "${PRO_WELLE[@]}" $'  done\ndone\n[ "$befunde"' $'  done\n  for stub in "${todo[@]}"; do schreibe "$stub" "${neu[$stub]}"; done; todo=()\ndone\n[ "$befunde"'
+mut m-p2-schreiben-je-welle "p2-reihenfolge-4-5 p3-reihenfolge-aufruf p2-keine-teilschreibung p3-stub-ohne-eintrag p3-alle-befunde p3-datei-nicht-beschreibbar p10-i" skript "${PRO_WELLE[@]}" $'  done\ndone\nif [ "$gesehen"' $'  done\n  for stub in "${todo[@]}"; do schreibe "$stub" "${neu[$stub]}"; done; todo=()\ndone\nif [ "$gesehen"'
 # Punkt 3
 mut m-p3-schreiben-vor-pruefung "p3-stub-ohne-eintrag p3-alle-befunde p3-datei-nicht-beschreibbar p10-i" skript 'todo+=("$stub"); neu["$stub"]="$soll"' 'schreibe "$stub" "$soll"'
 mut m-p3-nur-erster-befund "p3-alle-befunde" skript 'echo "archiv-bezug: $1: $2" >&2; befunde=1' 'echo "archiv-bezug: $1: $2" >&2; exit 1'
-mut m-p3-ohne-eintrag-uebersprungen "p3-stub-ohne-eintrag p3-alle-befunde p10-i" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ continue; }'
-mut m-p3-kein-abbruch-bei-befund "p3-stub-ohne-eintrag p3-alle-befunde p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar p3-kein-kopf p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf p10-i" skript '[ "$befunde" -eq 0 ] || exit 1' ':'
+mut m-p3-ohne-eintrag-uebersprungen "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p10-i" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ continue; }'
+mut m-p3-kein-abbruch-bei-befund "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar p3-kein-kopf p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf p10-i" skript '[ "$befunde" -eq 0 ] || exit 1' ':'
 mut m-p3-mv-direkt "p3-temp-und-mv" skript 'mv "$t" "$stub"' 'cat "$t" > "$stub"; rm -f "$t"'
 mut m-p3-temp-bleibt "p3-temp-und-mv" skript 'mv "$t" "$stub"' 'cp "$t" "$stub"'
 mut m-p3-kein-kopf-geduldet "p3-kein-kopf" skript '|| { befund "$pfad" "Eintrag im Archiv ohne Kopf (keine Zeile ---)"; continue; }' '|| true'
@@ -335,14 +343,14 @@ mut m-p4-vorn-strich-erlaubt "p4-vorn-strich" skript '[A-Za-z0-9-]' '[A-Za-z0-9]
 mut m-p4-kein-leerwert "p4-kein-bezug p4-kein-token p4-leer-wert p4-anker-klein" skript '${z:-— keine —}' '${z}'
 mut m-p4-alle-bezug-zeilen "p4-zwei-bezug" skript 'else if (lies == 1 && index($0, "**") == 1) lies = 2' 'else if (lies == 1 && index($0, "**") == 1) lies = 0'
 # Punkt 5
-mut m-p5-ordnung-bytewise "p5-zahl p5-schreibweise" skript '-k2,2n' '-k2,2'
+mut m-p5-ordnung-bytewise "p5-zahl p5-gleiche-zahl" skript '-k2,2n' '-k2,2'
 mut m-p5-duplikat-bleibt "p5-duplikat" skript ' -u |' ' |'
 mut m-p5-fa-nach-qa "p5-ordnung p4-mehrzeilig p4-ende-kopf p4-kopfende-genau p8-volltext-crlf" skript '== "FA" ? 1 : substr(t, RSTART + 3, 2) == "QA" ? 2 : 3' '== "FA" ? 2 : substr(t, RSTART + 3, 2) == "QA" ? 1 : 3'
 mut m-p5-qa-nach-rb "p5-ordnung p4-mehrzeilig" skript '== "FA" ? 1 : substr(t, RSTART + 3, 2) == "QA" ? 2 : 3' '== "FA" ? 1 : substr(t, RSTART + 3, 2) == "QA" ? 3 : 2'
-mut m-p5-schreibweise-bytewise "p5-schreibweise" skript ' -k4,4n' ''
-mut m-p5-schreibweisen-gleich "p5-schreibweise" skript '-k2,2n -k4,4n -k3,3 -u' '-k2,2n -u'
+mut m-p5-gleiche-zahl-bytewise "p5-gleiche-zahl" skript ' -k4,4n' ''
+mut m-p5-gleiche-zahl-verschmolzen "p5-gleiche-zahl" skript '-k2,2n -k4,4n -k3,3 -u' '-k2,2n -u'
 # Punkt 6
-mut m-p6-gleiche-zeile-neu "p6-gleich p6-zweiter-lauf p4-leer-wert" skript 'if [ "$anzahl" -eq 0 ]; then todo+=' 'if [ "$anzahl" -ge 0 ]; then todo+='
+mut m-p6-gleiche-zeile-neu "p6-gleich p6-zweiter-lauf p4-leer-wert p3-nicht-beschreibbar-gleich" skript 'if [ "$anzahl" -eq 0 ]; then' 'if [ "$anzahl" -ge 0 ]; then'
 mut m-p6-abweichend-geduldet "p6-abweichend" skript '[ "$ist" = "$soll" ] || { befund "$pfad" "Zeile weicht ab: ist \"$ist\", soll \"$soll\""; continue; }' ':'
 mut m-p6-abweichend-ohne-ist "p6-abweichend" skript 'ist \"$ist\", ' ''
 mut m-p6-abweichend-ohne-soll "p6-abweichend" skript ', soll \"$soll\""' '"'
@@ -368,6 +376,27 @@ mut m-p10-make-im-rezept "p10-n p10-q p10-t p10-makeflags" fragment $'\t@bash to
 mut m-p10-skript-nicht-unter-i "p10-i" fragment '@bash tools/harness/archiv-bezug.sh "$(CURDIR)" "$(WELLE)"' '@$(if $(findstring i,$(firstword $(MAKEFLAGS))),:,bash tools/harness/archiv-bezug.sh "$(CURDIR)" "$(WELLE)")'
 # Punkt 11
 for k in GATE_CHECKS GEGENPROBEN_CONTAINER GEGENPROBEN_HOST; do mut "m-p11-${k,,}" "p11-keine-kette" fragment ".PHONY: archiv-bezug$LF" ".PHONY: archiv-bezug$LF$k += archiv-bezug$LF"; done
+# Entscheidungen des Architect zu SPEC-068 (leere Menge, Schreibbarkeit, erster Grund, Ordnung, Stichwörter)
+mut m-p1-keine-stubs-still "p1-leere-menge p1-eine-ohne-stub" skript 'echo "archiv-bezug: keine Stubs"; ' ''
+mut m-p1-keine-stubs-auf-stderr "p1-leere-menge p1-eine-ohne-stub" skript 'echo "archiv-bezug: keine Stubs";' 'echo "archiv-bezug: keine Stubs" >&2;'
+mut m-p1-keine-stubs-immer "p1-alle" skript 'if [ "$gesehen" -eq 0 ]; then echo "archiv-bezug: keine Stubs"; exit 0; fi' 'echo "archiv-bezug: keine Stubs"; if [ "$gesehen" -eq 0 ]; then exit 0; fi'
+mut m-p3-nicht-beschreibbar-fuer-alle "p3-nicht-beschreibbar-gleich" skript $'    if [ "$anzahl" -eq 0 ]; then\n      if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi\n' $'    if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi\n    if [ "$anzahl" -eq 0 ]; then\n'
+mut m-p3-erster-grund-nicht-beschreibbar-und-weitere "p3-erster-grund" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ befund "$pfad" "kein Eintrag im Archiv"; }'
+mut m-p5-laengere-zuerst "p5-gleiche-zahl" skript ' -k4,4n' ' -k4,4nr'
+mut m-stichwort-praefix-eingabe "$FORMEN p2-welle-unbekannt p2-kein-unzip p2-archiv-fehlt p2-archiv-beschaedigt p2-archiv-crc p2-reihenfolge-1-2 p2-reihenfolge-2-3 p2-reihenfolge-3-4 p2-reihenfolge-4-5 p3-reihenfolge-aufruf" skript 'echo "archiv-bezug: $*"' 'echo "$*"'
+mut m-stichwort-praefix-befund "p10-i p3-alle-befunde p3-datei-nicht-beschreibbar p3-erster-grund p3-kein-kopf p3-stub-ohne-eintrag p3-verzeichnis-nicht-beschreibbar p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf" skript 'echo "archiv-bezug: $1: $2" >&2' 'echo "$1: $2" >&2'
+mut m-stichwort-form "$FORMEN p2-reihenfolge-1-2" skript 'Form der Welle ungültig' 'Form ungültig'
+mut m-stichwort-verzeichnis "p2-welle-unbekannt p2-reihenfolge-2-3" skript 'Verzeichnis fehlt' 'Ordner fehlt'
+mut m-stichwort-werkzeug "p2-kein-unzip p2-reihenfolge-3-4" skript 'Werkzeug fehlt' 'Tool fehlt'
+mut m-stichwort-archiv-fehlt "p2-archiv-fehlt p2-reihenfolge-4-5 p3-reihenfolge-aufruf" skript 'archiv.zip fehlt' 'Archiv fehlt'
+mut m-stichwort-archiv-beschaedigt "p2-archiv-beschaedigt p2-archiv-crc" skript 'archiv.zip beschädigt' 'Archiv beschädigt'
+mut m-stichwort-kein-eintrag "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p10-i" skript 'kein Eintrag im Archiv' 'kein Eintrag'
+mut m-stichwort-ohne-kopf "p3-kein-kopf" skript 'Eintrag im Archiv ohne Kopf' 'Archiv-Eintrag ohne Kopf'
+mut m-stichwort-cr "p3-alle-befunde p8-stub-crlf" skript 'Stub enthält CR' 'CR im Stub'
+mut m-stichwort-hervorgegangen "p7-ohne-hervorgegangen p7-zweimal-hervorgegangen" skript 'Stub hat nicht genau eine Zeile **Hervorgegangen:**' 'Hervorgegangen falsch'
+mut m-stichwort-mehr-als-eine-zeile "p6-zwei-zeilen" skript 'mehr als eine Zeile **Bezug:**' 'zwei Bezug-Zeilen'
+mut m-stichwort-weicht-ab "p6-abweichend" skript 'Zeile weicht ab' 'Bezug anders'
+mut m-stichwort-nicht-beschreibbar "p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar" skript '"nicht beschreibbar"' '"gesperrt"'
 # Punkt 12
 mut m-p12-adr "p12-adr" skript '/LH-(FA|QA|RB)-[0-9]+/' '/(LH-(FA|QA|RB)|ADR)-[0-9]+/'
 mut m-p12-spec "p12-spec" skript '/LH-(FA|QA|RB)-[0-9]+/' '/(LH-(FA|QA|RB)|SPEC)-[0-9]+/'

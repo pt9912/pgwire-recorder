@@ -2,7 +2,7 @@
 # archiv-bezug — schreibt die Anforderungs-Kennungen aus dem Kopf des archivierten Volltexts als Zeile `**Bezug:**` in den Stub
 # (Vertrag: harness/vertraege/SPEC-068-archiv-bezug.md, Punkte 1 bis 12). Werkzeug, kein Gate; es committet nichts.
 # Aufruf: archiv-bezug.sh <wurzel> [<welle-id>]  (ohne <welle-id> alle Verzeichnisse done/<welle-id>/ mit einer Datei slice-*.md)
-# Exit 0: fertig; 1: mindestens ein Befund (Punkt 3), nichts geschrieben; 2: Eingabe oder Werkzeug (Punkt 2).
+# Exit 0: fertig (bei leerer Menge mit der Zeile `archiv-bezug: keine Stubs` auf stdout); 1: mindestens ein Befund (Punkt 3), nichts geschrieben; 2: Eingabe oder Werkzeug (Punkt 2).
 # GEPRÜFT DURCH tools/harness/archiv-bezug-gegenprobe.sh, Fälle nach Punkt (p<n>-*).
 set -o pipefail
 export LC_ALL=C
@@ -65,12 +65,14 @@ schreibe() {
 befunde=0
 befund() { echo "archiv-bezug: $1: $2" >&2; befunde=1; }
 todo=()
+gesehen=0
 declare -A neu
 for w in "${wellen[@]}"; do
   d="$done_dir/$w"
   unzip -Z1 "$d/archiv.zip" > "$tmp/liste"
   for stub in "$d"/slice-*.md; do
     [ -e "$stub" ] || continue
+    gesehen=$((gesehen + 1))
     name="${stub##*/}"
     pfad="$rel/$w/$name"
     grep -Fxq -- "$pfad" "$tmp/liste" || { befund "$pfad" "kein Eintrag im Archiv"; continue; }
@@ -85,10 +87,13 @@ for w in "${wellen[@]}"; do
       ist="$(grep '^\*\*Bezug:\*\*' "$stub")"
       [ "$ist" = "$soll" ] || { befund "$pfad" "Zeile weicht ab: ist \"$ist\", soll \"$soll\""; continue; }
     fi
-    if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi
-    if [ "$anzahl" -eq 0 ]; then todo+=("$stub"); neu["$stub"]="$soll"; fi
+    if [ "$anzahl" -eq 0 ]; then
+      if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi
+      todo+=("$stub"); neu["$stub"]="$soll"
+    fi
   done
 done
+if [ "$gesehen" -eq 0 ]; then echo "archiv-bezug: keine Stubs"; exit 0; fi
 [ "$befunde" -eq 0 ] || exit 1
 
 for stub in "${todo[@]}"; do schreibe "$stub" "${neu[$stub]}"; done
