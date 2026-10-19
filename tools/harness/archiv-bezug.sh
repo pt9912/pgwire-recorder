@@ -29,7 +29,6 @@ if [ -n "$welle" ]; then
   wellen=("$welle")
 else
   for d in "$done_dir"/*/; do
-    [ -d "$d" ] || continue
     compgen -G "${d}slice-*.md" > /dev/null && wellen+=("$(basename "$d")")
   done
 fi

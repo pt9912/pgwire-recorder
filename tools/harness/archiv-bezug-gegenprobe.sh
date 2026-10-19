@@ -80,6 +80,7 @@ nicht_root() { if [ "$(id -u)" -eq 0 ]; then exit 0; fi; }
 f_p1_alle() { baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; lauf; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok bezug welle-b slice-b.md LH-FA-01; }
 f_p1_eine() { baum; sv welle-a slice-a.md; sv welle-b slice-b.md; fertig; lauf welle-a; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok inhalt "$w/$DONE/welle-b/slice-b.md" "$STUB"; }
 f_p1_ohne_stub() { baum; sv welle-a slice-a.md; mkdir -p "$w/$DONE/welle-leer"; fertig; lauf; ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; }
+f_p1_eine_ohne_stub() { baum; sv welle-leer slice-x.md; fertig; rm "$w/$DONE/welle-leer/slice-x.md"; vor="$(snap)"; lauf welle-leer; ok rc 0; ok unveraendert; }
 f_p1_welle_flach() {
   baum; sv welle-a slice-a.md; printf 'flach\n' > "$w/$DONE/welle-x-results.md"; printf 'flach\n' > "$w/$DONE/slice-flach.md"; fertig; lauf
   ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok inhalt "$w/$DONE/welle-x-results.md" flach; ok inhalt "$w/$DONE/slice-flach.md" flach
@@ -284,6 +285,7 @@ mut m-p1-leeres-verzeichnis-zaehlt "p1-ohne-stub" skript 'compgen -G "${d}slice-
 mut m-p1-welle-datei-zaehlt "p1-welle-datei" skript '"${d}slice-*.md"' '"${d}"*.md' '"$d"/slice-*.md' '"$d"/*.md'
 mut m-p1-done-selbst-zaehlt "p1-welle-flach" skript 'for d in "$done_dir"/*/; do' 'for d in "$done_dir"/*/ "$done_dir/"; do'
 mut m-p1-nur-erste-welle "p1-alle p2-keine-teilschreibung p2-reihenfolge-4-5 p3-reihenfolge-aufruf" skript '&& wellen+=("$(basename "$d")")' '&& [ "${#wellen[@]}" -eq 0 ] && wellen+=("$(basename "$d")")'
+mut m-p1-glob-ohne-treffer-ist-stub "p1-eine-ohne-stub" skript '    [ -e "$stub" ] || continue' '    :'
 mut m-p1-make-ohne-welle "p1-make-welle" fragment '"$(WELLE)"' '""'
 # Punkt 2
 mut m-p2-form-gestrichen "$FORMEN p2-reihenfolge-1-2" skript "$L_FORM" ':'
