@@ -63,3 +63,61 @@ Gelaufen: `bash -n` auf beide Skripte (grün); `make docs-check` (1196 Dateien, 
 **Merge-blockierend:** ja — drei MEDIUM (F-1 bis F-3): je eine Zusage oder ein Element ihrer Aufzählung ohne Fall und Mutation, mit grünem Mutanten (gemessen).
 
 **Übergabe:** Findings gehen an den Implementer; F-6 an den Architect, F-4 zusätzlich an Planner/Architect (Vertragstext). Die Finding-Klassen gehen in die Slice-Closure §7.
+
+---
+
+# Runde 2 — Nachprüfung der Behebung (slice-harness-ci)
+
+**Gegenstand:** `impl-ci` Kopf `fea80886` (vorher `5f88de70`), Commits `7d80d9f2` und `fea80886`. Geprüft nur die Behebung von F-1, F-2, F-3, F-5; F-4 und F-6 gehören dem Architect. Reviewer-Skill `.harness/skills/reviewer.md`, Datum 2026-10-19. Engster Sensor: keine volle `ci-gegenprobe`, kein `make gates`.
+
+## Findings (neu)
+
+- `kategorie`: LOW
+- `quelle`: Maintainability (`AGENTS.md` §3.9, Plan folgt dem Diff)
+- `pfad`: `docs/plan/planning/in-progress/slice-harness-ci.md` · „mit `GP_ENTDECKE=1` gesehen, dann der volle Lauf grün (144 Läufe: 141 Mutationen“
+- `befund`: Die Überschrift davor nennt 144 Mutationen, der Satz selbst noch den alten Stand (144 Läufe, 141 Mutationen); nach §7 „Läufe nach dem Review“ sind es 147 Läufe und 144 Mutationen. Die Zählung im Skript stimmt mit 144 (12 `mut1` + 38 `mutr` + 7 `mut18` + 87 aus der Schleife) und der Tabelle überein; nur dieser Satz ist nicht nachgezogen.
+- `verifizierbar`: nein (kein Gate liest den Satz)
+- `klasse`: Zählung im Plan nach Korrektur nicht vollständig nachgezogen
+
+## Behebung je Finding
+
+| Finding | behoben | Messung |
+|---|---|---|
+| F-1 `\|\| fehler` an `git rev-list --count` | ja | `GP_MUT` auf `ok` und `m-p8-rev-list-fehler-ignoriert` u. a.: `ci-gegenprobe: grün (11 Läufe)`, `m-p8-rev-list-fehler-ignoriert => p8-rev-list-fehler` (genau dieser Fall). Eigener Mutant (`sed` auf `\|\| true` in Kopie von `ci-range.sh`, Repo mit gelöschtem Objekt des mittleren Commits, selbst gebaut): Original Exit 2 mit Präfix `ci-range:`, Mutant Exit 0 und gibt die Range aus (dazu `[: : integer expression expected`). Der Fall ist also trennscharf. `m-p7-merge-kopf-abgelehnt` färbt jetzt zusätzlich `p8-rev-list-fehler` (§7 begründet es, gemessen: `p7-pr-merge-kopf p8-rev-list-fehler`). Die Invariante zu `m-p8-git-fehler-ignoriert` ist auf den Aufruf `--is-shallow-repository` eingegrenzt und verweist auf den neuen Fall; Invariante, Ort und Sonde stehen weiter dort. |
+| F-2 Aufräumen bei normalem Ende | ja | `m-p18-ende-falle-fehlt => p18-ende` (genau dieser Fall); `ok` grün, also besteht `p18-ende` im Original (Exit 0, `TMPDIR` leer). Der Fall prüft Exit-Code und leeres Verzeichnis; der Mutant ohne `trap raeume_auf EXIT` lässt `tmp.*` liegen. |
+| F-3 `CI_DEFAULT_BRANCH` bei unbekanntem Vorgänger | ja | `m-p6-default-vorgaenger-ungeprueft => p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig p7-push-vorgaenger-fehlt p8-stdout-eine-zeile`. Die zwei neuen Fälle sind in `ok` grün. Eigene Sonde: Push mit unbekanntem Vorgänger und ohne `CI_DEFAULT_BRANCH` ergibt Exit 2, Hinweis und `ci-range: CI_DEFAULT_BRANCH fehlt oder ist ungültig`. Die neuen Fälle färben erwartungsgemäß die Mutanten `m-p6-default-*`, `m-p7-vorgaenger-fehlt-exit-2`, `m-p7-push-nimmt-pr-basis`, `m-p8-hinweis-auf-stdout`; die Mengen sind im Lauf gemessen und stimmen mit der Tabelle in §7 überein. |
+| F-5 Kommentare enger | ja | Kopf von `ci-gegenprobe.sh` „Kein Fall ändert Dateirechte“ beschreibt den Code (`grep chmod` findet nur die Werkzeugliste, die Vorprüfung und `raeume_auf` auf dem eigenen Arbeitsverzeichnis, keinen Fall; INFO: der Satz sagt „Kein Fall“, das Aufräumen ändert Rechte, trägt aber keinen Fall); `ci.mk` und `harness/README.md` „ruft weder Docker noch `make` auf“: im Skript stehen `make`/`docker` nur in Daten (Text von `ci.yml`) und Kommentaren, kein Aufruf. §7 Schritt 20 benennt beide Sätze mit ihrem Beleg. Die Zeile „ohne Docker und ohne make“ in der Werkzeugliste des Skriptkopfs ist dieselbe Aussage und trägt. |
+| F-4, F-6 | nicht bewertet | `git diff 5f88de70..fea80886 -- harness/vertraege` ist leer; der Implementer hat den Vertragstext nicht angefasst. F-4 steht in §7 als Rückgabe an den Architect. |
+
+## Zählungen und Prüfläufe
+
+- Fälle 148 (99 + 26 + 10 + 4 + 6 + 3) und Mutationen 144 (99 + 38 + 7) in §3 und §7: gegen das Skript nachgezählt (`grep` je Hilfsfunktion: `mut1` 12, `mutr` 38, `mut18` 7; `FAELLE_*` im Skript), stimmig. Tabelle „`ci-range.sh` (38)“ und „Abbruch (7)“ stimmen.
+- Metrik: `git diff --numstat 39f1ce8a..fea80886 -- .github tools harness .d-check.yml Makefile` ergibt 6+1, 39, 1, 11, 14, 624, 75 = **771**; gleich der Angabe des Implementers (Marke 900, Meldeschwelle 700 überschritten, keine Rückführung). §7 zählt bis `7d80d9f2`; `fea80886` ändert nur den Plan, die Zahl bleibt.
+- `bash -n tools/harness/ci-gegenprobe.sh` grün; `make docs-check` 0 Befunde; `make abdeckung-check kopf-check meldungskatalog-check` Exit 0.
+- Neue Randformen/Zusagen ohne Fall (§3.10/§3.11): keine. Die neuen Sätze sind Beschreibungen des Codes, die neuen Zusagen (rev-list-Fehler, Ende, Vorgänger mit Standard-Zweig) haben je Fall und Mutation. Der Test `p18-ende` nutzt `GP_MUT='^fall-ohne-funktion$'` als schnellen Lauf; ein Mutant, der nur bei anderen Läufen Reste ließe, wäre nicht gedeckt, das ist keine Zusage des Vertrags.
+- §3.9: §1, §3 (Zeile Gegenprobe), §7 (Fälle, Mutationen, Läufe, Metrik, Kommentare, Nacharbeit) folgen dem Diff, bis auf das LOW oben.
+- Bewertung, ob ein erneutes `make gates` nötig ist: nein, für den Inhalt. Seit dem grünen Lauf (`a31f4a7f`) änderten sich die Gegenprobe (in keiner Kette), Kommentarzeilen in `ci.mk`, eine Zeile in `harness/README.md` und der Plan; die Gates, die diese Dateien lesen (`docs-check`, `kopf-check`, `abdeckung-check`, `meldungskatalog-check`), habe ich gefahren, alle grün. Dass der Stop-Hook den Nachweis dennoch verlangen kann (`harness/README.md` steht nicht auf der Positivliste), ist Sache des Hooks und des Orchestrators, kein inhaltliches Argument.
+
+## Negativbefunde (Runde 2)
+
+| Bereich | Ergebnis |
+|---|---|
+| `tools/harness/ci-range.sh` (unverändert gegenüber Runde 1) | geprüft, ohne Befund |
+| `harness/vertraege/` (Diff leer) | geprüft, ohne Befund |
+| `harness/mk/ci.mk`, `harness/README.md` Zeile `make ci-gegenprobe` | geprüft, ohne Befund |
+| `tools/harness/ci-gegenprobe.sh` neue Fälle, neue Mutationen, Kopf | geprüft, ohne Befund |
+
+## Summary (Runde 2)
+
+| Kategorie | Anzahl |
+|---|---|
+| HIGH | 0 |
+| MEDIUM | 0 |
+| LOW | 1 |
+| INFO | 0 |
+
+**Finding-Klassen:** Zählung im Plan nach Korrektur nicht vollständig nachgezogen.
+
+## Verdikt (Runde 2)
+
+**Merge-blockierend:** nein. F-1, F-2, F-3, F-5 sind behoben und gemessen; das neue LOW (ein veralteter Zählsatz in §7) blockiert nicht. Offen bleiben F-4 und F-6 beim Architect (Vertragstext `SPEC-064`), nicht Gegenstand dieser Runde.
