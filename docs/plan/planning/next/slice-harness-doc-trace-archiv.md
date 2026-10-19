@@ -186,7 +186,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Vom Architect vor dem ersten Code-Commit zu klären (offen):**
+**Vom Architect entschieden am 2026-10-19 (Ort: `SPEC-068`):** (1) Modus „prüfen“: **nein** (`SPEC-068` Punkt 11 a). (2) Wirkung auf die Matrix als Zusage mit Docker-Fall: **nein**; einmalige Messung in §7 (Punkt 11 b). (3) Form: eigene Zeile `**Bezug:**` hinter `**Hervorgegangen:**`, keine Adaption `MR-<NNN>` (die Kennungen der Anforderungen gehören zu denen, die den Vorgang überlebt haben, Baseline `modul-06-roadmap.md` Schritt 4), Vorlage unverändert (Kopf von `SPEC-068`). (4) Eine ADR: **nicht nötig** (kein Gate gelockert, keine Architekturregel; Gründe im Kopf von `SPEC-068`). (5) Nummer `SPEC-068`. (6) Alle Randformen unten: entschieden in `SPEC-068`, je Zeile mit Punkt. (7) `unzip` und `zip`: in Dev- und Gegenproben-Container gemessen vorhanden (`/usr/bin/unzip` 6.0, `/usr/bin/zip`); der Lauf prüft das Werkzeug vorab (Exit 2, kein Überspringen). (8) Wirkung auf `docs-check`, `kopf-check`, `abdeckung-check` und den Stop-Hook: Vorhersage in `SPEC-068` Punkt 11 c, Messung in §7.
+
+Die Fragen unten bleiben als Herkunft stehen:
 
 1. *Modus „prüfen“:* Soll das Werkzeug neben dem Schreiben einen Lauf ohne Änderung bieten, der mit Exit 1 endet, wenn ein Stub die Zeile nicht
    trägt (kein Gate, kein Anschluss an eine Kette)? Vorschlag des Planners: nein (ein Sensor ohne Anschluss prüft nichts, und `archive-welle`
@@ -207,25 +209,25 @@ dasteht.
 **Randformen des Werkzeugs** (`AGENTS.md` §3.12; Ort der Entscheidung: `SPEC-068`; Vorschlag des Planners je Zeile, entschieden ist erst, was der
 Architect in den Vertrag schreibt):
 
-- *Leerer Kopf* (kein `**Bezug:**` im Volltext, oder kein Token): Vorschlag: die Zeile `**Bezug:** — keine —` (Leerwert der Vorlage), damit der Stub
+- **Entschieden:** `SPEC-068` Punkt 4 (Leerwert `**Bezug:** — keine —`, zweiter Lauf ohne Änderung). *Leerer Kopf* (kein `**Bezug:**` im Volltext, oder kein Token): Vorschlag: die Zeile `**Bezug:** — keine —` (Leerwert der Vorlage), damit der Stub
   als verarbeitet gilt und der zweite Lauf nichts ändert; Fall und Mutation.
-- *Stub ohne Eintrag im Archiv* (Datei `slice-*.md` im Welle-Verzeichnis, aber kein Eintrag gleichen Pfads in `archiv.zip`): Vorschlag: Exit 2 vor dem
+- **Entschieden:** `SPEC-068` Punkt 3 (alle Stubs geprüft vor dem ersten Schreiben, Exit 1, alle Befunde genannt). *Stub ohne Eintrag im Archiv* (Datei `slice-*.md` im Welle-Verzeichnis, aber kein Eintrag gleichen Pfads in `archiv.zip`): Vorschlag: Exit 2 vor dem
   ersten Schreiben, die Meldung nennt den Stub; keine Datei der Lauf-Menge ändert sich.
-- *Archiv fehlt* (Welle-Verzeichnis ohne `archiv.zip`; `WELLE=` unbekannt) und *Zip beschädigt* (`unzip -t` scheitert): Vorschlag: Exit 2 vor dem ersten
+- **Entschieden:** `SPEC-068` Punkt 2 (Exit 2, Reihenfolge: Form der Welle, Verzeichnis, `unzip`, Archiv fehlt, Archiv beschädigt). *Archiv fehlt* (Welle-Verzeichnis ohne `archiv.zip`; `WELLE=` unbekannt) und *Zip beschädigt* (`unzip -t` scheitert): Vorschlag: Exit 2 vor dem ersten
   Schreiben, ohne Änderung, mit Namen; Reihenfolge der Gründe (`AGENTS.md` §3.12): Eingabe der Welle, Archiv fehlt, Archiv beschädigt, Stub ohne Eintrag.
-- *Mehrere Anforderungen:* sortiert, ohne Duplikate, durch `, ` getrennt; Vorschlag der Ordnung: `LH-FA`, `LH-QA`, `LH-RB`, innerhalb nach Zahl
+- **Entschieden:** `SPEC-068` Punkt 5. *Mehrere Anforderungen:* sortiert, ohne Duplikate, durch `, ` getrennt; Vorschlag der Ordnung: `LH-FA`, `LH-QA`, `LH-RB`, innerhalb nach Zahl
   (nicht bytewise: `LH-FA-9` vor `LH-FA-10`).
-- *Mehrzeiliges `Bezug:` und Suffixe* (`LH-FA-05.e`, `LH-QA-03 und -04`): Vorschlag: gelesen werden nur volle Tokens `LH-(FA|QA|RB)-[0-9]+`; die Kurzform `-04`
+- **Entschieden:** `SPEC-068` Punkt 4. *Mehrzeiliges `Bezug:` und Suffixe* (`LH-FA-05.e`, `LH-QA-03 und -04`): Vorschlag: gelesen werden nur volle Tokens `LH-(FA|QA|RB)-[0-9]+`; die Kurzform `-04`
   ist keine Kennung (d-check liest sie ebenso nicht); die Kennung vor dem Suffix zählt.
-- *Schon vorhandene Zeile:* gleich → keine Änderung (Bytes, Zeitstempel); abweichend → Vorschlag: nicht überschreiben, Exit 1 mit Stub und beiden Werten
+- **Entschieden:** `SPEC-068` Punkt 6. *Schon vorhandene Zeile:* gleich → keine Änderung (Bytes, Zeitstempel); abweichend → Vorschlag: nicht überschreiben, Exit 1 mit Stub und beiden Werten
   (eine von Hand gepflegte Zeile geht nicht verloren); zwei Zeilen `**Bezug:**` im Stub → Exit 1.
-- *Stelle der Zeile:* hinter `**Hervorgegangen:**`, vor einer Leerzeile; fehlt `**Hervorgegangen:**`: Vorschlag Exit 1 (Stub hat nicht die Form der Vorlage).
+- **Entschieden:** `SPEC-068` Punkte 7 und 8 (CRLF im Stub ist Befund; Volltext mit CRLF nicht zugesagt). *Stelle der Zeile:* hinter `**Hervorgegangen:**`, vor einer Leerzeile; fehlt `**Hervorgegangen:**`: Vorschlag Exit 1 (Stub hat nicht die Form der Vorlage).
   Letzte Zeile ohne Zeilenumbruch: Zeile wird angehängt; CRLF im Stub: nicht zugesagt (`BEO-REPO/zeilenende-crlf-im-gelesenen-wert`), Entscheidung des Architect.
-- *Aufruf-Voraussetzung:* ein Aufruf nach dem anderen im Arbeitsbaum; der Lauf braucht keinen sauberen Baum und committet nicht. Gleichzeitige Aufrufe sind nicht
+- **Entschieden:** `SPEC-068` Punkt 9 (ein Aufruf nach dem anderen; gleichzeitige nicht zugesagt). *Aufruf-Voraussetzung:* ein Aufruf nach dem anderen im Arbeitsbaum; der Lauf braucht keinen sauberen Baum und committet nicht. Gleichzeitige Aufrufe sind nicht
   zugesagt (Entscheidung offen).
-- *Aufrufarten des Treibers* (`AGENTS.md` §3.12): das Werkzeug liefert kein Ergebnis, das ein Hook oder ein Gate glaubt; Vorschlag: `make -n` druckt und schreibt
+- **Entschieden:** `SPEC-068` Punkt 10 (Fälle `-n`, `-q`, `-t`, `-i`, `MAKEFLAGS`). *Aufrufarten des Treibers* (`AGENTS.md` §3.12): das Werkzeug liefert kein Ergebnis, das ein Hook oder ein Gate glaubt; Vorschlag: `make -n` druckt und schreibt
   nichts (Rezept ohne `$(MAKE)`), `-q` und `-t` ändern nichts, `-i` ändert am Exit nichts; der Architect bestätigt oder streicht die Nennung mit Grund.
-- *Plattform* (`AGENTS.md` §3.12, `LH-QA-03`): geprüft nur unter Linux mit bash und `unzip`; macOS und Windows als Grenze im Vertrag (akzeptiertes Negativ). `unzip`
+- **Entschieden:** `SPEC-068` Kopf, Plattform. *Plattform* (`AGENTS.md` §3.12, `LH-QA-03`): geprüft nur unter Linux mit bash und `unzip`; macOS und Windows als Grenze im Vertrag (akzeptiertes Negativ). `unzip`
   ist im Dev-Container vorhanden (`/usr/bin/unzip`); ob die Container der Gegenproben es führen, belegt der Implementer vor dem Code (nicht gemessen).
 
 **Risiken:**
@@ -272,3 +274,5 @@ im Register. Kein Eintrag nennt die Archivierung, die Matrix oder `archive-welle
 Text). Liefer-Punkte: drei (Werkzeug mit Vertrag · Gegenprobe · Anwendung mit Berichtigung). Schichten: eine — Werkzeug des Harness (`tools/harness/`, `harness/`); die
 Stubs unter `docs/plan/planning/` sind Planung und zählen nicht, `harness/README.md` ist Harness-Datei und keine Nutzer- oder Wartungs-Doku (`docs/user/`, `docs/maintainer/`,
 `README.md` bleiben unberührt). Damit höchstens zwei Schichten und höchstens drei Punkte.
+
+**Schätzung des Architect nach dem Vertrag (2026-10-19; Metrik von §4; Faktor der Gegenprobe wie `slice-harness-ci-workflows` gemessen 899 gegen 545 bis 695):** Skript 130 bis 170 (zwei Phasen, Kopf lesen, Zeile schreiben), Fragmente 30, README-Zeilen 6, Gegenprobe 300 bis 430 (rund 55 Fälle, 40 Mutationen, Archive mit `zip`); roh zusammen 470 bis 640; `SPEC-068` (rund 60 Zeilen Vertragstext, `harness/` zählt mit, wenn die Basis vor ihrem Commit liegt) kommt mit 60 bis 70 hinzu; zusammen **470 bis 710**, Mitte um 590; die Meldeschwelle 650 kann erreicht werden, die Marke 800 liegt darüber. Schnitt, falls sie eintritt: Fälle zu Punkt 3 (halber Stand) und Punkt 10 (Aufrufarten) in einen Folge-Slice nur dann, wenn der Planner es will; der Architect sieht keinen Schnitt vor.
