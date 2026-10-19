@@ -1,10 +1,10 @@
 # ADR-0052: Das Image wird vor dem Push mit Trivy gescannt; behebbare Befunde ab HIGH sperren, Ausnahmen gibt es nicht
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-19
 
-**Autor:** Architect; Empfehlung, bis der Nutzer sie annimmt.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-19 (Trivy, Schwelle `HIGH` mit Behebung, keine Ausnahmen; ein Folge-Tag `v0.1.1` ist erlaubt; ein neuerer Stand von Baseline oder d-check sperrt den Tag nicht).
 
 **Bezug:** [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [ADR-0051](0051-veroeffentlichung-auf-github-actions.md), [ADR-0050](0050-ci-auf-github-actions.md)
 
@@ -20,7 +20,7 @@ Das Image `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder
 
 ## Entscheidung
 
-Wir empfehlen **Option A: Trivy als per Digest gepinntes Image scannt das OCI-Layout jeder Plattform vor dem Push; ein Befund mit Schweregrad `CRITICAL` oder `HIGH` und verfügbarer Behebung beendet den Lauf; Ausnahmen gibt es nicht.**
+Wir wählen **Option A: Trivy als per Digest gepinntes Image scannt das OCI-Layout jeder Plattform vor dem Push; ein Befund mit Schweregrad `CRITICAL` oder `HIGH` und verfügbarer Behebung beendet den Lauf; Ausnahmen gibt es nicht.**
 
 1. **Werkzeug.** Trivy (`aquasec/trivy`), Pin per Digest mit Tag-Kommentar, wie der Builder des Images. Es ist dasselbe Werkzeug, das d-check für seine veröffentlichten Images einsetzt (dort gemessen: ein Go-Binary auf `distroless/static` ist der Fund-Raum, ein grüner Lauf sagt „nichts Bekanntes in diesem Raum“).
 2. **Schwelle.** `CRITICAL` und `HIGH`, nur mit verfügbarer Behebung. Ein Befund ohne Behebung wird gezählt und ausgegeben, sperrt aber nicht: gegen ihn gibt es mit dem gepinnten Basis-Image keinen Weg, und eine Sperre ohne Weg wäre keine Schwelle, sondern ein Stillstand.
@@ -30,7 +30,7 @@ Wir empfehlen **Option A: Trivy als per Digest gepinntes Image scannt das OCI-La
 
 Die Regeln im Einzelnen (Aufruf, Auswertung, Exit-Codes, Fälle, Grenzen) stehen in [`SPEC-067`](../../../harness/vertraege/SPEC-067-release.md) Punkt 16.
 
-Zur Entscheidung des Nutzers vorgelegt (Empfehlung des Architect, keine Annahme): die Annahme dieser ADR; Trivy statt eines anderen Scanners; die Schwelle `HIGH` mit Behebung; der Verzicht auf Ausnahmen.
+Entscheidung des Nutzers vom 2026-10-19 (Empfehlung des Architect angenommen): die Annahme dieser ADR; Trivy statt eines anderen Scanners; die Schwelle `HIGH` mit Behebung; der Verzicht auf Ausnahmen.
 
 ## Verglichene Alternativen
 
@@ -69,5 +69,6 @@ Wenn ein behebbarer Befund unter der Schwelle (`MEDIUM`) veröffentlicht wurde, 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-19 | Proposed (Empfehlung des Architect vor dem Code von Slice F) | — |
+| 2026-10-19 | Accepted (Entscheidung des Nutzers) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
