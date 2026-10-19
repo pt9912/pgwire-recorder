@@ -1,1 +1,3 @@
 **Stand:** offen
+
+Zweites Auftreten (Urteil des Planners, `slice-erster-release-freigabe`, 2026-10-19; Beleg `evidence/slice-erster-release-freigabe.md`): Der Pin des Go-Builders alterte, und der Scan des Trockenlaufs meldete es (drei HIGH-Befunde); behoben im Slice. Der Zähler steht bei 2, unter der Schwelle. Der Scan ist der einzige Melder im Release-Pfad; ein Nachtlauf für die Pins in `Dockerfile` und Workflows hat keinen Slice, der ihn annimmt. Ausgang der Risiken „Scan hängt an der Datenbank“ und „Pin des Builder-Images“ in §6 von `slice-erster-release-freigabe` und `slice-erster-release-veroeffentlichung-image`.

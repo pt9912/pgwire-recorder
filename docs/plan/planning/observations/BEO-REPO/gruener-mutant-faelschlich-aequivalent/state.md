@@ -25,3 +25,5 @@ Kein Auftreten, Vermerk (`slice-harness-ci-range-konfiguration`, Urteil des Plan
 Zähler 9 (`slice-harness-ci`): Review F-1 — `m-p8-git-fehler-ignoriert` war mit einer Invariante als äquivalent geführt, die nur für einen von zwei `git`-Aufrufen gilt; der Mutant am zweiten Aufruf blieb grün, behoben mit `p8-rev-list-fehler` und Begrenzung der Invariante in §7 (Beleg `evidence/slice-harness-ci.md`). Der Eintrag liegt weiter über der Schwelle; Zuweisung und Ausgang bleiben offen für den Nutzer; der Planner verkörpert und plant hier nichts.
 
 Kein Auftreten, Vermerk (`slice-erster-release-veroeffentlichung`, Urteil des Planners, 2026-10-19): Die zwei als äquivalent geführten Mutanten nennen Invariante, Ort und Sonde; das Review fuhr die Sonde 1 von Hand nach und fand sie tragend. Kein Evidence, der Zähler bleibt bei 9.
+
+Kein Auftreten, gegenläufiger Beleg (`slice-erster-release-freigabe`, Urteil des Planners, 2026-10-19): Die Äquivalenz von `manifests[-1]` statt `manifests[0]` im äußeren Index trug Invariante, Ort und Sonde (Review Runde 2 F-6, Verifikation Runde 3: tragfähig). Kein Evidence, der Zähler bleibt bei 9.

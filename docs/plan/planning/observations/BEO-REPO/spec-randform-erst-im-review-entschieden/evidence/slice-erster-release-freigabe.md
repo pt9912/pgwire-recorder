@@ -1,0 +1,2 @@
+**Vorgang:** slice-erster-release-freigabe
+**Fund:** Review Runde 1 F-5 (INFO): `UpdatedAt` der Datenbank in der Zukunft ergibt ein negatives Alter, das angenommen wurde; weder `SPEC-067` noch die ADR nannten es. Runde 2 F-5 (INFO): Manifest mit `variant` (`arm64/v8`) stand nicht in §6 und hatte keinen Fall. Beide entschied der Architect (`SPEC-067` Punkt 16); die neun Rückgaben der Runde 1 (F-1) gehören zu `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`. Quelle: Review-Reports (Planner, Closure, 2026-10-19).

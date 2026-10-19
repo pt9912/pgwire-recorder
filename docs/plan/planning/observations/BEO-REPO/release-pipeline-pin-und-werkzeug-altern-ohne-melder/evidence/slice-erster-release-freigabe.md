@@ -1,0 +1,2 @@
+**Vorgang:** slice-erster-release-freigabe
+**Fund:** Der Pin des Go-Builders `golang:1.27-alpine` (Go 1.27.1) war in der CI grün; der Scan im Trockenlauf `39284378634` lehnte das Image mit drei HIGH-Befunden der Standardbibliothek ab (CVE-2026-78667, -78669, -97031, mit Behebung); behoben mit 1.27.2 (Digest `f92b6ef8…`, `f9526a68`), Trockenlauf `39290074657` grün. Der Scan war der Melder; ein Nachtlauf für Pins in `Dockerfile` und Workflows besteht nicht (`slice-harness-ci-freshness-images` §1). Quelle: §6 und §7 des Plans (Planner, Closure, 2026-10-19).

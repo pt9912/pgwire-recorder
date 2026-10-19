@@ -1,0 +1,2 @@
+**Vorgang:** slice-erster-release-freigabe
+**Fund:** Der Push von `main` mit `80abcc06` (Fassung der Freigabe-Checkliste, `SPEC-067` Punkt 17, `releasing.md` 0.10) erfolgte, bevor `make gates` für den Stand grün war; die Gates liefen danach und waren grün (`ci.yml` `39293866401` auf `80abcc06`, später `make gates` auf dem getaggten `35778a2f`). Angabe der Koordination, im Auftrag als Verfahrensfehler der Koordination benannt; kein Schaden am Tag. Quelle: §7 des Plans (Planner, Closure, 2026-10-19).
