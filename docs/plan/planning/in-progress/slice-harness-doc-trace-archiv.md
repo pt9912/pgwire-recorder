@@ -10,9 +10,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; eingesammelt wird er von der nächsten Welle-Closure.
-Angelegt am 2026-10-19 nach Befund des Nutzers: `make doc-trace` zeigt neun Waisen, seit `welle-v1-abschluss` archiviert ist.
+Angelegt am 2026-10-19 nach Befund des Nutzers: `make doc-trace` zeigte neun Waisen, seit `welle-v1-abschluss` archiviert ist (Messung des Planners; im Lauf des Werkzeugs gemessen sind es vorher sieben und nachher keine, §7).
 
-**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Prüfbarkeit durch Werkzeuge des Harness, Messmethode 4; das Werkzeug dieses Slice ist keine Zusage des Produkts). Betroffen in der Matrix von `make doc-trace`, nicht geändert: `LH-FA-04`, `LH-FA-14`, `LH-FA-15`, `LH-FA-19`, `LH-QA-04`, `LH-RB-02` (Waisen laut §1; geliefert wird keine davon). Keine aktive ADR; ob die Form des Stubs eine ADR verlangt, entscheidet der Architect (§6).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Prüfbarkeit durch Werkzeuge des Harness, Messmethode 4; das Werkzeug dieses Slice ist keine Zusage des Produkts). Betroffen in der Matrix von `make doc-trace`, nicht geändert: `LH-FA-04`, `LH-FA-08`, `LH-FA-14`, `LH-FA-15`, `LH-FA-16`, `LH-FA-19`, `LH-QA-04`, `LH-QA-05`, `LH-RB-02` (Waisen laut §1; geliefert wird keine davon). Keine aktive ADR; ob die Form des Stubs eine ADR verlangt, entscheidet der Architect (§6).
 
 **Berührte Spec-Stellen:** `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt) · `SPEC-068` (neu; nächste freie Nummer nach `SPEC-067`, `SPEC-065` und `SPEC-066` sind gehalten; die Nummer vergibt der Architect; Vertrag in `harness/vertraege/`, Ort nach `MR-002`, vor dem ersten Code-Commit)
 
@@ -241,6 +241,8 @@ Architect in den Vertrag schreibt):
   Lesart wie bei lebenden Slices, siehe §1 letzter Ausschluss)
 - Das Werkzeug ändert 97 Dateien in einem Lauf; ein Fehler in der Mitte hinterließe einen halben Stand. — **Ausgang:** — (bei Closure; Gegenmittel im Vertrag: Prüfung aller
   Stubs und Archive vor dem ersten Schreiben, Fall und Mutation)
+
+**Entschieden vom Architect am 2026-10-19 nach dem Review** (`SPEC-068` Punkte 2, 3, 6, 7): Schreibfehler endet mit Exit 2 (Stichwort `Schreiben fehlgeschlagen`, Temp-Datei entfernt, kein weiterer Stub); fehlende Wurzel Exit 2; gleiche Zeile an falscher Stelle Befund; eine genannte Welle ohne Stub und ohne Archiv ist die leere Menge (Exit 0); Modus und Besitzer nach `mv` sind Grenze; Gegenprobe bash ≥ 4.3.
 
 ## 7. Closure-Notiz
 
