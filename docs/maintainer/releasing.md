@@ -241,7 +241,7 @@ diesen Hash.
 | Punkt | Form des Belegs | Beleg |
 |---|---|---|
 | 1. `make gates` grün auf dem getaggten Commit | Hash, Datum | |
-| 2. Gegenproben-Container grün für diesen Hash | die Dateien `gegenproben-*-<Hash>` der Ablage von `pgr-gp` per `ssh`, jede mit `ergebnis=gruen`, `beginn` und `ende`, keine Marke `….laeuft`; fehlt das Ergebnis oder ist es rot, fährt die Freigabe `make gegenproben` selbst | |
+| 2. Gegenproben-Container grün für diesen Hash | die Dateien `gegenproben-*-<Hash>` der Ablage des Gegenproben-Containers per `ssh`, jede mit `ergebnis=gruen`, `beginn` und `ende`, keine Marke `….laeuft`; fehlt das Ergebnis oder ist es rot, fährt die Freigabe `make gegenproben` selbst | |
 | 3. `make gegenproben-host` am Host grün auf demselben Hash | Datum, Hash, die Zusammenfassung der Ausgabe | |
 | 4. Freshness-Audit (§5) | die Tabelle des Audits, Abfrage höchstens sieben Tage vor dem Tag | |
 | 5. `VERSION` und die Zeile der Änderungshistorie im getaggten Commit | Ausgabe von `grep` | |
@@ -308,7 +308,7 @@ Die Tabelle nennt die Schritte der Pipeline.
 |---|---|---|---|
 | `eingaben` | jede Eingabe | nichts | Geheimnis oder Einstellung beheben und wiederholen; liegt der Fehler im Tag-Commit (`VERSION`, Zeile der Änderungshistorie), neuer Tag |
 | `binaries`, `image` | Bau, Summe, Dateiliste | nichts außerhalb des Runners | wiederholen |
-| `scan` | Befund über der Schwelle (Exit 1), Scan nicht gelaufen (Exit 2: Netz, Datenbank, Plattform) | nichts außerhalb des Runners | nicht gelaufen: wiederholen; Befund: den Befund beheben (Basis-Image oder Abhängigkeit heben) und einen neuen Tag setzen, es gibt keine Ausnahme |
+| `scan` | Befund über der Schwelle (Exit 1), Scan nicht gelaufen (Exit 2) | nichts außerhalb des Runners | Exit 2 durch Netz, Zwischenspeicher oder Datenbank (`scan-gescheitert`, `datenbank`): wiederholen; bleibt dieselbe Meldung, oder meldet er `plattform` oder `pruefmenge`, war eine Annahme über Trivy oder das Skript falsch: Korrektur auf dem Hauptzweig und ein neuer, höherer Tag (§10, „Rot nach dem ersten Tag“); Befund: beheben (Basis-Image oder Abhängigkeit heben) und einen neuen Tag setzen, es gibt keine Ausnahme |
 | `veröffentlichen` | `ghcr.io` ok, `docker.io` rot | Tag `<SemVer>` in `ghcr.io` | wiederholen: `ghcr.io` wird übersprungen (gleicher Digest), `docker.io` folgt; weicht der Digest ab (neuer Bau), neuer Tag |
 | `veröffentlichen` | Tag vorhanden mit anderem Digest | die vorhandene Registrierung | neuer, höherer Tag |
 | `vergleichen`, `smoke` | Digest, Zugriff, Plattformen, Smoke | beide Registries beschrieben, kein `latest`, kein GitHub-Release | Ursache beheben (zum Beispiel das Paket öffentlich stellen), wiederholen; bei Abweichung der Digests neuer Tag |
