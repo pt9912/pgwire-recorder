@@ -1,10 +1,10 @@
 # Benutzerhandbuch: pgwire-recorder
 
 Version: 0.9  
-Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 17.10.2026  
+Software-Version: `0.1.0` (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.0`)  
+Stand: 19.10.2026  
 Autor: Projektteam pgwire-recorder  
-Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
+Gültigkeitsbereich: gilt für das Binary `pgwire-recorder` der Software-Version 0.1.0 (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.0`); ein aus dem Repository gebautes Binary meldet `dev`
 
 ## 1. Einleitung
 
@@ -88,8 +88,57 @@ Sie Aufzeichnungen so, wie es zu ihrem Inhalt passt.
 
 ## 2. Installation
 
-Das Werkzeug entsteht aus dem Repository des Projekts. Der Build läuft in Docker;
-auf Ihrem Rechner brauchen Sie dafür nur Docker und GNU `make`.
+Sie beziehen das Werkzeug als Binary vom GitHub-Release, als Container-Image aus
+`ghcr.io` oder `docker.io`, oder Sie bauen es aus dem Repository des Projekts. Der Build läuft
+in Docker; auf Ihrem Rechner brauchen Sie dafür nur Docker und GNU `make`.
+
+### Binary vom GitHub-Release
+
+Der Release `v0.1.0` (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.1.0>) trägt
+sechs Binaries, für Linux, macOS und Windows, je `amd64` und `arm64`, und die Datei `SHA256SUMS`:
+
+```text
+pgwire-recorder_0.1.0_darwin_amd64
+pgwire-recorder_0.1.0_darwin_arm64
+pgwire-recorder_0.1.0_linux_amd64
+pgwire-recorder_0.1.0_linux_arm64
+pgwire-recorder_0.1.0_windows_amd64.exe
+pgwire-recorder_0.1.0_windows_arm64.exe
+```
+
+So laden Sie das Binary für Linux auf `amd64` und `SHA256SUMS` in das aktuelle Verzeichnis, prüfen die
+Summe und starten es:
+
+```bash
+B=https://github.com/pt9912/pgwire-recorder/releases/download/v0.1.0
+curl -fsSLO $B/SHA256SUMS
+curl -fsSLO $B/pgwire-recorder_0.1.0_linux_amd64
+sha256sum -c --ignore-missing SHA256SUMS
+chmod +x pgwire-recorder_0.1.0_linux_amd64
+./pgwire-recorder_0.1.0_linux_amd64 version
+```
+
+`sha256sum` gibt `pgwire-recorder_0.1.0_linux_amd64: OK` aus, `version` gibt
+`pgwire-recorder 0.1.0` aus. Für eine andere Plattform laden Sie die Datei mit dem passenden
+Namen. Ohne `--ignore-missing` verlangt `sha256sum` alle sechs Dateien. Gestartet und geprüft ist das
+Binary für Linux auf `amd64`; die Binaries für macOS und Windows und das für Linux auf `arm64` sind
+gebaut, aber nicht ausgeführt.
+
+### Container-Image aus der Registry
+
+Das Image für `linux/amd64` und `linux/arm64` liegt in zwei Registries, mit denselben Tags `0.1.0`
+und `latest` und demselben Digest `sha256:b45c4044fe4313934da6fc36095692642b65d21a9945231c2aa3162436c27e05`:
+
+```bash
+docker pull ghcr.io/pt9912/pgwire-recorder:0.1.0
+docker pull docker.io/pt9912/pgwire-recorder:0.1.0
+docker run --rm ghcr.io/pt9912/pgwire-recorder:0.1.0 version
+```
+
+Beide Registries geben das Image ohne Anmeldung heraus. `version` gibt `pgwire-recorder 0.1.0` aus.
+`latest` zeigt auf dieselbe Version. Gestartet ist das Image für `linux/amd64`; das für `linux/arm64`
+ist gebaut, aber nicht ausgeführt. Die Beispiele weiter unten, die `pgwire-recorder:dev` nennen,
+gelten für ein selbst gebautes Image; mit dem Image aus der Registry ersetzen Sie den Namen.
 
 ### Aus dem Repository bauen
 
