@@ -208,7 +208,7 @@ f_p1_kommentarzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "# Kommentar" "$
 f_p1_kommentarzeile_eingerueckt() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "    # Kommentar" "${t[@]:3}"); }
 
 # --- Punkte 6 bis 9: ci-range.sh ---------------------------------------------------------------------------------------------------------------------
-# welt <dir> — legt ein Repository quelle/ (main: c1 c2 c3, Zweig side mit s1, Merge-Commit m; refs/remotes/origin/main auf c1) und den flachen Klon flach/ an.
+# welt <dir> — legt ein Repository quelle/ (main: c1 c2 c3, Zweig side mit s1 aus c1, Merge-Commit m, Tag-Objekt tg auf c3; refs/remotes/origin/main auf s1: der Standard-Zweig lief nach dem Abzweig bei c1 weiter) und den flachen Klon flach/ an.
 welt() {
   local q="$1/quelle"
   mkdir -p "$q"
@@ -217,6 +217,7 @@ welt() {
   c1="$(git -C "$q" rev-parse HEAD)"
   git -C "$q" checkout -q -b side
   git -C "$q" commit -q --allow-empty -m s1
+  s1="$(git -C "$q" rev-parse HEAD)"
   git -C "$q" checkout -q main
   git -C "$q" commit -q --allow-empty -m c2
   c2="$(git -C "$q" rev-parse HEAD)"
@@ -224,7 +225,9 @@ welt() {
   c3="$(git -C "$q" rev-parse HEAD)"
   git -C "$q" merge -q --no-ff --no-edit side
   m="$(git -C "$q" rev-parse HEAD)"
-  git -C "$q" update-ref refs/remotes/origin/main "$c1"
+  git -C "$q" tag -a -m tag t3 "$c3"
+  tg="$(git -C "$q" rev-parse t3)"
+  git -C "$q" update-ref refs/remotes/origin/main "$s1"
   git clone -q --depth 1 "file://$q" "$1/flach"
   fh="$(git -C "$1/flach" rev-parse HEAD)"
   EINS=1111111111111111111111111111111111111111
@@ -303,6 +306,16 @@ f_p7_pr_basis_fehlt_im_klon() { umg pull_request "CI_PR_BASE=$EINS"; kopie quell
 f_p7_pr_kopf_fehlt_im_klon() { umg pull_request "CI_HEAD=$ZWEI"; kopie quelle; lauf; erwarte_grund 2 ""; }
 f_p7_push() { umg push; kopie quelle; lauf; erwarte 0 "$c2..$c3" ""; }
 f_p7_push_neu() { umg push "CI_PUSH_BEFORE=$NULL"; kopie quelle; lauf; erwarte 0 "$c1..$c3" ""; }
+f_p7_pr_tag_objekt() { umg pull_request "CI_HEAD=$tg"; kopie quelle; lauf; erwarte 0 "$c1..$c3" ""; }
+# Zweig ohne gemeinsamen Vorfahr mit dem Standard-Zweig (entkoppelte Historie): Exit 2.
+f_p7_push_neu_ohne_vorfahr() {
+  local o
+  kopie quelle
+  git -C "$w" checkout -q --orphan fremd
+  git -C "$w" commit -q --allow-empty -m fremd
+  o="$(git -C "$w" rev-parse HEAD)"
+  umg push "CI_PUSH_BEFORE=$NULL" "CI_HEAD=$o"; lauf; erwarte_grund 2 ""
+}
 f_p7_push_neu_ohne_standard() {
   umg push "CI_PUSH_BEFORE=$NULL"; kopie quelle; git -C "$w" update-ref -d refs/remotes/origin/main; lauf
   erwarte_grund 2 ""
@@ -406,7 +419,7 @@ for ((n = 1; n <= N; n++)); do FAELLE_P1+=("p1-fehlt-$n" "p1-geaendert-$n"); don
 for k in "${ZUSATZ_NAMEN[@]}"; do FAELLE_P1+=("p1-zusatz-$k"); done
 FAELLE_P6=(p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig p6-event-fehlt p6-event-leer p6-event-unbekannt p6-event-schedule p6-default-fehlt p6-default-ungueltig p6-ungenutzt p6-ungenutzt-prbase p6-ungenutzt-default)
 for f in "${FORMEN[@]}"; do FAELLE_P6+=("p6-head-$f" "p6-prbase-$f" "p6-before-$f"); done
-FAELLE_RANGE=("${FAELLE_P6[@]}" p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p7-pr-kopf-fehlt-im-klon p7-push p7-push-neu p7-push-neu-ohne-standard
+FAELLE_RANGE=("${FAELLE_P6[@]}" p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p7-pr-kopf-fehlt-im-klon p7-pr-tag-objekt p7-push p7-push-neu p7-push-neu-ohne-vorfahr p7-push-neu-ohne-standard
   p7-push-vorgaenger-fehlt p7-leer p7-flach p8-stdout-eine-zeile p8-fehler-stdout-leer p8-git-fehler p8-rev-list-fehler p9-ereignis-vor-head p9-head-vor-prbase
   p9-head-vor-before p9-eingabe-vor-flach p9-flach-vor-aufloesung p9-aufloesung-vor-leer)
 FAELLE_P18=(p18-sigint p18-sigterm p18-ende)
@@ -586,17 +599,18 @@ mutr m-p6-form-39-ziffern "p6-head-kurz p6-prbase-kurz p6-before-kurz" "HEX='^[0
 mutr m-p6-form-41-ziffern "p6-head-lang p6-prbase-lang p6-before-lang" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-f]{40,41}\$'"
 mutr m-p6-form-grossbuchstaben "p6-head-gross p6-prbase-gross p6-before-gross" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-fA-F]{40}\$'"
 mutr m-p6-form-nicht-hex "p6-head-ungueltig p6-prbase-ungueltig p6-before-ungueltig" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-z]{40}\$'"
-mutr m-p7-pr-nimmt-vorgaenger "$(printf 'p6-prbase-%s ' "${FORMEN[@]}") p6-ungenutzt p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer" '  basis_roh="${CI_PR_BASE-}"' '  basis_roh="${CI_PUSH_BEFORE-}"'
-mutr m-p7-push-nimmt-pr-basis "$(printf 'p6-before-%s ' "${FORMEN[@]}") p6-default-fehlt p6-default-ungueltig p6-ungenutzt-prbase p6-ungenutzt-default p7-push p7-push-neu-ohne-standard p7-push-vorgaenger-fehlt p8-fehler-stdout-leer p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" '  basis_roh="${CI_PUSH_BEFORE-}"' '  basis_roh="${CI_PR_BASE-}"'
+mutr m-p7-pr-nimmt-vorgaenger "$(printf 'p6-prbase-%s ' "${FORMEN[@]}") p6-ungenutzt p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p7-pr-tag-objekt p8-fehler-stdout-leer" '  basis_roh="${CI_PR_BASE-}"' '  basis_roh="${CI_PUSH_BEFORE-}"'
+mutr m-p7-push-nimmt-pr-basis "$(printf 'p6-before-%s ' "${FORMEN[@]}") p6-default-fehlt p6-default-ungueltig p6-ungenutzt-prbase p6-ungenutzt-default p7-push p7-push-neu-ohne-standard p7-push-neu-ohne-vorfahr p7-push-vorgaenger-fehlt p8-fehler-stdout-leer p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" '  basis_roh="${CI_PUSH_BEFORE-}"' '  basis_roh="${CI_PR_BASE-}"'
 mutr m-p7-nullen-kein-neuer-zweig "p7-push-neu p7-leer" 'if [[ $basis_roh =~ $NULLEN ]]; then' 'if false; then'
-mutr m-p7-standard-fehlt-ohne-exit "p7-push-neu-ohne-standard" '|| fehler "Standard-Zweig refs/remotes/origin/$standard fehlt im Klon"' '|| true'
+mutr m-p7-merge-base-fehler-ohne-exit "p7-push-neu-ohne-standard p7-push-neu-ohne-vorfahr" '|| fehler "keine Merge-Base von $kopf_roh und refs/remotes/origin/$standard (Zweig fehlt im Klon oder kein gemeinsamer Vorfahr)"' '|| true'
+mutr m-p7-spitze-statt-merge-base "p7-push-neu p7-push-vorgaenger-fehlt p7-push-neu-ohne-vorfahr p7-leer p8-stdout-eine-zeile" 'git merge-base "$kopf_roh" "refs/remotes/origin/$standard"' 'git rev-parse --verify --quiet "refs/remotes/origin/$standard^{commit}"'
 mutr m-p7-vorgaenger-fehlt-exit-2 "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  fehler "Basis $basis_roh nicht im Klon"'
 mutr m-p7-basis-fehlt-ohne-exit "p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  [ "$event" = push ] || true'
 mutr m-p7-kopf-fehlt-ohne-exit "p7-pr-kopf-fehlt-im-klon p8-fehler-stdout-leer" '|| fehler "Kopf $kopf_roh nicht im Klon"' '|| true'
 mutr m-p7-leer-exit-0 "p7-leer p8-fehler-stdout-leer" $'ist leer" >&2\n  exit 1' $'ist leer" >&2\n  exit 0'
 mutr m-p7-flach-nicht-erkannt "p7-flach p9-flach-vor-aufloesung" '  true) fehler "flacher Klon, der Checkout braucht fetch-depth: 0" ;;' '  true) ;;'
 mutr m-p7-merge-kopf-abgelehnt "p7-pr-merge-kopf p8-rev-list-fehler" $'kopf="$(aufloesen "$kopf_roh")" || fehler "Kopf $kopf_roh nicht im Klon"' $'kopf="$(aufloesen "$kopf_roh")" || fehler "Kopf $kopf_roh nicht im Klon"\n[ "$(git rev-list --parents -n 1 "$kopf" | wc -w)" -le 2 ] || fehler "Kopf ist ein Merge-Commit"'
-mutr m-p7-namen-statt-shas "p7-push-neu p7-push-vorgaenger-fehlt p7-leer p8-stdout-eine-zeile" 'git rev-parse --verify --quiet "$1^{commit}" 2> /dev/null' 'git rev-parse --verify --quiet "$1^{commit}" > /dev/null 2>&1 && echo "$1"'
+mutr m-p7-namen-statt-shas "p7-pr-tag-objekt" 'git rev-parse --verify --quiet "$1^{commit}" 2> /dev/null' 'git rev-parse --verify --quiet "$1^{commit}" > /dev/null 2>&1 && echo "$1"'
 mutr m-p8-hinweis-auf-stdout "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" 'Basis ist der Standard-Zweig" >&2' 'Basis ist der Standard-Zweig"'
 mutr m-p8-rev-list-fehler-ignoriert "p8-rev-list-fehler" '|| fehler "git rev-list --count $basis..$kopf schlug fehl"' '|| true'
 mutr m-p6-default-vorgaenger-ungeprueft "p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig p7-push-vorgaenger-fehlt p8-stdout-eine-zeile" $'Standard-Zweig" >&2\n  pruefe_standard\n' $'Standard-Zweig" >&2\n'

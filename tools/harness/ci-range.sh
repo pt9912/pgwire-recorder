@@ -19,9 +19,9 @@ pruefe_standard() {
   standard="${CI_DEFAULT_BRANCH-}"
   [ -n "$standard" ] && [ "$(git check-ref-format --branch "$standard" 2> /dev/null)" = "$standard" ] || ungueltig CI_DEFAULT_BRANCH
 }
-# vom_standard — setzt basis auf den Stand des Standard-Zweigs.
+# vom_standard — setzt basis auf die Merge-Base von CI_HEAD und dem Standard-Zweig (nicht auf dessen Spitze); Exit 2, wenn der Zweig fehlt oder kein gemeinsamer Vorfahr besteht.
 vom_standard() {
-  basis="$(aufloesen "refs/remotes/origin/$standard")" || fehler "Standard-Zweig refs/remotes/origin/$standard fehlt im Klon"
+  basis="$(git merge-base "$kopf_roh" "refs/remotes/origin/$standard" 2> /dev/null)" || fehler "keine Merge-Base von $kopf_roh und refs/remotes/origin/$standard (Zweig fehlt im Klon oder kein gemeinsamer Vorfahr)"
 }
 
 # (1) Ereignis
