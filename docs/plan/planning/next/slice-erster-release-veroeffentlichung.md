@@ -1,4 +1,4 @@
-# Slice slice-erster-release-veroeffentlichung: Veröffentlichung von Binaries und Images
+# Slice slice-erster-release-veroeffentlichung: Veröffentlichung von Tag und Binaries
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -11,12 +11,12 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-erster-release.
 
-**Bezug:** [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
+**Bezug:** [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-16.a` · `LH-FA-19.a` · `SPEC-031` · `SPEC-035` · `SPEC-055` (gelesen: Voraussetzung `slice-v1-abschluss-container`, `slice-v1-abschluss-container-doku`) · `SPEC-063` und `SPEC-064` (gelesen: Gate der Workflows und Konventionen der CI; Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci`, §1 unten; Nummern vorläufig, der Architect vergibt sie)
+**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-035` · `SPEC-055` (gelesen: Voraussetzung `slice-v1-abschluss-container`, `slice-v1-abschluss-container-doku`) · `SPEC-063` und `SPEC-064` (gelesen: Gate der Workflows und Konventionen der CI; Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci`, §1 unten) · `SPEC-067` (Fassung A: Punkte 1a, 2, 3 (1) bis (6), 4, 9, 10, 11, 12, 13 bis 15, jeweils der Anteil von A; Zuordnung in der Tabelle des Vertrags)
 
 **Verantwortlich:** pt9912
-**Autor:** pt9912. **Datum:** 2026-10-03.
+**Autor:** pt9912. **Datum:** 2026-10-03. **Geschnitten:** 2026-10-19 (siehe §4, *Schnitt vor dem Start, 2026-10-19*).
 
 ---
 
@@ -29,51 +29,57 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Tag `v<SemVer>` wird gegen die Versionsdatei geprüft, hängt die Binaries für die Zielplattformen mit `SHA256SUMS` aus `make binaries` an den GitHub-Release (die Reproduzierbarkeit der Binaries hält `make test-container`, kein zweiter Bau), baut das Docker/OCI-Image, veröffentlicht es mit gleichem Index-Digest in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` und lässt sich nach einem Fehler wieder anstoßen; belegt mit einem Probe-Tag.
+**Ziel:** Ein Tag `v<SemVer>` wird gegen die Versionsdatei `VERSION` und die Zeile der Änderungshistorie des Handbuchs geprüft, bevor etwas gebaut wird; die Pipeline `release.yml` hängt die Binaries für die Zielplattformen mit `SHA256SUMS` aus `make binaries` an den GitHub-Release (die Reproduzierbarkeit der Binaries hält `make test-container`, kein zweiter Bau) und lässt sich nach einem Fehler wieder anstoßen. Dieselbe Datei läuft als Trockenlauf (`workflow_dispatch`) auf einem Zweig und tut dann alles außer dem, was nach außen wirkt; er belegt Eingaben, Binaries und Dauer auf GitHub. Ein Probe-Tag ist nicht vorgesehen (Entscheidung des Nutzers vom 2026-10-19, [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md)). Das Image ist nicht Teil dieses Slice (`slice-erster-release-veroeffentlichung-image`, unten).
+
+**Schnitt vom 2026-10-19** (Empfehlung des Planners auf Anweisung der Koordination, vom Nutzer nicht bestätigt, nach dem Vertrag [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), Zuordnung dort; die Marke und die Rückführung in §4 sahen diesen Schnitt vor): Dieser Slice ist Fassung A des Vertrags (Tag und Binaries); das Image (Bau, Veröffentlichen, Vergleichen, Smoke, `latest`) ist Fassung B in `slice-erster-release-veroeffentlichung-image`, das hinter diesem Slice liegt. Die Fassung `1a` von `release.yml` setzt nichts von B voraus; B hängt seine Zeilen an.
 
 **Übernommen aus `welle-erster-release`** (Entscheidungen des Nutzers vom 2026-10-09 nach dem
 Vergleich von `docs/maintainer/releasing.md` mit den Release-Dokumenten von a-check, d-check,
 pg-change-feed und u-boot; `docs/maintainer/releasing.md` nennt diesen Slice dort, wo er
-liefert):
+liefert); die Punkte 1 und 2 gingen mit dem Schnitt vom 2026-10-19 an `slice-erster-release-veroeffentlichung-image` (dort §1):
 
-1. `:latest` zeigt nur nach einem stabilen Tag auf das neue Image; eine Vorabversion ändert
-   `:latest` nicht.
-2. Der Spiegel auf Docker Hub ist fail-closed: Beide Registries tragen denselben Index-Digest
-   der Manifestliste, sonst ist der Release rot.
-6. Zusätzlich zum Tag eine Versionsdatei (etwa `docs/user/version.md`), die die Pipeline gegen
-   den Tag prüft.
-7. Die Prüfung des Tags auf die Form `v<SemVer>` vor jedem Push.
+1. *(an `slice-erster-release-veroeffentlichung-image`)* `:latest` zeigt nur nach einem stabilen Tag auf das neue Image.
+2. *(an `slice-erster-release-veroeffentlichung-image`)* Der Spiegel auf Docker Hub ist fail-closed.
+6. Zusätzlich zum Tag eine Versionsdatei, die die Pipeline gegen den Tag prüft: `VERSION` im Wurzelverzeichnis, eine Zeile `<SemVer>` ohne `v` ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), Schnittstelle).
+7. Die Prüfung des Tags auf die Form `v<SemVer>` vor jedem Schritt mit Außenwirkung.
 8. Wiederanlauf und Fehlertabelle: `docs/maintainer/releasing.md` §11 nennt je Schritt der
    Pipeline, was ein Fehler dort hinterlässt und wie der Lauf wieder angestoßen wird
-   (Entscheidung des Nutzers vom 2026-10-09 beim Schnitt unten).
+   (Entscheidung des Nutzers vom 2026-10-09 beim Schnitt unten); dieser Slice trägt die Zeilen
+   `eingaben`, `binaries` und `github-release`, B die übrigen.
 
-Die Randformen dieser Punkte sind offen und gehen vor dem Code an den Architect (§6).
+Die Randformen dieser Punkte sind entschieden: [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md) (Architect, 2026-10-19, vom Nutzer mit [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md) angenommen; §6).
 
 **Voraussetzung `slice-v1-abschluss-container` und `slice-v1-abschluss-container-doku`** (Hinweis des Architect, 2026-10-17; `-container-doku` seit dem Schnitt vom 2026-10-17 (Handbuch, README, `docs/maintainer/releasing.md`): die Pipeline und das Release-Dokument bauen auf deren Stand auf; keine Sendung, kein Eintrag in §8): Die Binaries entstehen mit `make binaries` (`dist/` mit `SHA256SUMS`, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)); die Pipeline hängt `dist/` an und baut kein zweites Mal, die Reproduzierbarkeit (zwei Builds, dieselben Summen) hält dort `make test-container`.
 
-**Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` — Pins und Härtung** (Planner, 2026-10-18, `AGENTS.md` §3.13; Auftrag des Nutzers vom 2026-10-18: die CI gehört vor diesen Slice): Die Datei der Pipeline, `.github/workflows/release.yml` (Name: Architect), fällt vom ersten Commit an unter `make workflows-check` und `make docs-check`. Sie trägt damit dieselben Konventionen wie `ci.yml`: jede fremde `uses:`-Referenz per vollem SHA mit Tag-Kommentar, `permissions: {}` oben und im Job nur die Rechte, die er braucht (der Architect benennt sie: `contents: write` für den GitHub-Release, `packages: write` für `ghcr.io`), `timeout-minutes`, `concurrency` mit `cancel-in-progress: false` (ein Tag wird nie durch einen späteren abgebrochen). `ci.yml` lässt Tags aus (`tags-ignore`), `release.yml` reagiert nur auf `v*`; ein Tag läuft also nur hier. Zugangsdaten nur als Geheimnisse von GitHub oder als `GITHUB_TOKEN`, nie im Repository. Welche Eigenschaften der Datei ein Test hält, entscheidet der Architect (`AGENTS.md` §3.11), die Prüfung der Form hält das Gate. Der **Träger** (GitHub Actions) ist für die CI in der ADR von `slice-harness-ci` entschieden; ob er auch die Veröffentlichung trägt, entscheidet der Architect hier (Randform *Träger der Automatisierung*, §6), nicht vorweggenommen. Voraussetzung ist beim Start: `.github/workflows/` liegt (aus `slice-harness-ci`).
+**Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` — Pins und Härtung** (Planner, 2026-10-18, `AGENTS.md` §3.13; Auftrag des Nutzers vom 2026-10-18: die CI gehört vor diesen Slice): Die Datei der Pipeline, `.github/workflows/release.yml` (Name: Architect), fällt vom ersten Commit an unter `make workflows-check` und `make docs-check`. Sie trägt damit dieselben Konventionen wie `ci.yml`: jede fremde `uses:`-Referenz per vollem SHA mit Tag-Kommentar, `permissions: {}` oben und im Job nur die Rechte, die er braucht (in Fassung `1a`: `contents: write` für den GitHub-Release; `packages: write` für `ghcr.io` kommt mit B), `timeout-minutes`, `concurrency` mit `cancel-in-progress: false` (ein Tag wird nie durch einen späteren abgebrochen). `ci.yml` lässt Tags aus (`tags-ignore`), `release.yml` reagiert nur auf `v*`; ein Tag läuft also nur hier. Zugangsdaten nur als Geheimnisse von GitHub oder als `GITHUB_TOKEN`, nie im Repository. Welche Eigenschaften der Datei ein Test hält, legt `SPEC-067` Punkt 1 fest (Text der Datei, Zeilenliste in der Gegenprobe), die Prüfung der Form hält das Gate. Der **Träger** (GitHub Actions) ist auch für die Veröffentlichung entschieden ([ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md), Randform *Träger der Automatisierung*, §6). Voraussetzung ist beim Start: `.github/workflows/` liegt (aus `slice-harness-ci`).
 
 **Abgegeben** an `slice-erster-release-freigabe` (dort §1, *Übernimmt*, mit der Kennung dieses
 Slice), nach dem Schnitt vom 2026-10-09 vor dem Start (Entscheidung des Nutzers, §4): die
 Entscheidungen 3 (Freigabe-Checkliste), 4 (Freshness-Audit) und 5 (Image-Scan vor dem Push)
-und der erste echte Tag. Dieser Slice belegt die Pipeline mit einem Probe-Tag.
+und der erste echte Tag. Dieser Slice belegt die Pipeline mit dem Trockenlauf (statt eines Probe-Tags, Entscheidung des Nutzers vom 2026-10-19).
+
+**Abgegeben** an `slice-erster-release-veroeffentlichung-image` (dort §1, *Übernimmt*, mit der Kennung dieses
+Slice), Schnitt vom 2026-10-19: das Image (Bau beider Plattformen in ein OCI-Layout, Veröffentlichen, Vergleichen der Index-Digests, Smoke aus den Registries, `latest`), die Geheimnisse der Registries und ihre Anmeldung, die Image-Anteile von `docs/maintainer/releasing.md`, Handbuch und `README.md` und der Auszug des Smokes aus `SPEC-055` Punkt 7 in `tools/harness/container-smoke.sh`.
+
+**Abgegeben** an `slice-erster-release-freigabe` (dort §1 und DoD 3, mit der Kennung dieses Slice), Schnitt vom 2026-10-19: Der Abschnitt des Handbuchs §2 *Installation* zum Bezug der Binaries vom GitHub-Release (Plattformen, Prüfung mit `SHA256SUMS`) steht erst, wenn der erste echte Tag ihn belegt (`AGENTS.md` §3.11, Ist-Zustand); vorher gibt es keinen Release, aus dem man sie beziehen kann.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Homebrew-Formel und ihr Nachweis — `slice-erster-release-homebrew-nachweis` (`welle-v1-nachtrag`).
+- Das Image: Bau, Veröffentlichen in `ghcr.io` und `docker.io`, Vergleich der Digests, Smoke aus den Registries, `latest`, die Geheimnisse `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` und das Recht `packages: write` — `slice-erster-release-veroeffentlichung-image` (oben, *Abgegeben*); Fassung `1a` von `release.yml` hat keinen Schritt mit Registry und liest kein Geheimnis außer `GITHUB_TOKEN`, sodass dieser Slice ohne B lieferbar ist.
 - Image-Scan, Freshness-Audit, Freigabe-Checkliste und der erste echte Tag —
-  `slice-erster-release-freigabe` (oben, *Abgegeben*); er setzt diese Pipeline voraus, weil der
-  Scan in ihr vor dem Push läuft.
+  `slice-erster-release-freigabe` (oben, *Abgegeben*); er setzt diese Pipeline und B voraus, weil der
+  Scan in ihr zwischen Bau und Push des Images läuft.
+- Ein Probe-Tag — nicht vorgesehen (Entscheidung des Nutzers vom 2026-10-19): Er legte ein Image und einen GitHub-Release einer Vorabversion ab, die kein Release sind; der Trockenlauf belegt, was sich ohne Außenwirkung belegen lässt, und die erste Außenwirkung ist der Lauf für den ersten echten Tag (`SPEC-067` Punkt 12).
 - Die Wahl der ersten Versionsnummer — wird beim Release festgelegt; die Versionsdatei
-  (Punkt 6) trägt sie, wählt sie aber nicht.
+  (Punkt 6) trägt sie, wählt sie aber nicht (Anfangswert `0.1.0-dev`).
 - Konten, Namensräume und Zugangsdaten der Registries, die Sichtbarkeit der Pakete und das
   Hinterlegen der Zugangsdaten im Repository — Handlungen des Betreibers (`docs/maintainer/releasing.md`
-  §4 Punkt 4); dieser Slice liest sie nur, wie §6 es festlegt. Die Zugangsdaten stehen nie im Repository.
+  §4 Punkt 4); dieser Slice liest nur `GITHUB_TOKEN`. Die Zugangsdaten stehen nie im Repository.
 - Ein zweiter Bau der Binaries oder ein Vergleich zweier Builds in der Pipeline — das Gate
   `make test-container` (Geber `slice-v1-abschluss-container`) hält die Zusage; die Pipeline
   ruft `make binaries` und baut nichts ein zweites Mal.
-- Reproduzierbarkeit des Images — `LH-QA-01` verlangt sie nur für das Binary; das Image wird
-  über seinen Digest identifiziert (Punkt 2).
+- Der Abschnitt des Handbuchs zum Bezug vom GitHub-Release — `slice-erster-release-freigabe` (oben, *Abgegeben*): Er beschreibt einen Release, den es erst nach dem ersten Tag gibt.
 
 ## 2. Definition of Done
 
@@ -82,9 +88,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Ein Probe-Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` als eine Manifestliste in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9. Beide Registries tragen denselben Index-Digest, sonst endet der Lauf rot (Punkt 2); `:latest` wird nur bei einem stabilen Tag gesetzt, der Probe-Tag lässt es unverändert (Punkt 1). Beleg in §7: Lauf-Kennung und Digest des Probe-Tags (Test). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert im Handbuch §2 *Installation* die Abschnitte zu den Release-Binaries (Plattformen, `SHA256SUMS`) und zu den Images aus `ghcr.io` und `docker.io` sowie die Plattform-Zeile in §1 *Voraussetzungen*, jeweils nur, soweit der Probe-Tag sie belegt; ein Abschnitt, den erst ein echter Tag belegt, bleibt aus.
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am GitHub-Release des Probe-Tags (`LH-FA-19.a`); die Dateien am Release sind die aus `make binaries` mit `VERSION` aus dem Tag, und eine abweichende Summe am Release endet rot (Test mit einer Attrappe; die Gleichheit zweier Builds belegt `make test-container`, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) Punkt 4, nicht dieser Slice). Die Release-Notes entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
-- [ ] Vor jedem Push prüft die Pipeline, dass der Tag die Form `v<SemVer>` hat und der Version in der Versionsdatei entspricht; sonst endet sie, bevor etwas gebaut oder veröffentlicht wird (Punkte 6 und 7, Test mit falschem Tag und abweichender Datei). `docs/maintainer/releasing.md` §11 trägt die Fehlertabelle je Schritt der Pipeline und den Wiederanlauf; ein roter Probe-Lauf ist nach ihr wieder angestoßen (Punkt 8, Beleg in §7). Die Datei der Pipeline besteht `make workflows-check` und `make docs-check` und trägt die Pins, Rechte und Zeitgrenzen der Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` (§1); sie ist Akzeptanzkriterium der Pipeline-Datei von Punkt 1 und 2, kein vierter Liefer-Punkt.
+- [ ] **Liefer-Punkt 1, Eingaben** ([`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), `SPEC-067` Punkt 3 (1) bis (6), Schnittstelle): Vor jedem Schritt mit Außenwirkung prüft `release.sh eingaben`, in der Reihenfolge des Vertrags, dass Ereignis und Ref stimmen, der Tag die Form `v<SemVer>` hat, die Datei `VERSION` (neu, Wurzel, `0.1.0-dev`) ihre Form hat und dem Tag entspricht, die Änderungshistorie des Benutzerhandbuchs die Zeile der Version trägt und der Commit des Tags im Standard-Zweig liegt; sonst Exit 2, bevor etwas gebaut oder veröffentlicht wird (Test: die Fälle `p3-*` der Gegenprobe mit je einer Mutation, `AGENTS.md` §3.10). `make binaries` übernimmt die Version aus `VERSION=`, ohne Angabe bleibt es bei `dev`.
+- [ ] **Liefer-Punkt 2, Binaries am GitHub-Release** ([`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew), `SPEC-067` Punkte 4 und 9): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am GitHub-Release (`LH-FA-19.a`); die Dateien am Release sind die aus `make binaries` mit `VERSION` aus dem Tag, genau sieben, und eine abweichende Summe am Release endet rot (Test mit Attrappen von `make` und `gh`: Fälle `p4-*` und `p9-*`; die Gleichheit zweier Builds belegt `make test-container`, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) Punkt 4, nicht dieser Slice). Die Release-Notes entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt. Dass der GitHub-Release auf GitHub angelegt wird, belegt erst der Lauf für den ersten Tag (`SPEC-067` Punkt 12); der Trockenlauf legt keinen an. Handbuch §1 *Voraussetzungen* und §2 *Installation* und `README.md` sind auf das geprüft, was der Trockenlauf und `make binaries` belegen (Plattformen der Binaries, `SHA256SUMS`), und im Ist-Zustand des gebauten Binaries berichtigt, wo sie es nicht sind: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11); der Abschnitt zum Bezug vom GitHub-Release gehört `slice-erster-release-freigabe`.
+- [ ] **Liefer-Punkt 3, Trockenlauf, Wiederanlauf, Fehlertabelle** (`SPEC-067` Punkte 1a, 2, 11, 12): Die Datei `.github/workflows/release.yml` hat den Text der Fassung `1a`, reagiert nur auf `v*` und `workflow_dispatch`, und der Trockenlauf fährt `Eingaben` und `Binaries` ohne Außenwirkung (kein `gh`, kein GitHub-Release; Test: `p1-*`, `p2-*` mit Mutationen). Der Trockenlauf ist einmal auf dem Stand der Lieferung gefahren und in §7 belegt (Lauf-Kennung, Dauer, `SPEC-067` Punkt 12; Handlung des Betreibers oder des Nutzers, falls der Lauf Rechte am Repository braucht). `docs/maintainer/releasing.md` §11 trägt die Fehlertabelle mit den Zeilen `eingaben`, `binaries` und `github-release` und den Wiederanlauf (Punkt 8; die übrigen Zeilen liefert B); ein roter Lauf ist nach ihr wieder angestoßen (Beleg in §7). Die Datei besteht `make workflows-check` und `make docs-check` und trägt die Pins, Rechte und Zeitgrenzen der Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` (§1); sie ist Akzeptanzkriterium dieses Punkts und von Punkt 2, kein vierter Liefer-Punkt.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -102,11 +108,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Release-Automatisierung (Träger und Dateinamen entscheidet der Architect, §6) | neu | Prüfung von Tag und Versionsdatei, `make binaries` mit `VERSION` aus dem Tag, Image-Bau, Veröffentlichung mit Vergleich der Index-Digests, `:latest` nur bei stabilem Tag, Anhänge am GitHub-Release; der Scan vor dem Push kommt mit `slice-erster-release-freigabe` dazu |
-| Test der Pipeline (Gegenprobe mit Attrappen für `docker`, die Registries und den GitHub-Release, ohne Netz) | neu | je Zusage eine Mutation (`AGENTS.md` §3.10): Form des Tags, Versionsdatei, Digest-Vergleich, `:latest`, Anhänge, Wiederanlauf |
-| Versionsdatei (Ort offen, §6) | neu | Version der Software, gegen den Tag geprüft |
-| `docs/maintainer/releasing.md` §3, §6, §8, §9, §11 | update | vom beschriebenen auf das ausgeführte Verfahren bringen: Versionsquelle, was der Tag auslöst, Kontrollen nach dem Push, Release-Notes, Fehlertabelle und Wiederanlauf; auf dem Stand aufbauend, den `slice-v1-abschluss-container-doku` liefert |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
+| `.github/workflows/release.yml` (Fassung `1a`, `SPEC-067` Punkt 1) | neu | nur `v*` und `workflow_dispatch`; Schritte `Eingaben`, `Binaries`, `GitHub-Release` (nur bei `push`); Pins und Rechte wie `ci.yml` |
+| `tools/harness/release.sh` (Schritte `eingaben`, `binaries`, `github-release`) | neu | die Logik steht im Skript, nicht im YAML (Schnittstelle des Vertrags); B ergänzt die Schritte `image`, `veroeffentlichen`, `vergleichen`, `smoke`, `latest` |
+| `VERSION` (Wurzel) | neu | Version der Software, eine Zeile `0.1.0-dev`, gegen den Tag geprüft; `make binaries VERSION=` trägt sie ins Binary |
+| `tools/harness/release-gegenprobe.sh`, `harness/mk/release.mk`, Eintrag in `GEGENPROBEN_CONTAINER` | neu | Gegenprobe mit Attrappen für `make`, `sha256sum`, `gh` (und `docker`, `skopeo` für den Fall, dass der Trockenlauf sie nie ruft), ohne Netz: Fälle `p1-*`, `p2-*`, `p3-*` ohne (7), `p4-*`, `p9-*` ohne `p9-nicht-vor-registries`, `p10-*` ohne die Registries, `p11-*` für A, `p13-*`; je Zusage und je Element eine Mutation (`AGENTS.md` §3.10); die Zeilenliste von `release.yml` trägt die Herkunft A je Zeile |
+| `harness/README.md` §Sensors | update | Zeile für `make release-gegenprobe` (Gegenprobe), Bindung `SPEC-067` und [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md) |
+| `docs/maintainer/releasing.md` §3, §6, §9, §11 | update | vom beschriebenen auf das ausgeführte Verfahren bringen, soweit A es liefert: Versionsquelle (`VERSION`), was der Tag auslöst, Release-Notes, Fehlertabelle (Zeilen `eingaben`, `binaries`, `github-release`) und Wiederanlauf; auf dem Stand aufbauend, den `slice-v1-abschluss-container-doku` liefert. §8 (Kontrollen nach dem Push der Registries), §2 und §7 (Formel keine Lieferung des Release) ergänzt B beziehungsweise gehören nicht hierher |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung); nur Plattformen und `SHA256SUMS` der gebauten Binaries |
 
 ## 4. Trigger
 
@@ -116,20 +124,21 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `welle-v1-abschluss` ist `done`, und
 `slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen in `done/` (Start-Trigger von
 welle-erster-release), dazu `slice-harness-devcontainer-u-boot-0-10`
-(wellenlos, nicht `slice-harness-devcontainer-einrichten`; Entscheidung des Nutzers vom 2026-10-17, Drift-Log der Roadmap). `slice-harness-ci-workflows` und `slice-harness-ci` liegen in `done/` (Sendung in §1; Auftrag des Nutzers vom 2026-10-18). Schritt 3 der Reihenfolge in §5 von
-[welle-erster-release](../welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
-Architect die Randformen aus §6 (`AGENTS.md` §3.12).
+(wellenlos, nicht `slice-harness-devcontainer-einrichten`; Entscheidung des Nutzers vom 2026-10-17, Drift-Log der Roadmap). `slice-harness-ci-workflows` und `slice-harness-ci` liegen in `done/` (Sendung in §1; Auftrag des Nutzers vom 2026-10-18). Schritt 4 der Reihenfolge in §5 von
+[welle-erster-release](../welle-erster-release.md) (A; B folgt als Schritt 5, `slice-erster-release-freigabe` als Schritt 6). Die Randformen aus §6 sind entschieden ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), `AGENTS.md` §3.12); der Implementer hält an und gibt eine nicht genannte Randform an den Architect zurück.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: die Release-Automatisierung verlangt mehr als drei Liefer-Punkte, oder der Diff ist nicht in einer Review-Sitzung prüfbar — zurück zur Zerlegung. Schnitt dann: *Tag und Binaries* (DoD-Punkte 2 und 3) und *Image* (DoD-Punkt 1). Marke (Metrik nach `AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` liegt über 1800, Tests und Gegenprobe eingeschlossen; Basis: beim Anspruch (HEAD vor dem Anspruch, hier einzutragen). Schätzung des Planners in dieser Metrik (2026-10-17, ohne Basis gemessen): Automatisierung und Versionsdatei 250 bis 350, Gegenprobe mit Attrappen das Doppelte des Produktcodes (500 bis 700), `docs/maintainer/releasing.md` 150 bis 250, Handbuch und `README.md` 60 bis 100, zusammen 960 bis 1400; die Schätzung überschreitet die Marke nicht, ein Schnitt vor dem Start unterbleibt. Meldeschwelle 1400: Wer sie überschreitet, meldet es vor dem nächsten Abschnitt, und die Entscheidung („weiter“ oder „schneiden“) steht als datierte Zeile in §7. Der Maßstab des Vergleichs: `slice-v1-abschluss-container` maß beim Code 1147 für Gate und Gegenprobe ohne Registry, Manifestliste und GitHub-Release.
+- `in-progress` → `next`: die Release-Automatisierung von A verlangt mehr als drei Liefer-Punkte, oder der Diff ist nicht in einer Review-Sitzung prüfbar — zurück zur Zerlegung. Ein weiterer Schnitt wäre *Eingaben* (Liefer-Punkt 1) gegen *Binaries und Trockenlauf* (Punkte 2 und 3); die Fassung `1a` von `release.yml` müsste dann beide tragen, und der Architect teilte die Zeilenliste. Marke (Metrik nach `AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` liegt über **1300**, Tests und Gegenprobe eingeschlossen; Basis: beim Anspruch (HEAD vor dem Anspruch, hier einzutragen). Schätzung des Architect in dieser Metrik (2026-10-19, nach `SPEC-067`, Fassung A): **820 bis 1070** (Gegenprobe mit Attrappen das Doppelte des Produktcodes; `release.sh` mit drei Schritten, `release.yml`, `VERSION`, `releasing.md`, Handbuch, `README.md`); Mitte 945, 73 % der Marke. Meldeschwelle **1000**: Wer sie überschreitet, meldet es vor dem nächsten Abschnitt, und die Entscheidung („weiter“ oder „schneiden“) steht als datierte Zeile in §7. Faktor Tests zu Produktcode: 2 (die Gegenprobe trägt zwei Drittel des Diffs), Beleg `slice-harness-ci-workflows` (Messung 899 gegen eine Schätzung von 545 bis 695, Drift-Log der Roadmap, 2026-10-18); eine eigene Messung für diese Gegenprobe gibt es nicht.
+- `in-progress` → `open`: Das Repository gibt dem Trockenlauf keine Rechte (der Lauf auf GitHub scheitert an Einstellungen des Betreibers) — extern klären; ebenso, wenn `slice-v1-abschluss-container` oder `slice-v1-abschluss-container-doku` nicht liegen, was sie liefern (Voraussetzung in §1).
+
+**Schnitt vor dem Start, 2026-10-19** (Planner; Anlass: Größe 1970 bis 2570 des ungeteilten Slice gegen die Marke 1800 der Fassung davor, nach dem Vertrag `SPEC-067`): Der Slice ist an der Naht *Tag und Binaries* gegen *Image* geteilt, wie die Rückführung der Fassung davor sie vorsah (Liefer-Punkte 2 und 3 dort gegen Punkt 1). A behält Eingaben, Binaries, GitHub-Release, `VERSION` und den Trockenlauf (Schätzung 820 bis 1070, Marke 1300); B ist `slice-erster-release-veroeffentlichung-image` (Schätzung 1150 bis 1500, Marke 1700, `next/`, Start: dieser Slice in `done/`). Der Slice lag in `next/` und hat nicht begonnen; ein Übergang fällt nicht an.
 
 **Schnitt vor dem Start, 2026-10-09:** Mit den sieben Entscheidungen vom 2026-10-09 trug §2 sechs
 Liefer-Punkte. Der Nutzer entschied am 2026-10-09 den Schnitt nach dem Vorschlag in §6: Die
 Pipeline bleibt hier, dazu Wiederanlauf und Fehlertabelle; Scan, Audit, Checkliste und der erste
 echte Tag gehen an `slice-erster-release-freigabe`. Der Slice lag in `next/` und hat nicht
 begonnen; ein Übergang fällt nicht an.
-- `in-progress` → `open`: Zugangsdaten für die Registries fehlen — extern klären; ebenso, wenn `slice-v1-abschluss-container` oder `slice-v1-abschluss-container-doku` nicht liegen, was sie liefern (Voraussetzung in §1).
 
 ## 5. Closure-Trigger
 
@@ -146,73 +155,26 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Zugangsdaten für `ghcr.io` und `docker.io` sind externe Betreiber-Handlungen — **Ausgang:** offen bis Closure.
+- Der Trockenlauf braucht Rechte oder Einstellungen auf GitHub, die aus dem Klon nicht auditierbar sind (Actions im Repository erlaubt, `GITHUB_TOKEN` mit `contents: write`; `SPEC-067` Punkt 15) — **Ausgang:** offen bis Closure.
+- Die Zugangsdaten für `ghcr.io` und `docker.io` sind externe Betreiber-Handlungen — sie gehören B (dort §6); A liest nur `GITHUB_TOKEN`. **Ausgang:** entfallen für A (Grund: die Fassung `1a` hat keinen Schritt mit Registry; die Handlung steht bei `slice-erster-release-veroeffentlichung-image`).
 - **Größe.** Mit den sieben Entscheidungen vom 2026-10-09 trug §2 sechs Liefer-Punkte, die
   Grenze ist drei. Entscheidung des Nutzers vom 2026-10-09: geschnitten nach dem Vorschlag des
-  Planner (§4) — **Ausgang:** eingetreten, Folge-Slice `slice-erster-release-freigabe`.
-- **Probe-Tag in öffentlichen Registries.** Der Beleg mit einem Probe-Tag legt ein Image einer
-  Vorabversion in `ghcr.io` und `docker.io` ab, das kein Release ist; ob und wie es dort bleibt,
-  ist eine Randform (unten) — **Ausgang:** offen bis Closure.
-- **`:latest` im Beispiel der Spezifikation.** Das Beispiel in `LH-FA-16.a` (Spezifikation,
-  Technik-Stratum) nennt `pgwire-recorder:latest`, ohne Registry. Mit Punkt 1 gibt es
-  `:latest` erst nach dem ersten stabilen Tag, und ohne Registry zieht das Beispiel kein
-  veröffentlichtes Image. Das Lastenheft (`LH-FA-16`) sagt nichts über Tags; ein
-  Change Request am Lastenheft ist danach nicht nötig. *Für den Architect:* ob das Beispiel
-  geändert wird (etwa `ghcr.io/pt9912/pgwire-recorder:<version>`) und ob die Regel zu `:latest`
-  als Zusage an Anwender in die Spezifikation gehört (`LH-FA-16.a` oder `SPEC-031`) — vor dem
-  Code (`AGENTS.md` §3.12). Der Planner ändert keine Spezifikation — **Ausgang:** offen bis
-  Closure.
+  Planner (§4) — **Ausgang:** eingetreten, Folge-Slice `slice-erster-release-freigabe`. Der Schnitt vom 2026-10-19 (Größe 1970 bis 2570 gegen die Marke 1800) hat die Naht der Rückführung genutzt — **Ausgang:** eingetreten, Folge-Slice `slice-erster-release-veroeffentlichung-image`.
+- **Probe-Tag in öffentlichen Registries.** Entfällt mit der Entscheidung des Nutzers vom 2026-10-19: kein Probe-Tag, der Trockenlauf schreibt nichts in eine Registry und legt keinen GitHub-Release an (`SPEC-067` Punkt 2 und 12) — **Ausgang:** entfallen (Grund: die Entscheidung des Nutzers vom 2026-10-19). Was der Trockenlauf nicht belegt (Schreibrecht des Tokens, Anlegen des GitHub-Release, Sichtbarkeit des Pakets), zeigt erst der Lauf für den ersten Tag; das Risiko trägt `slice-erster-release-freigabe` (dort §6, *Abbruch beim ersten Tag*).
+- **`:latest` im Beispiel der Spezifikation.** Entschieden vom Architect am 2026-10-19 (Beispiel mit Registry und Version, Regel zu `latest` im Text von `LH-FA-16.a`); die Zusage und ihre Prüfung (`SPEC-067` Punkt 8) liefert B — **Ausgang:** entfallen für A (Grund: Gegenstand von B, dort §6).
+- **Die Bezugs-Abschnitte des Handbuchs.** Der Abschnitt zum Bezug der Binaries vom GitHub-Release steht erst nach dem ersten Tag (Ist-Zustand, `AGENTS.md` §3.11) und ist an `slice-erster-release-freigabe` gesendet (§1) — **Ausgang:** eingetreten, Folge-Slice `slice-erster-release-freigabe`.
 
-**Randformen** (`AGENTS.md` §3.12) — **alle offen für den Architect**, zu entscheiden vor dem
-ersten Code-Commit in der Spezifikation (für das Werkzeug unter `harness/vertraege/`) mit ADR für Entscheidung und Gründe. Vorbereitet vom Planner am 2026-10-17 (kein Beschluss):
+**Randformen** (`AGENTS.md` §3.12) — **entschieden vom Architect am 2026-10-19** (vom Nutzer am 2026-10-19 angenommen: [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md); Ort: [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md), Randform → Punkt in der Tabelle dort; Anteil von A, was B zugeordnet ist, steht in `slice-erster-release-veroeffentlichung-image` §6):
 
-- *Träger der Automatisierung* — zum Zeitpunkt der Planung liegt kein Workflow (`.github/` fehlt), mit `slice-harness-ci` (Voraussetzung) liegen `.github/workflows/` und die Konventionen der CI (Sendung in §1); welcher Träger auf den Push eines Tags reagiert (GitHub Actions oder anderes), wie `AGENTS.md` §3.1 (Docker-only, Aufruf über `make`) und die netzlose Gegenprobe damit zusammengehen, ob Aktionen von Dritten verwendet werden und wie sie gepinnt sind.
-- *Reihenfolge der Schritte* — Prüfung von Tag und Versionsdatei, `make binaries`, Bau des Images, Push in `ghcr.io`, Push in `docker.io`, Vergleich der Digests, Manifestliste, `:latest`, GitHub-Release mit Anhängen; welcher Schritt zuerst Außenwirkung hat und was ein Abbruch dahinter hinterlässt (Fehlertabelle, Punkt 8).
-- *Manifestliste und Image-Bau* — womit eine Manifestliste für `linux/amd64` und `linux/arm64` entsteht ([ADR-0043](../../adr/0043-binaries-und-container-gate.md) Option D: der Standard-Treiber kann es nicht); ob das Image im Push das Binary aus `dist/` trägt (Gleichheit mit dem Anhang am Release, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) Punkt 6) oder neu gebaut wird; Emulation (die Stufe `runtime` führt keinen `RUN` aus).
-- *Registry-Namen und Tags* — Tag-Satz je Version (nur `<SemVer>`, oder auch `<MAJOR>.<MINOR>` und `<MAJOR>`), Tag mit oder ohne `v` im Image; Sichtbarkeit des Pakets in `ghcr.io` (`LH-FA-16`: öffentlich abrufbar) und die Prüfung des Zugriffs ohne Anmeldung; Existenz des Repositorys auf Docker Hub.
-- *Zugangsdaten* — Namen der Geheimnisse, Rechte, wie die Pipeline sie liest, dass sie in keinem Log erscheinen; fehlendes Geheimnis als Eingabefehler vor dem ersten Push.
-- *Anhänge am GitHub-Release* — welche Dateien (sechs Binaries, `SHA256SUMS`, sonst nichts), Name, Vorabversion-Kennzeichen (`prerelease`) für Tags mit `-…`, Text aus der Zeile der Änderungshistorie (§9 von `releasing.md`) und was bei fehlender Zeile geschieht.
-
-- *`:latest` (Punkt 1)* — Vorabversion und Probe-Tag (unverändert, so entschieden); stabiler
-  Tag mit kleinerer Version als der, auf den `:latest` zeigt (Patch eines älteren Zweigs);
-  Zeitpunkt des Setzens, wenn eine Registry den Push schon hat und die andere scheitert.
-- *Fail-closed (Punkt 2)* — womit der Index-Digest gelesen wird; ob der Spiegel dieselbe
-  Manifestliste kopiert oder neu baut; was mit dem Versions-Tag geschieht, der in einer
-  Registry schon liegt, wenn der Vergleich rot ist (Rollback-Regel: Tags werden nicht
-  verändert); Wiederanlauf eines roten Laufs.
-- *Versionsdatei (Punkt 6)* — Ort (`docs/user/version.md` oder anders) und Form (eine Zeile,
-  SemVer ohne `v`?); ob das Binary die Version trägt und `pgwire-recorder version` sie aus der
-  Datei oder dem Tag nimmt; Vorabversion in der Datei; Wirkung auf die Reproduzierbarkeit des
-  Binaries (`LH-QA-01`).
-- *SemVer-Prüfung (Punkt 7)* — „vor jedem Push“: vor dem Push eines Images in der Pipeline
-  oder auch vor `git push` des Tags; Build-Metadaten (`+…`); führende Nullen; Form des
-  Probe-Tags (`-probe.<N>`) als Vorabversion.
-- *Wiederanlauf und Fehlertabelle (Punkt 8)* — die Schritte der Pipeline, in denen ein Fehler
-  etwas hinterlässt (GitHub-Release angelegt, eine Registry beschrieben, die andere nicht);
-  ob ein Wiederanlauf denselben Tag neu fährt oder einen höheren verlangt (Rollback-Regel:
-  Tags werden nicht verändert); wer ihn anstößt; was mit einem halb veröffentlichten
-  Probe-Tag geschieht.
-- *Probe-Tag in den Registries* — ob das Image eines Probe-Tags in `ghcr.io` und `docker.io`
-  bleibt, gelöscht wird oder nur in einen eigenen Namensraum geht; ob der GitHub-Release des
-  Probe-Tags als Vorabversion stehen bleibt.
-
-**Entschieden vom Architect am 2026-10-19** (vom Nutzer am 2026-10-19 angenommen: [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md); Ort: [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md)):
-
-- *Träger der Automatisierung:* GitHub Actions, `release.yml`, nur Tags `v*`, wörtlicher Text; Pins und Rechte wie `ci.yml` — Punkt 1 (Text), [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md).
-- *Reihenfolge der Schritte:* `eingaben`, `binaries`, `image`, (Scan), `veröffentlichen`, `vergleichen`, `smoke`, `latest`, `github-release`; die erste Außenwirkung ist der Push nach `ghcr.io` — Punkt 2, 6.
-- *Manifestliste und Image-Bau:* ein Bau in ein OCI-Layout, Kopie ohne Neubau in beide Registries; Neubau statt Binary aus `dist/`, Summe je Plattform geprüft; Scan zwischen Bau und Push — Punkt 5.
-- *Registry-Namen und Tags:* `<Version>` ohne `v` und `latest`; kein `<MAJOR>.<MINOR>`; anonymer Zugriff wird geprüft — Punkt 6, 7.
-- *Zugangsdaten:* `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` als Repository-Geheimnisse, `GITHUB_TOKEN`; fehlendes Geheimnis ist ein Eingabefehler vor dem ersten Push; kein Wert im Log — Punkt 3 (7), 10.
+- *Träger der Automatisierung:* GitHub Actions, `release.yml`, nur Tags `v*` und `workflow_dispatch`, wörtlicher Text (Fassung `1a`); Pins und Rechte wie `ci.yml` — Punkt 1, [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md).
+- *Reihenfolge der Schritte:* `eingaben`, `binaries`, `github-release` (A); die erste Außenwirkung von A ist der GitHub-Release, mit B der Push nach `ghcr.io` — Punkt 2.
 - *Anhänge am GitHub-Release:* sechs Binaries und `SHA256SUMS`, sonst nichts; `prerelease` bei `-…`; Text aus der Zeile der Änderungshistorie, fehlt sie, Eingabefehler — Punkt 3 (5), 9.
-- *`:latest`:* nur stabil, nur die höchste stabile Version, nach grünem Vergleich und Smoke; Vorabversion und Patch eines älteren Zweigs ändern es nicht — Punkt 8.
-- *Fail-closed (Punkt 2):* Digest aus den rohen Bytes des Index, drei Werte gleich; derselbe Layout-Inhalt wird kopiert; vorhandener Tag mit anderem Digest ist rot, nie überschrieben — Punkt 6, 7.
+- *Zugangsdaten (A):* `GITHUB_TOKEN`; kein Wert im Log, kein `set -x` — Punkt 10.
 - *Versionsdatei:* `VERSION` im Wurzelverzeichnis, eine Zeile `<SemVer>` ohne `v`, Anfangswert `0.1.0-dev`; das Binary trägt sie über `VERSION=` des Baus, `make binaries` ohne Angabe bleibt bei `dev` — Schnittstelle, Punkt 3, 4.
-- *SemVer-Prüfung (Punkt 7):* in der Pipeline vor jedem Schritt mit Außenwirkung; Build-Metadaten abgelehnt; führende Nullen abgelehnt — Punkt 3. Ein Prüfen vor `git push` des Tags gibt es nicht (der Hook liegt nicht im Repo).
-- *Wiederanlauf und Fehlertabelle:* Punkt 11; ein Git-Tag wird nie verändert.
-- *Probe-Tag in den Registries:* nicht vorgesehen (Entscheidung des Nutzers vom 2026-10-19); Trockenlauf auf einem Zweig statt dessen — Punkt 2, 12, [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md).
-- *Beispiel und `:latest` in `LH-FA-16.a`:* Beispiel mit Registry und Version, Regel zu `latest` im Text von `LH-FA-16.a` (Spezifikation, 2026-10-19); die Prüfung der Regel hält Punkt 8.
+- *SemVer-Prüfung:* in der Pipeline vor jedem Schritt mit Außenwirkung; Build-Metadaten abgelehnt; führende Nullen abgelehnt — Punkt 3. Ein Prüfen vor `git push` des Tags gibt es nicht (der Hook liegt nicht im Repo).
+- *Wiederanlauf und Fehlertabelle:* Punkt 11 (Zeilen `eingaben`, `binaries`, `github-release`); ein Git-Tag wird nie verändert.
+- *Probe-Tag:* nicht vorgesehen (Entscheidung des Nutzers vom 2026-10-19); Trockenlauf auf einem Zweig statt dessen — Punkt 2, 12.
 - *Plattform, Aufrufarten von `make`, Abbruch, Reihenfolge der Gründe:* Kopf, Punkt 3, 11, 13, 15.
-- *Einhängepunkt für den Scan (`slice-erster-release-freigabe`):* zwischen `Image` und `Veröffentlichen`, der Scan liest das Layout, `D` bleibt unverändert; der Folge-Slice ändert den Text von `release.yml` und `SPEC-067` Punkt 1 und 5 — Punkt 5.
 
 ## 7. Closure-Notiz
 
@@ -266,3 +228,5 @@ Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Reihenfolge der Welle auf den kritischen Pfad kürzt; Entscheidung des Nutzers vom 2026-10-18: der erste Release hat Vorrang vor den Nachtläufen): Die Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` (Pins und Härtung) bleibt unverändert; der Slice steht jetzt an dritter Stelle der Welle (Schritt 3) und setzt weiter nur diese beiden voraus. Die Nachtläufe (`slice-harness-ci-gegenproben`, `-ci-freshness`, `-ci-freshness-images`) liegen in [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) hinter dieser Welle und sind keine Voraussetzung. Der Inhalt der Sendung ändert sich nicht; Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation); Schätzung und Marke in §4 unverändert.
+
+**Nachgezählt am 2026-10-19** (Planner, `AGENTS.md` §3.13, im Commit, der den Schnitt in A und B vollzieht und die Sendungen an `slice-erster-release-veroeffentlichung-image` und `slice-erster-release-freigabe` einträgt; Basis: `SPEC-067` in der Fassung vom 2026-10-19, Zuordnung der Punkte in der Tabelle des Vertrags): Liefer-Punkte drei (§2: Eingaben samt `VERSION` | Binaries am GitHub-Release samt Handbuch- und `README.md`-Teil | Trockenlauf, Fehlertabelle und Wiederanlauf); `release.yml` Fassung `1a` ist Akzeptanzkriterium von Punkt 2 und 3, kein vierter Punkt. Schichten zwei (Release-Automatisierung: Workflow, `tools/harness/`, `harness/mk/`, `VERSION`; Dokumentation: `docs/maintainer/`, `docs/user/`, `README.md`); die Gegenprobe zählt mit der Automatisierung. Die Abgaben an B und an `slice-erster-release-freigabe` nehmen aus diesem Slice, sie fügen nichts hinzu; die Marke 1300 (Schätzung 820 bis 1070, Mitte 73 % der Marke) steht in §4. Der ungeteilte Slice (Image mit Manifestliste und Digest-Vergleich als erster Punkt) lag bei 1970 bis 2570 gegen 1800 und ist damit nicht mehr zu führen.

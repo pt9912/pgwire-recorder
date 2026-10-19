@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Das Skript mit der Frage nach der Release-Liste, die Ziele für Baseline und d-check, der Workflow, die Exit-Arten und der Vertrag — `slice-harness-ci-freshness` (Geber, vor diesem Slice); dieser Slice erweitert sie und ändert ihre Zusagen nicht.
 - Das Heben eines Pins (neuer Tag, neuer Digest) — ein Mensch nach dem Befund, ein Slice je Hebung mit dem Gate-Lauf; dieser Slice meldet.
 - Pins ohne Tag (`A_CHECK_IMAGE`, `D_MIGRATE_IMAGE`, `TRAEGER_IMAGE` tragen nur `@sha256:…`): ein Digest ohne Tag hat nichts, wogegen er gefragt werden könnte. Bestand bleibt bewusst stehen, bis der Architect eine Quelle für den Tag wählt (Randform 3); der Vertrag listet sie als nicht geprüft.
-- Die Beschaffung von Digests, das Hochladen von Images, Veröffentlichung — nicht Gegenstand der Prüfung; `release.yml` und seine Builder-Images gehören `slice-erster-release-veroeffentlichung`.
+- Die Beschaffung von Digests, das Hochladen von Images, Veröffentlichung — nicht Gegenstand der Prüfung; `release.yml` gehört `slice-erster-release-veroeffentlichung`, sein Builder-Image (Treiber `docker-container`, per Digest gepinnt) `slice-erster-release-veroeffentlichung-image` (dort §1, mit der Kennung dieses Slice).
 - Die Aktualität der Action-SHA und der Werkzeug-Versionen in Workflows — kein Slice nimmt sie an (`slice-harness-ci-workflows` §6 Frage 3).
 - Ob die zwei Stellen eines doppelt gepinnten Images (`Dockerfile` und `harness/mk/build.mk` für golang, `harness/mk/integration.mk` und `harness/mk/postgres-versionen.mk` für PostgreSQL 17) übereinstimmen — ein Konsistenz-Gate ist ein anderer Vorgang; die Prüfung meldet jede Stelle für sich (Randform 4).
 

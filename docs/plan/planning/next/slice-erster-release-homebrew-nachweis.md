@@ -71,7 +71,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-erster-release-freigabe` ist `done` (der erste stabile Tag ist veröffentlicht; nach dem Schnitt vom 2026-10-09 belegt `slice-erster-release-veroeffentlichung` die Pipeline nur mit einem Probe-Tag), und `slice-v1-abschluss-homebrew` ist `done` (das Verfahren der Formel, das dieser Slice mit dem echten Release anwendet; Reihenfolge in §5 von [welle-v1-nachtrag](../welle-v1-nachtrag.md), Entscheidung des Nutzers vom 2026-10-11).
+**Start** (`next` → `in-progress`): `slice-erster-release-freigabe` ist `done` (der erste stabile Tag ist veröffentlicht; die Pipeline belegen `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` nur mit dem Trockenlauf, ein Probe-Tag ist nicht vorgesehen, Entscheidung des Nutzers vom 2026-10-19), und `slice-v1-abschluss-homebrew` ist `done` (das Verfahren der Formel, das dieser Slice mit dem echten Release anwendet; Reihenfolge in §5 von [welle-v1-nachtrag](../welle-v1-nachtrag.md), Entscheidung des Nutzers vom 2026-10-11).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

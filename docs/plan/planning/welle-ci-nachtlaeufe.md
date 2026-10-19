@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- `ci.yml`, das Gate der Workflows und `release.yml` — `slice-harness-ci-workflows`, `slice-harness-ci` und `slice-erster-release-veroeffentlichung` in [welle-erster-release](welle-erster-release.md); diese Welle ändert sie nicht.
+- `ci.yml`, das Gate der Workflows und `release.yml` — `slice-harness-ci-workflows`, `slice-harness-ci`, `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` in [welle-erster-release](welle-erster-release.md); diese Welle ändert sie nicht.
 - Das Freshness-Audit vor dem ersten Tag — `slice-erster-release-freigabe` führt es von Hand; ein Nachtlauf dieser Welle ist dafür weder Beleg noch Bedingung (Entscheidung des Nutzers vom 2026-10-18).
 - Das Fahren der Gegenproben im Gegenproben-Container vor einem Release — Pflicht nach `AGENTS.md` §6, bleibt; ein Nachtlauf beweist den Stand des Standard-Zweigs, nicht den eines Releases.
 - Branch-Schutz („required status check“), Geheimnisse und Sichtbarkeit des Repos auf GitHub — Einstellungen des Betreibers, aus dem Klon nicht auditierbar; die Welle nennt sie als Handlung, ohne sie zu behaupten.
