@@ -152,8 +152,8 @@ trägt `Verantwortlich:` Person und Zweig (`modul-05`, parallel). Die Basis der 
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von
   `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness`, Tests und Gegenprobe eingeschlossen, **über 800**; die 97 Stubs
-  unter `docs/plan/planning/` zählen nicht in die Summe (Daten, vom Werkzeug erzeugt, je Stub eine Zeile; ihre Zahl prüft §2 Punkt 3). Basis: fd958f07, siehe unten; wird
-  vom Planner nach dem letzten Plan-Commit in diese Zeile eingetragen (siehe unten); beim Anspruch bestätigt der Implementer sie oder ersetzt sie
+  unter `docs/plan/planning/` zählen nicht in die Summe (Daten, vom Werkzeug erzeugt, je Stub eine Zeile; ihre Zahl prüft §2 Punkt 3). Basis: fd958f07 (letzter Plan-Commit);
+  beim Anspruch bestätigt der Implementer sie oder ersetzt sie
   durch den Stand des Hauptzweigs vor dem Anspruch. **Meldeschwelle 650:** Erreicht die Summe 650, hält der Implementer an und meldet dem Planner,
   bevor er weiterarbeitet (`BEO-REPO/meldeschwelle-ohne-artefakt`). Schätzung des Planners in dieser Metrik: 480 bis 640, Mitte 560, 70 % der Marke.
   Aufbau: Skript rund 110, Fragmente rund 30, Vertrag rund 110 bis 140 (Zeilen, `harness/` zählt mit), README-Zeilen rund 6, Gegenprobe 230 bis 340
