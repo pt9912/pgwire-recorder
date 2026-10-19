@@ -16,7 +16,7 @@
 # Protokoll dieses Falls aus.
 # Braucht bash (mit `wait -n`), git, pgrep, setsid, timeout und die Werkzeuge von coreutils (mktemp, sort, tr, wc, cat, cp, chmod, rm, env, find, ls, seq,
 # sleep, mkdir, dirname, basename), GNU sed und grep; ohne Docker und ohne make. Eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-064.
-# Kein Fall hängt von Dateirechten ab. Aufrufarten von `make` (-n, -q, -t, -i, MAKEFLAGS) haben keinen Fall: kein Hook und kein Stand liest das
+# Kein Fall ändert Dateirechte. Aufrufarten von `make` (-n, -q, -t, -i, MAKEFLAGS) haben keinen Fall: kein Hook und kein Stand liest das
 # Ergebnis, und ci-range.sh läuft nie unter `make` (SPEC-064 Punkt 14).
 set -uo pipefail
 
@@ -291,6 +291,8 @@ for f in "${FORMEN[@]}"; do
 done
 f_p6_default_fehlt() { umg push "CI_PUSH_BEFORE=$NULL" -CI_DEFAULT_BRANCH; kopie quelle; lauf; erwarte_grund 2 CI_DEFAULT_BRANCH; }
 f_p6_default_ungueltig() { umg push "CI_PUSH_BEFORE=$NULL" CI_DEFAULT_BRANCH=a..b; kopie quelle; lauf; erwarte_grund 2 CI_DEFAULT_BRANCH; }
+f_p6_default_vorgaenger_fehlt_fehlt() { umg push "CI_PUSH_BEFORE=$EINS" -CI_DEFAULT_BRANCH; kopie quelle; lauf; erwarte_grund 2 CI_DEFAULT_BRANCH; }
+f_p6_default_vorgaenger_fehlt_ungueltig() { umg push "CI_PUSH_BEFORE=$EINS" CI_DEFAULT_BRANCH=a..b; kopie quelle; lauf; erwarte_grund 2 CI_DEFAULT_BRANCH; }
 f_p6_ungenutzt() { umg pull_request CI_PUSH_BEFORE=x; kopie quelle; lauf; erwarte 0 "$c1..$c3" ""; }
 f_p6_ungenutzt_prbase() { umg push CI_PR_BASE=x; kopie quelle; lauf; erwarte 0 "$c2..$c3" ""; }
 f_p6_ungenutzt_default() { umg push CI_DEFAULT_BRANCH=a..b; kopie quelle; lauf; erwarte 0 "$c2..$c3" ""; }
@@ -338,6 +340,14 @@ f_p8_fehler_stdout_leer() {
     if [ "$r" -ne 0 ]; then bad=1; printf 'Form %s: Exit %s\nstdout:\n%s\nstderr:\n%s\n' "$form" "$code" "$out" "$err" >> "$run/log.$fallname"; fi
   done
 }
+# Basis und Kopf sind aufzulösen, aber ein Commit dazwischen fehlt (Objekt gelöscht): git rev-list --count schlägt fehl.
+f_p8_rev_list_fehler() {
+  local o
+  umg pull_request; kopie quelle
+  o="$w/.git/objects/${c2:0:2}/${c2:2}"
+  [ -f "$o" ] || { bad=1; echo "Objekt von c2 nicht lose: $o" >> "$run/log.$fallname"; return; }
+  rm -f "$o"; lauf; erwarte_grund 2 ""
+}
 f_p8_git_fehler() { umg pull_request; kopie quelle; rm -rf "$w/.git"; lauf; erwarte_grund 2 ""; }
 # Punkt 9
 f_p9_ereignis_vor_head() { umg pull_request -CI_EVENT -CI_HEAD; kopie quelle; lauf; erwarte_grund 2 CI_EVENT; }
@@ -375,6 +385,17 @@ abbruchfall() {
   fi
   if [ "$pid" -gt 1 ]; then kill -s KILL -- "-$pid" 2> /dev/null || true; fi
 }
+# Normales Ende: eine Kopie mit einem einzigen schnellen Lauf endet mit Exit 0 und lässt nichts in ihrem TMPDIR.
+f_p18_ende() {
+  local rc=0 reste
+  mkdir -p "$run"
+  t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1
+  env -u GP_FALL -u GP_ENTDECKE TMPDIR="$t" GP_INNEN=1 GP_MUT='^fall-ohne-funktion$' bash "$skript18" > "$t.out" 2> "$t.err" || rc=$?
+  reste="$(ls -A "$t")"
+  if [ "$rc" -ne 0 ] || [ -n "$reste" ]; then
+    bad=1; printf 'erwartet: Exit 0, TMPDIR leer\ngelesen: Exit %s, TMPDIR: %s\n' "$rc" "$reste" >> "$run/log.$fallname"
+  fi
+}
 f_p18_sigint() { abbruchfall INT 130; }
 f_p18_sigterm() { abbruchfall TERM 143; }
 
@@ -383,12 +404,12 @@ FAELLE_P1=(p1-gleich p1-text-gleich p1-reihenfolge-schritte p1-reihenfolge-gates
   p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action)
 for ((n = 1; n <= N; n++)); do FAELLE_P1+=("p1-fehlt-$n" "p1-geaendert-$n"); done
 for k in "${ZUSATZ_NAMEN[@]}"; do FAELLE_P1+=("p1-zusatz-$k"); done
-FAELLE_P6=(p6-event-fehlt p6-event-leer p6-event-unbekannt p6-event-schedule p6-default-fehlt p6-default-ungueltig p6-ungenutzt p6-ungenutzt-prbase p6-ungenutzt-default)
+FAELLE_P6=(p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig p6-event-fehlt p6-event-leer p6-event-unbekannt p6-event-schedule p6-default-fehlt p6-default-ungueltig p6-ungenutzt p6-ungenutzt-prbase p6-ungenutzt-default)
 for f in "${FORMEN[@]}"; do FAELLE_P6+=("p6-head-$f" "p6-prbase-$f" "p6-before-$f"); done
 FAELLE_RANGE=("${FAELLE_P6[@]}" p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p7-pr-kopf-fehlt-im-klon p7-push p7-push-neu p7-push-neu-ohne-standard
-  p7-push-vorgaenger-fehlt p7-leer p7-flach p8-stdout-eine-zeile p8-fehler-stdout-leer p8-git-fehler p9-ereignis-vor-head p9-head-vor-prbase
+  p7-push-vorgaenger-fehlt p7-leer p7-flach p8-stdout-eine-zeile p8-fehler-stdout-leer p8-git-fehler p8-rev-list-fehler p9-ereignis-vor-head p9-head-vor-prbase
   p9-head-vor-before p9-eingabe-vor-flach p9-flach-vor-aufloesung p9-aufloesung-vor-leer)
-FAELLE_P18=(p18-sigint p18-sigterm)
+FAELLE_P18=(p18-sigint p18-sigterm p18-ende)
 
 # faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, range, p18, ok = p1 und range und p18), einen je Zeile. FALL_ZUSATZ nennt einen
 # weiteren Namen (Probe: ein Name ohne Funktion ist ein roter Fall).
@@ -555,9 +576,9 @@ mutr m-p6-event-schedule-erlaubt "p6-event-schedule" '  pull_request | push) ;;'
 mutr m-p6-head-ungeprueft "$(printf 'p6-head-%s ' "${FORMEN[@]}") p9-head-vor-prbase p9-head-vor-before p9-eingabe-vor-flach" '[[ $kopf_roh =~ $HEX ]] || ungueltig CI_HEAD' ':'
 mutr m-p6-prbase-ungeprueft "$(printf 'p6-prbase-%s ' "${FORMEN[@]}")" '  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PR_BASE' '  :'
 mutr m-p6-before-ungeprueft "$(printf 'p6-before-%s ' "${FORMEN[@]}")" '  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PUSH_BEFORE' '  :'
-mutr m-p6-default-ungeprueft "p6-default-fehlt p6-default-ungueltig" '  [ -n "$standard" ] && [ "$(git check-ref-format --branch "$standard" 2> /dev/null)" = "$standard" ] || ungueltig CI_DEFAULT_BRANCH' '  :'
-mutr m-p6-default-leer-erlaubt "p6-default-fehlt" '[ -n "$standard" ] && [ "$(git' '[ "$(git'
-mutr m-p6-default-format-ungeprueft "p6-default-ungueltig" '[ "$(git check-ref-format --branch "$standard" 2> /dev/null)" = "$standard" ]' 'true'
+mutr m-p6-default-ungeprueft "p6-default-fehlt p6-default-ungueltig p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" '  [ -n "$standard" ] && [ "$(git check-ref-format --branch "$standard" 2> /dev/null)" = "$standard" ] || ungueltig CI_DEFAULT_BRANCH' '  :'
+mutr m-p6-default-leer-erlaubt "p6-default-fehlt p6-default-vorgaenger-fehlt-fehlt" '[ -n "$standard" ] && [ "$(git' '[ "$(git'
+mutr m-p6-default-format-ungeprueft "p6-default-ungueltig p6-default-vorgaenger-fehlt-ungueltig" '[ "$(git check-ref-format --branch "$standard" 2> /dev/null)" = "$standard" ]' 'true'
 mutr m-p6-pr-liest-before "p6-ungenutzt" '  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PR_BASE' $'  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PR_BASE\n  [[ ${CI_PUSH_BEFORE-} =~ $HEX ]] || ungueltig CI_PUSH_BEFORE'
 mutr m-p6-push-liest-prbase "p6-ungenutzt-prbase" '  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PUSH_BEFORE' $'  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PUSH_BEFORE\n  [[ ${CI_PR_BASE-} =~ $HEX ]] || ungueltig CI_PR_BASE'
 mutr m-p6-push-liest-standard "p6-ungenutzt-default" '  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PUSH_BEFORE' $'  [[ $basis_roh =~ $HEX ]] || ungueltig CI_PUSH_BEFORE\n  pruefe_standard'
@@ -566,17 +587,19 @@ mutr m-p6-form-41-ziffern "p6-head-lang p6-prbase-lang p6-before-lang" "HEX='^[0
 mutr m-p6-form-grossbuchstaben "p6-head-gross p6-prbase-gross p6-before-gross" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-fA-F]{40}\$'"
 mutr m-p6-form-nicht-hex "p6-head-ungueltig p6-prbase-ungueltig p6-before-ungueltig" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-z]{40}\$'"
 mutr m-p7-pr-nimmt-vorgaenger "$(printf 'p6-prbase-%s ' "${FORMEN[@]}") p6-ungenutzt p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer" '  basis_roh="${CI_PR_BASE-}"' '  basis_roh="${CI_PUSH_BEFORE-}"'
-mutr m-p7-push-nimmt-pr-basis "$(printf 'p6-before-%s ' "${FORMEN[@]}") p6-default-fehlt p6-default-ungueltig p6-ungenutzt-prbase p6-ungenutzt-default p7-push p7-push-neu-ohne-standard p7-push-vorgaenger-fehlt p8-fehler-stdout-leer p8-stdout-eine-zeile" '  basis_roh="${CI_PUSH_BEFORE-}"' '  basis_roh="${CI_PR_BASE-}"'
+mutr m-p7-push-nimmt-pr-basis "$(printf 'p6-before-%s ' "${FORMEN[@]}") p6-default-fehlt p6-default-ungueltig p6-ungenutzt-prbase p6-ungenutzt-default p7-push p7-push-neu-ohne-standard p7-push-vorgaenger-fehlt p8-fehler-stdout-leer p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" '  basis_roh="${CI_PUSH_BEFORE-}"' '  basis_roh="${CI_PR_BASE-}"'
 mutr m-p7-nullen-kein-neuer-zweig "p7-push-neu p7-leer" 'if [[ $basis_roh =~ $NULLEN ]]; then' 'if false; then'
 mutr m-p7-standard-fehlt-ohne-exit "p7-push-neu-ohne-standard" '|| fehler "Standard-Zweig refs/remotes/origin/$standard fehlt im Klon"' '|| true'
-mutr m-p7-vorgaenger-fehlt-exit-2 "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  fehler "Basis $basis_roh nicht im Klon"'
+mutr m-p7-vorgaenger-fehlt-exit-2 "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  fehler "Basis $basis_roh nicht im Klon"'
 mutr m-p7-basis-fehlt-ohne-exit "p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  [ "$event" = push ] || true'
 mutr m-p7-kopf-fehlt-ohne-exit "p7-pr-kopf-fehlt-im-klon p8-fehler-stdout-leer" '|| fehler "Kopf $kopf_roh nicht im Klon"' '|| true'
 mutr m-p7-leer-exit-0 "p7-leer p8-fehler-stdout-leer" $'ist leer" >&2\n  exit 1' $'ist leer" >&2\n  exit 0'
 mutr m-p7-flach-nicht-erkannt "p7-flach p9-flach-vor-aufloesung" '  true) fehler "flacher Klon, der Checkout braucht fetch-depth: 0" ;;' '  true) ;;'
-mutr m-p7-merge-kopf-abgelehnt "p7-pr-merge-kopf" $'kopf="$(aufloesen "$kopf_roh")" || fehler "Kopf $kopf_roh nicht im Klon"' $'kopf="$(aufloesen "$kopf_roh")" || fehler "Kopf $kopf_roh nicht im Klon"\n[ "$(git rev-list --parents -n 1 "$kopf" | wc -w)" -le 2 ] || fehler "Kopf ist ein Merge-Commit"'
+mutr m-p7-merge-kopf-abgelehnt "p7-pr-merge-kopf p8-rev-list-fehler" $'kopf="$(aufloesen "$kopf_roh")" || fehler "Kopf $kopf_roh nicht im Klon"' $'kopf="$(aufloesen "$kopf_roh")" || fehler "Kopf $kopf_roh nicht im Klon"\n[ "$(git rev-list --parents -n 1 "$kopf" | wc -w)" -le 2 ] || fehler "Kopf ist ein Merge-Commit"'
 mutr m-p7-namen-statt-shas "p7-push-neu p7-push-vorgaenger-fehlt p7-leer p8-stdout-eine-zeile" 'git rev-parse --verify --quiet "$1^{commit}" 2> /dev/null' 'git rev-parse --verify --quiet "$1^{commit}" > /dev/null 2>&1 && echo "$1"'
-mutr m-p8-hinweis-auf-stdout "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile" 'Basis ist der Standard-Zweig" >&2' 'Basis ist der Standard-Zweig"'
+mutr m-p8-hinweis-auf-stdout "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig" 'Basis ist der Standard-Zweig" >&2' 'Basis ist der Standard-Zweig"'
+mutr m-p8-rev-list-fehler-ignoriert "p8-rev-list-fehler" '|| fehler "git rev-list --count $basis..$kopf schlug fehl"' '|| true'
+mutr m-p6-default-vorgaenger-ungeprueft "p6-default-vorgaenger-fehlt-fehlt p6-default-vorgaenger-fehlt-ungueltig p7-push-vorgaenger-fehlt p8-stdout-eine-zeile" $'Standard-Zweig" >&2\n  pruefe_standard\n' $'Standard-Zweig" >&2\n'
 mutr m-p8-teil-range-auf-stdout "p7-pr-kopf-fehlt-im-klon p8-fehler-stdout-leer" '|| fehler "Kopf $kopf_roh nicht im Klon"' '|| { echo "$basis.."; fehler "Kopf $kopf_roh nicht im Klon"; }'
 mutr m-p9-ereignis-nach-head "p9-ereignis-vor-head" $'# (1) Ereignis\n' $'# (1) Ereignis\n[[ ${CI_HEAD-} =~ $HEX ]] || ungueltig CI_HEAD\n'
 mutr m-p9-head-nach-prbase "p9-head-vor-prbase" $'kopf_roh="${CI_HEAD-}"\n' $'[ "$event" != pull_request ] || [[ ${CI_PR_BASE-} =~ $HEX ]] || ungueltig CI_PR_BASE\nkopf_roh="${CI_HEAD-}"\n'
@@ -585,6 +608,7 @@ mutr m-p9-flach-vor-eingabe "p9-eingabe-vor-flach p8-fehler-stdout-leer p8-git-f
 mutr m-p9-aufloesung-vor-flach "p9-flach-vor-aufloesung" $'# (3) flacher Klon\n' $'[ "$event" != pull_request ] || aufloesen "$basis_roh" > /dev/null || fehler "Basis $basis_roh nicht im Klon"\n'
 mutr m-p9-leer-vor-aufloesung "p9-aufloesung-vor-leer" $'# (4) Auflösung von Basis und Kopf\n' $'[ "$basis_roh" != "$kopf_roh" ] || { echo "ci-range: Range ist leer" >&2; exit 1; }\n'
 # Punkt 18
+mut18 m-p18-ende-falle-fehlt "p18-ende" $'\ntrap raeume_auf EXIT\n' $'\n'
 mut18 m-p18-int-falle-fehlt "p18-sigint" $'\ntrap abbruch_int INT\n' $'\n'
 mut18 m-p18-term-falle-fehlt "p18-sigterm" $'\ntrap abbruch_term TERM\n' $'\n'
 mut18 m-p18-int-kinder-bleiben "p18-sigint" $'\nabbruch_int() { trap - EXIT INT TERM; beende_kinder; ' $'\nabbruch_int() { trap - EXIT INT TERM; '
