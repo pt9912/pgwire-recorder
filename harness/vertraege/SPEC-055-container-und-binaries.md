@@ -77,7 +77,7 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
      startet; die Aufzeichnung kommt per `docker cp` in den erzeugten Container. Derselbe Client
      sendet dieselbe Anfrage; seine Ausgabe (Sicht B) ist gleich Sicht A. Der Container endet auf
      `SIGTERM` mit Exit-Code 0.
-   Rot, mit Schritt und Wert: eine Abweichung von a, b oder c einzeln, eine leere Sicht A (zwei
+   Der Smoke ist ein eigenes Skript (`tools/harness/container-smoke.sh`) mit der Image-Referenz als Parameter; das Gate ruft es mit dem Image des Laufs, die Veröffentlichung ([`SPEC-067`](SPEC-067-release.md) Punkt 7) mit den Referenzen aus den Registries. Rot, mit Schritt und Wert: eine Abweichung von a, b oder c einzeln, eine leere Sicht A (zwei
    leere Sichten sind gleich), Sicht A ungleich Sicht B, ein Exit-Code ungleich 0 je Container, ein
    PostgreSQL-Container, der beim Start des Wiedergebens noch lebt, ein Aufruf mit `--user`, `-v`
    oder `--mount`. Je Form ein Fall und eine Mutation, die nur sie bricht.

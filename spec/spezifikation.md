@@ -1163,12 +1163,14 @@ Container-Laufzeitsystem. Es wird in der GitHub Container Registry
 (`ghcr.io/pt9912/pgwire-recorder`) und auf Docker Hub
 (`docker.io/pt9912/pgwire-recorder`) veröffentlicht.
 
+Jede Version trägt den Tag `<Version>` (SemVer ohne `v`). Der Tag `latest` zeigt auf den neuesten stabilen Release; eine Vorabversion ändert ihn nicht.
+
 Beispiel:
 
 ```yaml
 services:
   recorder:
-    image: pgwire-recorder:latest
+    image: ghcr.io/pt9912/pgwire-recorder:<Version>
     command:
       - replay
       - --listen=0.0.0.0:5432
@@ -3524,3 +3526,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Schweregrad des Endes: ein leeres `V` gilt wie ein fehlendes, in der Datei und beim Einspielen gleich; der SQLSTATE des Vergleichs zählt nur an einer `ErrorResponse` (`LH-FA-24.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Hilfe von `play` zum Ende des Servers bei `--allow-recorded-errors` und `--compare-responses` (`LH-FA-20.a`); `SPEC-029` Punkt 2: „die Anmeldung mit Klartext-Passwort und die mit MD5“ (Berichtigung des Numerus, keine Aussage geändert) |
 | 2026-10-16 | Ende des Servers beim Aufzeichnen, Upstream-Adapter: Sendefehler an den geschlossenen Upstream im Leerlauf ist `PGR-E4003` statt „kein Fehler“ (Berichtigung gegen *Gelesen*: nach einem Sendefehler wird nicht weitergelesen), Senden nach gelesener Fehlerantwort ohne Fehler, Aufrufe nach dem Ende nicht zugesagt, Schweregrad wie in der Datei (`LH-FA-25.a`, `LH-FA-02.b`) |
+| 2026-10-19 | Containerbetrieb: Beispiel mit Registry und Version statt `latest` ohne Registry; Tags `<Version>` und `latest` (nur stabil, neueste Version) (`LH-FA-16.a`) |
