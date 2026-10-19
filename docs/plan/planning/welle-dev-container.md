@@ -29,7 +29,7 @@ werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
 - `slice-harness-devcontainer-u-boot-0-10` liegt in `done/` (erfüllt).
-- Die Welle hängt an keiner anderen Welle; [welle-erster-release](done/welle-erster-release.md) und die Release-Slices verlangen nur `slice-harness-devcontainer-u-boot-0-10`, nicht diese Welle (Entscheidung des Nutzers vom 2026-10-17).
+- Die Welle hängt an keiner anderen Welle; [welle-erster-release](done/welle-erster-release/welle-erster-release.md) und die Release-Slices verlangen nur `slice-harness-devcontainer-u-boot-0-10`, nicht diese Welle (Entscheidung des Nutzers vom 2026-10-17).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -82,7 +82,7 @@ der Closure-Trigger unerreichbar wird.
 - Der Zugang von Claude Code im Container (Quellenauflösung, Login) — nur `slice-harness-devcontainer-einrichten-zugang`, und nur wenn der Nutzer ihn verlangt; die Hostsitzung treibt die Arbeit per `ssh` (Entscheidung des Nutzers vom 2026-10-18).
 - Die Entscheidung zum Hostschlüssel nach einem Neubau (`BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`) — Entscheidung des Nutzers, nicht dieser Welle.
 - Dev-Container als Pflicht für Implementer-Läufe oder als Bedingung eines Gates — die Welle liefert den Weg, ändert keine Regel von `AGENTS.md` und keinen Start-Trigger eines Release-Slice.
-- Der erste Release und seine Pipeline — [welle-erster-release](done/welle-erster-release.md).
+- Der erste Release und seine Pipeline — [welle-erster-release](done/welle-erster-release/welle-erster-release.md).
 
 ## 7. Closure-Notiz
 

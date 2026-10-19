@@ -149,7 +149,7 @@ welle-erster-release und welle-v1-nachtrag, danach dieser Slice als erster der �
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
 `slice-harness-lint-warten-ohne-frist`, `slice-harness-mutation`. Die Reihenfolge der
 Wellen-Slices steht in §5 von [welle-v1-abschluss](../done/welle-v1-abschluss/welle-v1-abschluss.md) und
-[welle-erster-release](../done/welle-erster-release.md) und [welle-v1-nachtrag](../welle-v1-nachtrag.md). Zwischen diesem Slice und
+[welle-erster-release](../done/welle-erster-release/welle-erster-release.md) und [welle-v1-nachtrag](../welle-v1-nachtrag.md). Zwischen diesem Slice und
 den übrigen Harness-Slices besteht keine technische Abhängigkeit; dieser steht unter
 ihnen vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten
 Code-Commit entscheidet der Architect die Randformen aus §6 in `SPEC-050` und ob eine

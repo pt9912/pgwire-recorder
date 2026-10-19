@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-erster-release](done/welle-erster-release.md) done (Entscheidung des Nutzers vom 2026-10-11).
+- Welle [welle-erster-release](done/welle-erster-release/welle-erster-release.md) done (Entscheidung des Nutzers vom 2026-10-11).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -60,8 +60,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: —
-- Wird blockiert von: Welle [welle-erster-release](done/welle-erster-release.md).
-- Innerhalb der Welle: `slice-v1-abschluss-verbindungsende-upstream-extended` setzt `slice-v1-abschluss-verbindungsende-upstream`, `-record`, `-replay-extended` und `-replay-extended-flush` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (alle vor dem Release in `done/`) und hängt an keinem Slice dieser Welle; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (der übrige Protokollrand); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (Release-Artefakte); `slice-erster-release-homebrew-nachweis` setzt `slice-v1-abschluss-homebrew` (das Verfahren der Formel) und `slice-erster-release-freigabe` aus [welle-erster-release](done/welle-erster-release.md) voraus (erster stabiler Tag).
+- Wird blockiert von: Welle [welle-erster-release](done/welle-erster-release/welle-erster-release.md).
+- Innerhalb der Welle: `slice-v1-abschluss-verbindungsende-upstream-extended` setzt `slice-v1-abschluss-verbindungsende-upstream`, `-record`, `-replay-extended` und `-replay-extended-flush` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (alle vor dem Release in `done/`) und hängt an keinem Slice dieser Welle; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (der übrige Protokollrand); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (Release-Artefakte); `slice-erster-release-homebrew-nachweis` setzt `slice-v1-abschluss-homebrew` (das Verfahren der Formel) und `slice-erster-release-freigabe` aus [welle-erster-release](done/welle-erster-release/welle-erster-release.md) voraus (erster stabiler Tag).
 
 **Reihenfolge** (Entscheidung des Nutzers vom 2026-10-11, Schritt 0 ergänzt am 2026-10-18; WIP-Limit 1):
 
@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 2. `slice-v1-abschluss-homebrew` — Verfahren der Formel, belegt mit einem Probe-Tag und einem Probe-Tap.
 3. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 mit dem echten Tap (setzt 2 voraus).
 
-Vor dieser Welle liegen die Gate-Kette (wellenlos, Entscheidung des Nutzers vom 2026-10-13), `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (M3) und [welle-erster-release](done/welle-erster-release.md) (M4). Danach folgen die übrigen Harness-Slices; die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; wellenlos) liegt vor allen Release-Slices (Entscheidung des Nutzers vom 2026-10-13), beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
+Vor dieser Welle liegen die Gate-Kette (wellenlos, Entscheidung des Nutzers vom 2026-10-13), `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (M3) und [welle-erster-release](done/welle-erster-release/welle-erster-release.md) (M4). Danach folgen die übrigen Harness-Slices; die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; wellenlos) liegt vor allen Release-Slices (Entscheidung des Nutzers vom 2026-10-13), beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 
 ## 6. Out-of-Scope für diese Welle
 
