@@ -320,6 +320,7 @@ schritt_veroeffentlichen() {
   for reg in "${REGISTRIES[@]}"; do # P6reg
     anmelden "$reg"
     fuehre skopeo inspect --raw --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME:$v" > "$scratch/roh" 2> "$scratch/skopeo.err"
+    if [ "$rc" -ne 0 ]; then sed 's/^/release: skopeo: /' "$scratch/skopeo.err" >&2; fi # P6meldung
     if [ "$rc" -eq 0 ]; then
       have="sha256:$(sha256sum "$scratch/roh" | cut -d' ' -f1)"
       [ "$have" = "$d" ] || rot "$reg trägt $v mit dem Digest $have statt $d; der Weg ist ein höherer Tag" # P6anders
@@ -345,6 +346,7 @@ schritt_vergleichen() {
   for reg in "${REGISTRIES[@]}"; do
     fuehre skopeo inspect --raw --no-creds "docker://$reg/$IMAGE_NAME:$v" > "$scratch/roh-$reg" 2> "$scratch/skopeo.err" # P7anonym
     if [ "$rc" -ne 0 ]; then
+      sed 's/^/release: skopeo: /' "$scratch/skopeo.err" >&2 # P7meldung
       if grep -qiE "$FEHLT_RE" "$scratch/skopeo.err"; then rot "$reg trägt den Tag $v nicht"; fi # P7tag
       rot "$reg ist ohne Anmeldung nicht lesbar (Exit $rc); das Paket muss öffentlich sein (Handlung des Betreibers)"
     fi

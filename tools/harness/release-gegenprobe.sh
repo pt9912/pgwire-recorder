@@ -339,6 +339,7 @@ case "${2-}" in
     else
       mkdir -p "$dest"; a="${plat#linux/}"
       printf 'binary %s linux %s\n' "$(head -n 1 VERSION)" "$a" > "$dest/pgwire-recorder"
+      [ "${GP_OHNE_BINARY-}" != "$a" ] || rm "$dest/pgwire-recorder"
       [ "${GP_SUMME-}" != "$a" ] || echo manipuliert >> "$dest/pgwire-recorder"
     fi ;;
 esac
@@ -801,7 +802,7 @@ f_p5_aufruf() {
   local b c x
   bild
   b="$(grep '^docker buildx build ' "$w/log/docker" | grep -e 'type=oci' || true)"
-  for x in "--platform linux/amd64,linux/arm64" "--target runtime" "--build-arg VERSION=0.1.0" "--build-arg SOURCE_DATE_EPOCH=1700000000" "--provenance=false" "--sbom=false" \
+  for x in "--builder pgr-release" "--platform linux/amd64,linux/arm64" "--target runtime" "--build-arg VERSION=0.1.0" "--build-arg SOURCE_DATE_EPOCH=1700000000" "--provenance=false" "--sbom=false" \
     "--output type=oci,dest=$(IMG)/layout.tar,rewrite-timestamp=true"; do
     sei "Aufruf: $x" enthaelt "$b" " $x"
   done
@@ -833,6 +834,11 @@ f_p5_epoch_committer() {
 }
 f_p5_summe_amd64() { bild_mit GP_SUMME=amd64; rotgrund image "linux/amd64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
 f_p5_summe_arm64() { bild_mit GP_SUMME=arm64; rotgrund image "linux/arm64"; sei "nicht amd64" ohne "$err" "linux/amd64: das Binary"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_summe_eintrag_fehlt() {
+  fix 0.1.0; umg lauf; bis eingaben binaries
+  grep -v '_linux_arm64$' "$(DIST)/SHA256SUMS" > "$w/s"; mv "$w/s" "$(DIST)/SHA256SUMS"
+  lauf image GP_OHNE_BINARY=arm64; rotgrund image "linux/arm64"; sei "kein Digest" test ! -e "$(IMG)/digest"
+}
 f_p5_digest() {
   bild
   sei "D ist der Hash des Index-Blobs" test "$D" = "sha256:$(sha256sum "$(IMG)/layout.tar.index" | cut -d' ' -f1)"
@@ -876,6 +882,12 @@ f_p6_inspect_anderer_fehler() {
     bild; lauf veroeffentlichen "GP_INSPECT=$f"; rotgrund veroeffentlichen; sei "$f: kein Copy" test "$(kopien ghcr.io)" -eq 0
   done
 }
+f_p6_inspect_meldung_im_log() {
+  bild; lauf veroeffentlichen GP_INSPECT=ghcr.io; sei "Fehler im Log (veroeffentlichen)" enthaelt "$err" "release: skopeo: received unexpected HTTP status: 502 Bad Gateway"
+  bild; lauf veroeffentlichen; gruen; sei "Tag fehlt im Log (veroeffentlichen)" enthaelt "$err" "release: skopeo: manifest unknown"
+  bild; bis veroeffentlichen; lauf vergleichen GP_ANON=ghcr.io; sei "Fehler im Log (vergleichen)" enthaelt "$err" "release: skopeo: unauthorized: authentication required"
+  bild; bis veroeffentlichen; rm "$(REG docker.io)/0.1.0"; lauf vergleichen; sei "Tag fehlt im Log (vergleichen)" enthaelt "$err" "release: skopeo: manifest unknown"
+}
 f_p6_zweite_registry_faellt() {
   bild; lauf veroeffentlichen GP_COPY_ROT=docker.io; rotgrund veroeffentlichen "ghcr.io:0.1.0=$D docker.io:0.1.0=-"
   sei "ghcr.io bleibt beschrieben" test -f "$(REG ghcr.io)/0.1.0"
@@ -907,10 +919,10 @@ f_p7_anonym_ghcr() { anonym ghcr.io; }
 f_p7_anonym_docker() { anonym docker.io; }
 f_p7_eine_plattform() {
   local r
-  bild; "$run/welt/bin/gp-layout" eine "$w/eine.tar"
-  for r in ghcr.io docker.io; do mkdir -p "$(REG $r)"; cp "$w/eine.tar.index" "$(REG $r)/0.1.0"; done
-  printf 'sha256:%s\n' "$(sha256sum "$w/eine.tar.index" | cut -d' ' -f1)" > "$(IMG)/digest"
-  lauf vergleichen; rotgrund vergleichen "nicht genau zwei Manifeste"; sei "keine Marke" test ! -e "$w/runner/release/vergleichen.ok"
+  for r in ghcr.io docker.io; do
+    bild; bis veroeffentlichen; "$run/welt/bin/gp-layout" eine "$w/eine.tar"; cp "$w/eine.tar.index" "$(REG "$r")/0.1.0"
+    lauf vergleichen; rotgrund vergleichen "der Index aus $r hat nicht genau zwei Manifeste"; sei "keine Marke" test ! -e "$w/runner/release/vergleichen.ok"
+  done
 }
 f_p7_tag_fehlt() {
   local r
@@ -957,7 +969,17 @@ f_p8_stabil_hoechste() {
   sei "--all und --preserve-digests" test "$(grep -c '^skopeo copy --all --preserve-digests ' <<< "$z")" -eq 2
   sei "Quelle ist @D in derselben Registry" enthaelt "$z" " docker://docker.io/pt9912/pgwire-recorder@$D docker://docker.io/pt9912/pgwire-recorder:latest"
 }
-f_p8_vorabversion() { latest_von 1.2.0-rc.1 v1.1.0; lauf latest; gruen; ungesetzt; sei "Meldung" enthaelt "$out" "Vorabversion"; }
+f_p8_vorabversion() {
+  local v
+  for v in 1.2.0-rc.1 1.2.0-beta.1 1.2.0-alpha.1; do latest_von "$v" v1.1.0; lauf latest; gruen; ungesetzt; sei "Meldung ($v)" enthaelt "$out" "Vorabversion"; done
+}
+f_p8_tag_satz() {
+  local z r
+  latest_von 1.1.0 v1.0.0; lauf latest; gruen
+  z="$(grep '^skopeo copy ' "$w/log/skopeo")"
+  sei "jedes Ziel trägt 1.1.0 oder latest" test "$(grep -vcE ' docker://[^ ]*:(1\.1\.0|latest)$' <<< "$z" || true)" -eq 0
+  for r in ghcr.io docker.io; do sei "$r trägt nur 1.1.0 und latest" test "$(ls "$(REG $r)" | tr '\n' ' ')" = "1.1.0 latest "; done
+}
 f_p8_aelterer_zweig() { latest_von 1.0.1 v1.1.0; lauf latest; gruen; ungesetzt; }
 f_p8_erster_stabiler() { latest_von 0.1.0; lauf latest; gruen; gesetzt; }
 f_p8_vorabversion_hoeher_zaehlt_nicht() { latest_von 1.1.1 v1.1.0 v1.2.0-rc.1; lauf latest; gruen; gesetzt; }
@@ -1112,10 +1134,10 @@ FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-k
   p9-release-existiert-gleich p9-release-existiert-abweichend p9-view-anderer-fehler p9-repo-argument p9-gh-token-fehlt p13-binaries-ohne-eingaben p13-release-ohne-binaries p10-nicht-im-log
   p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p11-reihenfolge-gruende p11-alte-marke)
 FAELLE_B=(p2-trockenlauf-image p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-secret-fehlen-beide p3-schluesselwort-geheimnis p3-reihenfolge-6-7
-  p5-aufruf p5-builder-pin-form p5-builder-platzhalter p5-epoch-committer p5-ohne-binaries p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64 p5-layout-form p5-summe-amd64 p5-summe-arm64 p5-digest p5-bau-scheitert
-  p6-reihenfolge p6-all-und-digests p6-tag-vorhanden-gleich p6-tag-vorhanden-anders p6-tag-fehlt-manifest-unknown p6-tag-fehlt-name-unknown p6-tag-fehlt-not-found p6-inspect-anderer-fehler p6-zweite-registry-faellt p6-tag-satz p6-anmeldung-scheitert
+  p5-aufruf p5-builder-pin-form p5-builder-platzhalter p5-epoch-committer p5-ohne-binaries p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64 p5-layout-form p5-summe-amd64 p5-summe-arm64 p5-summe-eintrag-fehlt p5-digest p5-bau-scheitert
+  p6-reihenfolge p6-all-und-digests p6-tag-vorhanden-gleich p6-tag-vorhanden-anders p6-tag-fehlt-manifest-unknown p6-tag-fehlt-name-unknown p6-tag-fehlt-not-found p6-inspect-anderer-fehler p6-inspect-meldung-im-log p6-zweite-registry-faellt p6-tag-satz p6-anmeldung-scheitert
   p7-gleich p7-rohbytes p7-digest-ghcr p7-digest-docker p7-digest-lokal p7-anonym-ghcr p7-anonym-docker p7-eine-plattform p7-tag-fehlt p7-smoke-aufruf p7-smoke-ghcr p7-smoke-docker p7-postgres-fehlt p7-smoke-ohne-vergleichen p7-smoke-ok-marke
-  p8-stabil-hoechste p8-vorabversion p8-aelterer-zweig p8-erster-stabiler p8-vorabversion-hoeher-zaehlt-nicht p8-semver-numerisch p8-nach-rotem-vergleich p8-ohne-smoke p8-fremder-tag p8-zweite-registry-faellt
+  p8-stabil-hoechste p8-vorabversion p8-aelterer-zweig p8-erster-stabiler p8-vorabversion-hoeher-zaehlt-nicht p8-semver-numerisch p8-nach-rotem-vergleich p8-ohne-smoke p8-fremder-tag p8-tag-satz p8-zweite-registry-faellt
   p9-nicht-vor-registries p10-nicht-im-log-image p10-stdin p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p11-reihenfolge-gruende-b p11-alte-marke-b)
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
 FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende)
@@ -1472,7 +1494,7 @@ mutr m-p5-zahl-entfernt "p5-zwei-manifeste p7-eine-plattform" b 'L:# P5zahl' ''
 mutr m-p5-plattform-amd64-nicht-verlangt "p5-plattform-fehlt-amd64" b '[ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ]' '[[ "$(plattformen "$1")" == *linux/arm64* ]]'
 mutr m-p5-plattform-arm64-nicht-verlangt "p5-plattform-fehlt-arm64" b '[ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ]' '[[ "$(plattformen "$1")" == *linux/amd64* ]]'
 mutr m-p5-summe-amd64-nicht-geprueft "p11-alte-marke-b p5-summe-amd64" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = amd64 ] ||'
-mutr m-p5-summe-arm64-nicht-geprueft "p5-summe-arm64" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = arm64 ] ||'
+mutr m-p5-summe-arm64-nicht-geprueft "p5-summe-arm64 p5-summe-eintrag-fehlt" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = arm64 ] ||'
 mutr m-p5-digest-aus-archiv "p10-stdin p11-alte-marke-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p5-digest p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-digest-docker p7-gleich p7-postgres-fehlt p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p7-smoke-ok-marke p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-ohne-smoke p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt p9-nicht-vor-registries" b 'idx="sha256:$(sha256sum "$scratch/index" | cut -d'"'"' '"'"' -f1)" # P5digest' 'idx="sha256:$(sha256sum "$zdir/image/layout.tar" | cut -d'"'"' '"'"' -f1)" # P5digest'
 mutr m-p5-builder-fehler-ignoriert "p5-bau-scheitert" b $'  [ "$rc" -eq 0 ] || rot "docker buildx create endet mit Exit $rc"\n' ''
 mutr m-p5-bau-fehler-ignoriert "p5-bau-scheitert" b $'  [ "$rc" -eq 0 ] || rot "docker buildx build endet mit Exit $rc"\n' ''
@@ -1520,6 +1542,14 @@ mutr m-p8-quelle-tag "p10-stdin p11-wiederanlauf-latest p8-erster-stabiler p8-fr
 mutr m-p8-zweite-registry-ignoriert "p8-zweite-registry-faellt p11-wiederanlauf-latest" b '[ "$rc" -eq 0 ] || rot "latest in $reg nicht gesetzt (Exit $rc); $(zustand_tag latest)"' ':'
 mutr m-p8-zustand-fehlt "p8-zweite-registry-faellt" b '; $(zustand_tag latest)"' '"'
 # Punkt 9 (B), 13
+mutr m-p5-builder-arg-entfaellt "p5-aufruf" b 'bargs=(buildx build --builder pgr-release' 'bargs=(buildx build'
+mutr m-p5-summe-waechter-entfernt "p5-summe-eintrag-fehlt" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ "$ist" = "$soll" ] ||'
+mutr m-p6-meldung-verworfen "p6-inspect-meldung-im-log" b 'L:# P6meldung' ''
+mutr m-p7-meldung-verworfen "p6-inspect-meldung-im-log" b 'L:# P7meldung' ''
+mutr m-p7-plattformen-docker-nicht-geprueft "p7-eine-plattform" b 'index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen' '[ "$reg" = docker.io ] || index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen'
+mutr m-p7-plattformen-ghcr-nicht-geprueft "p7-eine-plattform" b 'index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen' '[ "$reg" = ghcr.io ] || index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen'
+mutr m-p8-vorabversion-muster-auf-rc "p8-vorabversion" b 'if [[ $v == *-* ]]; then echo "release: latest:' 'if [[ $v == *-rc* ]]; then echo "release: latest:'
+mutr m-p8-zusaetzlicher-tag "p8-tag-satz" b '    echo "release: latest: $reg zeigt auf $d"' $'    fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:${v%.*}"\n    echo "release: latest: $reg zeigt auf $d"'
 mutr m-p5-builder-ohne-digest "p5-builder-pin-form" b "@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea' # v0.33.1" ":latest' # v0.33.1"
 mutr m-p5-builder-platzhalter "p5-builder-platzhalter" b "@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea'" "@sha256:0000000000000000000000000000000000000000000000000000000000000000'"
 mutr m-p5-builder-ohne-tag-kommentar "p5-builder-pin-form" b "dea' # v0.33.1" "dea'"
