@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-035` · `SPEC-055` (gelesen: Voraussetzung `slice-v1-abschluss-container`, `slice-v1-abschluss-container-doku`) · `SPEC-063` und `SPEC-064` (gelesen: Gate der Workflows und Konventionen der CI; Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci`, §1 unten) · `SPEC-067` (Fassung A: Punkte 1a, 2, 3 (1) bis (6), 4, 9, 10, 11, 12, 13 bis 15, jeweils der Anteil von A; Zuordnung in der Tabelle des Vertrags)
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-rel-a)
 **Autor:** pt9912. **Datum:** 2026-10-03. **Geschnitten:** 2026-10-19 (siehe §4, *Schnitt vor dem Start, 2026-10-19*).
 
 ---
