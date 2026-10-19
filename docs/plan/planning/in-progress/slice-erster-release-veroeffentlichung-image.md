@@ -167,19 +167,19 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-Stand: Kopf des Codes `2ee49303` auf dem Zweig `impl-rel-b` (Basis `5f68ebef`; erste Fassung `299c8953`, Auszug des Smokes `f95a320e`, die Entscheidungen des Architect `5cb3c3ce` umgesetzt in `8339d87b`); Läufe im Dev-Container pgr-dev3 (Docker im Container), nacheinander am Endstand. `make test-container-gegenprobe` lief auf `a4a96c60` allein grün (234 s); seither ändert sich weder `container-smoke.sh` noch `run-container.sh` noch `container-gegenprobe.sh`. Ein früherer gleichzeitiger Lauf beider Gegenproben meldete dort die Signalfälle `p9-*-signal` rot (Last).
+Stand: Kopf des Codes `9f506869` auf dem Zweig `impl-rel-b` (Basis `5f68ebef`; erste Fassung `299c8953`, Auszug des Smokes `f95a320e`, die Entscheidungen des Architect `5cb3c3ce` umgesetzt in `8339d87b`, die Review-Runde 1 behoben in `92bd07b7` und `9f506869`); Läufe im Dev-Container pgr-dev3 (Docker im Container), nacheinander am Endstand. `make test-container-gegenprobe` lief auf `a4a96c60` allein grün (234 s); seither ändert sich weder `container-smoke.sh` noch `run-container.sh` noch `container-gegenprobe.sh`. Ein früherer gleichzeitiger Lauf beider Gegenproben meldete dort die Signalfälle `p9-*-signal` rot (Last).
 
 | Lauf | Ergebnis | Dauer |
 |---|---|---|
-| `make release-gegenprobe` | `release-gegenprobe: grün (390 Läufe)`: die unveränderte Kopie, 387 Mutationen, der Rekursionsschutz und die Probe der Fallliste; 314 Fälle (161 `p1-*`, 81 `p2-*` bis `p13-*` von A, 66 `p2-*` bis `p11-*` von B, 6 `p13-*` des Abbruchs) | 645 s |
+| `make release-gegenprobe` | `release-gegenprobe: grün (398 Läufe)`: die unveränderte Kopie, 395 Mutationen, der Rekursionsschutz und die Probe der Fallliste; 317 Fälle (161 `p1-*`, 81 `p2-*` bis `p13-*` von A, 69 `p2-*` bis `p11-*` von B, 6 `p13-*` des Abbruchs) | 721 s |
 | `make test-container-gegenprobe` | `container-gegenprobe: gruen — Punkte 1 bis 9, 11 und 12 …` (auf `a4a96c60`), Fälle von `SPEC-055` unverändert, Mutationen des Smokes auf `container-smoke.sh` gerichtet, neu `p9-smoke-weiter` | 234 s |
 | `make workflows-check` | Exit 0, `workflows-check: 2 Datei(en) geprüft, kein Befund` | 1 s |
 | `make docs-check` | Exit 0, `d-check: 1221 Datei(en) geprüft, 0 Befund(e)` | 2 s |
-| `make gates` | Exit 0 (darunter `test-container`, `test-postgres-versionen`, `lint`, `kopf-check`, `docs-check`) | 296 s |
+| `make gates` | Exit 0 (darunter `test-container`, `test-postgres-versionen`, `lint`, `kopf-check`, `docs-check`) | 279 s |
 
 Während der Arbeit nur die engsten Sensoren: `bash -n`, Teilläufe der Gegenprobe mit `GP_MUT` und `GP_ENTDECKE` (die roten Fälle je Mutation gemessen, dann die Erwartung im Skript gesetzt und gegen die Vermutung gehalten; Abweichungen sind in der Tabelle, etwa die Fälle, die einen Fehler der Meldung prüfen), `make workflows-check`, `make docs-check`, zuletzt die Läufe oben je einmal am Endstand. `make gates-schnell-gegenprobe` ist nicht gefahren: Seit `5f68ebef` ändert sich weder ein Fragment noch eine Liste (`GEGENPROBEN_CONTAINER`).
 
-**Messung der Größe** (`AGENTS.md` §3.14): `git diff --numstat dc7f0a69..2ee49303 -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` ergibt als Summe aus Einfügungen und Löschungen **1187** (`release-gegenprobe.sh` 643, `release.sh` 188, `container-smoke.sh` 94, `container-gegenprobe.sh` 59, `releasing.md` 78, `run-container.sh` 57, `release.yml` 28, `SPEC-067` 28 aus den Entscheidungen des Architect, `release.mk` 10, `harness/README.md` 2); ohne den Vertragstext 1159. Die Commits zwischen `dc7f0a69` und `5f68ebef` ändern nur Pläne. Vor den Entscheidungen des Architect waren es 1094. Schätzung des Architect 1150 bis 1500, Meldeschwelle 1300 und Marke 1700 sind nicht erreicht. Die Gegenproben tragen 702 von 1187 Zeilen (Faktor zu `release.sh`, `container-smoke.sh`, `run-container.sh` und `release.yml`, zusammen 367, rund 1,9).
+**Messung der Größe** (`AGENTS.md` §3.14): `git diff --numstat dc7f0a69..9f506869 -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` ergibt als Summe aus Einfügungen und Löschungen **1225** (`release-gegenprobe.sh` 673, `release.sh` 190, `container-smoke.sh` 94, `container-gegenprobe.sh` 59, `releasing.md` 78, `run-container.sh` 57, `SPEC-067` 34 aus den Entscheidungen des Architect, `release.yml` 28, `release.mk` 10, `harness/README.md` 2); ohne den Vertragstext 1191. Die Commits zwischen `dc7f0a69` und `5f68ebef` ändern nur Pläne. Vor den Entscheidungen des Architect waren es 1094, vor der Review-Runde 1187. Schätzung des Architect 1150 bis 1500, Meldeschwelle 1300 und Marke 1700 sind nicht erreicht. Die Gegenproben tragen 732 von 1225 Zeilen (Faktor zu `release.sh`, `container-smoke.sh`, `run-container.sh` und `release.yml`, zusammen 369, rund 2,0).
 
 **Mutationstabelle** (`AGENTS.md` §3.10): Zusage · Mutation (Textersatz in einer Kopie von `release.sh` bzw. in `pruefe_release`; Namen wie in `tools/harness/release-gegenprobe.sh`) · roter Fall. Je Mutation sind genau die genannten Fälle rot, jede Mutation einmal gesehen (`GP_ENTDECKE=1`), die unveränderte Kopie ist grün. Bei mehr als sechs roten Fällen nennt die Zeile die Zahl und drei Namen; die vollständige Menge steht in der Ausgabe von `GP_ENTDECKE=1`. Die Mutationen von A (Tabelle in `done/slice-erster-release-veroeffentlichung.md` §7) sind unverändert und mit unveränderten roten Mengen grün; ihre Fälle laufen in der Gruppe `sh`, die der Mutationen von B in der Gruppe `b`.
 
@@ -207,12 +207,13 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft B): 28 der 66 Zeilen sind Herku
 | 3 (7): `DOCKERHUB_USERNAME` nicht leer | ein leerer Wert gilt als gesetzt (`m-p3-secret-user-leer-gilt-als-gesetzt`) | `p3-secret-leer-user` |
 | 3 (7): die Meldung nennt nie einen Wert | die Meldung trägt den Wert des Tokens (`m-p3-secret-wert-in-meldung`) | `p10-nicht-im-log-image`, `p3-secret-fehlt-user`, `p3-secret-leer-user` |
 | 5/11: ein scheiternder Bau ist rot | der Exit von `buildx build` wird überlesen (`m-p5-bau-fehler-ignoriert`) | `p5-bau-scheitert` |
+| 5: der Bau läuft im gepinnten Builder (`--builder pgr-release`) | das Argument entfällt (`m-p5-builder-arg-entfaellt`) | `p5-aufruf` |
 | 5/11: ein scheiternder Builder ist rot | der Exit von `buildx create` wird überlesen (`m-p5-builder-fehler-ignoriert`) | `p5-bau-scheitert` |
 | 5: Pin des Builders `moby/buildkit@sha256:<64 Hexziffern>` | der Pin trägt einen Tag statt eines Digests (`m-p5-builder-ohne-digest`) | `p5-builder-pin-form` |
 | 5: der Pin trägt den Tag als Kommentar | der Kommentar `# v0.33.1` fehlt (`m-p5-builder-ohne-tag-kommentar`) | `p5-builder-pin-form` |
 | 5: das Image des Builders ist der Pin aus `release.sh` | `--driver-opt image=…` entfällt (`m-p5-builder-pin-nicht-uebergeben`) | `p5-aufruf` |
 | 5: ein Platzhalter aus Nullen ist ungültig | der Digest besteht aus Nullen (`m-p5-builder-platzhalter`) | `p5-builder-platzhalter` |
-| 5: `D` ist der Hash des Index-Blobs | `D` aus dem Hash des Archivs (`m-p5-digest-aus-archiv`) | 25 Fälle, darunter `p10-stdin`, `p11-alte-marke-b`, `p11-wiederanlauf-ghcr-vorhanden` |
+| 5: `D` ist der Hash des Index-Blobs | `D` aus dem Hash des Archivs (`m-p5-digest-aus-archiv`) | 26 Fälle, darunter `p10-stdin`, `p11-alte-marke-b`, `p11-wiederanlauf-ghcr-vorhanden` |
 | 5: das Layout enthält genau einen Index | die Prüfung entfällt (`m-p5-ein-index-entfernt`) | `p5-layout-form` |
 | 5: `SOURCE_DATE_EPOCH` ist die Committer-Zeit | die Autor-Zeit (`%at`) (`m-p5-epoch-autor-zeit`) | `p5-epoch-committer` |
 | 5: der Eintrag des Layouts ist ein Index | die Prüfung der Art des Eintrags entfällt (`m-p5-index-typ-entfernt`) | `p5-layout-form` |
@@ -226,7 +227,8 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft B): 28 der 66 Zeilen sind Herku
 | 5: `--sbom=false` | das Argument entfällt (`m-p5-sbom-entfaellt`) | `p5-aufruf` |
 | 5: `--build-arg SOURCE_DATE_EPOCH=<Commit-Zeit>` | das Argument entfällt (`m-p5-source-date-epoch-entfaellt`) | `p5-aufruf`, `p5-epoch-committer` |
 | 5: Summe des Binaries für `linux/amd64` | die Prüfung entfällt für `amd64` (`m-p5-summe-amd64-nicht-geprueft`) | `p11-alte-marke-b`, `p5-summe-amd64` |
-| 5: Summe des Binaries für `linux/arm64` | die Prüfung entfällt für `arm64` (`m-p5-summe-arm64-nicht-geprueft`) | `p5-summe-arm64` |
+| 5: Summe des Binaries für `linux/arm64` | die Prüfung entfällt für `arm64` (`m-p5-summe-arm64-nicht-geprueft`) | `p5-summe-arm64`, `p5-summe-eintrag-fehlt` |
+| 5: ein fehlendes Binary im Image und ein fehlender Eintrag in `SHA256SUMS` gelten nicht als gleich | der Wächter `[ -n "$soll" ]` entfällt (`m-p5-summe-waechter-entfernt`) | `p5-summe-eintrag-fehlt` |
 | 5: `--target runtime` | das Argument entfällt (`m-p5-target-entfaellt`) | `p5-aufruf` |
 | 5: Treiber `docker-container` | Treiber `docker` (`m-p5-treiber-nicht-docker-container`) | `p5-aufruf` |
 | 5: `--build-arg VERSION=<Version>` | das Argument entfällt (`m-p5-version-entfaellt`) | `p5-aufruf` |
@@ -238,28 +240,32 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft B): 28 der 66 Zeilen sind Herku
 | 6: nur drei Meldungen heißen „Tag fehlt“, jede andere ist rot (Grenze: Muster leer) | jeder Fehler gilt als „fehlt“ (`m-p6-fehler-wie-fehlend`) | `p6-inspect-anderer-fehler`, `p7-anonym-docker`, `p7-anonym-ghcr` |
 | 6/11: ein vorhandener Tag mit Digest `D` wird nicht erneut kopiert | kopiert trotzdem (`m-p6-gleicher-tag-kopiert`) | `p11-wiederanlauf-ghcr-vorhanden`, `p6-tag-vorhanden-gleich` |
 | 6/11: ein vorhandener Tag mit Digest `D` wird übersprungen (nicht rot) | Exit 1 bei gleichem Digest (`m-p6-gleicher-tag-rot`) | `p11-wiederanlauf-ghcr-vorhanden`, `p6-tag-vorhanden-gleich` |
+| 6: die Meldung von `skopeo inspect` steht mit dem Präfix `release: skopeo: ` im Log (`veroeffentlichen`) | die Meldung wird verworfen (`m-p6-meldung-verworfen`) | `p6-inspect-meldung-im-log` |
 | 6: nur drei Meldungen heißen „Tag fehlt“ (Grenze) | Muster geweitet um `denied` (`m-p6-muster-geweitet`) | `p6-inspect-anderer-fehler` |
 | 6: `--preserve-digests` | das Argument entfällt (`m-p6-preserve-digests-entfernt`) | `p6-all-und-digests` |
 | 6: Reihenfolge `ghcr.io`, dann `docker.io` | Schleife `docker.io ghcr.io` (`m-p6-reihenfolge-vertauscht`) | `p6-reihenfolge`, `p6-zweite-registry-faellt` |
 | 6: die Schreibweise der Meldung gilt nicht | `grep` ohne `-i` (`m-p6-schreibweise-beachtet`) | `p6-tag-fehlt-not-found` |
 | 6: ein vorhandener Tag wird nie überschrieben | bei anderem Digest wird kopiert (`m-p6-vorhandener-tag-ueberschrieben`) | `p10-nicht-im-log-image`, `p6-tag-vorhanden-anders` |
-| 6: `manifest unknown` heißt „Tag fehlt“ | der Wortlaut wird nicht erkannt (`m-p6-wortlaut-manifest-unknown-nicht-erkannt`) | 37 Fälle, darunter `p10-nicht-im-log-image`, `p10-stdin`, `p11-alte-marke-b` |
+| 6: `manifest unknown` heißt „Tag fehlt“ | der Wortlaut wird nicht erkannt (`m-p6-wortlaut-manifest-unknown-nicht-erkannt`) | 40 Fälle, darunter `p10-nicht-im-log-image`, `p10-stdin`, `p11-alte-marke-b` |
 | 6: `name unknown` heißt „Tag fehlt“ | der Wortlaut wird nicht erkannt (`m-p6-wortlaut-name-unknown-nicht-erkannt`) | `p6-tag-fehlt-name-unknown` |
 | 6: `not found` heißt „Tag fehlt“ | der Wortlaut wird nicht erkannt (`m-p6-wortlaut-not-found-nicht-erkannt`) | `p6-tag-fehlt-not-found` |
-| 6: Tag-Satz nur `<Version>` | zusätzlicher Tag `<MAJOR>.<MINOR>` (`m-p6-zusaetzlicher-tag`) | 7 Fälle, darunter `p11-wiederanlauf-ghcr-vorhanden`, `p6-reihenfolge`, `p6-tag-fehlt-manifest-unknown` |
+| 6: Tag-Satz nur `<Version>` | zusätzlicher Tag `<MAJOR>.<MINOR>` (`m-p6-zusaetzlicher-tag`) | 8 Fälle, darunter `p11-wiederanlauf-ghcr-vorhanden`, `p6-reihenfolge`, `p6-tag-fehlt-manifest-unknown` |
 | 6: die Meldung der zweiten Registry nennt den Zustand | der Zustand entfällt (`m-p6-zustand-fehlt`) | `p6-zweite-registry-faellt` |
 | 6: scheitert die zweite Registry, ist der Lauf rot | der Exit von `skopeo copy` wird überlesen (`m-p6-zweite-registry-ignoriert`) | `p10-nicht-im-log-image`, `p11-wiederanlauf-ghcr-vorhanden`, `p6-zweite-registry-faellt` |
-| 7: Lesen ohne Anmeldung (`--no-creds`) | `--no-creds` entfällt (`m-p7-anonym-mit-anmeldung`) | `p7-anonym-docker`, `p7-anonym-ghcr`, `p7-gleich` |
-| 7: Digest aus den rohen Bytes | der Digest aus der Anzeige `skopeo inspect` (`m-p7-digest-aus-anzeige`) | 21 Fälle, darunter `p10-stdin`, `p11-alte-marke-b`, `p11-wiederanlauf-latest` |
+| 7: Lesen ohne Anmeldung (`--no-creds`) | `--no-creds` entfällt (`m-p7-anonym-mit-anmeldung`) | `p6-inspect-meldung-im-log`, `p7-anonym-docker`, `p7-anonym-ghcr`, `p7-gleich` |
+| 7: Digest aus den rohen Bytes | der Digest aus der Anzeige `skopeo inspect` (`m-p7-digest-aus-anzeige`) | 22 Fälle, darunter `p10-stdin`, `p11-alte-marke-b`, `p11-wiederanlauf-latest` |
 | 7: Digest `docker.io` gleich `D` | der Vergleich entfällt (`m-p7-docker-vergleich-entfernt`) | `p7-digest-docker` |
 | 7: Digest `ghcr.io` gleich `D` | der Vergleich entfällt (`m-p7-ghcr-vergleich-entfernt`) | `p10-nicht-im-log-image`, `p11-alte-marke-b`, `p7-digest-ghcr` |
 | 7: `vergleichen.ok` nur bei grünem Vergleich | die Marke entsteht vor den Prüfungen (`m-p7-marke-zu-frueh`) | 7 Fälle, darunter `p11-alte-marke-b`, `p7-anonym-docker`, `p7-anonym-ghcr` |
+| 7: dasselbe in `vergleichen` | die Meldung wird verworfen (`m-p7-meldung-verworfen`) | `p6-inspect-meldung-im-log` |
+| 7: der Index aus `docker.io` nennt genau die zwei Plattformen | die Prüfung entfällt für `docker.io` (`m-p7-plattformen-docker-nicht-geprueft`) | `p7-eine-plattform` |
+| 7: der Index aus `ghcr.io` nennt genau die zwei Plattformen | die Prüfung entfällt für `ghcr.io` (`m-p7-plattformen-ghcr-nicht-geprueft`) | `p7-eine-plattform` |
 | 7: der Index der Registry nennt genau die zwei Plattformen | der Aufruf entfällt (`m-p7-plattformen-nicht-geprueft`) | `p7-eine-plattform` |
 | 7: fehlt `POSTGRES_IMAGE` in `integration.mk`, Exit 2 `vorbedingung` | die Prüfung entfällt (`m-p7-postgres-quelle-fehlt-angenommen`) | `p7-postgres-fehlt` |
 | 7: ein roter Smoke ist rot | der Exit des Smokes wird überlesen (`m-p7-smoke-fehler-ignoriert`) | `p7-smoke-docker`, `p7-smoke-ghcr`, `p7-smoke-ok-marke` |
 | 7: die Läufe der zwei Smokes tragen verschiedene Namen | derselbe Name (`m-p7-smoke-lauf-gleich`) | `p7-smoke-aufruf` |
 | 7: `smoke.ok` nur bei Grün | die Marke entsteht vor dem Smoke (`m-p7-smoke-marke-bei-rot`) | `p7-smoke-ok-marke` |
-| 7: `smoke` legt bei Grün `smoke.ok` an | die Marke wird nicht angelegt (`m-p7-smoke-marke-entfaellt`) | 11 Fälle, darunter `p10-stdin`, `p11-wiederanlauf-latest`, `p7-smoke-ok-marke` |
+| 7: `smoke` legt bei Grün `smoke.ok` an | die Marke wird nicht angelegt (`m-p7-smoke-marke-entfaellt`) | 12 Fälle, darunter `p10-stdin`, `p11-wiederanlauf-latest`, `p7-smoke-ok-marke` |
 | 7: Meldungen des Smokes beginnen mit `release: smoke: ` | anderes Präfix (`m-p7-smoke-name-weicht-ab`) | `p7-smoke-aufruf` |
 | 7: Smoke aus jeder Registry | die Schleife läuft nur für `ghcr.io` (`m-p7-smoke-nur-eine-registry`) | `p7-smoke-aufruf`, `p7-smoke-docker` |
 | 7: `POSTGRES_IMAGE` (aus `integration.mk`) geht an den Smoke | die Variable entfällt (`m-p7-smoke-postgres-image-fehlt`) | `p7-smoke-aufruf` |
@@ -272,11 +278,13 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft B): 28 der 66 Zeilen sind Herku
 | 8: nur die höchste stabile Version setzt `latest` | die Prüfung entfällt (`m-p8-hoechste-entfaellt`) | `p8-aelterer-zweig`, `p8-semver-numerisch` |
 | 8: Vergleich nach SemVer (1.10.0 über 1.9.0) | Sortierung ohne `-V` (`m-p8-lexikographisch`) | `p8-semver-numerisch` |
 | 8: `--preserve-digests` beim Setzen von `latest` | das Argument entfällt (`m-p8-preserve-digests-entfernt`) | `p8-stabil-hoechste` |
-| 8: `latest` zeigt auf `D` (Quelle `@<D>`) | Quelle ist der Tag `<Version>` (`m-p8-quelle-tag`) | 8 Fälle, darunter `p10-stdin`, `p11-wiederanlauf-latest`, `p8-erster-stabiler` |
+| 8: `latest` zeigt auf `D` (Quelle `@<D>`) | Quelle ist der Tag `<Version>` (`m-p8-quelle-tag`) | 9 Fälle, darunter `p10-stdin`, `p11-wiederanlauf-latest`, `p8-erster-stabiler` |
 | 8: `ghcr.io` zuerst | Schleife `docker.io ghcr.io` (`m-p8-reihenfolge-vertauscht`) | `p8-stabil-hoechste`, `p8-zweite-registry-faellt` |
 | 8: `latest` nur nach grünem Smoke (`smoke.ok`) | die Prüfung der Marke entfällt (`m-p8-smoke-marke-nicht-verlangt`) | `p11-reihenfolge-gruende-b`, `p8-nach-rotem-vergleich`, `p8-ohne-smoke` |
+| 8: eine Vorabversion jeder Form lässt `latest` unverändert (`1.2.0-beta.1`, `-alpha.1`) | Muster auf `*-rc*` verengt (`m-p8-vorabversion-muster-auf-rc`) | `p8-vorabversion` |
 | 8: eine Vorabversion lässt `latest` unverändert | die Bedingung entfällt (`m-p8-vorabversion-setzt-latest`) | `p8-vorabversion` |
 | 8: Vorabversionen und fremde Tags zählen nicht als höher | alle Tags `v*` zählen (`m-p8-vorabversionen-zaehlen`) | `p8-fremder-tag`, `p8-stabil-hoechste`, `p8-vorabversion-hoeher-zaehlt-nicht` |
+| 8: Tag-Satz nur `<Version>` und `latest` auch in `latest` | zusätzlicher Kopierbefehl auf `<MAJOR>.<MINOR>` (`m-p8-zusaetzlicher-tag`) | `p8-tag-satz` |
 | 8: die Meldung nennt, welche Registry auf welchen Digest zeigt | der Zustand entfällt (`m-p8-zustand-fehlt`) | `p8-zweite-registry-faellt` |
 | 8: scheitert die zweite Registry, ist der Lauf rot | der Exit von `skopeo copy` wird überlesen (`m-p8-zweite-registry-ignoriert`) | `p11-wiederanlauf-latest`, `p8-zweite-registry-faellt` |
 | 9: `github-release` läuft erst nach grünem Smoke (`smoke.ok`) | die Prüfung der Marke entfällt (`m-p9-smoke-marke-nicht-verlangt`) | `p11-alte-marke-b`, `p9-nicht-vor-registries` |
@@ -294,6 +302,20 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft B): 28 der 66 Zeilen sind Herku
 | 13: `smoke` läuft nicht ohne grünes `vergleichen` | die Prüfung entfällt (`m-p13-smoke-ohne-vergleichen`) | `p11-alte-marke-b`, `p11-reihenfolge-gruende-b`, `p7-smoke-ohne-vergleichen` |
 | 13: `vergleichen` läuft nicht ohne `image` | die Prüfung entfällt (`m-p13-vergleichen-ohne-image`) | `p11-reihenfolge-gruende-b` |
 | 13: `veroeffentlichen` läuft nicht ohne `image` | die Prüfung entfällt (`m-p13-veroeffentlichen-ohne-image`) | `p11-alte-marke-b`, `p11-reihenfolge-gruende-b` |
+
+**Findings der Review-Runde 1** (Report `2026-10-19-review-slice-erster-release-veroeffentlichung-image`; Behebung als Klasse, `implement-slice.md` Schritt 19):
+
+| Finding | Behebung (Merkmal der Klasse, weitere Ausprägungen) | Beleg |
+|---|---|---|
+| F-1 (MEDIUM): `--builder pgr-release` des Baus ohne Fall | `p5-aufruf` prüft das Argument am Aufruf des Baus; die übrigen Argumente von `bargs` (`--target`, beide `--build-arg`, `--provenance=false`, `--sbom=false`) und `--platform`, `--output` haben je einen Fall und eine Mutation | `m-p5-builder-arg-entfaellt`: rot `p5-aufruf` |
+| F-2 (MEDIUM): „nur stabil“ nur mit `-rc.1` geprüft | `p8-vorabversion` fährt `1.2.0-rc.1`, `1.2.0-beta.1`, `1.2.0-alpha.1`; die Bedingung ist ein Muster, die Grenzmutation verengt es | `m-p8-vorabversion-muster-auf-rc`: rot `p8-vorabversion` |
+| F-3 (MEDIUM): Tag-Satz nur im Schritt `veroeffentlichen` belegt | Merkmal: ein Schritt mit `skopeo copy`. Es gibt zwei (`veroeffentlichen`, `latest`); `p8-tag-satz` prüft alle Ziele des Laufs bis `latest` (jedes trägt die Version oder `latest`) und den Inhalt beider Registries | `m-p8-zusaetzlicher-tag`: rot `p8-tag-satz`; `m-p6-zusaetzlicher-tag` bleibt |
+| F-4 (MEDIUM): Meldung von `skopeo inspect` nicht im Log | `release.sh` gibt sie bei jedem Fehler von `skopeo inspect` mit dem Präfix `release: skopeo: ` aus, auch bei „Tag fehlt“, in `veroeffentlichen` und `vergleichen`; `p6-inspect-meldung-im-log` hat vier Beine (Fehler und „Tag fehlt“, je Schritt); `p10-nicht-im-log-image` gilt unverändert grün | `m-p6-meldung-verworfen`, `m-p7-meldung-verworfen`: rot `p6-inspect-meldung-im-log` |
+| F-5 (LOW): Wächter `[ -n "$soll" ]` ohne Fall | `p5-summe-eintrag-fehlt`: `SHA256SUMS` ohne die Zeile von `linux/arm64`, Image ohne Binary | `m-p5-summe-waechter-entfernt`: rot `p5-summe-eintrag-fehlt` |
+| F-6 (LOW): Plattformprüfung je Registry | Kein äquivalenter Mutant: `p7-eine-plattform` fährt je Registry ein Bein, in dem nur diese einen Index mit einem Manifest trägt; ohne die Prüfung meldet der Lauf „weicht ab“ statt der Zahl der Manifeste, der Fall prüft die Meldung | `m-p7-plattformen-docker-nicht-geprueft`, `m-p7-plattformen-ghcr-nicht-geprueft`: rot `p7-eine-plattform` |
+| F-7 (LOW): „Binary jedes Manifests hat die Summe“ | `releasing.md` §6 Schritt 3 nennt, was geprüft wird: ein zweiter Bau je Plattform mit `type=local` aus demselben Builder; das kopierte Layout liest die Prüfung nicht. Der Satz in `SPEC-067` Punkt 5 bleibt (Vertragstext, Sache des Architect) | Text |
+| F-8 (LOW): Plan und Vertrag sagen `vergleichen` | vom Architect erledigt (`68512ae6`); der Code verlangt `smoke.ok` seit `8339d87b` (`p9-nicht-vor-registries`) | Text |
+| F-10 (INFO) (c): `container-smoke.sh` räumt nichts auf | Gemessen am 2026-10-19 im Dev-Container mit dem echten Docker: `container-smoke.sh pgwire-recorder:dev` mit `SMOKE_LAUF=pgr-msm` endet mit Exit 0 und hinterlässt die zwei angehaltenen Container `pgr-msm-rec` und `pgr-msm-rep` und das Netz `pgr-msm-net` (`pgr-msm-pg` ist entfernt); die Messung räumte sie danach ab. Entscheidung: Grenze, kein Aufräumen im Skript. Auf dem Runner ist das folgenlos (der Lauf endet mit dem Runner), im Gate räumt `run-container.sh` auf (`SPEC-055` Punkt 9, `p9-*`); die zwei Läufe von `release.sh smoke` tragen verschiedene Namen (`p7-smoke-aufruf`). Keine Randform: kein Vertragstext sagt etwas anderes | Messung |
 
 **Fälle von `test-container-gegenprobe` mit neuem Ort:** die Mutationen zu Punkt 7 (`p7-intern`, `p7a-*`, `p7b-*`, `p7c-*`, `p7-exit-*`, `p7-terminal`, `p7-user*`, `p7-volume*`, `p7-mount`, `p7-cp-*`, `p7-rm-pg`), `p2-dev` und `p9-volume-replay` zielen auf `tools/harness/container-smoke.sh` statt `run-container.sh`, mit unveränderten roten Mengen; `p7-tag` zielt auf den Aufruf in `run-container.sh`. Neu: `p9-smoke-weiter` (`kill -TERM "$laeuft"` im Smoke entfällt) färbt `p9-sigINT-psql-signal` und `p9-sigTERM-psql-signal`.
 
@@ -313,7 +335,7 @@ Zeilenliste von `release.yml` (Punkt 1, Herkunft B): 28 der 66 Zeilen sind Herku
 
 | Satz (Abschnitt) | Beleg |
 |---|---|
-| §6 Schritt 3: ein OCI-Layout mit genau einem Index und zwei Manifesten; die Summe des Binaries je Plattform | `p5-ein-index`, `p5-zwei-manifeste`, `p5-plattform-fehlt-*`, `p5-summe-amd64`, `p5-summe-arm64` |
+| §6 Schritt 3: ein OCI-Layout mit genau einem Index und zwei Manifesten; die Summe des Binaries je Plattform (zweiter Bau mit `type=local`) | `p5-ein-index`, `p5-zwei-manifeste`, `p5-plattform-fehlt-*`, `p5-summe-amd64`, `p5-summe-arm64`, `p5-summe-eintrag-fehlt` |
 | §6 Schritt 3: Treiber `docker-container`, das Image des Builders mit Digest | `p5-aufruf`, `p5-builder-pin-form`, `p5-builder-platzhalter` |
 | §6 Schritt 4: dasselbe Layout ohne Neubau, `ghcr.io` zuerst, Tag `<SemVer>` ohne `v` | `p6-reihenfolge`, `p6-all-und-digests`, `p6-tag-satz` |
 | §6 Schritt 4: gleicher Digest übersprungen, anderer Digest rot, nie überschrieben | `p6-tag-vorhanden-gleich`, `p6-tag-vorhanden-anders`, `p6-tag-fehlt-*`, `p6-inspect-anderer-fehler` |
@@ -354,3 +376,5 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Nachgezählt am 2026-10-19** (Implementer, nach den Entscheidungen des Architect `5cb3c3ce`): Liefer-Punkte drei, Schichten zwei, unverändert; die neuen Marken (`smoke.ok`), Fälle und der Pin liegen in der Release-Automatisierung und ihrer Gegenprobe.
+
+**Nachgezählt am 2026-10-19** (Implementer, nach der Review-Runde 1): Liefer-Punkte drei, Schichten zwei, unverändert; die Behebungen liegen in der Release-Automatisierung, ihrer Gegenprobe und in `docs/maintainer/releasing.md`.
