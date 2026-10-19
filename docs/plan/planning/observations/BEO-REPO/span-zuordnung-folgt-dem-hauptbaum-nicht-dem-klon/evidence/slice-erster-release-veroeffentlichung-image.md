@@ -1,0 +1,2 @@
+**Vorgang:** slice-erster-release-veroeffentlichung-image
+**Fund:** In `.harness/state/spans/` trugen die Dateien der Implementer von `slice-erster-release-veroeffentlichung-image` (`pgr-dev3`) und `slice-harness-doc-trace-archiv` (`pgr-dev2`) beide Slices im Feld `slice` und den Zweig `main`, obwohl jeder Agent in seinem Klon auf einem eigenen Zweig (`impl-rel-b`, `impl-dt`) an genau einem Slice arbeitete. Quelle: Auswertung der Spans am 2026-10-19 auf Nachfrage des Nutzers.
