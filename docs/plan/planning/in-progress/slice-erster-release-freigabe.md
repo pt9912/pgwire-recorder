@@ -111,7 +111,8 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | Release-Automatisierung (`release.yml`, `release.sh`, Gegenprobe `release-gegenprobe`) | update | Scan des Images vor dem Push, mit Schwelle, zwischen `Image` und `Veröffentlichen` (Sendung, §1); das Muster der Wortlaute von `skopeo` und der Attrappe, falls der erste Tag abweichende zeigt (Sendung aus `slice-erster-release-veroeffentlichung-image`, §1) |
-| `docs/maintainer/releasing.md` §5, §10 | update | Freshness-Audit vor dem Tag, Freigabe-Checkliste |
+| `docs/maintainer/releasing.md` §1, §2, §5, §6, §8, §10, §11 | update | Freshness-Audit vor dem Tag, Freigabe-Checkliste, Schritt `Scan` in der Beschreibung des Tags, Zeile `scan` der Fehlertabelle |
+| `harness/README.md` (Zeile `make release-gegenprobe`) | update | die Gegenprobe prüft zusätzlich den Scan (`p16-*`, Werkzeuge `jq` und GNU `date`) |
 | Test der Pipeline | neu | Image über der Schwelle wird nicht veröffentlicht |
 | `docs/plan/planning/welle-erster-release-results.md` | neu (bei Welle-Closure) | ausgefüllter Eintrag der Checkliste des ersten Releases |
 | `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung); Kopf *Software-Version* und §11 mit der veröffentlichten Version (aus `slice-doku-ist-stand`); Abschnitte zum Bezug der Binaries und Images (Sendung, §1) |
@@ -228,6 +229,145 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+Stand: Kopf des Codes `de48c534` auf dem Zweig `impl-fr` (Basis `e2372b18`, Basis der Metrik `760c51d4`; Code `07250783`, `releasing.md` `8ea23258`, Erwartung einer Mutation von B nachgezogen `de48c534`); Läufe im Dev-Container pgr-dev3 (Docker im Container), nacheinander am Endstand. Während der Arbeit nur die engsten Sensoren: `bash -n`, Teilläufe der Gegenprobe mit `GP_MUT` und `GP_ENTDECKE` (die roten Fälle je Mutation gemessen, dann die Erwartung im Skript gesetzt und gegen die Vermutung gehalten), `make workflows-check`, `make docs-check`, zuletzt die Läufe unten je einmal am Endstand.
+
+| Lauf | Ergebnis | Dauer |
+|---|---|---|
+| `make release-gegenprobe` | `release-gegenprobe: grün (491 Läufe)`: die unveränderte Kopie, die Mutationen von A und B (mit drei geänderten Erwartungen, oben) und 87 Mutationen `m-p16-*`, der Rekursionsschutz und die Probe der Fallliste | 1237 s |
+| `make workflows-check` | Exit 0, `workflows-check: 2 Datei(en) geprüft, kein Befund` | 1 s |
+| `make docs-check` | Exit 0, `d-check: 1245 Datei(en) geprüft, 0 Befund(e)` (auf `de48c534`, vor diesem Eintrag; nach ihm wiederholt, siehe unten) | 2 s |
+| `make gates` | Exit 0 (darunter `test`, `test-integration`, `test-container`, `test-postgres-versionen`, `lint`, `kopf-check`, `workflows-check`, `docs-check`) | 266 s |
+
+Nicht gelaufen, mit Grund: der Scanner selbst (kein Netz aus dem Container, `AGENTS.md` und Auftrag: keine Registry-Aufrufe); der Trockenlauf auf GitHub (nicht Aufgabe des Implementers: kein Push nach GitHub); die Auflösung des Digest von Trivy gegen den Docker Hub (die Messung des Hosts vom 2026-10-19 steht im Auftrag: `sha256:af6acf9a…855daa`, Tag 0.75.0, identisch auf Docker Hub und `ghcr.io`, veröffentlicht 2026-10-01; aus dem Container nicht nachgemessen); `make gates-schnell-gegenprobe` (seit `e2372b18` ändert sich weder `harness/mk/release.mk` noch eine Liste `GEGENPROBEN_CONTAINER`).
+
+**Messung der Größe** (`AGENTS.md` §3.14): `git diff --numstat 760c51d4..de48c534 -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` ergibt als Summe aus Einfügungen und Löschungen **527** (`release-gegenprobe.sh` 318, `releasing.md` 133, `release.sh` 72, `release.yml` 2, `harness/README.md` 2). Marke 1200 (44 %) und Meldeschwelle 900 sind nicht erreicht, die Schätzung des Architect (685 bis 1205) liegt darüber: `releasing.md` §5 und §10 blieben mit 133 unter 150 bis 250, und Handbuch und `README.md` (100 bis 200 in der Schätzung) liefert dieser Lauf nicht (Entwurf unten, nach dem Tag). Die Gegenprobe trägt 318 von 527 Zeilen, das 4,3-fache des Produktcodes (`release.sh` und `release.yml`, zusammen 74): Aufrufe gegen eine Attrappe, aber 76 Fälle mit je einem Mutanten und 87 Mutationen; der Faktor 2 des Architect gilt für diese Form nicht, 3,7 aus `slice-erster-release-veroeffentlichung` liegt näher.
+
+**Mutationstabelle** (`AGENTS.md` §3.10): Zusage (Punkt von `SPEC-067`) · Mutation (Textersatz in einer Kopie von `release.sh`; Namen wie in `tools/harness/release-gegenprobe.sh`) · roter Fall. Je Mutation sind genau die genannten Fälle rot, jede einmal gesehen (`GP_ENTDECKE=1`), die unveränderte Kopie ist grün. Bei mehr als sechs roten Fällen nennt die Zeile die Zahl und drei Namen; die vollständige Menge steht in der Ausgabe von `GP_ENTDECKE=1`, im Skript als Liste oder als `ausser …`. Neu sind 79 Fälle (76 `p16-*` in der Gruppe `f`, `p13-veroeffentlichen-ohne-image-bei-scan-ok`, `p11-alte-marke-image-b` und `p11-image-rot-loescht-digest-b` in der Gruppe `b`) und 87 Mutationen `m-p16-*`; die Fälle von A und B sind unverändert, ihre Fixture `bild` und `latest_von` fahren den Schritt `scan` mit. Drei Erwartungen von Mutationen von B ändern sich, weil ein zweiter Wächter (`scan.ok`) hinter dem ersten steht: `m-p13-veroeffentlichen-ohne-image`, `m-p11-eingaben-loescht-image-nicht` und `m-p11-image-loescht-nicht` färben jetzt die neuen Fälle mit gefälschter Marke `scan.ok` (Zeilen unten), `m-p5-summe-amd64-nicht-geprueft` zusätzlich `p11-image-rot-loescht-digest-b`.
+
+Zeilenliste von `release.yml` (Punkt 1, Herkunft F): Zeilen 40 und 41 des Textes (`- name: Scan`, `run: bash tools/harness/release.sh scan`); die Schleifen von A und B erzeugen die Fälle `p1-fehlt-40`, `p1-fehlt-41`, `p1-geaendert-40`, `p1-geaendert-41` und die Mutationen `m-p1-zeile-40-optional`, `-41-optional`, `-40-nicht-verglichen`, `-41-nicht-verglichen` (je genau ihr Fall rot), dazu die Paare vertauschter Schritte `image-scan` und `scan-veroeffentlichen` (Fälle `p1-reihenfolge-image-scan`, `p1-reihenfolge-scan-veroeffentlichen`, Mutationen `m-p1-reihenfolge-<Paar>-tauschbar`, je genau ihr Fall rot); `image-veroeffentlichen` tauscht jetzt die Stellen 2 und 4.
+
+| Zusage (Punkt von SPEC-067) | Mutation | roter Fall |
+|---|---|---|
+| 16 Pin: `aquasec/trivy@sha256:<64 Hexziffern>` | `m-p16-pin-ohne-digest`: der Pin trägt einen Tag statt des Digests | `p16-pin-form` |
+| 16 Pin: ein Platzhalter aus Nullen ist ungültig | `m-p16-pin-platzhalter`: der Digest besteht aus Nullen | `p16-pin-platzhalter` |
+| 16 Pin: Tag als Kommentar hinter der Zeile | `m-p16-pin-ohne-tag-kommentar`: der Kommentar `# 0.75.0` fehlt | `p16-pin-form` |
+| 16 E1: `docker run --rm` | `m-p16-e1-rm-entfaellt`: `--rm` entfällt | `p16-e1` |
+| 16 E2: Layout als Mount mit `:ro` | `m-p16-e2-ro-entfaellt`: `:ro` entfällt | `p16-e2` |
+| 16 E2/Stelle: der Scan liest das Layout, das der Push veröffentlicht | `m-p16-e2-quelle-kopie`: der Mount zeigt auf einen anderen Pfad | `p16-e2-quelle` |
+| 16 E3: das Image des Pins | `m-p16-e3-anderes-image`: der Aufruf nennt `aquasec/trivy:latest` | `p16-e3` |
+| 16 E4: Unterbefehl `image` | `m-p16-e4-unterbefehl-entfaellt`: `image` entfällt | `p16-e4` |
+| 16 E4: `--input <Layout>` ist der Mount | `m-p16-e4-input-anderer-pfad`: `--input` nennt einen anderen Pfad | `p16-e4-input` |
+| 16 E5: `--format json` | `m-p16-e5-format-entfaellt`: das Argument entfällt | `p16-e5` |
+| 16 E5: `--format json` | `m-p16-e5-format-table`: `--format table` | `p16-e5` |
+| 16 E6: `--exit-code 0` | `m-p16-e6-exit-code-entfaellt`: das Argument entfällt | `p16-e6` |
+| 16 E6: `--exit-code 0` | `m-p16-e6-exit-code-1`: `--exit-code 1` | `p16-e6` |
+| 16 E7: `--severity HIGH,CRITICAL` | `m-p16-e7-severity-entfaellt`: das Argument entfällt | `p16-e7` |
+| 16 E7: nur `HIGH,CRITICAL` (verengt) | `m-p16-e7-nur-critical`: `--severity CRITICAL` | `p16-e7` |
+| 16 E7: nur `HIGH,CRITICAL` (geweitet) | `m-p16-e7-mit-medium`: `--severity HIGH,CRITICAL,MEDIUM` | `p16-e7` |
+| 16 E8: `--timeout 10m` | `m-p16-e8-timeout-entfaellt`: das Argument entfällt | `p16-e8` |
+| 16 E8: `--timeout 10m` | `m-p16-e8-timeout-60m`: `--timeout 60m` | `p16-e8` |
+| 16 E9: `--platform` je Lauf; ohne ihn ist die gescannte Architektur falsch und der Scan rot | `m-p16-e9-platform-entfaellt`: `--platform` entfällt | 67 Fälle, darunter `p16-alle-befunde`, `p16-alte-marke`, `p16-befund-im-zweiten-ergebnis` |
+| 16 E9: ein Lauf für `linux/arm64` | `m-p16-e9-nur-amd64`: nur `linux/amd64` wird gescannt | 12 Fälle, darunter `p16-alle-befunde`, `p16-befund-nur-arm64`, `p16-db-alt-arm64` |
+| 16 E9: ein Lauf für `linux/amd64` | `m-p16-e9-nur-arm64`: nur `linux/arm64` wird gescannt | 34 Fälle, darunter `p16-alle-befunde`, `p16-alte-marke`, `p16-befund-im-zweiten-ergebnis` |
+| 16 E9: genau die zwei Plattformen | `m-p16-e9-dritte-plattform`: eine dritte Plattform wird gescannt | `p16-e9-genau-zwei`, `p16-trockenlauf` |
+| 16 E10: kein `--skip-db-update` | `m-p16-e10-skip-db-update`: `--skip-db-update` kommt hinzu | `p16-e10-skip-db-update` |
+| 16 E10: kein `--skip-files` | `m-p16-e10-skip-files`: `--skip-files` kommt hinzu | `p16-e10-skip-files` |
+| 16 E10: kein `--skip-dirs` | `m-p16-e10-skip-dirs`: `--skip-dirs` kommt hinzu | `p16-e10-skip-dirs` |
+| 16 E10: kein `--ignorefile` | `m-p16-e10-ignorefile`: `--ignorefile` kommt hinzu | `p16-e10-ignorefile` |
+| 16 E10: kein `--ignore-policy` | `m-p16-e10-ignore-policy`: `--ignore-policy` kommt hinzu | `p16-e10-ignore-policy` |
+| 16 E10: kein `--vex` | `m-p16-e10-vex`: `--vex` kommt hinzu | `p16-e10-vex` |
+| 16 E10: keine Ausnahmedatei im Mount (genau zwei Mounts) | `m-p16-e10-dritter-mount`: ein dritter Mount kommt hinzu | `p16-e10-mount` |
+| 16 Aufruf: `--user <uid>:<gid>` des Aufrufers (Entwurf, siehe Rückgaben) | `m-p16-user-entfaellt`: `--user` entfällt | `p16-user` |
+| 16 Aufruf: `--cache-dir /cache` (Entwurf, siehe Rückgaben) | `m-p16-cache-dir-entfaellt`: das Argument entfällt | `p16-cache-dir` |
+| 16 Netz: kein Zwischenspeicher über Läufe (Cache im Temp-Verzeichnis des Laufs) | `m-p16-cache-ueber-laeufe`: der Cache liegt unter `$RUNNER_TEMP/release` | `p16-cache-kein-zwischenspeicher` |
+| 16 Schwelle: nur `CRITICAL` und `HIGH` (geweitet um MEDIUM) | `m-p16-schwelle-medium`: `MEDIUM` zählt | `p16-alle-befunde`, `p16-medium-mit-fix`, `p16-summe` |
+| 16 Schwelle: alle anderen Schweregrade sperren nicht | `m-p16-schwelle-jede`: jeder Schweregrad zählt | `p16-alle-befunde`, `p16-low-mit-fix`, `p16-medium-mit-fix`, `p16-summe`, `p16-unknown-mit-fix` |
+| 16 Schwelle: `HIGH` zählt | `m-p16-schwelle-nur-critical`: nur `CRITICAL` zählt | 10 Fälle, darunter `p16-alle-befunde`, `p16-befund-im-zweiten-ergebnis`, `p16-befund-nur-amd64` |
+| 16 Schwelle: `CRITICAL` zählt | `m-p16-schwelle-nur-high`: nur `HIGH` zählt | 8 Fälle, darunter `p16-alle-befunde`, `p16-alte-marke`, `p16-critical-mit-fix` |
+| 16 Schwelle: Einträge ohne Behebung sperren nicht | `m-p16-ohne-fix-sperrt`: Einträge ohne Behebung zählen als Befund | `p16-alle-befunde`, `p16-critical-ohne-fix`, `p16-high-ohne-fix`, `p16-high-ohne-fix-leer`, `p16-high-ohne-fix-null`, `p16-summe` |
+| 16 Behebung: fehlender Schlüssel und `null` sind ohne Behebung | `m-p16-fix-null-gilt-als-fix`: `FixedVersion != ""` (fehlend und `null` gelten als behoben) | `p16-alle-befunde`, `p16-critical-ohne-fix`, `p16-high-ohne-fix`, `p16-high-ohne-fix-null`, `p16-summe` |
+| 16 Behebung: die leere Zeichenkette ist ohne Behebung | `m-p16-fix-leer-gilt-als-fix`: `FixedVersion != null` (leer gilt als behoben) | `p16-high-ohne-fix-leer`, `p16-summe` |
+| 16 Summe: `<m>` zählt nur Einträge ohne Behebung über der Schwelle | `m-p16-ohne-fix-zaehlt-alle`: `<m>` zählt jeden Eintrag über der Schwelle | `p16-alle-befunde`, `p16-critical-mit-fix`, `p16-high-mit-fix`, `p16-summe` |
+| 16 Auswertung: alle Befunde werden genannt (je Plattform) | `m-p16-nur-erster-befund`: nur der erste Befund einer Plattform | `p16-alle-befunde`, `p16-summe` |
+| 16 Auswertung: alle Ergebnisse (`Results`) einer Plattform | `m-p16-nur-erstes-ergebnis`: nur `.Results[0]` | `p16-alle-befunde`, `p16-befund-im-zweiten-ergebnis` |
+| 16 Auswertung: Befunde von `linux/arm64` zählen | `m-p16-arm64-nicht-ausgewertet`: die Befunde von `arm64` werden verworfen | `p16-alle-befunde`, `p16-befund-nur-arm64`, `p16-plattform-genannt` |
+| 16 Auswertung: Befunde von `linux/amd64` zählen | `m-p16-amd64-nicht-ausgewertet`: die Befunde von `amd64` werden verworfen | 10 Fälle, darunter `p16-alle-befunde`, `p16-alte-marke`, `p16-befund-im-zweiten-ergebnis` |
+| 16 Meldung: der Befund nennt die Plattform | `m-p16-plattform-nicht-genannt`: die Plattform fehlt in der Zeile | 7 Fälle, darunter `p16-alle-befunde`, `p16-befund-im-zweiten-ergebnis`, `p16-befund-nur-amd64` |
+| 16 Meldung: die Summenzeile `<n> Befund(e) über der Schwelle, <m> ohne Behebung` | `m-p16-summe-entfaellt`: die Zeile entfällt | `p16-alle-befunde`, `p16-critical-mit-fix`, `p16-high-mit-fix`, `p16-summe` |
+| 16 Meldung: `<n>` zählt nur Befunde mit Behebung | `m-p16-summe-zaehlt-unbehebbare-mit`: `<n>` addiert `<m>` | `p16-alle-befunde`, `p16-summe` |
+| 16 Meldung: jeder Befund steht als `release: scan: schwachstelle: …` | `m-p16-befunde-nicht-genannt`: die Befundzeilen entfallen | 7 Fälle, darunter `p16-alle-befunde`, `p16-befund-im-zweiten-ergebnis`, `p16-befund-nur-amd64` |
+| 16 Auswertung: aus dem JSON, nicht aus einer Anzeige | `m-p16-auswertung-aus-anzeige`: die Befunde kommen aus einem `grep` über die Ausgabe | 12 Fälle, darunter `p16-alle-befunde`, `p16-befund-im-zweiten-ergebnis`, `p16-befund-nur-amd64` |
+| 16 Gescheitert: ein Exit von Trivy ungleich 0 ist `scan-gescheitert` | `m-p16-exit-gilt-als-gruen`: der Exit wird nicht geprüft | `p16-trivy-exit`, `p16-trivy-exit-125`, `p16-trivy-exit-arm64` |
+| 16 Gescheitert: jeder Exit ungleich 0 (nicht nur 1) | `m-p16-exit-nur-1`: nur Exit 1 gilt als gescheitert | `p16-trivy-exit-125` |
+| 16 Gescheitert: Exit von Trivy für `linux/arm64` | `m-p16-exit-arm64-ignoriert`: der Exit wird nur für `amd64` geprüft | `p16-trivy-exit-arm64` |
+| 16 Gescheitert: ein leeres Ergebnis ist kein Grün | `m-p16-pruefmenge-leer-gruen`: `length >= 0` | `p16-leeres-ergebnis`, `p16-leeres-ergebnis-arm64` |
+| 16 Gescheitert: kein JSON oder kein Ergebnis ist `pruefmenge` | `m-p16-pruefmenge-entfernt`: die Prüfung entfällt | `p16-kein-json`, `p16-kein-json-arm64`, `p16-kein-json-leer`, `p16-leeres-ergebnis`, `p16-leeres-ergebnis-arm64` |
+| 16 Gescheitert: Prüfmenge für `linux/arm64` | `m-p16-pruefmenge-arm64-ignoriert`: die Prüfung läuft nur für `amd64` | `p16-kein-json-arm64`, `p16-leeres-ergebnis-arm64` |
+| 16 Gescheitert: Datenbank älter als 72 Stunden ist `datenbank` | `m-p16-db-nicht-geprueft`: der Vergleich mit der Grenze entfällt | `p16-db-alt`, `p16-db-alt-arm64` |
+| 16 Datenbank: Grenze 72 Stunden (geweitet) | `m-p16-db-7-tage`: die Grenze steht bei 7 Tagen | `p16-db-alt`, `p16-db-alt-arm64` |
+| 16 Datenbank: Grenze 72 Stunden (verengt) | `m-p16-db-70-stunden`: die Grenze steht bei 70 Stunden | `p16-db-frisch` |
+| 16 Datenbank: Grenze 72 Stunden (geweitet) | `m-p16-db-74-stunden`: die Grenze steht bei 74 Stunden | `p16-db-alt`, `p16-db-alt-arm64` |
+| 16 Datenbank: das Alter ist das des Standes (`UpdatedAt`), nicht das der Abholung | `m-p16-db-downloadedat`: `DownloadedAt` | `p16-db-alt`, `p16-db-alt-arm64` |
+| 16 Datenbank: das Alter wird nach jedem Lauf gelesen | `m-p16-db-arm64-nicht-geprueft`: nur nach dem Lauf für `amd64` | `p16-db-alt-arm64`, `p16-db-unlesbar-arm64` |
+| 16 Datenbank: ein nicht lesbares Alter ist `datenbank` | `m-p16-db-zeitpunkt-ungeprueft`: die Prüfung der Form des Zeitpunkts entfällt | 7 Fälle, darunter `p16-db-unlesbar`, `p16-db-unlesbar-arm64`, `p16-db-unlesbar-jetzt` |
+| 16 Datenbank: ein unlesbares Datum behauptet kein Alter | `m-p16-db-datum-ungeprueft`: der Fehler von `date` wird überlesen | `p16-db-unlesbar-kein-datum` |
+| 16 Gescheitert: die gescannte Architektur ist die Plattform, sonst `plattform` | `m-p16-plattform-nicht-verglichen`: der Vergleich entfällt | `p16-plattform-abweichend`, `p16-plattform-abweichend-arm64`, `p16-plattform-fehlt` |
+| 16 Plattform: Vergleich für `linux/arm64` | `m-p16-plattform-arm64-nicht-verglichen`: der Vergleich entfällt für `arm64` | `p16-plattform-abweichend-arm64` |
+| 16 Plattform: gleich der Plattform (nicht nur vorhanden) | `m-p16-plattform-nur-nicht-leer`: `[ -n "$arch" ]` | `p16-plattform-abweichend`, `p16-plattform-abweichend-arm64` |
+| 16 Vorbedingung: `image/digest` (Marke des Schrittes `image`) | `m-p16-image-marke-nicht-verlangt`: die Prüfung entfällt | `p16-ohne-image-mit-layout` |
+| 16 Vorbedingung: das Layout liegt da | `m-p16-layout-nicht-verlangt`: die Prüfung entfällt | `p16-ohne-layout` |
+| 16 Vorbedingung: ohne Image kein Scan | `m-p16-vorbedingung-beide-entfernt`: beide Prüfungen entfallen | `p16-ohne-image`, `p16-ohne-image-mit-layout`, `p16-ohne-layout` |
+| 16 Zustand: `scan.ok` nur bei Grün | `m-p16-marke-bei-rot`: die Marke wird zu Beginn angelegt | 34 Fälle, darunter `p16-alle-befunde`, `p16-alte-marke`, `p16-befund-im-zweiten-ergebnis` |
+| 16 Zustand: `scan.ok` bei Grün | `m-p16-marke-entfaellt`: die Marke wird nicht angelegt | 12 Fälle, darunter `p16-critical-ohne-fix`, `p16-db-frisch`, `p16-e2-quelle` |
+| 16 Zustand: ein früherer Scan hinterlässt keine Marke | `m-p16-marke-loescht-entfaellt`: `scan` löscht die Marke nicht zu Beginn | `p16-alte-marke` |
+| 16 Zustand: `eingaben` löscht `scan.ok` | `m-p16-eingaben-loescht-scan-nicht`: die Zeile entfällt | `p16-eingaben-loescht-marke` |
+| 16 Zustand: `image` löscht `scan.ok` | `m-p16-image-loescht-scan-nicht`: die Zeile entfällt | `p16-image-loescht-marke` |
+| 16 Zustand: `veroeffentlichen` verlangt `scan.ok` (Exit 2 vor `skopeo`) | `m-p16-veroeffentlichen-ohne-scan-marke`: die Prüfung entfällt | `p16-ueber-schwelle-keine-registry`, `p16-veroeffentlichen-ohne-scan` |
+| 16 keine Außenwirkung: der Scan ruft `skopeo` nie | `m-p16-scan-ruft-skopeo`: `skopeo inspect` im Schritt | `p16-gruen`, `p16-trockenlauf` |
+| 16 Trockenlauf: `skopeo` wird nie gerufen | `m-p16-trockenlauf-ruft-skopeo`: im Trockenlauf ruft der Scan `skopeo` | `p16-trockenlauf` |
+| 16 Trockenlauf: der Scan läuft auch bei `workflow_dispatch` | `m-p16-scan-verlangt-push`: der Schritt lehnt ohne Push ab | `p16-trockenlauf` |
+| 16 Stelle: `D` und das Layout bleiben unverändert | `m-p16-digest-veraendert`: der Schritt hängt Bytes an das Layout | `p16-d-unveraendert` |
+| 16 Stichwort `schwachstelle` | `m-p16-stichwort-schwachstelle`: das Stichwort weicht ab | 7 Fälle, darunter `p16-alle-befunde`, `p16-befund-im-zweiten-ergebnis`, `p16-befund-nur-amd64` |
+| 16 Stichwort `scan-gescheitert` | `m-p16-stichwort-scan-gescheitert`: das Stichwort weicht ab | `p16-trivy-exit`, `p16-trivy-exit-125`, `p16-trivy-exit-arm64` |
+| 16 Stichwort `pruefmenge` | `m-p16-stichwort-pruefmenge`: das Stichwort weicht ab | 7 Fälle, darunter `p16-kein-json`, `p16-kein-json-arm64`, `p16-kein-json-leer` |
+| 16 Stichwort `datenbank` (zu alt) | `m-p16-stichwort-datenbank-alt`: das Stichwort weicht ab | `p16-db-alt`, `p16-db-alt-arm64` |
+| 16 Stichwort `datenbank` (nicht lesbar) | `m-p16-stichwort-datenbank-lesbar`: das Stichwort weicht ab | 7 Fälle, darunter `p16-db-unlesbar`, `p16-db-unlesbar-arm64`, `p16-db-unlesbar-jetzt` |
+| 16 Stichwort `plattform` | `m-p16-stichwort-plattform`: das Stichwort weicht ab | `p16-plattform-abweichend`, `p16-plattform-abweichend-arm64`, `p16-plattform-fehlt` |
+| 16 Exit 2 für einen Scan, der nicht lief | `m-p16-fehler-exit-1`: Exit 1 | 23 Fälle, darunter `p16-db-alt`, `p16-db-alt-arm64`, `p16-db-unlesbar` |
+| 16 Exit 1 für einen Befund | `m-p16-befund-exit-2`: Exit 2 | 10 Fälle, darunter `p16-alle-befunde`, `p16-alte-marke`, `p16-befund-im-zweiten-ergebnis` |
+| 13 (B) `veroeffentlichen` verlangt `image/digest`, auch mit `scan.ok` | `m-p13-veroeffentlichen-ohne-image`: `# P13veroeffentlichen`: die Prüfung entfällt | `p11-alte-marke-image-b`, `p11-image-rot-loescht-digest-b`, `p13-veroeffentlichen-ohne-image-bei-scan-ok` |
+| 11 (B) `eingaben` löscht `image/`, auch mit `scan.ok` | `m-p11-eingaben-loescht-image-nicht`: `image/` bleibt | `p11-alte-marke-image-b` |
+| 11 (B) `image` löscht das alte `image/`, auch mit `scan.ok` | `m-p11-image-loescht-nicht`: `rm -rf` entfällt | `p11-image-rot-loescht-digest-b` |
+
+**Grüne Mutanten:** keiner. Es gibt keinen Mutanten, den ich äquivalent nenne (`AGENTS.md` §3.10): Wo zwei Wächter dieselbe Eingabe fangen (der Digest des Images und das Layout; `eingaben` und `image` löschen beide `scan.ok`), hat jeder einen Fall, in dem nur er greift (`p16-ohne-image-mit-layout`, `p16-ohne-layout`, `p11-alte-marke-image-b`, `p11-image-rot-loescht-digest-b`).
+
+**Test-Ideen, die kein Fall tragen konnte (Grenze, an die Closure):** (a) dass Trivy die Schwachstellen-Datenbank von seinen Quellen holt und `db/metadata.json` im Cache ablegt, ist nicht gemessen (die Attrappe schreibt die Datei); (b) dass `--platform` mit `--input` einen Index im OCI-Tar auf ein Manifest einengt, ist nicht gemessen; (c) dass `Metadata.ImageConfig.architecture` im JSON steht, ist nicht gemessen. Alle drei zeigt der erste Trockenlauf, und jede Abweichung endet rot (`pruefmenge`, `datenbank`, `plattform`), nie grün.
+
+**Rückgaben an den Architect** (*Randform · Frage*; `.claude/commands/implement-slice.md`, Randform-Rückgabe): Der Auftrag des Koordinators sah vor, offene Randformen im Bericht zurückzugeben und weiterzuarbeiten. Der Code trägt deshalb eine **vorläufige Lesart** (Spalte *Im Code*), je an einer Stelle; was der Architect anders entscheidet, ist dort zu ändern. Der Vertragstext ist nicht geändert.
+
+| Randform | Im Code (vorläufig) | Frage |
+|---|---|---|
+| Woher kommt das Alter der Datenbank (Punkt 16 nennt keine Quelle; ob der JSON-Bericht von Trivy es trägt, ist nicht gemessen)? | `db_alter` liest `UpdatedAt` aus `db/metadata.json` eines Cache-Verzeichnisses, das der Schritt im Temp-Verzeichnis anlegt (zweiter Mount `-v <Cache>:/cache`, `--cache-dir /cache`, dazu `--user <uid>:<gid>` des Aufrufers, damit die Dateien des Containers dem Runner gehören und das Aufräumen gelingt); `UpdatedAt` (Stand der Daten), nicht `DownloadedAt` | Bestätigt? Punkt 16 E10 nennt nur den Mount des Layouts; der Cache-Mount, `--cache-dir` und `--user` sind drei Elemente mehr (je ein Fall und eine Mutation: `p16-user`, `p16-cache-dir`, `p16-cache-kein-zwischenspeicher`, `p16-e10-mount`). Alternative: `trivy version --format json` im selben Cache |
+| Die Marke `image.ok` aus Punkt 16 gibt es nicht (Schritt `image` hinterlässt `image/digest` und `image/layout.tar`, Punkt 13 nennt keine `image.ok`) | `scan` verlangt beide (Exit 2, `release: vorbedingung: …` wie die übrigen Schritte); je Wächter ein Fall (`p16-ohne-image-mit-layout`, `p16-ohne-layout`) | Den Namen im Vertrag auf `image/digest` ändern, oder soll `image` eine Marke `image.ok` anlegen? |
+| Form der Meldung bei Exit 2 | `release: scan: <Stichwort>: …` für `scan-gescheitert`, `pruefmenge`, `datenbank`, `plattform`; `release: vorbedingung: …` für die Vorbedingung | Bindend so? |
+| Reihenfolge mehrerer Gründe (`AGENTS.md` §3.12): Punkt 16 ordnet sie nicht | je Plattform nacheinander (`amd64`, `arm64`), je Plattform `scan-gescheitert`, `pruefmenge`, `datenbank`, `plattform` (Reihenfolge der Aufzählung); ein Exit 2 einer späteren Plattform geht dem Exit 1 (Befunde der früheren) vor, weil die Befunde erst nach beiden Läufen genannt werden; **kein Fall** zur Reihenfolge | Binden (dann je Paar ein Fall) oder offen lassen? |
+| `scan.ok` und Zustand früherer Läufe | `eingaben` und `image` löschen `scan.ok`, `scan` löscht es zu Beginn (je ein Fall und eine Mutation) | Punkt 11 und 13 sollen es nennen |
+| Summenzeile bei Grün | `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` auf stdout (Checkliste Punkt 7 verlangt „Zeile aus dem Log“) | Punkt 16 nennt die Summe nur bei Exit 1 |
+| Tabelle in Punkt 11 ohne Zeile `scan` | `releasing.md` §11 führt die Zeile (nicht gelaufen: wiederholen; Befund: beheben, neuer Tag) | Die Tabelle des Vertrags ergänzen, sonst „deckt sich“ nicht |
+| Ein Image ohne jedes Paket hätte kein `Results` | `pruefmenge` (Exit 2): eine leere Prüfmenge ist kein Grün; ob `distroless/static` Pakete im Bericht führt, ist nicht gemessen | Ist das gemeint? |
+| Trivy nicht gemessen: `--platform` zusammen mit `--input` auf einem OCI-Tar mit Index, `Metadata.ImageConfig.architecture`, Betrieb als Nicht-root mit `--cache-dir`, Form von `db/metadata.json`, `Results` bei sauberem Image | wie oben beschrieben; fail-closed | Der erste Trockenlauf misst; wer entscheidet danach, wenn eine Annahme falsch war (Vertrag nachziehen und neuer Lauf)? |
+
+**Entwurf für Handbuch und `README.md` (nicht geliefert; erst nach dem Lauf des Tags, `SPEC-067` Punkt 18):** Der Lauf liefert hier weder die Zeile in §11 noch den Kopf noch §2 *Installation*; sie hängen an `VERSION` und dem Release-Commit, den der Koordinator festlegt. Wortlaut als Entwurf; `<…>` ist der Wert, den der Lauf liefert, ein Befehl steht erst im Handbuch, wenn er nach dem Tag einmal gelaufen ist (Beleg: Befehl, Lauf, Ausgabe in §7 des Commits, der ihn einträgt).
+
+- §11 *Änderungshistorie* (vor dem Tag, im Release-Commit; ersetzt „Es gibt keine veröffentlichte Version.“ durch die Tabelle mit der Kopfzeile `| Version | Datum | Änderung |`): `| 0.1.0 | <Datum des Tags> | Erste veröffentlichte Version: Aufzeichnen (record), Wiedergeben (replay) und Einspielen (play) von PostgreSQL-Verkehr; Binaries für Linux, macOS und Windows (amd64, arm64) und ein Image für linux/amd64 und linux/arm64. |` (drei Zellen, kein weiteres `|`; der Text ist die Notiz des GitHub-Release).
+- Kopf (nach dem Lauf): die Zeile *Software-Version* nennt `0.1.0` mit dem Zusatz „Ausgabe von `pgwire-recorder version` des veröffentlichten Binaries“; *Gültigkeitsbereich* nennt das Binary in der Version 0.1.0 (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.0`) und sagt, dass ein aus dem Repository gebautes Binary `pgwire-recorder dev` meldet. Beleg: `version` des veröffentlichten Binaries.
+- §2 *Installation*, neue Abschnitte (nach dem Lauf, nur belegte Befehle): *Das Binary vom GitHub-Release* (`curl -fsSLO …/releases/download/v<Version>/pgwire-recorder_<Version>_<os>_<arch>` und `…/SHA256SUMS`, `sha256sum -c --ignore-missing SHA256SUMS`, die Plattformen; `darwin` und `windows` sind gebaut, nicht ausgeführt) und *Das Image aus einer Registry* (`docker pull ghcr.io/pt9912/pgwire-recorder:<Version>` und `docker.io/…`, `docker run --rm … version`, `:latest`, weil der Lauf es gesetzt und der Smoke es belegt hat). Beleg je Befehl: Lauf nach dem Tag.
+- `README.md`: derselbe Bezug in zwei Sätzen, ohne Zielstand.
+
+**Frage an den Koordinator:** Wie entsteht der Release-Commit? Der Plan lässt es offen: `VERSION` (heute `0.1.0-dev`) und die Zeile der Änderungshistorie stehen im Commit, der getaggt wird (`SPEC-067` Punkt 17), und `make gates`, der Gegenproben-Container und `make gegenproben-host` laufen auf genau diesem Hash. Der Implementer legt ihn nicht an: `VERSION` bleibt `0.1.0-dev`, die Zeile fehlt. Ob der Commit nach Review und Verifikation auf dem Hauptzweig entsteht (dann ist die Closure dieses Slice nach dem Tag) und wer ihn schreibt, ist zu entscheiden; ebenso das Datum der Zeile.
 
 - **Belege zur DoD (Implementer):** <…>
 - **Was hat funktioniert:** <…>
