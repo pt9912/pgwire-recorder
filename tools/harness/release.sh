@@ -152,6 +152,7 @@ schritt_eingaben() {
   zustand
   rm -f "$zdir/eingaben.ok" "$zdir/binaries.ok"
   rm -rf "$zdir/vergleichen.ok" "$zdir/image" # P11loescht-b
+  rm -f "$zdir/smoke.ok" # P11loescht-smoke
   tag_ableiten
   pruefe_ereignis
   pruefe_tag_form
@@ -197,7 +198,7 @@ schritt_github_release() {
   aussenwirkung_erlaubt
   zustand
   [ -f "$zdir/binaries.ok" ] || eingabe vorbedingung "der Schritt binaries war nicht grün" # P11binaries
-  [ -f "$zdir/vergleichen.ok" ] || eingabe vorbedingung "der Schritt vergleichen war nicht grün" # P9registries
+  [ -f "$zdir/smoke.ok" ] || eingabe vorbedingung "der Schritt smoke war nicht grün" # P9registries
   [ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt" # P9token
   tag_ableiten
   v="${tag#v}"
@@ -237,7 +238,8 @@ schritt_github_release() {
 
 # --- Image, Registries (Punkte 5 bis 8) ---------------------------------------------------------------------------------------------------------------
 IMAGE_NAME=pt9912/pgwire-recorder
-BUILDKIT_IMAGE='moby/buildkit@sha256:0000000000000000000000000000000000000000000000000000000000000000' # P5builder
+BUILDKIT_IMAGE='moby/buildkit@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea' # v0.33.1
+FEHLT_RE='manifest unknown|name unknown|not found' # Meldungen von skopeo inspect, die „der Tag fehlt“ heißen (ohne Beachtung der Schreibweise)
 REGISTRIES=(ghcr.io docker.io)
 # verlange <Datei unter dem Zustand> <Schritt> — Exit 2, wenn der Vorgänger nichts hinterlassen hat.
 verlange() { [ -e "$zdir/$1" ] || eingabe vorbedingung "der Schritt $2 war nicht grün"; }
@@ -283,7 +285,7 @@ schritt_image() {
   v="${tag#v}"
   dist="$zdir/dist"
   rm -rf "$zdir/image"; mkdir -p "$zdir/image"
-  zeit="$(git show -s --format=%ct "${RELEASE_SHA-}")" || rot "die Commit-Zeit von ${RELEASE_SHA-} ist nicht zu lesen"
+  zeit="$(git log -1 --format=%ct "${RELEASE_SHA-}")" || rot "die Commit-Zeit von ${RELEASE_SHA-} ist nicht zu lesen"
   fuehre docker buildx create --name pgr-release --driver docker-container --driver-opt "image=$BUILDKIT_IMAGE" --bootstrap
   [ "$rc" -eq 0 ] || rot "docker buildx create endet mit Exit $rc"
   bargs=(buildx build --builder pgr-release --target runtime --build-arg "VERSION=$v" --build-arg "SOURCE_DATE_EPOCH=$zeit" --provenance=false --sbom=false)
@@ -291,6 +293,7 @@ schritt_image() {
   [ "$rc" -eq 0 ] || rot "docker buildx build endet mit Exit $rc"
   tar -xOf "$zdir/image/layout.tar" index.json > "$scratch/index.json" 2> /dev/null || rot "das Layout enthält keine index.json"
   [ "$(manifeste "$scratch/index.json")" -eq 1 ] || rot "das Layout enthält nicht genau einen Index" # P5ein-index
+  grep -q '"manifests":\[{"mediaType":"application/vnd.oci.image.index.v1+json"' <(tr -d ' \t\n' < "$scratch/index.json") || rot "der Eintrag des Layouts ist kein Index" # P5index-typ
   hex="$(grep -o '"digest": *"sha256:[0-9a-f]*"' "$scratch/index.json" | grep -o '[0-9a-f]\{64\}')"
   tar -xOf "$zdir/image/layout.tar" "blobs/sha256/$hex" > "$scratch/index" 2> /dev/null || rot "das Layout enthält den Index sha256:$hex nicht"
   index_pruefen "$scratch/index" "der Index des Layouts" # P5manifeste
@@ -323,7 +326,7 @@ schritt_veroeffentlichen() {
       echo "release: veroeffentlichen: $reg trägt $v schon mit $d"
       continue # P6gleich
     fi
-    grep -q 'manifest unknown' "$scratch/skopeo.err" || rot "skopeo inspect für $reg endet mit Exit $rc" # P6fehler
+    grep -qiE "$FEHLT_RE" "$scratch/skopeo.err" || rot "skopeo inspect für $reg endet mit Exit $rc" # P6fehler
     fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "oci-archive:$zdir/image/layout.tar" "docker://$reg/$IMAGE_NAME:$v" # P6copy
     [ "$rc" -eq 0 ] || rot "skopeo copy nach $reg endet mit Exit $rc; $(zustand_tag "$v")"
     echo "release: veroeffentlichen: $v nach $reg kopiert"
@@ -342,7 +345,7 @@ schritt_vergleichen() {
   for reg in "${REGISTRIES[@]}"; do
     fuehre skopeo inspect --raw --no-creds "docker://$reg/$IMAGE_NAME:$v" > "$scratch/roh-$reg" 2> "$scratch/skopeo.err" # P7anonym
     if [ "$rc" -ne 0 ]; then
-      if grep -q 'manifest unknown' "$scratch/skopeo.err"; then rot "$reg trägt den Tag $v nicht"; fi # P7tag
+      if grep -qiE "$FEHLT_RE" "$scratch/skopeo.err"; then rot "$reg trägt den Tag $v nicht"; fi # P7tag
       rot "$reg ist ohne Anmeldung nicht lesbar (Exit $rc); das Paket muss öffentlich sein (Handlung des Betreibers)"
     fi
     index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen
@@ -360,6 +363,7 @@ schritt_smoke() {
   aussenwirkung_erlaubt # P2smoke
   zustand
   verlange vergleichen.ok vergleichen # P13smoke
+  rm -f "$zdir/smoke.ok" # P11smoke-marke
   tag_ableiten
   v="${tag#v}"
   d="$(cat "$zdir/image/digest")"
@@ -372,13 +376,14 @@ schritt_smoke() {
     [ "$rc" -eq 0 ] || rot "der Smoke aus $reg endet mit Exit $rc"
     echo "release: smoke: grün aus $reg"
   done
+  : > "$zdir/smoke.ok" # P7smoke-ok
 }
 
 schritt_latest() {
   local reg v d hoechste
   aussenwirkung_erlaubt # P2latest
   zustand
-  verlange vergleichen.ok vergleichen # P8vergleich
+  verlange smoke.ok smoke # P8vergleich
   tag_ableiten
   v="${tag#v}"
   d="$(cat "$zdir/image/digest")"

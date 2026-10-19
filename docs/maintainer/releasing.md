@@ -147,7 +147,7 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
    Dateiliste: die sechs Binaries und `SHA256SUMS`, sonst nichts. Es gibt keinen zweiten Bau;
    die Gleichheit zweier Builds hält `make test-container`.
 3. `Image` baut das Image einmal für `linux/amd64` und `linux/arm64` in ein OCI-Layout mit genau
-   einem Index und zwei Manifesten (Treiber `docker-container`, das Image des Builders mit Digest) und prüft, dass das Binary `/pgwire-recorder` jeder Plattform die Summe aus `SHA256SUMS` hat;
+   einem Index und zwei Manifesten (Treiber `docker-container`, das Image des Builders mit Digest gepinnt) und prüft, dass das Binary `/pgwire-recorder` jeder Plattform die Summe aus `SHA256SUMS` hat;
    der Digest `D` des Index steht danach fest. Das Image ist nicht reproduzierbar zugesagt.
 4. `Veröffentlichen` kopiert genau dieses Layout ohne Neubau nach `ghcr.io`, dann nach `docker.io`, unter dem Tag
    `<SemVer>` ohne `v`. Ein vorhandener Tag mit demselben Digest wird übersprungen, einer mit einem anderen
@@ -157,11 +157,11 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
    `linux/arm64`. Ist das Paket nicht öffentlich, ist der Schritt rot.
 6. `Smoke` startet das Image `<Registry>/pt9912/pgwire-recorder@<D>` aus jeder der beiden Registries
    (Aufzeichnen und Wiedergeben, `tools/harness/container-smoke.sh`).
-7. `Latest` setzt `latest` auf `D`, in `ghcr.io` zuerst, nur bei einer stabilen Version, die höher ist als jede
+7. `Latest` setzt `latest` auf `D`, in `ghcr.io` zuerst, nur nach grünem `Smoke` und nur bei einer stabilen Version, die höher ist als jede
    andere stabile Version unter den Tags `v*`. Eine Vorabversion und der Patch eines älteren Zweigs lassen
    `latest` unverändert.
 8. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
-   Änderungshistorie, als Vorabversion bei einem Tag mit `-…`; der Schritt läuft nur, wenn `Vergleichen` grün war.
+   Änderungshistorie, als Vorabversion bei einem Tag mit `-…`; der Schritt läuft nur, wenn `Smoke` grün war.
 
 Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
 (`workflow_dispatch`): `Eingaben`, `Binaries` und `Image` mit der Version aus `VERSION` als Tag

@@ -306,6 +306,7 @@ case "$v" in
   ohne-amd64) l="$(m arm64),$(m s390x)" ;;
   ohne-arm64) l="$(m amd64),$(m s390x)" ;;
   eine) l="$(m amd64)" ;;
+  ohne-eintrag) l="" ;;
   *) l="$(m amd64),$(m arm64)" ;;
 esac
 idx="{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.index.v1+json\",\"manifests\":[$l]}"
@@ -313,6 +314,8 @@ x="$(h "$idx")"
 mkdir -p "$d/blobs/sha256"; printf '%s' "$idx" > "$d/blobs/sha256/$x"; printf '%s' "$idx" > "$out.index"
 e="{\"mediaType\":\"application/vnd.oci.image.index.v1+json\",\"digest\":\"sha256:$x\",\"size\":${#idx}}"
 [ "$v" != zwei-eintraege ] || e="$e,$e"
+[ "$v" != manifest-statt-index ] || e="${e/image.index.v1/image.manifest.v1}"
+[ "$v" != ohne-eintrag ] || e=""
 printf '{"schemaVersion":2,"manifests":[%s]}' "$e" > "$d/index.json"
 printf '{"imageLayoutVersion":"1.0.0"}' > "$d/oci-layout"
 tar -cf "$out" -C "$d" oci-layout index.json blobs
@@ -371,10 +374,17 @@ case "$cmd" in
     if [ "$anon" = 1 ] && [[ " ${GP_ANON-} " == *" $reg "* ]]; then echo "unauthorized: authentication required" >&2; exit 1; fi
     case "${GP_INSPECT-}" in
       "$reg") echo "received unexpected HTTP status: 502 Bad Gateway" >&2; exit 1 ;;
-      "name:$reg") echo "name unknown: repository name not known to registry" >&2; exit 1 ;;
+      "denied:$reg") echo "requested access to the resource is denied" >&2; exit 1 ;;
     esac
     f="$GP_REG/$reg/$ref"
-    [ -f "$f" ] || { echo "manifest unknown" >&2; exit 1; }
+    if [ ! -f "$f" ]; then
+      case "${GP_FEHLT-manifest}" in
+        manifest) echo "manifest unknown" >&2 ;;
+        name) echo "name unknown: repository name not known to registry" >&2 ;;
+        notfound) echo "Error: 404 Not Found" >&2 ;;
+      esac
+      exit 1
+    fi
     if [ "$raw" = 1 ]; then cat "$f"; else printf '{"Name":"x","Digest":"sha256:%s"}\n' "$(tr -d ' \n' < "$f" | sed 's/x/y/' | sha256sum | cut -d' ' -f1)"; fi ;;
   copy)
     src="${args[0]}"; teile "${args[1]}"; dreg="$reg"; dref="$ref"
@@ -467,7 +477,7 @@ umg_befehl() { ENVV=(env --default-signal=INT,TERM -i "PATH=$run/welt/bin:/usr/l
 lauf() {
   local s="$1"
   shift
-  if [ "$s" = github-release ] && [ -z "${ohne_vergl-}" ]; then mkdir -p "$w/runner/release"; : > "$w/runner/release/vergleichen.ok"; fi
+  if [ "$s" = github-release ] && [ -z "${ohne_vergl-}" ]; then mkdir -p "$w/runner/release"; : > "$w/runner/release/smoke.ok"; fi
   umg_befehl
   ( cd "$w/repo" && "${ENVV[@]}" "$@" bash "$releasesh" "$s" ) > "$w.out" 2> "$w.err"
   code=$?
@@ -779,6 +789,10 @@ f_p3_secret_fehlt_user() { secret -RELEASE_DOCKERHUB_USER DOCKERHUB_USERNAME; }
 f_p3_secret_fehlt_token() { secret -RELEASE_DOCKERHUB_TOKEN DOCKERHUB_TOKEN; }
 f_p3_secret_leer_user() { secret RELEASE_DOCKERHUB_USER= DOCKERHUB_USERNAME; }
 f_p3_secret_leer_token() { secret RELEASE_DOCKERHUB_TOKEN= DOCKERHUB_TOKEN; }
+f_p3_secret_fehlen_beide() {
+  fix 0.1.0; umg lauf -RELEASE_DOCKERHUB_USER -RELEASE_DOCKERHUB_TOKEN; lauf eingaben; grund 2 eingaben geheimnis
+  sei "nennt beide Namen" enthaelt "$err" "DOCKERHUB_USERNAME"; sei "nennt DOCKERHUB_TOKEN" enthaelt "$err" "DOCKERHUB_TOKEN"; sei "eine Meldung" test "$(grep -c . <<< "$err")" -eq 1
+}
 f_p3_schluesselwort_geheimnis() { fix 0.1.0; umg lauf -RELEASE_DOCKERHUB_TOKEN; lauf eingaben; sei "Schlüsselwort geheimnis" beginnt geheimnis; }
 f_p3_reihenfolge_6_7() { fix 0.1.0; umg lauf "RELEASE_SHA=$s1" -RELEASE_DOCKERHUB_TOKEN; lauf eingaben; grund 2 eingaben standard-zweig; }
 # Punkt 5
@@ -793,12 +807,30 @@ f_p5_aufruf() {
   done
   c="$(grep '^docker buildx create ' "$w/log/docker" || true)"
   sei "Treiber docker-container" enthaelt "$c" " --driver docker-container "
-  sei "Image des Builders per Digest" test -n "$(grep -E -e '--driver-opt image=[^ @]+@sha256:[0-9a-f]{64}( |$)' <<< "$c" || true)"
+  sei "Image des Builders: der Pin aus release.sh" enthaelt "$c" " --driver-opt image=$(pin_zeile | sed "s/^BUILDKIT_IMAGE='\([^']*\)'.*/\1/") "
 }
 f_p5_zwei_manifeste() { bild_mit GP_IMAGE=drei; rotgrund image "nicht genau zwei Manifeste"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
 f_p5_plattform_fehlt_amd64() { bild_mit GP_IMAGE=ohne-amd64; rotgrund image "statt linux/amd64 linux/arm64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
 f_p5_plattform_fehlt_arm64() { bild_mit GP_IMAGE=ohne-arm64; rotgrund image "statt linux/amd64 linux/arm64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
-f_p5_ein_index() { bild_mit GP_IMAGE=zwei-eintraege; rotgrund image "nicht genau einen Index"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
+f_p5_layout_form() {
+  local v
+  for v in zwei-eintraege:"nicht genau einen Index" ohne-eintrag:"nicht genau einen Index" manifest-statt-index:"kein Index"; do
+    bild_mit "GP_IMAGE=${v%%:*}"; rotgrund image "${v#*:}"; sei "kein Digest ($v)" test ! -e "$(IMG)/digest"
+  done
+}
+f_p5_ohne_binaries() { fix 0.1.0; umg lauf; bis eingaben; lauf image; grund 2 image vorbedingung; sei "docker nie gerufen" nie docker; }
+# der Pin des Builders steht in release.sh (Kopie des Falls)
+pin_zeile() { grep '^BUILDKIT_IMAGE=' "$releasesh"; }
+f_p5_builder_pin_form() { sei "Form: moby/buildkit@sha256:<64 Hexziffern> und Tag-Kommentar" test -n "$(pin_zeile | grep -E "^BUILDKIT_IMAGE='moby/buildkit@sha256:[0-9a-f]{64}' # v[0-9]+\.[0-9]+\.[0-9]+\$" || true)"; }
+f_p5_builder_platzhalter() { sei "der Digest ist kein Platzhalter aus Nullen" test -z "$(pin_zeile | grep -E "@sha256:0{64}'" || true)"; }
+f_p5_epoch_committer() {
+  local c3
+  fix 0.1.0
+  GIT_AUTHOR_DATE="1600000000 +0000" GIT_COMMITTER_DATE="1700000500 +0000" git -C "$w/repo" commit -q --allow-empty -m c3
+  c3="$(git -C "$w/repo" rev-parse HEAD)"; git -C "$w/repo" update-ref refs/remotes/origin/main "$c3"
+  umg lauf "RELEASE_SHA=$c3"; bis eingaben binaries image
+  sei "SOURCE_DATE_EPOCH ist die Committer-Zeit" enthaelt "$(grep '^docker buildx build ' "$w/log/docker" | grep -e 'type=oci')" " --build-arg SOURCE_DATE_EPOCH=1700000500 "
+}
 f_p5_summe_amd64() { bild_mit GP_SUMME=amd64; rotgrund image "linux/amd64"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
 f_p5_summe_arm64() { bild_mit GP_SUMME=arm64; rotgrund image "linux/arm64"; sei "nicht amd64" ohne "$err" "linux/amd64: das Binary"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
 f_p5_digest() {
@@ -834,9 +866,13 @@ f_p6_tag_vorhanden_anders() {
   sei "Meldung nennt beide Digests" enthaelt "$err" "sha256:$(sha256sum "$w/vorher" | cut -d' ' -f1) statt $D"
   sei "kein Copy" test "$(kopien ghcr.io)" -eq 0; sei "der Tag bleibt, wie er war" cmp -s "$w/vorher" "$(REG ghcr.io)/0.1.0"
 }
+tag_fehlt() { bild; lauf veroeffentlichen "GP_FEHLT=$1"; gruen; sei "kopiert nach ghcr.io" test "$(kopien ghcr.io)" -eq 1; sei "kopiert nach docker.io" test "$(kopien docker.io)" -eq 1; }
+f_p6_tag_fehlt_manifest_unknown() { tag_fehlt manifest; }
+f_p6_tag_fehlt_name_unknown() { tag_fehlt name; }
+f_p6_tag_fehlt_not_found() { tag_fehlt notfound; }
 f_p6_inspect_anderer_fehler() {
   local f
-  for f in ghcr.io name:ghcr.io; do
+  for f in ghcr.io denied:ghcr.io; do
     bild; lauf veroeffentlichen "GP_INSPECT=$f"; rotgrund veroeffentlichen; sei "$f: kein Copy" test "$(kopien ghcr.io)" -eq 0
   done
 }
@@ -894,6 +930,12 @@ f_p7_smoke_aufruf() {
   sei "Meldungspräfix und Verzeichnis in beiden" test "$(grep -c 'SMOKE_NAME=release: smoke LAUF=.* WERK=da$' <<< "$z")" -eq 2
   sei "Namen der Läufe verschieden" test "$(grep -o ' LAUF=[^ ]*' <<< "$z" | sort -u | wc -l)" -eq 2
 }
+f_p7_postgres_fehlt() { bis_vergl; rm "$w/repo/harness/mk/integration.mk"; lauf smoke; grund 2 smoke vorbedingung; sei "Smoke nie gerufen" nie smoke; }
+f_p7_smoke_ohne_vergleichen() { bild; bis veroeffentlichen; lauf smoke; grund 2 smoke vorbedingung; sei "Smoke nie gerufen" nie smoke; }
+f_p7_smoke_ok_marke() {
+  bis_vergl; lauf smoke; gruen; sei "Marke smoke.ok nach grünem Smoke" test -e "$w/runner/release/smoke.ok"
+  lauf smoke GP_SMOKE_ROT=ghcr.io; sei "Smoke rot" test "$code" -eq 1; sei "keine Marke nach rotem Smoke" test ! -e "$w/runner/release/smoke.ok"
+}
 smoke_rot() { bis_vergl; lauf smoke "GP_SMOKE_ROT=$1"; rotgrund smoke "der Smoke aus $1"; sei "kein latest" ohne "$(aufrufe skopeo)" ":latest"; }
 f_p7_smoke_ghcr() { smoke_rot ghcr.io; }
 f_p7_smoke_docker() { smoke_rot docker.io; }
@@ -923,13 +965,15 @@ f_p8_semver_numerisch() {
   latest_von 1.10.0 v1.9.0; lauf latest; gruen; gesetzt
   latest_von 1.9.0 v1.10.0; lauf latest; gruen; ungesetzt
 }
+f_p8_ohne_smoke() { bis_vergl; lauf latest; grund 2 latest vorbedingung; ungesetzt; }
+f_p8_fremder_tag() { latest_von 1.0.0 vfoo v1.2; lauf latest; gruen; gesetzt; }
 f_p8_nach_rotem_vergleich() { bild; bis veroeffentlichen; tamper ghcr.io; lauf vergleichen; lauf latest; grund 2 latest vorbedingung; ungesetzt; }
 f_p8_zweite_registry_faellt() {
   latest_von 1.1.0 v1.0.0; lauf latest GP_COPY_ROT=docker.io; rotgrund latest "ghcr.io:latest=$D docker.io:latest=-"
   sei "ghcr.io trägt latest" test -f "$(REG ghcr.io)/latest"
 }
 # Punkt 9
-f_p9_nicht_vor_registries() { fix 0.1.0; umg lauf; bis eingaben binaries; ohne_vergl=1; lauf github-release; grund 2 github-release vorbedingung; sei "gh nie gerufen" nie gh; }
+f_p9_nicht_vor_registries() { bis_vergl; ohne_vergl=1; lauf github-release; grund 2 github-release vorbedingung; sei "gh nie gerufen" nie gh; }
 # Punkt 10
 kein_geheimnis() { sei "kein Token in stdout und stderr" ohne "$out$err" "$TOKEN"; sei "kein Token der Registry ghcr.io" ohne "$out$err" "$TOKEN_G"; sei "kein Token von docker.io" ohne "$out$err" "$TOKEN_D"; }
 f_p10_nicht_im_log_image() {
@@ -969,8 +1013,9 @@ f_p11_reihenfolge_gruende_b() {
   sei "skopeo, docker und der Smoke nie gerufen" test ! -s "$w/log/skopeo" -a ! -s "$w/log/docker" -a ! -s "$w/log/smoke"
 }
 f_p11_alte_marke_b() {
-  bis_vergl; umg lauf RELEASE_REF=refs/tags/v01.2.3; lauf eingaben; sei "eingaben rot" test "$code" -eq 2
+  bis_vergl; lauf smoke; umg lauf RELEASE_REF=refs/tags/v01.2.3; lauf eingaben; sei "eingaben rot" test "$code" -eq 2
   : > "$w/runner/release/binaries.ok"; umg lauf; ohne_vergl=1; lauf github-release; grund 2 github-release vorbedingung; sei "gh nie gerufen" nie gh
+  lauf smoke; grund 2 smoke vorbedingung
   lauf veroeffentlichen; grund 2 veroeffentlichen vorbedingung
   bis_vergl; tamper ghcr.io; lauf vergleichen; sei "vergleichen rot" test "$code" -eq 1; sei "keine Marke eines früheren Laufs" test ! -e "$w/runner/release/vergleichen.ok"
   bild; lauf image GP_SUMME=amd64; sei "image rot" test "$code" -eq 1; lauf veroeffentlichen; grund 2 veroeffentlichen vorbedingung
@@ -1066,11 +1111,11 @@ FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-k
   p9-anhaenge p9-aufruf p9-stabil-ohne-prerelease p9-vorabversion-prerelease p9-notes-aus-zelle p9-notes-zeile-der-version p9-notes-aus-abschnitt
   p9-release-existiert-gleich p9-release-existiert-abweichend p9-view-anderer-fehler p9-repo-argument p9-gh-token-fehlt p13-binaries-ohne-eingaben p13-release-ohne-binaries p10-nicht-im-log
   p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p11-reihenfolge-gruende p11-alte-marke)
-FAELLE_B=(p2-trockenlauf-image p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-schluesselwort-geheimnis p3-reihenfolge-6-7
-  p5-aufruf p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64 p5-ein-index p5-summe-amd64 p5-summe-arm64 p5-digest p5-bau-scheitert
-  p6-reihenfolge p6-all-und-digests p6-tag-vorhanden-gleich p6-tag-vorhanden-anders p6-inspect-anderer-fehler p6-zweite-registry-faellt p6-tag-satz p6-anmeldung-scheitert
-  p7-gleich p7-rohbytes p7-digest-ghcr p7-digest-docker p7-digest-lokal p7-anonym-ghcr p7-anonym-docker p7-eine-plattform p7-tag-fehlt p7-smoke-aufruf p7-smoke-ghcr p7-smoke-docker
-  p8-stabil-hoechste p8-vorabversion p8-aelterer-zweig p8-erster-stabiler p8-vorabversion-hoeher-zaehlt-nicht p8-semver-numerisch p8-nach-rotem-vergleich p8-zweite-registry-faellt
+FAELLE_B=(p2-trockenlauf-image p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-secret-fehlen-beide p3-schluesselwort-geheimnis p3-reihenfolge-6-7
+  p5-aufruf p5-builder-pin-form p5-builder-platzhalter p5-epoch-committer p5-ohne-binaries p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64 p5-layout-form p5-summe-amd64 p5-summe-arm64 p5-digest p5-bau-scheitert
+  p6-reihenfolge p6-all-und-digests p6-tag-vorhanden-gleich p6-tag-vorhanden-anders p6-tag-fehlt-manifest-unknown p6-tag-fehlt-name-unknown p6-tag-fehlt-not-found p6-inspect-anderer-fehler p6-zweite-registry-faellt p6-tag-satz p6-anmeldung-scheitert
+  p7-gleich p7-rohbytes p7-digest-ghcr p7-digest-docker p7-digest-lokal p7-anonym-ghcr p7-anonym-docker p7-eine-plattform p7-tag-fehlt p7-smoke-aufruf p7-smoke-ghcr p7-smoke-docker p7-postgres-fehlt p7-smoke-ohne-vergleichen p7-smoke-ok-marke
+  p8-stabil-hoechste p8-vorabversion p8-aelterer-zweig p8-erster-stabiler p8-vorabversion-hoeher-zaehlt-nicht p8-semver-numerisch p8-nach-rotem-vergleich p8-ohne-smoke p8-fremder-tag p8-zweite-registry-faellt
   p9-nicht-vor-registries p10-nicht-im-log-image p10-stdin p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p11-reihenfolge-gruende-b p11-alte-marke-b)
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
 FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende)
@@ -1404,11 +1449,11 @@ done
 mutr m-p2-trockenlauf-image-ruft-skopeo "p2-trockenlauf-image" b '  echo "release: image: Index-Digest $idx"' $'  [ "$trockenlauf" -eq 0 ] || skopeo inspect docker://x\n  echo "release: image: Index-Digest $idx"'
 mutr m-p2-trockenlauf-image-meldet-an "p2-trockenlauf-image" b '  echo "release: image: Index-Digest $idx"' $'  [ "$trockenlauf" -eq 0 ] || docker login x\n  echo "release: image: Index-Digest $idx"'
 # Punkt 3 (7)
-mutr m-p3-secret-user-entfernt "p10-nicht-im-log-image p3-secret-fehlt-user p3-secret-leer-user" b 'L:# P3secret-user' ''
-mutr m-p3-secret-token-entfernt "p3-schluesselwort-geheimnis p3-secret-fehlt-token p3-secret-leer-token" b 'L:# P3secret-token' ''
+mutr m-p3-secret-user-entfernt "p10-nicht-im-log-image p3-secret-fehlen-beide p3-secret-fehlt-user p3-secret-leer-user" b 'L:# P3secret-user' ''
+mutr m-p3-secret-token-entfernt "p3-schluesselwort-geheimnis p3-secret-fehlen-beide p3-secret-fehlt-token p3-secret-leer-token" b 'L:# P3secret-token' ''
 mutr m-p3-secret-user-leer-gilt-als-gesetzt "p3-secret-leer-user" b '[ -n "${RELEASE_DOCKERHUB_USER-}" ] ||' '[ "${RELEASE_DOCKERHUB_USER+x}" ] ||'
 mutr m-p3-secret-token-leer-gilt-als-gesetzt "p3-secret-leer-token" b '[ -n "${RELEASE_DOCKERHUB_TOKEN-}" ] ||' '[ "${RELEASE_DOCKERHUB_TOKEN+x}" ] ||'
-mutr m-p3-7-geheimnisse-entfernt "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlt-token p3-secret-fehlt-user p3-secret-leer-token p3-secret-leer-user" b $'  pruefe_geheimnisse\n' ''
+mutr m-p3-7-geheimnisse-entfernt "p10-nicht-im-log-image p3-schluesselwort-geheimnis p3-secret-fehlen-beide p3-secret-fehlt-token p3-secret-fehlt-user p3-secret-leer-token p3-secret-leer-user" b $'  pruefe_geheimnisse\n' ''
 mutr m-p3-reihenfolge-6-7-vertauscht "p3-reihenfolge-6-7" b $'  pruefe_standard_zweig\n  pruefe_geheimnisse\n' $'  pruefe_geheimnisse\n  pruefe_standard_zweig\n'
 mutr m-p3-schluesselwort-geheimnis-weicht-ab "p3-secret-fehlt-user p3-secret-fehlt-token p3-secret-leer-user p3-secret-leer-token p3-schluesselwort-geheimnis" b 'eingabe() { echo "release: $1: $2" >&2; exit 2; }' 'eingabe() { local k="$1"; [ "$k" != geheimnis ] || k="${k}x"; echo "release: $k: $2" >&2; exit 2; }'
 mutr m-p3-secret-wert-in-meldung "p10-nicht-im-log-image p3-secret-fehlt-user p3-secret-leer-user" b 'eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt"' 'eingabe geheimnis "gesetzt und nicht leer verlangt:$fehlt (${RELEASE_DOCKERHUB_TOKEN-})"'
@@ -1416,22 +1461,19 @@ mutr m-p3-secret-wert-in-meldung "p10-nicht-im-log-image p3-secret-fehlt-user p3
 mutr m-p5-plattformen-entfallen "p5-aufruf" b ' --platform linux/amd64,linux/arm64 --output "type=oci' ' --output "type=oci'
 mutr m-p5-target-entfaellt "p5-aufruf" b ' --target runtime' ''
 mutr m-p5-version-entfaellt "p5-aufruf" b ' --build-arg "VERSION=$v"' ''
-mutr m-p5-source-date-epoch-entfaellt "p5-aufruf" b ' --build-arg "SOURCE_DATE_EPOCH=$zeit"' ''
-mutr m-p5-zeit-aus-head "p5-aufruf" b 'git show -s --format=%ct "${RELEASE_SHA-}"' 'git show -s --format=%ct HEAD'
+mutr m-p5-source-date-epoch-entfaellt "p5-aufruf p5-epoch-committer" b ' --build-arg "SOURCE_DATE_EPOCH=$zeit"' ''
 mutr m-p5-provenance-entfaellt "p5-aufruf" b ' --provenance=false' ''
 mutr m-p5-sbom-entfaellt "p5-aufruf" b ' --sbom=false' ''
 mutr m-p5-rewrite-timestamp-entfaellt "p5-aufruf" b ',rewrite-timestamp=true' ''
-mutr m-p5-output-nicht-oci "p5-aufruf" b 'type=oci,dest=' 'type=docker,dest='
+mutr m-p5-output-nicht-oci "p5-aufruf p5-epoch-committer" b 'type=oci,dest=' 'type=docker,dest='
 mutr m-p5-treiber-nicht-docker-container "p5-aufruf" b '--driver docker-container' '--driver docker'
-mutr m-p5-builder-ohne-digest "p5-aufruf" b "@sha256:0000000000000000000000000000000000000000000000000000000000000000'" ":latest'"
-mutr m-p5-ein-index-entfernt "p5-ein-index" b 'L:# P5ein-index' ''
 mutr m-p5-manifeste-entfernt "p5-zwei-manifeste p5-plattform-fehlt-amd64 p5-plattform-fehlt-arm64" b 'L:# P5manifeste' ''
 mutr m-p5-zahl-entfernt "p5-zwei-manifeste p7-eine-plattform" b 'L:# P5zahl' ''
 mutr m-p5-plattform-amd64-nicht-verlangt "p5-plattform-fehlt-amd64" b '[ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ]' '[[ "$(plattformen "$1")" == *linux/arm64* ]]'
 mutr m-p5-plattform-arm64-nicht-verlangt "p5-plattform-fehlt-arm64" b '[ "$(plattformen "$1")" = "linux/amd64 linux/arm64 " ]' '[[ "$(plattformen "$1")" == *linux/amd64* ]]'
 mutr m-p5-summe-amd64-nicht-geprueft "p11-alte-marke-b p5-summe-amd64" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = amd64 ] ||'
 mutr m-p5-summe-arm64-nicht-geprueft "p5-summe-arm64" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ -n "$soll" ] && [ "$ist" = "$soll" ] || [ "$arch" = arm64 ] ||'
-mutr m-p5-digest-aus-archiv "p10-stdin p11-alte-marke-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p5-digest p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-digest-docker p7-gleich p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p8-aelterer-zweig p8-erster-stabiler p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b 'idx="sha256:$(sha256sum "$scratch/index" | cut -d'"'"' '"'"' -f1)" # P5digest' 'idx="sha256:$(sha256sum "$zdir/image/layout.tar" | cut -d'"'"' '"'"' -f1)" # P5digest'
+mutr m-p5-digest-aus-archiv "p10-stdin p11-alte-marke-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p5-digest p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-digest-docker p7-gleich p7-postgres-fehlt p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p7-smoke-ok-marke p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-ohne-smoke p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt p9-nicht-vor-registries" b 'idx="sha256:$(sha256sum "$scratch/index" | cut -d'"'"' '"'"' -f1)" # P5digest' 'idx="sha256:$(sha256sum "$zdir/image/layout.tar" | cut -d'"'"' '"'"' -f1)" # P5digest'
 mutr m-p5-builder-fehler-ignoriert "p5-bau-scheitert" b $'  [ "$rc" -eq 0 ] || rot "docker buildx create endet mit Exit $rc"\n' ''
 mutr m-p5-bau-fehler-ignoriert "p5-bau-scheitert" b $'  [ "$rc" -eq 0 ] || rot "docker buildx build endet mit Exit $rc"\n' ''
 # Punkt 6
@@ -1444,23 +1486,21 @@ mutr m-p6-vorhandener-tag-ueberschrieben "p10-nicht-im-log-image p6-tag-vorhande
   '      continue # P6gleich' '      [ "$rc" -ne 0 ] || continue # P6gleich'
 mutr m-p6-gleicher-tag-rot "p6-tag-vorhanden-gleich p11-wiederanlauf-ghcr-vorhanden" b '      continue # P6gleich' '      rot "gleich" # P6gleich'
 mutr m-p6-gleicher-tag-kopiert "p6-tag-vorhanden-gleich p11-wiederanlauf-ghcr-vorhanden" b '      continue # P6gleich' '      : # P6gleich'
-mutr m-p6-fehler-wie-fehlend "p6-inspect-anderer-fehler" b 'grep -q '"'"'manifest unknown'"'"' "$scratch/skopeo.err" || rot "skopeo inspect' 'grep -q '"'"''"'"' "$scratch/skopeo.err" || rot "skopeo inspect'
-mutr m-p6-muster-geweitet "p6-inspect-anderer-fehler" b 'grep -q '"'"'manifest unknown'"'"' "$scratch/skopeo.err" || rot "skopeo inspect' 'grep -q '"'"'unknown'"'"' "$scratch/skopeo.err" || rot "skopeo inspect'
-mutr m-p6-zusaetzlicher-tag "p11-wiederanlauf-ghcr-vorhanden p6-reihenfolge p6-tag-satz p6-tag-vorhanden-gleich" b '    echo "release: veroeffentlichen: $v nach $reg kopiert"' $'    fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:${v%.*}"\n    echo "release: veroeffentlichen: $v nach $reg kopiert"'
+mutr m-p6-zusaetzlicher-tag "p11-wiederanlauf-ghcr-vorhanden p6-reihenfolge p6-tag-fehlt-manifest-unknown p6-tag-fehlt-name-unknown p6-tag-fehlt-not-found p6-tag-satz p6-tag-vorhanden-gleich" b '    echo "release: veroeffentlichen: $v nach $reg kopiert"' $'    fuehre skopeo copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:${v%.*}"\n    echo "release: veroeffentlichen: $v nach $reg kopiert"'
 mutr m-p6-zustand-fehlt "p6-zweite-registry-faellt" b '; $(zustand_tag "$v")"' '"'
 mutr m-p6-zweite-registry-ignoriert "p6-zweite-registry-faellt p10-nicht-im-log-image p11-wiederanlauf-ghcr-vorhanden" b '[ "$rc" -eq 0 ] || rot "skopeo copy nach $reg endet mit Exit $rc; $(zustand_tag "$v")"' ':'
 mutr m-p6-anmeldung-fehler-ignoriert "p6-anmeldung-scheitert p10-nicht-im-log-image" b '|| rot "Anmeldung bei $1 scheitert" # P10stdin' '|| true # P10stdin'
 # Punkt 7
-mutr m-p7-ghcr-vergleich-entfernt "p10-nicht-im-log-image p11-alte-marke-b p7-digest-ghcr p8-nach-rotem-vergleich" b 'L:# P7ghcr' ''
+mutr m-p7-ghcr-vergleich-entfernt "p10-nicht-im-log-image p11-alte-marke-b p7-digest-ghcr" b 'L:# P7ghcr' ''
 mutr m-p7-docker-vergleich-entfernt "p7-digest-docker" b 'L:# P7docker' ''
 mutr m-p7-vergleich-gegen-d-entfernt "p7-digest-ghcr p7-digest-lokal" b '  [ "$dg" = "$d" ] || rot "ghcr.io weicht ab: $dg statt $d" # P7ghcr' $'  d="$dg"\n  [ "$dg" = "$d" ] || rot "ghcr.io weicht ab: $dg statt $d" # P7ghcr'
 mutr m-p7-anonym-mit-anmeldung "p7-anonym-ghcr p7-anonym-docker p7-gleich" b ' --no-creds "docker://$reg/$IMAGE_NAME:$v"' ' "docker://$reg/$IMAGE_NAME:$v"'
 mutr m-p7-plattformen-nicht-geprueft "p7-eine-plattform" b 'L:# P7plattformen' ''
-mutr m-p7-digest-aus-anzeige "p10-stdin p11-alte-marke-b p11-wiederanlauf-latest p7-digest-docker p7-gleich p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p8-aelterer-zweig p8-erster-stabiler p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b '  dg="sha256:$(sha256sum "$scratch/roh-ghcr.io" | cut -d'"'"' '"'"' -f1)"' '  dg="$(skopeo inspect --no-creds "docker://ghcr.io/$IMAGE_NAME:$v" | sed -E '"'"'s/.*"Digest":"([^"]*)".*/\1/'"'"')"' \
+mutr m-p7-digest-aus-anzeige "p10-stdin p11-alte-marke-b p11-wiederanlauf-latest p7-digest-docker p7-gleich p7-postgres-fehlt p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p7-smoke-ok-marke p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-ohne-smoke p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt p9-nicht-vor-registries" b '  dg="sha256:$(sha256sum "$scratch/roh-ghcr.io" | cut -d'"'"' '"'"' -f1)"' '  dg="$(skopeo inspect --no-creds "docker://ghcr.io/$IMAGE_NAME:$v" | sed -E '"'"'s/.*"Digest":"([^"]*)".*/\1/'"'"')"' \
   '  dd="sha256:$(sha256sum "$scratch/roh-docker.io" | cut -d'"'"' '"'"' -f1)"' '  dd="$(skopeo inspect --no-creds "docker://docker.io/$IMAGE_NAME:$v" | sed -E '"'"'s/.*"Digest":"([^"]*)".*/\1/'"'"')"'
-mutr m-p7-marke-zu-frueh "p11-alte-marke-b p7-anonym-docker p7-anonym-ghcr p7-digest-docker p7-digest-ghcr p7-digest-lokal p7-eine-plattform p8-nach-rotem-vergleich" b '  rm -f "$zdir/vergleichen.ok" # P11vergleichen-marke' '  : > "$zdir/vergleichen.ok" # P11vergleichen-marke'
+mutr m-p7-marke-zu-frueh "p11-alte-marke-b p7-anonym-docker p7-anonym-ghcr p7-digest-docker p7-digest-ghcr p7-digest-lokal p7-eine-plattform" b '  rm -f "$zdir/vergleichen.ok" # P11vergleichen-marke' '  : > "$zdir/vergleichen.ok" # P11vergleichen-marke'
 mutr m-p7-smoke-nur-eine-registry "p7-smoke-aufruf p7-smoke-docker" b $'  for reg in "${REGISTRIES[@]}"; do\n    mkdir "$scratch/smoke-$reg"' $'  for reg in ghcr.io; do\n    mkdir "$scratch/smoke-$reg"'
-mutr m-p7-smoke-fehler-ignoriert "p7-smoke-ghcr p7-smoke-docker" b $'    [ "$rc" -eq 0 ] || rot "der Smoke aus $reg endet mit Exit $rc"\n' ''
+mutr m-p7-smoke-fehler-ignoriert "p7-smoke-docker p7-smoke-ghcr p7-smoke-ok-marke" b $'    [ "$rc" -eq 0 ] || rot "der Smoke aus $reg endet mit Exit $rc"\n' ''
 mutr m-p7-smoke-referenz-ohne-digest "p7-smoke-aufruf" b 'container-smoke.sh "$reg/$IMAGE_NAME@$d" # P7smoke' 'container-smoke.sh "$reg/$IMAGE_NAME:$v" # P7smoke'
 mutr m-p7-smoke-version-fehlt "p7-smoke-aufruf" b 'fuehre env VERSION="$v" POSTGRES_IMAGE=' 'fuehre env POSTGRES_IMAGE='
 mutr m-p7-smoke-postgres-image-fehlt "p7-smoke-aufruf" b ' POSTGRES_IMAGE="$pg" SMOKE_LAUF=' ' SMOKE_LAUF='
@@ -1470,22 +1510,43 @@ mutr m-p7-smoke-name-weicht-ab "p7-smoke-aufruf" b 'SMOKE_NAME="release: smoke"'
 mutr m-p11-vergleichen-loescht-marke-nicht "p11-alte-marke-b" b 'L:# P11vergleichen-marke' ''
 # Punkt 8
 mutr m-p8-vorabversion-setzt-latest "p8-vorabversion" b 'L:# P8stabil' ''
-mutr m-p8-vorabversionen-zaehlen "p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht" b 'grep -E "^v$KERN\$" | sed' 'grep -E "^v" | sed'
+mutr m-p8-vorabversionen-zaehlen "p8-fremder-tag p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht" b 'grep -E "^v$KERN\$" | sed' 'grep -E "^v" | sed'
 mutr m-p8-hoechste-entfaellt "p8-aelterer-zweig p8-semver-numerisch" b 'L:# P8hoechste' '  hoechste="$v"'
 mutr m-p8-lexikographisch "p8-semver-numerisch" b ' | sort -V | tail -n 1)" # P8hoechste' ' | sort | tail -n 1)" # P8hoechste'
-mutr m-p8-vor-dem-vergleich "p8-nach-rotem-vergleich p11-reihenfolge-gruende-b" b 'L:# P8vergleich' ''
 mutr m-p8-reihenfolge-vertauscht "p8-stabil-hoechste p8-zweite-registry-faellt" b 'for reg in "${REGISTRIES[@]}"; do # P8reg' 'for reg in docker.io ghcr.io; do # P8reg'
 mutr m-p8-all-entfernt "p8-stabil-hoechste" b 'copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://' 'copy --preserve-digests --authfile "$scratch/auth.json" "docker://'
 mutr m-p8-preserve-digests-entfernt "p8-stabil-hoechste" b 'copy --all --preserve-digests --authfile "$scratch/auth.json" "docker://' 'copy --all --authfile "$scratch/auth.json" "docker://'
-mutr m-p8-quelle-tag "p10-stdin p11-wiederanlauf-latest p8-erster-stabiler p8-semver-numerisch p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b '"docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:latest"' '"docker://$reg/$IMAGE_NAME:$v" "docker://$reg/$IMAGE_NAME:latest"'
+mutr m-p8-quelle-tag "p10-stdin p11-wiederanlauf-latest p8-erster-stabiler p8-fremder-tag p8-semver-numerisch p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b '"docker://$reg/$IMAGE_NAME@$d" "docker://$reg/$IMAGE_NAME:latest"' '"docker://$reg/$IMAGE_NAME:$v" "docker://$reg/$IMAGE_NAME:latest"'
 mutr m-p8-zweite-registry-ignoriert "p8-zweite-registry-faellt p11-wiederanlauf-latest" b '[ "$rc" -eq 0 ] || rot "latest in $reg nicht gesetzt (Exit $rc); $(zustand_tag latest)"' ':'
 mutr m-p8-zustand-fehlt "p8-zweite-registry-faellt" b '; $(zustand_tag latest)"' '"'
 # Punkt 9 (B), 13
-mutr m-p9-vergleichen-nicht-geprueft "p11-alte-marke-b p9-nicht-vor-registries" b 'L:# P9registries' ''
-mutr m-p13-image-ohne-binaries "p11-reihenfolge-gruende-b" b 'L:# P13image' ''
+mutr m-p5-builder-ohne-digest "p5-builder-pin-form" b "@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea' # v0.33.1" ":latest' # v0.33.1"
+mutr m-p5-builder-platzhalter "p5-builder-platzhalter" b "@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea'" "@sha256:0000000000000000000000000000000000000000000000000000000000000000'"
+mutr m-p5-builder-ohne-tag-kommentar "p5-builder-pin-form" b "dea' # v0.33.1" "dea'"
+mutr m-p5-builder-pin-nicht-uebergeben "p5-aufruf" b ' --driver-opt "image=$BUILDKIT_IMAGE"' ''
+mutr m-p5-zeit-aus-head "p5-aufruf" b 'git log -1 --format=%ct "${RELEASE_SHA-}"' 'git log -1 --format=%ct HEAD'
+mutr m-p5-epoch-autor-zeit "p5-epoch-committer" b 'git log -1 --format=%ct' 'git log -1 --format=%at'
+mutr m-p5-ein-index-entfernt "p5-layout-form" b 'L:# P5ein-index' ''
+mutr m-p5-index-typ-entfernt "p5-layout-form" b 'L:# P5index-typ' ''
+mutr m-p3-secret-nur-der-erste "p3-secret-fehlen-beide" b '|| fehlt+=" DOCKERHUB_TOKEN"' '|| [ -n "$fehlt" ] || fehlt+=" DOCKERHUB_TOKEN"'
+mutr m-p6-fehler-wie-fehlend "p6-inspect-anderer-fehler p7-anonym-docker p7-anonym-ghcr" b "FEHLT_RE='manifest unknown|name unknown|not found'" "FEHLT_RE='.'"
+mutr m-p6-muster-geweitet "p6-inspect-anderer-fehler" b "FEHLT_RE='manifest unknown|name unknown|not found'" "FEHLT_RE='manifest unknown|name unknown|not found|denied'"
+mutr m-p6-wortlaut-manifest-unknown-nicht-erkannt "p10-nicht-im-log-image p10-stdin p11-alte-marke-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p5-digest p6-all-und-digests p6-reihenfolge p6-tag-fehlt-manifest-unknown p6-tag-satz p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-anonym-docker p7-anonym-ghcr p7-digest-docker p7-digest-ghcr p7-digest-lokal p7-gleich p7-postgres-fehlt p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p7-smoke-ohne-vergleichen p7-smoke-ok-marke p7-tag-fehlt p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-nach-rotem-vergleich p8-ohne-smoke p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt p9-nicht-vor-registries" b "FEHLT_RE='manifest unknown|name unknown|not found'" "FEHLT_RE='name unknown|not found'"
+mutr m-p6-wortlaut-name-unknown-nicht-erkannt "p6-tag-fehlt-name-unknown" b "FEHLT_RE='manifest unknown|name unknown|not found'" "FEHLT_RE='manifest unknown|not found'"
+mutr m-p6-wortlaut-not-found-nicht-erkannt "p6-tag-fehlt-not-found" b "FEHLT_RE='manifest unknown|name unknown|not found'" "FEHLT_RE='manifest unknown|name unknown'"
+mutr m-p6-schreibweise-beachtet "p6-tag-fehlt-not-found" b 'grep -qiE "$FEHLT_RE" "$scratch/skopeo.err" || rot "skopeo inspect' 'grep -qE "$FEHLT_RE" "$scratch/skopeo.err" || rot "skopeo inspect'
+mutr m-p7-postgres-quelle-fehlt-angenommen "p7-postgres-fehlt" b '  [ -n "$pg" ] || eingabe vorbedingung "POSTGRES_IMAGE steht nicht in harness/mk/integration.mk"' ':'
+mutr m-p7-smoke-marke-bei-rot "p7-smoke-ok-marke" b '  rm -f "$zdir/smoke.ok" # P11smoke-marke' '  : > "$zdir/smoke.ok" # P11smoke-marke'
+mutr m-p7-smoke-marke-entfaellt "p10-stdin p11-wiederanlauf-latest p7-smoke-ok-marke p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-semver-numerisch p8-stabil-hoechste p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt" b 'L:# P7smoke-ok' ''
+mutr m-p11-smoke-loescht-marke-nicht "p7-smoke-ok-marke" b 'L:# P11smoke-marke' ''
+mutr m-p11-eingaben-loescht-smoke-nicht "p11-alte-marke-b" b 'L:# P11loescht-smoke' ''
+mutr m-p8-smoke-marke-nicht-verlangt "p11-reihenfolge-gruende-b p8-nach-rotem-vergleich p8-ohne-smoke" b 'L:# P8vergleich' ''
+mutr m-p9-smoke-marke-nicht-verlangt "p11-alte-marke-b p9-nicht-vor-registries" b 'L:# P9registries' ''
+mutr m-p8-fremder-tag-zaehlt "p8-fremder-tag p8-stabil-hoechste p8-vorabversion-hoeher-zaehlt-nicht" b 'grep -E "^v$KERN\$" | sed' 'grep -E "^v[0-9]" | sed'
+mutr m-p13-image-ohne-binaries "p11-reihenfolge-gruende-b p5-ohne-binaries" b 'L:# P13image' ''
 mutr m-p13-veroeffentlichen-ohne-image "p11-alte-marke-b p11-reihenfolge-gruende-b" b 'L:# P13veroeffentlichen' ''
 mutr m-p13-vergleichen-ohne-image "p11-reihenfolge-gruende-b" b 'L:# P13vergleichen' ''
-mutr m-p13-smoke-ohne-vergleichen "p11-reihenfolge-gruende-b" b 'L:# P13smoke' ''
+mutr m-p13-smoke-ohne-vergleichen "p11-alte-marke-b p11-reihenfolge-gruende-b p7-smoke-ohne-vergleichen" b 'L:# P13smoke' ''
 # Punkt 10 (B)
 mutr m-p10-token-bei-fehler-registry "p10-nicht-im-log-image" b '[ "$have" = "$d" ] || rot "$reg trägt' '[ "$have" = "$d" ] || { echo "$RELEASE_DOCKERHUB_TOKEN" >&2; false; } || rot "$reg trägt'
 mutr m-p10-env-bei-fehler-registry "p10-nicht-im-log-image" b '[ "$have" = "$d" ] || rot "$reg trägt' '[ "$have" = "$d" ] || { env >&2; false; } || rot "$reg trägt'
