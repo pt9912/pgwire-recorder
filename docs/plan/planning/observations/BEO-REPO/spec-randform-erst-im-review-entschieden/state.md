@@ -47,3 +47,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-gegenproben
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-ci-range-konfiguration` (F-2) — Abbruch und Herunterfahren der Gegenprobe standen weder in §6 noch in der Spezifikation; das Review fand sie, der Architect entschied sie in `SPEC-064` Punkt 18 (Beleg `evidence/slice-harness-ci-range-konfiguration.md`). Zähler 42.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-erster-release-veroeffentlichung` (F-5) — die Zelle der Änderungshistorie mit `|` stand weder in §6 noch in der Spezifikation; das Review fand sie, der Architect entschied sie in `SPEC-067` Punkt 9 (Beleg `evidence/slice-erster-release-veroeffentlichung.md`). Zähler 43.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-doc-trace-archiv` (F-1 MEDIUM; F-10 INFO; V-2 LOW) — Exit-Code bei Schreibfehler, fehlende Wurzel, Zeile an anderer Stelle, Welle ohne Stub und Reihenfolge innerhalb eines Grundes standen weder in §6 noch in `SPEC-068`; das Review und die Verifikation fanden sie, der Architect entschied sie (Beleg `evidence/slice-harness-doc-trace-archiv.md`). Zähler 44.

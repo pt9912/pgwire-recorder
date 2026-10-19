@@ -80,3 +80,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci-range-kon
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci` (F-4, Runde 2 LOW; V-2, V-7) — Vertrag und Plan widersprachen dem Skript, ein Zählsatz und die Metrik in §7 nannten den Stand davor, §1, ein DoD-Punkt und die Einleitung der Randformen folgten den Entscheidungen nicht; nachgezogen bei der Closure (Beleg `evidence/slice-harness-ci.md`). Zähler 70.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-erster-release-veroeffentlichung` (F-3 LOW) — `releasing.md` §3 nannte den Probe-Tag nach der Entscheidung, keinen zu haben, weiter als Verfahren; ein Dokument der Wartung statt einer Plan-Zeile, dieselbe Form; behoben (Beleg `evidence/slice-erster-release-veroeffentlichung.md`). Zähler 71.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-doc-trace-archiv` (F-8 LOW) — Kopf und Einleitung nannten die Zahl und die Liste der Waisen vor der Messung am Basisstand, die Messung des Implementers (sieben) kam erst nach dem Review in den Kopf; behoben (Beleg `evidence/slice-harness-doc-trace-archiv.md`). Zähler 72.
