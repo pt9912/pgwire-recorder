@@ -42,6 +42,7 @@ eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsb
 | `SPEC-063` | `workflows-check`, `workflows-check-gegenprobe` | [`SPEC-063-workflows-check.md`](SPEC-063-workflows-check.md) |
 | `SPEC-064` | `ci-range`, `ci-gegenprobe`; Text von `ci.yml` | [`SPEC-064-ci.md`](SPEC-064-ci.md) |
 | `SPEC-067` | `release.yml`, `release.sh`, `release-gegenprobe`; Datei `VERSION` | [`SPEC-067-release.md`](SPEC-067-release.md) |
+| `SPEC-068` | `archiv-bezug`, `archiv-bezug-gegenprobe` | [`SPEC-068-archiv-bezug.md`](SPEC-068-archiv-bezug.md) |
 
 ## Historie
 
@@ -76,3 +77,4 @@ eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsb
 | 2026-10-18 | Gate der Workflows unter `.github/workflows/`: Prüfbereich, `actionlint` im Image per Digest, Einstufung, Lesegrammatik, Rechte, Zeitgrenzen, Bindung der Pin-Prüfung von d-check, Ausgabe und Reihenfolge der Gründe, Aufrufarten, Grenzen (`SPEC-063`; Empfehlung bis zur Annahme von [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md)) |
 | 2026-10-18 | Die CI auf GitHub: wörtlicher Text von `ci.yml`, Berechnung der Range aus dem Ereignis (`ci-range.sh`), Konfiguration der Range-Prüfungen von d-check (`commits`, `vcs`), Aufbau der Gegenprobe, Grenzen (`SPEC-064`; Empfehlung bis zur Annahme von [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md)) |
 | 2026-10-19 | Veröffentlichung bei einem Tag: wörtlicher Text von `release.yml`, Trockenlauf statt Probe-Tag, Eingaben (SemVer, `VERSION`, Notes, Geheimnisse), Binaries, Image als Manifestliste mit Prüfung der Summe je Plattform, Push-Reihenfolge ohne Überschreiben, Vergleich der Index-Digests aus den rohen Bytes, `latest`, GitHub-Release, Zugangsdaten, Fehlertabelle, Grenzen (`SPEC-067`; [ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md)); Smoke als Skript mit Image-Referenz (`SPEC-055` Punkt 7) |
+| 2026-10-19 | Anforderungen im Stub archivierter Slices: Lauf-Menge, Eingaben und Reihenfolge der Gründe, Prüfung aller Stubs vor dem ersten Schreiben, Kopf des Volltexts und gelesene Kennungen, Zeile und Ordnung, vorhandene Zeile und Idempotenz, Stelle der Zeile, Zeilenende, Aufrufarten von `make`, kein Modus „prüfen“, Grenzen (`SPEC-068`) |
