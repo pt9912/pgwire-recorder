@@ -139,6 +139,8 @@ dasteht.
 
 19. **Meldungstexte, Reihenfolge innerhalb einer Stufe, Zusatzzeile aus Leerraum, Tag-Kommentar, Hinweis bei Fehler** (Rückgabe des Implementers). **Entschieden:** `SPEC-064` Punkt 8 (Wortlaut nicht zugesagt außer Variablenname und Hinweis auf `fetch-depth: 0`), Punkt 9 (Reihenfolge innerhalb einer Stufe nicht zugesagt), Punkt 1 (leere Zeilen und Kommentarzeilen frei; Leerraum-Zeile nicht zugesagt; Tag beginnt mit einem Zeichen, das kein Leerzeichen ist, Fall `p1-pin-tag-leer`).
 
+20. **Basis bei neuem Zweig und unbekanntem Vorgänger** (Verifikation V-5; kein gemeinsamer Vorfahr). **Entschieden:** `SPEC-064` Punkt 7 und 9: Merge-Base mit dem Standard-Zweig statt dessen Spitze; ohne gemeinsamen Vorfahr Exit 2 (Fall `p7-push-neu-ohne-vorfahr`); Pin-Form über die Fälle hinaus bei `docs-check` (V-1, Grenze in Punkt 1).
+
 **Fragen an den Nutzer** (jede mit Empfehlung des Planners; eine Empfehlung ist keine Entscheidung):
 
 1. **Repo öffentlich oder privat?** Es bestimmt Runner-Größe, Minutenbudget und die Wahl in Randform 10. Empfehlung: den Vertrag mit der Annahme „privat, 2 vCPU, 7 GB“ schreiben, denn sie ist die knappere.
