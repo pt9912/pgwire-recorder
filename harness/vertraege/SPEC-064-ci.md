@@ -100,9 +100,8 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 
    Jede Änderung der Datei ist eine Änderung dieser Kennung. Zugesagt ist, dass leere Zeilen und Kommentarzeilen frei sind; eine Zeile aus Leerzeichen oder Tabulatoren ist nicht zugesagt (akzeptiertes Negativ; Grund: kein Schreiber braucht sie, und die Gegenprobe hat dazu keinen Fall; gemessen: eine Zeile nur aus Tabulatoren ist eine Zusatzzeile und rot). Fälle: `p1-gleich` (die Datei des Arbeitsbaums entspricht dem Text, grün); je Zeile des Textes ein
    Fall `p1-fehlt-<n>` an einer Kopie ohne diese Zeile und ein Fall `p1-geaendert-<n>` an einer Kopie, in der die Zeile um ein Zeichen verändert ist (rot);
-   `p1-zusatz-<Wort>` an Kopien mit je einer zusätzlichen Zeile, die `concurrency:`, `workflow_dispatch:`, `pull_request_target:`, `workflow_run:`, `strategy:`,
-   `continue-on-error: true` oder `${{ secrets.X }}` (Element je Wort) trägt (rot); `p1-zusatz-schritt` (ein zusätzlicher Schritt `uses: actions/cache@…` bzw.
-   `actions/upload-artifact@…`, rot); `p1-pin-kurz` (SHA mit 39 Ziffern), `p1-pin-gross` (Großbuchstaben), `p1-pin-ohne-tag` (kein Kommentar), `p1-pin-tag-leer` (`# ` ohne Text), `p1-pin-andere-action`
+   `p1-zusatz-concurrency`, `p1-zusatz-workflow-dispatch`, `p1-zusatz-pull-request-target`, `p1-zusatz-workflow-run`, `p1-zusatz-strategy`, `p1-zusatz-continue-on-error`, `p1-zusatz-secrets` an Kopien mit je einer zusätzlichen Zeile, die `concurrency:`, `workflow_dispatch:`, `pull_request_target:`, `workflow_run:`, `strategy:`,
+   `continue-on-error: true` oder `${{ secrets.X }}` (Element je Wort) trägt (rot); `p1-zusatz-schritt-cache` (ein zusätzlicher Schritt `uses: actions/cache@…`) und `p1-zusatz-schritt-artefakt` (`actions/upload-artifact@…`; beide rot); `p1-pin-kurz` (SHA mit 39 Ziffern), `p1-pin-gross` (Großbuchstaben), `p1-pin-ohne-tag` (kein Kommentar), `p1-pin-tag-leer` (`# ` ohne Text), `p1-pin-andere-action`
    (rot); `p1-reihenfolge-schritte` (die Schritte `Commit-Messages` und `ADR-Immutabilität` vertauscht), `p1-reihenfolge-gates` (der Schritt `Gates` vor den beiden anderen).
    Mutationen: die Prüfung ignoriert eine Zeile (je Zeile eine Mutation, erzeugt in einer Schleife über den Text); die Prüfung lässt zusätzliche Zeilen zu;
    die Prüfung ignoriert die Reihenfolge; der Pin akzeptiert einen Kommentar `# ` ohne Text (färbt `p1-pin-tag-leer`); der Pin akzeptiert Großbuchstaben, 39 Ziffern oder einen fehlenden Kommentar (je eine). Die Gegenprobe trägt den Text
@@ -131,7 +130,7 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 5. **Verhältnis zum lokalen Hook; Nachweis; Ressourcen.** Die CI **ergänzt** den Stop-Hook ([ADR-0038](../../docs/plan/adr/0038-gate-kette-voll-und-schnell.md)), sie ersetzt ihn nicht:
    sie läuft klonunabhängig und über die Range und fängt `--no-verify`; sie ersetzt keinen Nachweis des lokalen Hooks, und der Hook liest nichts aus ihr. Das `make gates`
    der CI schreibt `.harness/state/gates-passed.dateiliste` in den Arbeitsbaum des Runners; das ist folgenlos: der Text hat keinen Schritt, der den Ordner hochlädt, zwischenspeichert oder
-   committet (Punkt 1, Fälle `p1-zusatz-schritt`). Die CI meldet sich nicht beim Docker Hub an (keine Geheimnisse); ein Fehler durch das Limit anonymer Pulls ist rot und bleibt
+   committet (Punkt 1, Fälle `p1-zusatz-schritt-cache` und `p1-zusatz-schritt-artefakt`). Die CI meldet sich nicht beim Docker Hub an (keine Geheimnisse); ein Fehler durch das Limit anonymer Pulls ist rot und bleibt
    es; er wird als solcher im Beleg des Slice festgehalten, und ein Wiederanlauf ist von Hand. Ob `make gates` auf dem Runner läuft (Docker-Netz der Integrationstests, `setsid`,
    Speicher, Zeit), zeigt nur ein Lauf; kein Gate dieses Repos sagt es voraus (akzeptiertes Negativ; Grund: nur dort messbar, wie bei [`SPEC-063`](SPEC-063-workflows-check.md) Punkt 11).
 
