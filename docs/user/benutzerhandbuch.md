@@ -2108,4 +2108,6 @@ oder Aufzeichnungen weitergeben.
 
 ## 11. Änderungshistorie
 
-Es gibt keine veröffentlichte Version.
+| Version | Datum | Änderung |
+|---|---|---|
+| 0.1.0 | 2026-10-19 | Erste veröffentlichte Version: `record` zeichnet einfache und vorbereitete Anfragen zwischen einer Anwendung und PostgreSQL auf (YAML oder SQLite), `replay` beantwortet sie daraus ohne Datenbank, `play` spielt sie gegen eine Datenbank ein und kann die Antworten vergleichen; Binaries für Linux, macOS und Windows (amd64, arm64) und ein Container-Image für linux/amd64 und linux/arm64 |
