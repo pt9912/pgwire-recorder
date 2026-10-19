@@ -250,9 +250,9 @@ Wird bei der Closure gefüllt (Planner, `/close-welle`-Anweisung für wellenlose
 
 ### Belege des Implementers
 
-Zweig `impl-dt`, Basis der Metrik `dc7f0a69`. Commits (alle mit Kennung): `408d4bba` Werkzeug und Fragment · `45f66843` Gegenprobe, Fragment, Gate-Index (`harness/README.md`) · `7ee8887e`, `38689308`, `c1d6e8e6`, `197dbcd2` je ein Inhalts-Commit der Stubs (3 + 4 + 5 + 85 = 97) · `58b9627c` Zeile zu `make doc-trace` · `ec94f93b` Wächter ohne Wirkung entfernt, Fall `p1-eine-ohne-stub` · Merge von `origin/arch-dt2` (Entscheidungen des Architect zu `SPEC-068`) · `e6a5e03b` Werkzeug und Gegenprobe nach diesen Entscheidungen. Der Vertrag `SPEC-068` ist vom Implementer unverändert (Stand `arch-dt2`).
+Zweig `impl-dt`, Basis der Metrik `dc7f0a69`. Commits (alle mit Kennung): `408d4bba` Werkzeug und Fragment · `45f66843` Gegenprobe, Fragment, Gate-Index (`harness/README.md`) · `7ee8887e`, `38689308`, `c1d6e8e6`, `197dbcd2` je ein Inhalts-Commit der Stubs (3 + 4 + 5 + 85 = 97) · `58b9627c` Zeile zu `make doc-trace` · `ec94f93b` Wächter ohne Wirkung entfernt, Fall `p1-eine-ohne-stub` · Merge von `origin/arch-dt2` (Entscheidungen des Architect zu `SPEC-068`) · `e6a5e03b` Werkzeug und Gegenprobe nach diesen Entscheidungen · Merge von `origin/rev-dt` (Review-Runde 1) und `origin/arch-dt3` (Entscheidungen zu Schreibfehler, Wurzel, falscher Stelle, Welle ohne Stub) · `4dec8155` Behebung der Befunde F-1 bis F-10. Der Vertrag `SPEC-068` ist vom Implementer unverändert (Stand `arch-dt2`).
 
-**Metrik** (`AGENTS.md` §3.14): Summe aus Einfügungen und Löschungen von `git diff --numstat dc7f0a69..e6a5e03b -- tools harness` = **552** (Marke 800, Meldeschwelle 650 nicht erreicht; Schätzung 470 bis 710). Darin liegen 14 Zeilen Vertragstext von `SPEC-068` aus `arch-dt2` und die zwei Zeilen von `harness/README.md`; vor den Entscheidungen des Architect waren es 504. Die 97 Stubs sind nicht gezählt.
+**Metrik** (`AGENTS.md` §3.14): Summe aus Einfügungen und Löschungen von `git diff --numstat dc7f0a69..4dec8155 -- tools harness` = **625** (Marke 800, Meldeschwelle 650 nicht erreicht; Schätzung 470 bis 710). Darin liegen der Vertragstext von `SPEC-068` aus `arch-dt2` und `arch-dt3` und die Zeilen von `harness/README.md` (3 Einfügungen, 1 Löschung); vor `arch-dt2` waren es 504, vor `arch-dt3` 552. Die 97 Stubs sind nicht gezählt.
 
 **Waisen vor und nach dem Lauf** (`make doc-trace`, Image aus `DCHECK_REF`):
 
@@ -264,33 +264,37 @@ Zweig `impl-dt`, Basis der Metrik `dc7f0a69`. Commits (alle mit Kennung): `408d4
 
 Abweichung von der Erwartung des Plans (§1, §2 Punkt 3, §5: neun vor, eine danach, `LH-FA-19`): vor dem Lauf waren es sieben (`LH-FA-16` und `LH-FA-19` zählten schon), und `LH-FA-19` trägt in der Matrix `slice-erster-release-veroeffentlichung` (flach in `done/`). Nach dem Lauf gibt es keine Waise. Zweiter Lauf von `make archiv-bezug` über alle Wellen: `git status` leer, Exit 0. Von den 97 Zeilen tragen 12 den Leerwert `— keine —` (Kopf ohne Kennung) und 19 genau `LH-QA-07` (`grep` über die Stubs).
 
-**Läufe am Endstand** (`e6a5e03b`, Klon `pgr-dev2`, nacheinander):
+**Läufe am Endstand** (`4dec8155`, Klon `pgr-dev2`, nacheinander):
 
 | Lauf | Ergebnis | Dauer |
 |---|---|---|
-| `make archiv-bezug-gegenprobe` | grün (102 Läufe: 101 Mutationen und die unveränderte Kopie, 77 Fälle) | 43 s |
-| `make gates-schnell-gegenprobe` (Namensregel der Gegenproben) | grün | 1 min |
-| `make gates` | grün, Exit 0, Nachweis geschrieben | 4 min 25 s |
+| `make archiv-bezug-gegenprobe` | grün (127 Läufe: 126 Mutationen und die unveränderte Kopie, 91 Fälle) | 58 s |
+| `make gates-schnell-gegenprobe` (Namensregel der Gegenproben) | grün | 1 min 6 s |
+| `make gates` | grün, Exit 0, Nachweis geschrieben | 4 min 33 s |
 | `make docs-check` | 1221 Datei(en) geprüft, 0 Befunde (auch nach dem ersten Lauf über 3 Stubs und am Endstand) | 2 s |
 | `make kopf-check` | Exit 0 | unter 1 s |
 | `make abdeckung-check` | Exit 0 | unter 1 s |
 
 Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` meldet nichts gegen die Zeile, `kopf-check` und `abdeckung-check` unberührt, wie vorhergesagt. Die Wirkung auf die Matrix ist Messung, keine Zusage (Punkt 11 b): `doc-trace` oben. Der Lauf des Stop-Hooks steht am Ende dieses Abschnitts.
 
-**Mutationen** (`AGENTS.md` §3.10; Zusage · Mutation · roter Fall; rot sind genau die genannten Fälle, die Gegenprobe verlangt das je Mutation; jeder der 77 Fälle steht in mindestens einer Liste, die Gegenprobe prüft das). Die Gegenprobe läuft ohne Docker, das Problem „Mutant kommt nicht im Build an“ besteht nicht: jede Mutation ist eine Kopie unter eigenem Pfad.
+**Mutationen** (`AGENTS.md` §3.10; Zusage · Mutation · roter Fall; rot sind genau die genannten Fälle, die Gegenprobe verlangt das je Mutation; jeder der 91 Fälle steht in mindestens einer Liste, die Gegenprobe prüft das). Die Gegenprobe läuft ohne Docker, das Problem „Mutant kommt nicht im Build an“ besteht nicht: jede Mutation ist eine Kopie unter eigenem Pfad.
 
 | Zusage (Punkt von SPEC-068) | Mutation (Textersatz) | rote Fälle |
 |---|---|---|
 | 1: flache Dateien in done/ bleiben unberührt | `m-p1-done-selbst-zaehlt` | p1-welle-flach |
-| 1: ein Verzeichnis ohne Stub mit <welle-id> bleibt ohne Befund | `m-p1-glob-ohne-treffer-ist-stub` | p1-eine-ohne-stub |
-| 1: die Zeile steht auf stdout | `m-p1-keine-stubs-auf-stderr` | p1-eine-ohne-stub, p1-leere-menge |
+| 1: die Zeile steht auf stdout | `m-p1-keine-stubs-auf-stderr` | p1-eine-ohne-stub, p1-leere-menge, p2-welle-ohne-stub-ohne-archiv |
 | 1: die Zeile nur bei leerer Menge | `m-p1-keine-stubs-immer` | p1-alle |
-| 1: leere Menge ⇒ Zeile `archiv-bezug: keine Stubs` | `m-p1-keine-stubs-still` | p1-eine-ohne-stub, p1-leere-menge |
-| 1: ein Verzeichnis ohne Stub gehört nicht zur Menge | `m-p1-leeres-verzeichnis-zaehlt` | p1-leere-menge, p1-ohne-stub |
+| 1: leere Menge ⇒ Zeile `archiv-bezug: keine Stubs` | `m-p1-keine-stubs-still` | p1-eine-ohne-stub, p1-leere-menge, p2-welle-ohne-stub-ohne-archiv |
 | Schnittstelle: WELLE=… erreicht das Skript | `m-p1-make-ohne-welle` | p1-make-welle |
 | 1: ohne <welle-id> jedes Verzeichnis mit Stub | `m-p1-nur-erste-welle` | p1-alle, p2-keine-teilschreibung, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
 | 1: Stubs sind nur slice-*.md, nie welle-*.md | `m-p1-welle-datei-zaehlt` | p1-welle-datei |
 | 1: mit <welle-id> genau diese Welle | `m-p1-welle-ignoriert` | p1-eine, p1-make-welle |
+| 1/2: eine Welle ohne Stub gehört nicht zur Menge (auch die genannte, ohne Archiv) | `m-p1-welle-ohne-stub-zaehlt` | p1-eine-ohne-stub, p1-leere-menge, p1-ohne-stub, p2-welle-ohne-stub-ohne-archiv |
+| 2: Meldung nennt die Datei (beschädigt) | `m-name-archiv-beschaedigt` | p2-archiv-beschaedigt, p2-archiv-crc |
+| 2: Meldung nennt die Welle (Form) | `m-name-form` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
+| 2: Meldung nennt das Verzeichnis | `m-name-verzeichnis` | p2-reihenfolge-2-3, p2-welle-unbekannt |
+| 2: Meldung nennt das Werkzeug | `m-name-werkzeug` | p2-kein-unzip, p2-reihenfolge-3-4 |
+| 2 (0): Meldung nennt die Wurzel | `m-name-wurzel` | p2-wurzel-kein-verzeichnis |
 | 2 (5): archiv.zip beschädigt | `m-p2-archiv-beschaedigt-gestrichen` | p2-archiv-beschaedigt, p2-archiv-crc |
 | 2 (4): archiv.zip fehlt, Meldung nennt die Welle | `m-p2-archiv-fehlt-gestrichen` | p2-archiv-fehlt, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
 | 2 (2): Verzeichnis existiert | `m-p2-dir-gestrichen` | p2-reihenfolge-2-3, p2-welle-unbekannt |
@@ -301,41 +305,61 @@ Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` me
 | 2 (1): kein .. | `m-p2-form-punkt` | p2-form-welle-punkt |
 | 2 (1): kein / | `m-p2-form-slash` | p2-form-welle-slash |
 | 2: Eingaben aller Wellen vor jeder Verarbeitung | `m-p2-geprueft-je-welle` | p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
+| 2: Reihenfolge (0) vor (1) | `m-p2-reihenfolge-0-1` | p2-reihenfolge-0-1 |
 | 2: Reihenfolge der Gründe (1) vor (2) | `m-p2-reihenfolge-1-2` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
 | 2: Reihenfolge (2) vor (3) | `m-p2-reihenfolge-2-3` | p2-reihenfolge-2-3 |
 | 2: Reihenfolge (3) vor (4) | `m-p2-reihenfolge-3-4` | p2-reihenfolge-3-4 |
 | 2: Reihenfolge (4) vor (5), über den ganzen Aufruf | `m-p2-reihenfolge-4-5` | p2-archiv-fehlt, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
-| 2/3: ein Fehler dieser Stufe schreibt nichts (auch keinen Stub einer anderen Welle) | `m-p2-schreiben-je-welle` | p10-i, p2-keine-teilschreibung, p2-reihenfolge-4-5, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-reihenfolge-aufruf, p3-stub-ohne-eintrag |
+| 2/3: ein Fehler dieser Stufe schreibt nichts (auch keinen Stub einer anderen Welle) | `m-p2-schreiben-je-welle` | p10-i, p2-keine-teilschreibung, p2-reihenfolge-4-5, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-reihenfolge-aufruf, p3-schreiben-scheitert, p3-schreiben-temp-aufgeraeumt, p3-stub-ohne-eintrag |
 | 2 (5): unzip -tq prüft die Daten, nicht nur das Verzeichnis | `m-p2-test-nur-liste` | p2-archiv-crc |
 | 2 (3): unzip im PATH | `m-p2-unzip-gestrichen` | p2-kein-unzip, p2-reihenfolge-3-4 |
 | 2/1: leere <welle-id> heißt alle | `m-p2-welle-leer-ist-form` | p10-i, p2-welle-leer |
+| 2 (0): Wurzel fehlt, ist leer oder kein Verzeichnis | `m-p2-wurzel-gestrichen` | p2-reihenfolge-0-1, p2-wurzel-fehlt, p2-wurzel-kein-verzeichnis, p2-wurzel-leer |
 | 2: Stichwort `archiv.zip beschädigt` | `m-stichwort-archiv-beschaedigt` | p2-archiv-beschaedigt, p2-archiv-crc |
 | 2: Stichwort `archiv.zip fehlt` | `m-stichwort-archiv-fehlt` | p2-archiv-fehlt, p2-reihenfolge-4-5, p3-reihenfolge-aufruf |
-| 2: Stichwort `Stub enthält CR` | `m-stichwort-cr` | p3-alle-befunde, p8-stub-crlf |
+| 2: Stichwort `Stub enthält CR` | `m-stichwort-cr` | p3-alle-befunde, p3-reihenfolge-grund-c-c, p3-reihenfolge-grund-c-d, p8-stub-crlf |
+| 2/6: Stichwort `Zeile an falscher Stelle` | `m-stichwort-falsche-stelle` | p6-gleich-falsche-stelle |
 | 2: Stichwort `Form der Welle` | `m-stichwort-form` | p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt, p2-form-welle-slash, p2-form-welle-zeichen, p2-reihenfolge-1-2, p8-sprache |
 | 2: Stichwort `Stub hat nicht genau eine Zeile **Hervorgegangen:**` | `m-stichwort-hervorgegangen` | p7-ohne-hervorgegangen, p7-zweimal-hervorgegangen |
-| 2: Stichwort `kein Eintrag im Archiv` | `m-stichwort-kein-eintrag` | p10-i, p3-alle-befunde, p3-erster-grund, p3-stub-ohne-eintrag |
+| 2: Stichwort `kein Eintrag im Archiv` | `m-stichwort-kein-eintrag` | p10-i, p3-alle-befunde, p3-erster-grund, p3-reihenfolge-grund-a-b, p3-stub-ohne-eintrag |
 | 2: Stichwort `mehr als eine Zeile **Bezug:**` | `m-stichwort-mehr-als-eine-zeile` | p6-zwei-zeilen |
 | 2: Stichwort `nicht beschreibbar` | `m-stichwort-nicht-beschreibbar` | p3-datei-nicht-beschreibbar, p3-verzeichnis-nicht-beschreibbar |
-| 2: Stichwort `Eintrag im Archiv ohne Kopf` | `m-stichwort-ohne-kopf` | p3-kein-kopf |
-| 2: Befunde `archiv-bezug: <Pfad>: <Stichwort>` | `m-stichwort-praefix-befund` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-erster-grund, p3-kein-kopf, p3-stub-ohne-eintrag … (12 Fälle) |
-| 2: Meldungen der Eingabe beginnen mit `archiv-bezug: ` | `m-stichwort-praefix-eingabe` | p2-archiv-beschaedigt, p2-archiv-crc, p2-archiv-fehlt, p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt … (16 Fälle) |
+| 2: Stichwort `Eintrag im Archiv ohne Kopf` | `m-stichwort-ohne-kopf` | p3-kein-kopf, p3-reihenfolge-grund-b-c |
+| 2: Befunde `archiv-bezug: <Pfad>: <Stichwort>` | `m-stichwort-praefix-befund` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-erster-grund, p3-kein-kopf, p3-reihenfolge-grund-a-b … (18 Fälle) |
+| 2: Meldungen der Eingabe beginnen mit `archiv-bezug: ` | `m-stichwort-praefix-eingabe` | p2-archiv-beschaedigt, p2-archiv-crc, p2-archiv-fehlt, p2-form-welle-nur-praefix, p2-form-welle-praefix, p2-form-welle-punkt … (20 Fälle) |
+| 2/3: Stichwort `Schreiben fehlgeschlagen` | `m-stichwort-schreiben-fehlgeschlagen` | p3-schreiben-scheitert |
 | 2: Stichwort `Verzeichnis fehlt` | `m-stichwort-verzeichnis` | p2-reihenfolge-2-3, p2-welle-unbekannt |
-| 2: Stichwort `Zeile weicht ab` | `m-stichwort-weicht-ab` | p6-abweichend |
+| 2: Stichwort `Zeile weicht ab` | `m-stichwort-weicht-ab` | p3-reihenfolge-grund-d-e, p6-abweichend |
 | 2: Stichwort `Werkzeug fehlt` | `m-stichwort-werkzeug` | p2-kein-unzip, p2-reihenfolge-3-4 |
+| 2: Stichwort `Wurzel` | `m-stichwort-wurzel` | p2-reihenfolge-0-1, p2-wurzel-fehlt, p2-wurzel-kein-verzeichnis, p2-wurzel-leer |
 | 3 (e): Datei beschreibbar | `m-p3-datei-nicht-beschreibbar-geduldet` | p3-datei-nicht-beschreibbar |
-| 3: je Stub nur der erste Grund (a) bis (e) | `m-p3-erster-grund-nicht-beschreibbar-und-weitere` | p3-erster-grund |
-| 3: Exit 1 und nichts geschrieben bei einem Befund | `m-p3-kein-abbruch-bei-befund` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-erster-grund, p3-kein-kopf, p3-stub-ohne-eintrag … (12 Fälle) |
-| 3 (b): Eintrag ohne Kopf ist Befund | `m-p3-kein-kopf-geduldet` | p3-kein-kopf |
-| 3: Schreiben über Temp-Datei und mv (neuer Inode) | `m-p3-mv-direkt` | p3-temp-und-mv |
+| 3: je Stub nur der erste Grund (a) bis (e) | `m-p3-erster-grund-nicht-beschreibbar-und-weitere` | p3-erster-grund, p3-reihenfolge-grund-a-b |
+| 3: Reihenfolge der Gründe (a) vor (b) | `m-p3-grund-b-vor-a` | p10-i, p3-alle-befunde, p3-erster-grund, p3-reihenfolge-grund-a-b, p3-stub-ohne-eintrag |
+| 3: Reihenfolge (b) vor (c) | `m-p3-grund-c-vor-b` | p3-reihenfolge-grund-b-c |
+| 3: Reihenfolge (c) vor (d) | `m-p3-grund-d-vor-c` | p3-reihenfolge-grund-c-d |
+| 3: Reihenfolge innerhalb (c): CR vor Hervorgegangen | `m-p3-grund-hervorgegangen-vor-cr` | p3-reihenfolge-grund-c-c |
+| 3: Reihenfolge (d) vor (e) | `m-p3-grund-nicht-beschreibbar-vor-d` | p3-nicht-beschreibbar-gleich, p3-reihenfolge-grund-d-e |
+| 3: Exit 1 und nichts geschrieben bei einem Befund | `m-p3-kein-abbruch-bei-befund` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-erster-grund, p3-kein-kopf, p3-reihenfolge-grund-a-b … (18 Fälle) |
+| 3 (b): Eintrag ohne Kopf ist Befund | `m-p3-kein-kopf-geduldet` | p3-kein-kopf, p3-reihenfolge-grund-b-c |
+| 3: Schreiben über Temp-Datei und mv (neuer Inode) | `m-p3-mv-direkt` | p3-schreiben-scheitert, p3-temp-und-mv |
 | 3 (e): nur zu ändernde Stubs; gleiche Zeile ⇒ Exit 0 | `m-p3-nicht-beschreibbar-fuer-alle` | p3-nicht-beschreibbar-gleich |
 | 3: alle Befunde genannt | `m-p3-nur-erster-befund` | p3-alle-befunde |
-| 3 (a): Stub ohne Eintrag im Archiv ist Befund | `m-p3-ohne-eintrag-uebersprungen` | p10-i, p3-alle-befunde, p3-erster-grund, p3-stub-ohne-eintrag |
-| 3: Schreiben erst nach der Prüfung aller Stubs | `m-p3-schreiben-vor-pruefung` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-stub-ohne-eintrag |
-| 3: keine Temp-Datei bleibt im Verzeichnis | `m-p3-temp-bleibt` | p3-temp-und-mv |
+| 3 (a): Stub ohne Eintrag im Archiv ist Befund | `m-p3-ohne-eintrag-uebersprungen` | p10-i, p3-alle-befunde, p3-erster-grund, p3-reihenfolge-grund-a-b, p3-stub-ohne-eintrag |
+| Schnittstelle: ändert nur die zu ändernden Stubs (Zeit der übrigen) | `m-p3-schreiben-beruehrt-alle-stubs` | p3-nur-stubs |
+| Schnittstelle: berührt archiv.zip nicht | `m-p3-schreiben-beruehrt-archiv` | p3-nur-stubs |
+| Schnittstelle: legt keine Datei in done/ an | `m-p3-schreiben-extra-datei-done` | p3-nur-stubs |
+| Schnittstelle: legt keine Datei in der Wurzel an | `m-p3-schreiben-extra-datei-wurzel` | p3-nur-stubs |
+| 3: Schreibfehler ⇒ Exit 2 | `m-p3-schreiben-scheitert-exit-0` | p3-schreiben-scheitert |
+| 3: Schreibfehler ⇒ Temp-Datei entfernt | `m-p3-schreiben-scheitert-temp-bleibt` | p3-schreiben-temp-aufgeraeumt |
+| 3: Schreibfehler ⇒ kein weiterer Stub | `m-p3-schreiben-scheitert-weiter` | p3-schreiben-scheitert |
+| 3: Schreiben erst nach der Prüfung aller Stubs | `m-p3-schreiben-vor-pruefung` | p10-i, p3-alle-befunde, p3-datei-nicht-beschreibbar, p3-schreiben-scheitert, p3-schreiben-temp-aufgeraeumt, p3-stub-ohne-eintrag |
+| 3: keine Temp-Datei bleibt im Verzeichnis | `m-p3-temp-bleibt` | p3-nur-stubs, p3-schreiben-scheitert, p3-schreiben-temp-aufgeraeumt, p3-temp-und-mv |
 | 3 (e): Verzeichnis beschreibbar | `m-p3-verzeichnis-nicht-beschreibbar-geduldet` | p3-verzeichnis-nicht-beschreibbar |
 | 4: nur die erste Zeile **Bezug:** | `m-p4-alle-bezug-zeilen` | p4-zwei-bezug |
 | 4: Kleinbuchstaben (Anker) sind keine Kennung | `m-p4-anker-klein-gelesen` | p4-anker-klein |
+| 4: Kennungsart LH-FA gelesen | `m-p4-art-fa-nicht-gelesen` | p1-alle, p1-eine, p1-make-welle, p1-ohne-stub, p1-welle-flach, p12-adr … (34 Fälle) |
+| 4: Kennungsart LH-QA gelesen | `m-p4-art-qa-nicht-gelesen` | p4-ende-kopf, p4-kopfende-genau, p4-kurzform, p4-mehrzeilig, p4-suffix-buchstabe, p4-vorn-buchstabe … (10 Fälle) |
+| 4: Kennungsart LH-RB gelesen | `m-p4-art-rb-nicht-gelesen` | p4-mehrzeilig, p5-ordnung |
 | 4: die Fortsetzung endet nicht an der Leerzeile | `m-p4-fortsetzung-endet-an-leerzeile` | p4-mehrzeilig |
 | 4: sie endet an der nächsten Zeile mit ** | `m-p4-fortsetzung-ohne-ende-bei-sternen` | p4-mehrzeilig, p4-zwei-bezug |
 | 4: Leerwert — keine — | `m-p4-kein-leerwert` | p4-anker-klein, p4-kein-bezug, p4-kein-token, p4-leer-wert |
@@ -356,23 +380,24 @@ Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` me
 | 5: bei gleicher Zahl die längere Schreibweise nicht zuerst | `m-p5-laengere-zuerst` | p5-gleiche-zahl |
 | 5: nach Zahl (9 vor 10), nicht bytewise | `m-p5-ordnung-bytewise` | p5-gleiche-zahl, p5-zahl |
 | 5: Gruppe LH-QA vor LH-RB | `m-p5-qa-nach-rb` | p4-mehrzeilig, p5-ordnung |
-| 6: abweichende Zeile ⇒ Befund | `m-p6-abweichend-geduldet` | p6-abweichend |
+| 6: abweichende Zeile ⇒ Befund | `m-p6-abweichend-geduldet` | p3-reihenfolge-grund-d-e, p6-abweichend |
 | 6: Meldung nennt den vorhandenen Wert | `m-p6-abweichend-ohne-ist` | p6-abweichend |
 | 6: Meldung nennt den berechneten Wert | `m-p6-abweichend-ohne-soll` | p6-abweichend |
-| 6: gleiche Zeile ⇒ keine Änderung (Bytes, Inode, Zeit) | `m-p6-gleiche-zeile-neu` | p3-nicht-beschreibbar-gleich, p4-leer-wert, p6-gleich, p6-zweiter-lauf |
+| 6: gleiche Zeile an falscher Stelle ⇒ Befund | `m-p6-falsche-stelle-geduldet` | p6-gleich-falsche-stelle |
+| 6: gleiche Zeile ⇒ keine Änderung (Bytes, Inode, Zeit) | `m-p6-gleiche-zeile-neu` | p3-nicht-beschreibbar-gleich, p3-nur-stubs, p4-leer-wert, p6-gleich, p6-zweiter-lauf |
 | 6: zwei Zeilen ⇒ Befund | `m-p6-zwei-zeilen-geduldet` | p6-zwei-zeilen |
 | 7: fehlender Zeilenumbruch am Ende wird ergänzt | `m-p7-kein-umbruch-ergaenzt` | p7-mitte, p7-ohne-umbruch-weitere, p7-rest-unveraendert, p8-umlaute |
 | 7: alles andere Byte für Byte (Leerzeichen am Ende) | `m-p7-leerzeichen-entfernt` | p7-rest-unveraendert |
 | 7: alles andere Byte für Byte (Zeile aus Leerzeichen) | `m-p7-leerzeilen-geleert` | p7-rest-unveraendert |
 | 7: ohne **Hervorgegangen:** ⇒ Befund | `m-p7-ohne-hervorgegangen-geduldet` | p7-ohne-hervorgegangen |
 | 7: unmittelbar dahinter, weitere Zeilen wandern nach hinten | `m-p7-zeile-am-ende` | p7-mitte, p7-ohne-umbruch-weitere |
-| 7: Zeile steht hinter **Hervorgegangen:** (nicht davor) | `m-p7-zeile-vor-hervorgegangen` | 36 Fälle (Liste SCHREIBT im Skript: alle Fälle, die den vollen Inhalt eines geschriebenen Stubs vergleichen) |
+| 7: Zeile steht hinter **Hervorgegangen:** (nicht davor) | `m-p7-zeile-vor-hervorgegangen` | 38 Fälle (Liste SCHREIBT im Skript: alle Fälle, die den vollen Inhalt eines geschriebenen Stubs vergleichen) |
 | 7: zweimal **Hervorgegangen:** ⇒ Befund | `m-p7-zweimal-hervorgegangen-geduldet` | p7-zweimal-hervorgegangen |
 | 8: Bytes unberührt (UTF-8 und ungültige Bytes) | `m-p8-nichtascii-entfernt` | p8-umlaute |
 | 8: LC_ALL=C, die Sprache der Umgebung ändert nichts | `m-p8-sprache-der-umgebung` | p8-sprache |
-| 8: CR im Stub ⇒ Befund | `m-p8-stub-cr-geduldet` | p3-alle-befunde, p8-stub-crlf |
+| 8: CR im Stub ⇒ Befund | `m-p8-stub-cr-geduldet` | p3-alle-befunde, p3-reihenfolge-grund-c-c, p3-reihenfolge-grund-c-d, p8-stub-crlf |
 | 8: Volltext mit CRLF: Kennungen gelesen, Kopfende erkannt | `m-p8-volltext-cr-nicht-entfernt` | p8-volltext-crlf |
-| 9: urteilt über die Wurzel des Arguments | `m-p9-wurzel-ist-arbeitsverzeichnis` | p9-wurzel |
+| 9: urteilt über die Wurzel des Arguments | `m-p9-wurzel-ist-arbeitsverzeichnis` | p2-reihenfolge-0-1, p2-wurzel-fehlt, p2-wurzel-kein-verzeichnis, p2-wurzel-leer, p9-wurzel |
 | 10: ebenso (kein $(MAKE) im Rezept) | `m-p10-make-im-rezept` | p10-makeflags, p10-n, p10-q, p10-t |
 | 10: -n, -q, -t, MAKEFLAGS ändern nichts (kein Plus im Rezept) | `m-p10-plus-vor-rezept` | p10-makeflags, p10-n, p10-q, p10-t |
 | 10: unter -i läuft das Skript, make endet mit 0 | `m-p10-skript-nicht-unter-i` | p10-i |
@@ -385,9 +410,11 @@ Wirkung auf bestehende Gates (Vorhersage `SPEC-068` Punkt 11 c): `docs-check` me
 
 **Ein Mutant, der zuerst grün blieb:** `m-p8-sprache-der-umgebung` (`export LC_ALL=C` entfernt) blieb gegen einen Fall mit ungültigem UTF-8-Byte grün; gemessen (Skript ohne die Zeile, `LC_ALL=C.UTF-8` und `en_US.UTF-8`, Stubs mit `\xff`, `\xc3`, Umlauten): kein Unterschied, weil `mawk` bytetreu ist und `grep` nur Zeilen ausgibt, die gleich der berechneten Zeile sein müssen. Gefunden ist die Wirkung dort, wo die Sprache etwas ändert: `[[ welle-ä =~ ^welle-[a-z0-9-]+$ ]]` trifft in `en_US.UTF-8` und nicht in `C`/`C.UTF-8` (gemessen). Fall `p8-sprache` ruft das Skript mit `welle-ä` unter `en_US.UTF-8`; ohne die Locale entfällt der Fall laut (wie die Fälle mit Dateirechten als root).
 
-**Ohne Mutation, mit Grund:** (1) Der Wortlaut der Meldungen jenseits des Präfixes und der Stichwörter von `SPEC-068` Punkt 2 ist nicht zugesagt. (2) `trap … rm -rf "$tmp"` (Temp-Verzeichnis unter `TMPDIR`): der Vertrag sagt „legt keine Datei außer Temp-Dateien an“, nicht, dass sie verschwinden; kein Test. (3) Atomarität über alle Stubs ist die Grenze von Punkt 3 (akzeptiertes Negativ im Vertrag), nicht Zusage. (4) Ein Wächter `[ -d "$d" ] || continue` für die Schleife über `done/*/` war bei einer Messung ohne Wirkung (leeres `done/`, fehlendes `done/`, nur eine Datei darin: Exit 0, gleiche Ausgabe) und ist entfernt (`ec94f93b`); der Wächter `[ -e "$stub" ] || continue` greift bei `<welle-id>` ohne Stub und hat Fall `p1-eine-ohne-stub` und Mutation. (5) Keine Aussage: gleichzeitige Aufrufe (Punkt 9, Grenze im Vertrag), Dateisystem ohne `-w`-Semantik, macOS und Windows (Plattform im Kopf des Vertrags).
+**Ohne Mutation, mit Grund:** (1) Der Wortlaut der Meldungen jenseits des Präfixes und der Stichwörter von `SPEC-068` Punkt 2 ist nicht zugesagt. (2) `trap … rm -rf "$tmp"` (Temp-Verzeichnis unter `TMPDIR`): der Vertrag sagt „legt keine Datei außer Temp-Dateien an“, nicht, dass sie verschwinden; kein Test. (3) Atomarität über alle Stubs ist die Grenze von Punkt 3 (akzeptiertes Negativ im Vertrag), nicht Zusage. (4) Ein Wächter `[ -d "$d" ] || continue` für die Schleife über `done/*/` war bei einer Messung ohne Wirkung (leeres `done/`, fehlendes `done/`, nur eine Datei darin: Exit 0, gleiche Ausgabe) und ist entfernt (`ec94f93b`); der Wächter `[ -e "$stub" ] || continue` entfällt seit `4dec8155`, weil die Menge nur Wellen mit Stub enthält (Mutation `m-p1-welle-ohne-stub-zaehlt`, Fälle `p1-eine-ohne-stub`, `p2-welle-ohne-stub-ohne-archiv`). (5) Keine Aussage: gleichzeitige Aufrufe (Punkt 9, Grenze im Vertrag), Dateisystem ohne `-w`-Semantik, macOS und Windows (Plattform im Kopf des Vertrags).
 
 **Entscheidungen des Architect (`arch-dt2`) umgesetzt** (`e6a5e03b`): Ordnung bei gleicher Zahl = das Beispiel (Fall `p5-gleiche-zahl`, Mutationen „bytewise“ und „längere zuerst“) · `Werkzeug fehlt` an der Stelle von Punkt 2 (3); `zip` und die Locale prüft die Gegenprobe vor ihrem ersten Fall · leere Menge: Exit 0 und die Zeile `archiv-bezug: keine Stubs` auf stdout (Fälle `p1-leere-menge`, `p1-eine-ohne-stub`; Mutationen: ohne die Zeile, auf stderr, immer) · (e) nur für zu ändernde Stubs (`p3-nicht-beschreibbar-gleich`), je Stub der erste Grund (`p3-erster-grund`) · `welle-` ohne Rest ungültig (`p2-form-welle-nur-praefix`) · Stichwörter und Präfix der Meldungen sind zugesagt: je Stichwort ein Fall (`befund_hat`, `archiv-bezug: <Pfad>: <Stichwort>`) und eine Mutation „weicht ab“, dazu je eine Mutation für den Präfix der Eingabe- und der Stub-Meldungen · `p8-sprache`: Locale `en_US.UTF-8` ist Voraussetzung, sonst entfallen Fall und Mutation laut. Der Lauf über die Stubs wird nicht wiederholt: die Änderung berührt ihn nicht; `make archiv-bezug` über alle Wellen am Endstand: Exit 0, `git status` ohne Änderung an den Stubs (Idempotenz).
+
+**Review-Runde 1 (`rev-dt`, 0 HIGH, 5 MEDIUM) und `arch-dt3` behoben** (`4dec8155`): F-1 Schreibfehler ⇒ Temp-Datei dieses Stubs entfernt, `Schreiben fehlgeschlagen` mit Pfad, kein weiterer Stub, Exit 2 (Fälle `p3-schreiben-scheitert` mit Attrappe von `mv`, `p3-schreiben-temp-aufgeraeumt`; drei Mutationen) · F-2 Reihenfolge (a) bis (e) je benachbartes Paar ein Fall (`p3-reihenfolge-grund-a-b`, `-b-c`, `-c-c`, `-c-d`, `-d-e`) und je eine Mutation, darunter die zwei Mutanten des Reviews (CR vor Kopf, zwei Bezug-Zeilen vor CR) · F-3 Fall `p3-nur-stubs` (Dateiliste und Zeiten außerhalb des geschriebenen Stubs) mit vier Grenzmutationen · F-4 die Listen erwarteter roter Fälle werden um die entfallenen Fälle gekürzt; gemessen mit Attrappen von `id` (root) und `locale` (ohne `en_US`) im `PATH`: grün (120 Läufe) · F-5 die Meldungen nennen Welle, Datei, Verzeichnis und Werkzeug, die Fälle prüfen den Namen, fünf Mutationen ohne Namen · F-6 je Kennungsart eine Mutation · F-7, F-8, F-9 Sätze berichtigt (README-Zeile, Kopf der Gegenprobe, Fragment, bash ≥ 4.3, README-Zählung) · F-10 (Architect) Wurzel fehlt, leer oder kein Verzeichnis ⇒ Exit 2 `Wurzel` als erste Stufe (`p2-wurzel-fehlt`, `p2-wurzel-leer`, `p2-wurzel-kein-verzeichnis`, `p2-reihenfolge-0-1`), gleiche Zeile an falscher Stelle ⇒ Befund `Zeile an falscher Stelle` ohne Verschieben (`p6-gleich-falsche-stelle`), genannte Welle ohne Stub und ohne `archiv.zip` ⇒ Exit 0 `keine Stubs` (`p2-welle-ohne-stub-ohne-archiv`; der Wächter `[ -e "$stub" ] || continue` ist damit überflüssig und entfernt, die Auswahl der Wellen mit Stub trägt Mutation `m-p1-welle-ohne-stub-zaehlt`), Modus und Besitzer nach `mv` sind Grenze ohne Fall. Idempotenz für den Verifier: `make archiv-bezug` über alle Wellen am Endstand ⇒ Exit 0, `git status` leer.
 
 
 **Stop-Hook** (`.claude/hooks/stop-require-gates.sh`, Eingabe `{"stop_hook_active": false}`): Nach `make gates` am Endstand und einer Änderung allein von §7 (Positivliste) mit `make gates-schnell` (17 s): Antwort `approve`. Probe: eine Zeile in `tools/harness/archiv-bezug.sh` angehängt, dieselbe Eingabe: `block` („A changed path is not on the inert list“); die Zeile zurückgenommen: `approve`.
@@ -423,4 +450,4 @@ Stubs unter `docs/plan/planning/` sind Planung und zählen nicht, `harness/READM
 
 **Schätzung des Architect nach dem Vertrag (2026-10-19; Metrik von §4; Faktor der Gegenprobe wie `slice-harness-ci-workflows` gemessen 899 gegen 545 bis 695):** Skript 130 bis 170 (zwei Phasen, Kopf lesen, Zeile schreiben), Fragmente 30, README-Zeilen 6, Gegenprobe 300 bis 430 (rund 55 Fälle, 40 Mutationen, Archive mit `zip`); roh zusammen 470 bis 640; `SPEC-068` (rund 60 Zeilen Vertragstext, `harness/` zählt mit, wenn die Basis vor ihrem Commit liegt) kommt mit 60 bis 70 hinzu; zusammen **470 bis 710**, Mitte um 590; die Meldeschwelle 650 kann erreicht werden, die Marke 800 liegt darüber. Schnitt, falls sie eintritt: Fälle zu Punkt 3 (halber Stand) und Punkt 10 (Aufrufarten) in einen Folge-Slice nur dann, wenn der Planner es will; der Architect sieht keinen Schnitt vor.
 
-**Messung (Implementer):** Summe der Metrik 552 (nach den Entscheidungen des Architect; 504 davor), im Bereich der Schätzung; Meldeschwelle 650 nicht erreicht.
+**Messung (Implementer):** Summe der Metrik 625 (504 vor `arch-dt2`, 552 vor `arch-dt3`), im Bereich der Schätzung; Meldeschwelle 650 nicht erreicht.
