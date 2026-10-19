@@ -1,6 +1,6 @@
 # Verifikation: slice-erster-release-veroeffentlichung-image
 
-**Rolle:** Verifier. **Datum:** 2026-10-19. **Spanne:** Basis `5f68ebef` (Metrik-Basis `dc7f0a69`) bis `45ff2710` (Zweig `ver-rel-b` = `impl-rel-b` nach Review-Runde 1). **Gegenstand:** [slice-erster-release-veroeffentlichung-image](../plan/planning/in-progress/slice-erster-release-veroeffentlichung-image.md) gegen DoD, [SPEC-067](../../harness/vertraege/SPEC-067-release.md) (Fassung 1b), [ADR-0051](../plan/adr/0051-veroeffentlichung-auf-github-actions.md) und die Hard Rules.
+**Rolle:** Verifier. **Datum:** 2026-10-19. **Spanne:** Basis `5f68ebef` (Metrik-Basis `dc7f0a69`) bis `45ff2710` (Zweig `ver-rel-b` = `impl-rel-b` nach Review-Runde 1). **Gegenstand:** [slice-erster-release-veroeffentlichung-image](../plan/planning/done/slice-erster-release-veroeffentlichung-image.md) gegen DoD, [SPEC-067](../../harness/vertraege/SPEC-067-release.md) (Fassung 1b), [ADR-0051](../plan/adr/0051-veroeffentlichung-auf-github-actions.md) und die Hard Rules.
 
 Der Review-Report ([2026-10-19-review-slice-erster-release-veroeffentlichung-image](2026-10-19-review-slice-erster-release-veroeffentlichung-image.md)) ist Eingang, nicht Beleg. Der Reviewer hat die Behebungen von Runde 1 nicht erneut gesehen (Beobachtung `nacharbeit-nach-review-ohne-erneuten-lauf`); ich habe F-1 bis F-8 selbst nachgefahren. Es gab keinen Registry-, Netz- oder GitHub-Aufruf, keinen Tag, keinen Push nach GitHub.
 
