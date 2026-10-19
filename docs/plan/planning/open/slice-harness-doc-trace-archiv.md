@@ -16,7 +16,7 @@ Angelegt am 2026-10-19 nach Befund des Nutzers: `make doc-trace` zeigt neun Wais
 
 **Berührte Spec-Stellen:** `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt) · `SPEC-068` (neu; nächste freie Nummer nach `SPEC-067`, `SPEC-065` und `SPEC-066` sind gehalten; die Nummer vergibt der Architect; Vertrag in `harness/vertraege/`, Ort nach `MR-002`, vor dem ersten Code-Commit)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912 (Entwurf: Planner). **Datum:** 2026-10-19.
 
