@@ -9,7 +9,8 @@
 # Abbruch (Punkt 13): Bei Ende, SIGINT und SIGTERM beendet das Skript erst seine Nachkommen und wartet auf sie, entfernt dann sein Temp-Verzeichnis und endet mit 130 bzw.
 # 143; die Fälle p13-gegenprobe-sigint und -sigterm starten dafür eine Kopie des Skripts mit eigenem TMPDIR (die Kopie startet ohne GP_MUT, GP_ENTDECKE und GP_FALL und mit
 # GP_PARALLEL=2, und GP_INNEN=1 schaltet in jedem ihrer Läufe die Fälle p13-gegenprobe-* und die Mutationen m-p13-gegenprobe-* ab; ein Lauf mit GP_INNEN=1 und
-# GP_MUT=m-p13-gegenprobe fährt nichts und endet mit Exit 1, Lauf `rekursion-schutz`) und senden das Signal, sobald dort ein Fall läuft. Dieselben Fälle p13-sigint und
+# GP_MUT=m-p13-gegenprobe fährt nichts und endet mit Exit 1, Lauf `rekursion-schutz`) und senden das Signal, sobald dort ein Fall läuft; `env --default-signal` stellt SIGINT und SIGTERM
+# für diese Prozesse auf die Voreinstellung, auch wenn die Gegenprobe selbst in einer Umgebung läuft, die sie ignoriert (etwa als Hintergrundauftrag einer nicht interaktiven Shell). Dieselben Fälle p13-sigint und
 # p13-sigterm prüfen release.sh: ein `make` als Attrappe, das Nachkommen startet, bekommt das Signal mit dem Skript. SIGKILL und SIGHUP sind nicht zugesagt.
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Läufe, deren Name passt (die unveränderte Kopie nur, wenn das Muster `ok` trifft); GP_ENTDECKE=1 nennt je Mutation die
 # roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Läufe; GP_FALL=<name> gibt für die unveränderte Kopie das Protokoll dieses Falls aus.
@@ -324,7 +325,7 @@ umg() {
   E=()
   for a in "${!v[@]}"; do E+=("$a=${v[$a]}"); done
 }
-umg_befehl() { ENVV=(env -i "PATH=$run/welt/bin:/usr/local/bin:/usr/bin:/bin" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 "${E[@]}"); }
+umg_befehl() { ENVV=(env --default-signal=INT,TERM -i "PATH=$run/welt/bin:/usr/local/bin:/usr/bin:/bin" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 "${E[@]}"); }
 # lauf <Schritt> [NAME=Wert]… — führt release.sh mit E (und den Zusätzen) im Klon des Falls aus und setzt code, out, err (stdout und stderr unverändert).
 lauf() {
   local s="$1"
@@ -561,7 +562,7 @@ abbruchfall() {
   local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste
   mkdir -p "$run"
   t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1
-  ( trap - INT TERM; exec env -u GP_MUT -u GP_ENTDECKE -u GP_FALL TMPDIR="$t" GP_PARALLEL=2 GP_INNEN=1 setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$t.pid" "$skript13" > "$t.out" 2> "$t.err" ) &
+  ( trap - INT TERM; exec env --default-signal=INT,TERM -u GP_MUT -u GP_ENTDECKE -u GP_FALL TMPDIR="$t" GP_PARALLEL=2 GP_INNEN=1 setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$t.pid" "$skript13" > "$t.out" 2> "$t.err" ) &
   bg=$!
   warte_auf fall_laeuft || ok=0
   pid="$(cat "$t.pid" 2> /dev/null || echo 0)"
