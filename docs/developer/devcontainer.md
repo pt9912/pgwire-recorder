@@ -248,6 +248,8 @@ git switch -c thema
 make hooks-install
 ```
 
+Die Arbeit an einem Slice (Planen, Umsetzen, Review, Verifikation) läuft im Klon eines solchen Containers, je Lauf auf einem eigenen Zweig; der Host liefert den Stand mit `git push container<N> main` ein und holt das Ergebnis mit `git fetch container<N> <zweig>` zurück. Im Hauptbaum des Hosts liegt nur `main`; dort laufen Integration (ein Worktree für den Fast-Forward-Merge und `make gates`) und Push, keine Rollenarbeit. Als Erklärung dient der Stop-Hook: Er prüft den Hauptbaum und sperrt jede Antwort, solange dort ein Pfad außerhalb der Positivliste geändert ist.
+
 Gemessen am frischen Volume: `/workspaces` gehört `root`, das Verzeichnis des Volumes darin (`/workspaces/pgr-dev`) `vscode`
 (UID 1000); das Bare-Repo darin gehört `vscode`. Wer außerhalb des Volumes anlegt, scheitert mit `fatal: cannot mkdir … Permission denied`. `git` und `git-receive-pack` liegen im Image (`git version 2.55.0`).
 `git` läuft im Container als `vscode`, auch bei einem Push vom Host über `ssh`; der Host liest das
