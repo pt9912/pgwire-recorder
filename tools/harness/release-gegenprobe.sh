@@ -50,7 +50,8 @@ trap abbruch_term TERM
 : > "$arbeit/gefahren"
 melde() { echo "release-gegenprobe: ROT — $*" >> "$arbeit/fehler"; }
 
-for t in git sed grep awk cmp tar mktemp sort tr wc cat cp chmod rm env find ls seq sleep mkdir dirname basename head pgrep setsid timeout sha256sum; do
+WERKZEUGE="git sed grep awk cmp tar mktemp sort tr wc cat cp chmod rm env find ls seq sleep mkdir dirname basename head pgrep setsid timeout sha256sum jq date"
+for t in $WERKZEUGE; do
   command -v "$t" > /dev/null 2>&1 || { echo "release-gegenprobe: $t fehlt" >&2; exit 2; }
 done
 for f in .github/workflows/release.yml tools/harness/release.sh; do
@@ -333,12 +334,15 @@ if [ "${1-}" = run ]; then
   done
   a="${plat#linux/}"
   modus() { local x; x="$(tr ' ' '\n' <<< "${!1-}" | sed -n "s/^$a=//p" | head -n 1)"; echo "${x:-$2}"; }
-  u() { date -u -d "@$(( $(date +%s) - $1 * 3600 ))" +%Y-%m-%dT%H:%M:%S.123456789Z; }
-  mkdir -p "$cache/db"
+  u() { date -u -d "@$(( $(date +%s) - $1 ))" +%Y-%m-%dT%H:%M:%S.123456789Z; }
+  [ -n "$cache" ] || cache=/nonexistent/cache
+  mkdir -p "$cache/db" 2> /dev/null
   case "$(modus GP_DB frisch)" in
-    frisch) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u 1)" "$(u 0)" > "$cache/db/metadata.json" ;;
-    h71) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u 71)" "$(u 0)" > "$cache/db/metadata.json" ;;
-    h73) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u 73)" "$(u 0)" > "$cache/db/metadata.json" ;;
+    frisch) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u 3600)" "$(u 0)" > "$cache/db/metadata.json" ;;
+    h71) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u 255600)" "$(u 0)" > "$cache/db/metadata.json" ;;
+    zukunft10) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u -600)" "$(u 0)" > "$cache/db/metadata.json" ;;
+    zukunft2) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u -120)" "$(u 0)" > "$cache/db/metadata.json" ;;
+    h73) printf '{"Version":2,"UpdatedAt":"%s","DownloadedAt":"%s"}' "$(u 262800)" "$(u 0)" > "$cache/db/metadata.json" ;;
     fehlt) rm -f "$cache/db/metadata.json" ;;
     kein-json) printf 'kein json' > "$cache/db/metadata.json" ;;
     ohne-feld) printf '{"Version":2}' > "$cache/db/metadata.json" ;;
@@ -358,6 +362,9 @@ if [ "${1-}" = run ]; then
     exit1) J "[$sauber]"; echo "FATAL scan" >&2; exit 1 ;;
     exit125) exit 125 ;;
     kein-json) echo "kein json" ;;
+    exit1-kein-json) echo "kein json"; echo "FATAL scan" >&2; exit 1 ;;
+    ergebnis-objekt) J '{"x":{"Target":"a"}}' ;;
+    vuln-zahl) J '[{"Target":"a","Vulnerabilities":5}]' ;;
     leer) : ;;
     ergebnis-leer) J "[]" ;;
     ergebnis-null) J null ;;
@@ -1113,7 +1120,7 @@ f_p16_trockenlauf() {
 }
 f_p16_gruen() {
   sscan; gruen
-  sei "Marke scan.ok" test -e "$(ZD)/scan.ok"; sei "Summenzeile" enthaelt "$out" "release: scan: 0 Befund(e) über der Schwelle, 0 ohne Behebung"
+  sei "Marke scan.ok" test -e "$(ZD)/scan.ok"; sei "stdout ist genau die Summenzeile" test "$out" = "release: scan: 0 Befund(e) über der Schwelle, 0 ohne Behebung"$'\n'; sei "stderr ohne Summe" ohne "$err" "Befund(e)"
   sei "skopeo nie gerufen" nie skopeo; sei "gh nie gerufen" nie gh
 }
 # Aufruf, je Element
@@ -1136,14 +1143,15 @@ f_p16_e9_amd64() { sscan; gruen; sei "genau ein Lauf für linux/amd64" test "$(r
 f_p16_e9_arm64() { sscan; gruen; sei "genau ein Lauf für linux/arm64" test "$(runs | grep -cE ' --platform linux/arm64( |$)')" -eq 1; }
 f_p16_e9_genau_zwei() { sscan; gruen; sei "genau zwei Läufe" test "$(runs | wc -l)" -eq 2; }
 for f in skip-db-update skip-files skip-dirs ignorefile ignore-policy vex; do eval "f_p16_e10_${f//-/_}() { sscan; gruen; in_keinem \"--$f\"; }"; done
-f_p16_e10_mount() {
+f_p16_e10_dritter_mount() {
   local z
   sscan; gruen
   while IFS= read -r z; do sei "genau zwei Mounts je Lauf (Layout und Cache)" test "$(grep -o ' -v ' <<< "$z" | wc -l)" -eq 2; done < <(runs)
 }
 f_p16_user() { sscan; gruen; in_beiden "--user <uid>:<gid> des Aufrufers" " --user $(id -u):$(id -g) "; }
 f_p16_cache_dir() { sscan; gruen; in_beiden "--cache-dir /cache" " --cache-dir /cache"; }
-f_p16_cache_kein_zwischenspeicher() { sscan; gruen; in_beiden "der Cache liegt im Temp-Verzeichnis des Laufs" " -v $w/tmp/"; }
+f_p16_cache_kein_zwischenspeicher() { sscan; gruen; in_beiden "zweiter Mount :/cache, schreibbar" ":/cache "; }
+f_p16_cache_ueber_laeufe() { sscan; gruen; in_beiden "der Cache liegt im Temp-Verzeichnis des Schrittes, nicht im Zustand zwischen den Läufen" " -v $w/tmp/"; }
 f_p16_pin_form() { sei "Form: aquasec/trivy@sha256:<64 Hexziffern> und Tag-Kommentar" test -n "$(grep -E "^TRIVY_IMAGE='aquasec/trivy@sha256:[0-9a-f]{64}' # [0-9]+\.[0-9]+\.[0-9]+\$" "$releasesh" || true)"; }
 f_p16_pin_platzhalter() { sei "der Digest ist kein Platzhalter aus Nullen" test -z "$(grep -E "^TRIVY_IMAGE=.*@sha256:0{64}'" "$releasesh" || true)"; }
 # Auswertung
@@ -1157,7 +1165,7 @@ befund() {
 f_p16_critical_mit_fix() { befund amd64=critical-fix "schwachstelle: linux/amd64 CVE-1 pkg-c 1.0 -> 1.2.3 CRITICAL" "1 Befund(e) über der Schwelle, 0 ohne Behebung"; }
 f_p16_high_mit_fix() { befund amd64=high-fix "schwachstelle: linux/amd64 CVE-1 pkg-h 1.0 -> 1.2.3 HIGH" "1 Befund(e) über der Schwelle, 0 ohne Behebung"; }
 # darunter <Modus> <ohne Behebung> — grün trotz eines Eintrags; die Summe zählt ihn, die Meldung nennt keinen Befund.
-darunter() { ibild; lauf scan "GP_TRIVY=amd64=$1"; gruen; sei "Marke" test -e "$(ZD)/scan.ok"; sei "Summe" enthaelt "$out" "0 Befund(e) über der Schwelle, $2 ohne Behebung"; sei "kein Befund genannt" ohne "$err" "schwachstelle"; }
+darunter() { ibild; lauf scan "GP_TRIVY=amd64=$1"; gruen; sei "Marke" test -e "$(ZD)/scan.ok"; sei "stdout ist genau die Summenzeile" test "$out" = "release: scan: 0 Befund(e) über der Schwelle, $2 ohne Behebung"$'\n'; sei "kein Befund genannt" ohne "$err" "schwachstelle"; }
 f_p16_medium_mit_fix() { darunter medium-fix 0; }
 f_p16_low_mit_fix() { darunter low-fix 0; }
 f_p16_unknown_mit_fix() { darunter unknown-fix 0; }
@@ -1169,6 +1177,7 @@ f_p16_alle_befunde() {
   befund "amd64=befunde-a arm64=befunde-b" "schwachstelle: linux/amd64 CVE-A1 pkg-a1 1.0 -> 2.0 CRITICAL" "schwachstelle: linux/amd64 CVE-A2 pkg-a2 1.0 -> 3.0 HIGH" \
     "schwachstelle: linux/arm64 CVE-B1 pkg-b1 1.0 -> 4.0 HIGH" "3 Befund(e) über der Schwelle, 1 ohne Behebung"
   sei "MEDIUM nicht genannt" ohne "$err" CVE-B2
+  sei "die Summe steht nach den Befunden" test "$(grep . <<< "$err" | tail -n 1)" = "release: scan: 3 Befund(e) über der Schwelle, 1 ohne Behebung"
 }
 f_p16_plattform_genannt() { befund "amd64=befunde-a arm64=befunde-b" "schwachstelle: linux/amd64 CVE-A1" "schwachstelle: linux/arm64 CVE-B1"; }
 f_p16_befund_nur_amd64() { befund amd64=high-fix "schwachstelle: linux/amd64 CVE-1"; sei "arm64 nicht genannt" ohne "$err" "linux/arm64"; }
@@ -1176,7 +1185,30 @@ f_p16_befund_nur_arm64() { befund arm64=high-fix "schwachstelle: linux/arm64 CVE
 f_p16_befund_im_zweiten_ergebnis() { befund amd64=zweites-ergebnis "schwachstelle: linux/amd64 CVE-Z pkg-z 1.0 -> 7.0 HIGH"; }
 f_p16_summe() { befund amd64=summe "2 Befund(e) über der Schwelle, 2 ohne Behebung"; }
 # Gescheitert
-scanfehler() { sei "Exit 2" test "$code" -eq 2; sei "Meldung release: scan: $1:" enthaelt "$err" "release: scan: $1:"; sei "keine Marke" test ! -e "$(ZD)/scan.ok"; }
+scanfehler() {
+  sei "Exit 2" test "$code" -eq 2; sei "Meldung release: scan: $1:" enthaelt "$err" "release: scan: $1:"; sei "keine Marke" test ! -e "$(ZD)/scan.ok"
+  sei "genau eine Meldung (ohne Zeilen von Trivy)" test "$(grep -v '^release: trivy: ' <<< "$err" | grep -c .)" -eq 1; sei "keine Befunde genannt" ohne "$err" "schwachstelle"
+}
+# stichwort <Stichwort> — die Meldung ohne Zeilen von Trivy ist genau eine Zeile mit dem Präfix `release: scan: <Stichwort>: `.
+stichwort() { local m; m="$(grep -v '^release: trivy: ' <<< "$err")"; sei "genau eine Meldung" test "$(grep -c . <<< "$m")" -eq 1; sei "Präfix release: scan: $1: " test "${m#"release: scan: $1: "}" != "$m"; }
+f_p16_stichwort_scan_gescheitert() { sscan GP_TRIVY=amd64=exit1; stichwort scan-gescheitert; }
+f_p16_stichwort_pruefmenge() { sscan GP_TRIVY=amd64=ergebnis-leer; stichwort pruefmenge; }
+f_p16_stichwort_datenbank() { sscan GP_DB=amd64=h73; stichwort datenbank; }
+f_p16_stichwort_plattform() { sscan GP_ARCH=amd64=arm64; stichwort plattform; }
+f_p16_stichwort_vorbedingung() { fix 0.1.0; umg lauf; bis eingaben binaries; lauf scan; sei "genau eine Meldung" test "$(grep -c . <<< "$err")" -eq 1; sei "Präfix release: vorbedingung: " test "${err#"release: vorbedingung: "}" != "$err"; }
+# Reihenfolge der Gründe, je ein Fall mit beiden Gründen zugleich
+f_p16_reihenfolge_vorbedingung_vor_docker() { fix 0.1.0; umg lauf; bis eingaben binaries; lauf scan GP_TRIVY=amd64=exit1; grund 2 scan vorbedingung; sei "Trivy nie gerufen" test -z "$(runs)"; }
+f_p16_reihenfolge_digest_vor_layout() { ibild; rm -rf "$(IMG)"; lauf scan; grund 2 scan vorbedingung; sei "genannt wird der Digest" enthaelt "$err" "war nicht grün"; sei "nicht das Layout" ohne "$err" "Layout"; }
+f_p16_reihenfolge_gescheitert_vor_pruefmenge() { sscan GP_TRIVY=amd64=exit1-kein-json; scanfehler scan-gescheitert; }
+f_p16_reihenfolge_pruefmenge_vor_datenbank() { sscan GP_TRIVY=amd64=ergebnis-leer GP_DB=amd64=h73; scanfehler pruefmenge; }
+f_p16_reihenfolge_datenbank_vor_plattform() { sscan GP_DB=amd64=h73 GP_ARCH=amd64=arm64; scanfehler datenbank; }
+f_p16_reihenfolge_amd64_vor_arm64() { sscan GP_DB=amd64=h73 GP_ARCH=arm64=amd64; scanfehler datenbank; }
+f_p16_reihenfolge_exit2_vor_befund() { sscan "GP_TRIVY=amd64=critical-fix arm64=exit1"; scanfehler scan-gescheitert; }
+f_p16_db_downloadedat() { sscan GP_DB=amd64=h73; scanfehler datenbank; sei "das Alter steht in der Meldung" enthaelt "$err" "73 Stunden"; }
+f_p16_db_zukunft() { sscan GP_DB=amd64=zukunft10; scanfehler datenbank; sei "kein Alter behauptet" ohne "$err" "Stunden alt"; }
+f_p16_db_zukunft_toleranz() { sscan "GP_DB=amd64=zukunft2 arm64=zukunft2"; gruen; sei "Marke" test -e "$(ZD)/scan.ok"; }
+f_p16_ergebnis_kein_array() { sscan GP_TRIVY=amd64=ergebnis-objekt; scanfehler pruefmenge; }
+f_p16_vulnerabilities_nicht_iterierbar() { sscan GP_TRIVY=amd64=vuln-zahl; scanfehler pruefmenge; }
 f_p16_trivy_exit() { sscan GP_TRIVY=amd64=exit1; scanfehler scan-gescheitert; }
 f_p16_trivy_exit_arm64() { sscan GP_TRIVY=arm64=exit1; scanfehler scan-gescheitert; }
 f_p16_trivy_exit_125() { sscan GP_TRIVY=amd64=exit125; scanfehler scan-gescheitert; }
@@ -1211,7 +1243,7 @@ f_p16_scan_ok_marke() {
   sscan GP_TRIVY=amd64=critical-fix; sei "keine Marke nach Befund" test ! -e "$(ZD)/scan.ok"
   sscan GP_TRIVY=amd64=exit125; sei "keine Marke nach gescheitertem Scan" test ! -e "$(ZD)/scan.ok"
 }
-f_p16_alte_marke() { sscan; gruen; lauf scan GP_TRIVY=amd64=critical-fix; sei "Exit 1" test "$code" -eq 1; sei "die Marke des früheren Laufs ist weg" test ! -e "$(ZD)/scan.ok"; }
+f_p16_marke_loescht_entfaellt() { sscan; gruen; lauf scan GP_TRIVY=amd64=critical-fix; sei "Exit 1" test "$code" -eq 1; sei "die Marke des früheren Laufs ist weg" test ! -e "$(ZD)/scan.ok"; }
 f_p16_eingaben_loescht_marke() { sscan; gruen; lauf eingaben; gruen; sei "die Marke ist weg" test ! -e "$(ZD)/scan.ok"; }
 f_p16_image_loescht_marke() { sscan; gruen; lauf image; gruen; sei "die Marke ist weg" test ! -e "$(ZD)/scan.ok"; }
 f_p16_veroeffentlichen_ohne_scan() { ibild; lauf veroeffentlichen; grund 2 veroeffentlichen vorbedingung; sei "scan genannt" enthaelt "$err" "scan"; sei "skopeo nie gerufen" nie skopeo; }
@@ -1273,6 +1305,19 @@ f_p13_gegenprobe_ende() {
     bad=1; printf 'erwartet: Exit 0, TMPDIR leer\ngelesen: Exit %s, TMPDIR: %s\n' "$rc" "$reste" >> "$run/log.$fallname"
   fi
 }
+# werkzeug_fehlt <Name> — eine Kopie der Gegenprobe mit einem PATH ohne das Werkzeug endet mit Exit 2 und nennt es.
+werkzeug_fehlt() {
+  local d w rc=0
+  mkdir -p "$run"
+  t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1; d="$t/bin"; mkdir -p "$d"
+  for w in $WERKZEUGE bash; do [ "$w" = "$1" ] || ln -s "$(command -v "$w")" "$d/$w"; done
+  env -i PATH="$d" GP_INNEN=1 GP_MUT='^fall-ohne-funktion$' TMPDIR="$t" "$(command -v bash)" "$skript13" > "$t/out" 2> "$t/err" || rc=$?
+  if [ "$rc" -ne 2 ] || [ "$(cat "$t/err")" != "release-gegenprobe: $1 fehlt" ]; then
+    bad=1; printf 'erwartet: Exit 2 und „%s fehlt“\ngelesen: Exit %s, stderr: %s\n' "$1" "$rc" "$(cat "$t/err")" >> "$run/log.$fallname"
+  fi
+}
+f_p16_werkzeug_jq() { werkzeug_fehlt jq; }
+f_p16_werkzeug_date() { werkzeug_fehlt date; }
 f_p13_gegenprobe_sigint() { abbruchfall INT 130; }
 f_p13_gegenprobe_sigterm() { abbruchfall TERM 143; }
 # release.sh: Ende, SIGINT und SIGTERM in `binaries` mit einem make als Attrappe, das Nachkommen startet und in das Temp-Verzeichnis des Skripts schreibt.
@@ -1332,15 +1377,18 @@ FAELLE_B=(p2-trockenlauf-image p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p3
   p9-nicht-vor-registries p10-nicht-im-log-image p10-stdin p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p11-reihenfolge-gruende-b p11-alte-marke-b
   p13-veroeffentlichen-ohne-image-bei-scan-ok p11-alte-marke-image-b p11-image-rot-loescht-digest-b)
 FAELLE_F=(p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-amd64 p16-e9-arm64 p16-e9-genau-zwei
-  p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-pin-form p16-pin-platzhalter
+  p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-dritter-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-cache-ueber-laeufe p16-pin-form p16-pin-platzhalter
   p16-critical-mit-fix p16-high-mit-fix p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-critical-ohne-fix
   p16-alle-befunde p16-plattform-genannt p16-befund-nur-amd64 p16-befund-nur-arm64 p16-befund-im-zweiten-ergebnis p16-summe
   p16-trivy-exit p16-trivy-exit-arm64 p16-trivy-exit-125 p16-kein-json p16-kein-json-arm64 p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-arm64 p16-leeres-ergebnis-fehlt p16-leeres-ergebnis-null
   p16-db-alt p16-db-alt-arm64 p16-db-frisch p16-db-unlesbar p16-db-unlesbar-arm64 p16-db-unlesbar-kein-json p16-db-unlesbar-ohne-feld p16-db-unlesbar-zahl p16-db-unlesbar-leer p16-db-unlesbar-jetzt p16-db-unlesbar-kein-datum
   p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout
-  p16-scan-ok-marke p16-alte-marke p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-ueber-schwelle-keine-registry p16-d-unveraendert)
+  p16-scan-ok-marke p16-marke-loescht-entfaellt p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-ueber-schwelle-keine-registry p16-d-unveraendert
+  p16-stichwort-scan-gescheitert p16-stichwort-pruefmenge p16-stichwort-datenbank p16-stichwort-plattform p16-stichwort-vorbedingung
+  p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-reihenfolge-gescheitert-vor-pruefmenge p16-reihenfolge-pruefmenge-vor-datenbank p16-reihenfolge-datenbank-vor-plattform p16-reihenfolge-amd64-vor-arm64 p16-reihenfolge-exit2-vor-befund
+  p16-db-downloadedat p16-db-zukunft p16-db-zukunft-toleranz p16-ergebnis-kein-array p16-vulnerabilities-nicht-iterierbar)
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
-FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende)
+FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende p16-werkzeug-jq p16-werkzeug-date)
 
 # faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, sh, b, f, p13, gp13, ok = alle), einen je Zeile. FALL_ZUSATZ nennt einen weiteren Namen (Probe: ein Name ohne
 # Funktion ist ein roter Fall).
@@ -1810,70 +1858,90 @@ mf m-p16-e7-nur-critical "p16-e7" '--severity HIGH,CRITICAL' '--severity CRITICA
 mf m-p16-e7-mit-medium "p16-e7" '--severity HIGH,CRITICAL' '--severity HIGH,CRITICAL,MEDIUM'
 mf m-p16-e8-timeout-entfaellt "p16-e8" ' --timeout 10m --platform' ' --platform'
 mf m-p16-e8-timeout-60m "p16-e8" '--timeout 10m' '--timeout 60m'
-mf m-p16-e9-platform-entfaellt "$(ausser p16-pin-form p16-pin-platzhalter p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-veroeffentlichen-ohne-scan)" ' --platform "$plat" --cache-dir' ' --cache-dir'
-mf m-p16-e9-nur-amd64 "p16-alle-befunde p16-befund-nur-arm64 p16-db-alt-arm64 p16-db-unlesbar-arm64 p16-e9-arm64 p16-e9-genau-zwei p16-kein-json-arm64 p16-leeres-ergebnis-arm64 p16-plattform-abweichend-arm64 p16-plattform-genannt p16-trivy-exit-arm64 p16-trockenlauf" 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)' 'SCAN_PLATTFORMEN=(linux/amd64)'
-mf m-p16-e9-nur-arm64 "$(ausser p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-arm64 p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-pin-form p16-pin-platzhalter p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-befund-nur-arm64 p16-trivy-exit-arm64 p16-kein-json-arm64 p16-leeres-ergebnis-arm64 p16-db-alt-arm64 p16-db-frisch p16-db-unlesbar-arm64 p16-plattform-abweichend-arm64 p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-d-unveraendert)" 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)' 'SCAN_PLATTFORMEN=(linux/arm64)'
+mf m-p16-e9-platform-entfaellt "$(ausser p16-pin-form p16-pin-platzhalter p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-veroeffentlichen-ohne-scan p16-stichwort-plattform p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout)" ' --platform "$plat" --cache-dir' ' --cache-dir'
+mf m-p16-e9-nur-amd64 "p16-alle-befunde p16-befund-nur-arm64 p16-db-alt-arm64 p16-db-unlesbar-arm64 p16-e9-arm64 p16-e9-genau-zwei p16-kein-json-arm64 p16-leeres-ergebnis-arm64 p16-plattform-abweichend-arm64 p16-plattform-genannt p16-reihenfolge-exit2-vor-befund p16-trivy-exit-arm64 p16-trockenlauf" 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)' 'SCAN_PLATTFORMEN=(linux/amd64)'
+mf m-p16-e9-nur-arm64 "$(ausser p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-arm64 p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-dritter-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-cache-ueber-laeufe p16-pin-form p16-pin-platzhalter p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-befund-nur-arm64 p16-trivy-exit-arm64 p16-kein-json-arm64 p16-leeres-ergebnis-arm64 p16-db-alt-arm64 p16-db-frisch p16-db-unlesbar-arm64 p16-plattform-abweichend-arm64 p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-d-unveraendert p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-reihenfolge-exit2-vor-befund p16-db-zukunft-toleranz)" 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)' 'SCAN_PLATTFORMEN=(linux/arm64)'
 mf m-p16-e9-dritte-plattform "p16-e9-genau-zwei p16-trockenlauf" 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)' 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64 linux/s390x)'
 for fl in skip-db-update skip-files skip-dirs ignorefile ignore-policy vex; do mf "m-p16-e10-$fl" "p16-e10-$fl" ' --cache-dir /cache > "$json"' " --cache-dir /cache --$fl > \"\$json\""; done
-mf m-p16-e10-dritter-mount "p16-e10-mount" '-v "$cache:/cache" ' '-v "$cache:/cache" -v /ignore:/ignore '
+mf m-p16-e10-dritter-mount "p16-e10-dritter-mount" '-v "$cache:/cache" ' '-v "$cache:/cache" -v /ignore:/ignore '
 mf m-p16-user-entfaellt "p16-user" ' --user "$(id -u):$(id -g)"' ''
 mf m-p16-cache-dir-entfaellt "p16-cache-dir" ' --cache-dir /cache >' ' >'
-mf m-p16-cache-ueber-laeufe "p16-cache-kein-zwischenspeicher" 'cache="$scratch/trivy"' 'cache="$zdir/trivy"'
+mf m-p16-cache-ueber-laeufe "p16-cache-ueber-laeufe" 'cache="$scratch/trivy"' 'cache="$zdir/trivy"'
 mf m-p16-schwelle-medium "p16-alle-befunde p16-medium-mit-fix p16-summe" 'select(.Severity == "CRITICAL" or .Severity == "HIGH")' 'select(.Severity == "CRITICAL" or .Severity == "HIGH" or .Severity == "MEDIUM")'
 mf m-p16-schwelle-nur-critical "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-high-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-plattform-genannt p16-summe" 'select(.Severity == "CRITICAL" or .Severity == "HIGH")' 'select(.Severity == "CRITICAL")'
-mf m-p16-schwelle-nur-high "p16-alle-befunde p16-alte-marke p16-critical-mit-fix p16-critical-ohne-fix p16-plattform-genannt p16-scan-ok-marke p16-summe p16-ueber-schwelle-keine-registry" 'select(.Severity == "CRITICAL" or .Severity == "HIGH")' 'select(.Severity == "HIGH")'
+mf m-p16-schwelle-nur-high "p16-alle-befunde p16-critical-mit-fix p16-critical-ohne-fix p16-marke-loescht-entfaellt p16-plattform-genannt p16-scan-ok-marke p16-summe p16-ueber-schwelle-keine-registry" 'select(.Severity == "CRITICAL" or .Severity == "HIGH")' 'select(.Severity == "HIGH")'
 mf m-p16-schwelle-jede "p16-alle-befunde p16-low-mit-fix p16-medium-mit-fix p16-summe p16-unknown-mit-fix" 'select(.Severity == "CRITICAL" or .Severity == "HIGH")' 'select(.Severity != "")'
-mf m-p16-ohne-fix-sperrt "p16-alle-befunde p16-critical-ohne-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-summe" "SCAN_MIT_FIX='select((.FixedVersion // \"\") != \"\")'" "SCAN_MIT_FIX='select(true)'"
-mf m-p16-fix-null-gilt-als-fix "p16-alle-befunde p16-critical-ohne-fix p16-high-ohne-fix p16-high-ohne-fix-null p16-summe" "SCAN_MIT_FIX='select((.FixedVersion // \"\") != \"\")'" "SCAN_MIT_FIX='select(.FixedVersion != \"\")'"
-mf m-p16-fix-leer-gilt-als-fix "p16-high-ohne-fix-leer p16-summe" "SCAN_MIT_FIX='select((.FixedVersion // \"\") != \"\")'" "SCAN_MIT_FIX='select(.FixedVersion != null)'"
-mf m-p16-ohne-fix-zaehlt-alle "p16-alle-befunde p16-critical-mit-fix p16-high-mit-fix p16-summe" "SCAN_OHNE_FIX='select((.FixedVersion // \"\") == \"\")'" "SCAN_OHNE_FIX='select(true)'"
+mf m-p16-ohne-fix-sperrt "p16-alle-befunde p16-critical-ohne-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-summe" "SCAN_BEHOBEN='(.FixedVersion // \"\") != \"\"'" "SCAN_BEHOBEN='true'"
+mf m-p16-fix-null-gilt-als-fix "p16-alle-befunde p16-critical-ohne-fix p16-high-ohne-fix p16-high-ohne-fix-null p16-summe" "SCAN_BEHOBEN='(.FixedVersion // \"\") != \"\"'" "SCAN_BEHOBEN='.FixedVersion != \"\"'"
+mf m-p16-fix-leer-gilt-als-fix "p16-high-ohne-fix-leer p16-summe" "SCAN_BEHOBEN='(.FixedVersion // \"\") != \"\"'" "SCAN_BEHOBEN='.FixedVersion != null'"
+mf m-p16-ohne-fix-zaehlt-alle "p16-alle-befunde p16-critical-mit-fix p16-high-mit-fix p16-summe" "grep -c '^O\$' <<< " "grep -c . <<< "
 mf m-p16-nur-erster-befund "p16-alle-befunde p16-summe" $'bef+="$b"$\'\\n\'' $'bef+="${b%%$\'\\n\'*}"$\'\\n\''
 mf m-p16-nur-erstes-ergebnis "p16-alle-befunde p16-befund-im-zweiten-ergebnis" "SCAN_EINTRAG='.Results[] |" "SCAN_EINTRAG='.Results[0] |"
 mf m-p16-arm64-nicht-ausgewertet "p16-alle-befunde p16-befund-nur-arm64 p16-plattform-genannt" '[ -z "$b" ] || bef+=' '[ -z "$b" ] || [ "$plat" = linux/arm64 ] || bef+='
-mf m-p16-amd64-nicht-ausgewertet "p16-alle-befunde p16-alte-marke p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-critical-mit-fix p16-high-mit-fix p16-plattform-genannt p16-scan-ok-marke p16-summe p16-ueber-schwelle-keine-registry" '[ -z "$b" ] || bef+=' '[ -z "$b" ] || [ "$plat" = linux/amd64 ] || bef+='
+mf m-p16-amd64-nicht-ausgewertet "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-critical-mit-fix p16-high-mit-fix p16-marke-loescht-entfaellt p16-plattform-genannt p16-scan-ok-marke p16-summe p16-ueber-schwelle-keine-registry" '[ -z "$b" ] || bef+=' '[ -z "$b" ] || [ "$plat" = linux/amd64 ] || bef+='
 mf m-p16-plattform-nicht-genannt "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-high-mit-fix p16-plattform-genannt" '\($p) \(.VulnerabilityID)' '\(.VulnerabilityID)'
 mf m-p16-summe-entfaellt "p16-alle-befunde p16-critical-mit-fix p16-high-mit-fix p16-summe" 'L:# P16summe' ''
 mf m-p16-summe-zaehlt-unbehebbare-mit "p16-alle-befunde p16-summe" 'n="$(grep -c . <<< "$bef")"' 'n="$(( $(grep -c . <<< "$bef") + m ))"'
 mf m-p16-befunde-nicht-genannt "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-high-mit-fix p16-plattform-genannt" 'L:# P16alle' ''
-mf m-p16-auswertung-aus-anzeige "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-critical-ohne-fix p16-high-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-plattform-genannt p16-summe" 'L:# P16auswertung' $'    b="$(grep -E \'CRITICAL|HIGH\' "$json" || true)" # P16auswertung'
-mf m-p16-exit-gilt-als-gruen "p16-trivy-exit p16-trivy-exit-125 p16-trivy-exit-arm64" $'if [ "$rc" -ne 0 ]; then\n      tail' $'if false; then\n      tail'
+mf m-p16-auswertung-aus-anzeige "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-critical-ohne-fix p16-high-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-plattform-genannt p16-summe p16-vulnerabilities-nicht-iterierbar" 'L:# P16auswertung' $'    erg="$(grep -E \'CRITICAL|HIGH\' "$json" | sed \'s/^/F /\' || true)" # P16auswertung'
+mf m-p16-exit-gilt-als-gruen "p16-reihenfolge-exit2-vor-befund p16-reihenfolge-gescheitert-vor-pruefmenge p16-stichwort-scan-gescheitert p16-trivy-exit p16-trivy-exit-125 p16-trivy-exit-arm64" $'if [ "$rc" -ne 0 ]; then\n      tail' $'if false; then\n      tail'
 mf m-p16-exit-nur-1 "p16-trivy-exit-125" $'if [ "$rc" -ne 0 ]; then\n      tail' $'if [ "$rc" -eq 1 ]; then\n      tail'
-mf m-p16-exit-arm64-ignoriert "p16-trivy-exit-arm64" $'if [ "$rc" -ne 0 ]; then\n      tail' $'if [ "$rc" -ne 0 ] && [ "$plat" = linux/amd64 ]; then\n      tail'
-mf m-p16-pruefmenge-leer-gruen "p16-leeres-ergebnis p16-leeres-ergebnis-arm64" '(length > 0)' '(length >= 0)'
-mf m-p16-pruefmenge-entfernt "p16-kein-json p16-kein-json-arm64 p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-arm64" 'L:# P16pruefmenge' ''
+mf m-p16-exit-arm64-ignoriert "p16-reihenfolge-exit2-vor-befund p16-trivy-exit-arm64" $'if [ "$rc" -ne 0 ]; then\n      tail' $'if [ "$rc" -ne 0 ] && [ "$plat" = linux/amd64 ]; then\n      tail'
+mf m-p16-pruefmenge-leer-gruen "p16-leeres-ergebnis p16-leeres-ergebnis-arm64 p16-reihenfolge-pruefmenge-vor-datenbank p16-stichwort-pruefmenge" '(length > 0)' '(length >= 0)'
+mf m-p16-pruefmenge-entfernt "p16-ergebnis-kein-array p16-kein-json p16-kein-json-arm64 p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-arm64 p16-reihenfolge-pruefmenge-vor-datenbank p16-stichwort-pruefmenge" 'L:# P16pruefmenge' ''
 mf m-p16-pruefmenge-arm64-ignoriert "p16-kein-json-arm64 p16-leeres-ergebnis-arm64" "jq -e '(.Results // [])" "[ \"\$plat\" = linux/arm64 ] || jq -e '(.Results // [])"
-mf m-p16-db-nicht-geprueft "p16-db-alt p16-db-alt-arm64" 'L:# P16db-alt' ''
-mf m-p16-db-7-tage "p16-db-alt p16-db-alt-arm64" 'DB_GRENZE=$((72 * 3600))' 'DB_GRENZE=$((168 * 3600))'
+mf m-p16-db-nicht-geprueft "p16-db-alt p16-db-alt-arm64 p16-db-downloadedat p16-reihenfolge-amd64-vor-arm64 p16-reihenfolge-datenbank-vor-plattform p16-stichwort-datenbank" 'L:# P16db-alt' ''
+mf m-p16-db-7-tage "p16-db-alt p16-db-alt-arm64 p16-db-downloadedat p16-reihenfolge-amd64-vor-arm64 p16-reihenfolge-datenbank-vor-plattform p16-stichwort-datenbank" 'DB_GRENZE=$((72 * 3600))' 'DB_GRENZE=$((168 * 3600))'
 mf m-p16-db-70-stunden "p16-db-frisch" 'DB_GRENZE=$((72 * 3600))' 'DB_GRENZE=$((70 * 3600))'
-mf m-p16-db-74-stunden "p16-db-alt p16-db-alt-arm64" 'DB_GRENZE=$((72 * 3600))' 'DB_GRENZE=$((74 * 3600))'
-mf m-p16-db-downloadedat "p16-db-alt p16-db-alt-arm64" "'.UpdatedAt | strings'" "'.DownloadedAt | strings'"
+mf m-p16-db-74-stunden "p16-db-alt p16-db-alt-arm64 p16-db-downloadedat p16-reihenfolge-amd64-vor-arm64 p16-reihenfolge-datenbank-vor-plattform p16-stichwort-datenbank" 'DB_GRENZE=$((72 * 3600))' 'DB_GRENZE=$((74 * 3600))'
+mf m-p16-db-downloadedat "p16-db-alt p16-db-alt-arm64 p16-db-downloadedat p16-db-zukunft p16-reihenfolge-amd64-vor-arm64 p16-reihenfolge-datenbank-vor-plattform p16-stichwort-datenbank" "'.UpdatedAt | strings'" "'.DownloadedAt | strings'"
 mf m-p16-db-arm64-nicht-geprueft "p16-db-alt-arm64 p16-db-unlesbar-arm64" '    db_alter "$cache"' '    [ "$plat" = linux/arm64 ] || db_alter "$cache"'
 mf m-p16-db-zeitpunkt-ungeprueft "p16-db-unlesbar p16-db-unlesbar-arm64 p16-db-unlesbar-jetzt p16-db-unlesbar-kein-json p16-db-unlesbar-leer p16-db-unlesbar-ohne-feld p16-db-unlesbar-zahl" 'L:# P16db-zeitpunkt' ''
 mf m-p16-db-datum-ungeprueft "p16-db-unlesbar-kein-datum" ' || scan_fehler datenbank "UpdatedAt ${t@Q} ist kein Zeitpunkt" # P16db-datum' ' # P16db-datum'
-mf m-p16-plattform-nicht-verglichen "p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt" 'L:# P16plattform' ''
+mf m-p16-plattform-nicht-verglichen "p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt p16-stichwort-plattform" 'L:# P16plattform' ''
 mf m-p16-plattform-arm64-nicht-verglichen "p16-plattform-abweichend-arm64" '[ "$arch" = "${plat#linux/}" ] ||' '[ "$arch" = "${plat#linux/}" ] || [ "$plat" = linux/arm64 ] ||'
-mf m-p16-plattform-nur-nicht-leer "p16-plattform-abweichend p16-plattform-abweichend-arm64" '[ "$arch" = "${plat#linux/}" ]' '[ -n "$arch" ]'
-mf m-p16-image-marke-nicht-verlangt "p16-ohne-image-mit-layout" 'L:# P16image' ''
+mf m-p16-plattform-nur-nicht-leer "p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-stichwort-plattform" '[ "$arch" = "${plat#linux/}" ]' '[ -n "$arch" ]'
+mf m-p16-image-marke-nicht-verlangt "p16-ohne-image-mit-layout p16-reihenfolge-digest-vor-layout" 'L:# P16image' ''
 mf m-p16-layout-nicht-verlangt "p16-ohne-layout" 'L:# P16layout' ''
-mf m-p16-vorbedingung-beide-entfernt "p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout" 'L:# P16image' '' 'L:# P16layout' ''
-mf m-p16-marke-bei-rot "$(ausser p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-amd64 p16-e9-arm64 p16-e9-genau-zwei p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-pin-form p16-pin-platzhalter p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-critical-ohne-fix p16-db-frisch p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-d-unveraendert)" 'rm -f "$zdir/scan.ok" # P16marke-loescht' ': > "$zdir/scan.ok"'
-mf m-p16-marke-entfaellt "p16-critical-ohne-fix p16-db-frisch p16-e2-quelle p16-gruen p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-low-mit-fix p16-medium-mit-fix p16-scan-ok-marke p16-trockenlauf p16-unknown-mit-fix" 'L:: > "$zdir/scan.ok" # P16marke' ''
-mf m-p16-marke-loescht-entfaellt "p16-alte-marke" 'L:# P16marke-loescht' ''
+mf m-p16-vorbedingung-beide-entfernt "p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-reihenfolge-digest-vor-layout p16-reihenfolge-vorbedingung-vor-docker p16-stichwort-vorbedingung" 'L:# P16image' '' 'L:# P16layout' ''
+mf m-p16-marke-bei-rot "$(ausser p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-amd64 p16-e9-arm64 p16-e9-genau-zwei p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-dritter-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-cache-ueber-laeufe p16-pin-form p16-pin-platzhalter p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-critical-ohne-fix p16-db-frisch p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-d-unveraendert p16-stichwort-scan-gescheitert p16-stichwort-pruefmenge p16-stichwort-datenbank p16-stichwort-plattform p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-db-zukunft-toleranz)" 'rm -f "$zdir/scan.ok" # P16marke-loescht' ': > "$zdir/scan.ok"'
+mf m-p16-marke-entfaellt "p16-critical-ohne-fix p16-db-frisch p16-db-zukunft-toleranz p16-e2-quelle p16-gruen p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-low-mit-fix p16-medium-mit-fix p16-scan-ok-marke p16-trockenlauf p16-unknown-mit-fix" 'L:: > "$zdir/scan.ok" # P16marke' ''
+mf m-p16-marke-loescht-entfaellt "p16-marke-loescht-entfaellt" 'L:# P16marke-loescht' ''
 mf m-p16-eingaben-loescht-scan-nicht "p16-eingaben-loescht-marke" 'L:# P16loescht-eingaben' ''
 mf m-p16-image-loescht-scan-nicht "p16-image-loescht-marke" 'L:# P16loescht-image' ''
 mf m-p16-veroeffentlichen-ohne-scan-marke "p16-ueber-schwelle-keine-registry p16-veroeffentlichen-ohne-scan" 'L:# P16veroeffentlichen' ''
 mf m-p16-scan-ruft-skopeo "p16-gruen p16-trockenlauf" ': > "$zdir/scan.ok" # P16marke' $'skopeo inspect docker://x\n  : > "$zdir/scan.ok" # P16marke'
 mf m-p16-trockenlauf-ruft-skopeo "p16-trockenlauf" ': > "$zdir/scan.ok" # P16marke' $'[ "${RELEASE_EVENT-}" = push ] || skopeo inspect docker://x\n  : > "$zdir/scan.ok" # P16marke'
-mf m-p16-scan-verlangt-push "p16-trockenlauf" $'  local plat arch cache json b bef="" n m=0 k z\n' $'  local plat arch cache json b bef="" n m=0 k z\n  aussenwirkung_erlaubt\n'
+mf m-p16-scan-verlangt-push "p16-trockenlauf" $'  local plat arch cache json erg b bef="" n m=0 z\n' $'  local plat arch cache json erg b bef="" n m=0 z\n  aussenwirkung_erlaubt\n'
 mf m-p16-digest-veraendert "p16-d-unveraendert" ': > "$zdir/scan.ok" # P16marke' $'echo x >> "$zdir/image/layout.tar"\n  : > "$zdir/scan.ok" # P16marke'
 mf m-p16-stichwort-schwachstelle "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-high-mit-fix p16-plattform-genannt" 'release: scan: schwachstelle: $z' 'release: scan: befund: $z'
-mf m-p16-stichwort-scan-gescheitert "p16-trivy-exit p16-trivy-exit-125 p16-trivy-exit-arm64" 'scan_fehler scan-gescheitert' 'scan_fehler scan-fehler'
-mf m-p16-stichwort-pruefmenge "p16-kein-json p16-kein-json-arm64 p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-arm64 p16-leeres-ergebnis-fehlt p16-leeres-ergebnis-null" 'scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist kein JSON' 'scan_fehler leer "die Ausgabe von Trivy für $plat ist kein JSON'
-mf m-p16-stichwort-datenbank-alt "p16-db-alt p16-db-alt-arm64" 'scan_fehler datenbank "die Datenbank ist' 'scan_fehler db "die Datenbank ist'
+mf m-p16-stichwort-scan-gescheitert "p16-reihenfolge-exit2-vor-befund p16-reihenfolge-gescheitert-vor-pruefmenge p16-stichwort-scan-gescheitert p16-trivy-exit p16-trivy-exit-125 p16-trivy-exit-arm64" 'scan_fehler scan-gescheitert' 'scan_fehler scan-fehler'
+mf m-p16-stichwort-pruefmenge "p16-ergebnis-kein-array p16-kein-json p16-kein-json-arm64 p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-arm64 p16-leeres-ergebnis-fehlt p16-leeres-ergebnis-null p16-reihenfolge-pruefmenge-vor-datenbank p16-stichwort-pruefmenge" 'scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist kein JSON' 'scan_fehler leer "die Ausgabe von Trivy für $plat ist kein JSON'
+mf m-p16-stichwort-datenbank-alt "p16-db-alt p16-db-alt-arm64 p16-db-downloadedat p16-reihenfolge-amd64-vor-arm64 p16-reihenfolge-datenbank-vor-plattform p16-stichwort-datenbank" 'scan_fehler datenbank "die Datenbank ist' 'scan_fehler db "die Datenbank ist'
 mf m-p16-stichwort-datenbank-lesbar "p16-db-unlesbar p16-db-unlesbar-arm64 p16-db-unlesbar-jetzt p16-db-unlesbar-kein-json p16-db-unlesbar-leer p16-db-unlesbar-ohne-feld p16-db-unlesbar-zahl" 'scan_fehler datenbank "das Alter' 'scan_fehler db "das Alter'
-mf m-p16-stichwort-plattform "p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt" 'scan_fehler plattform' 'scan_fehler arch'
-mf m-p16-fehler-exit-1 "$(ausser p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-amd64 p16-e9-arm64 p16-e9-genau-zwei p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-pin-form p16-pin-platzhalter p16-critical-mit-fix p16-high-mit-fix p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-critical-ohne-fix p16-alle-befunde p16-plattform-genannt p16-befund-nur-amd64 p16-befund-nur-arm64 p16-befund-im-zweiten-ergebnis p16-summe p16-db-frisch p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-scan-ok-marke p16-alte-marke p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-ueber-schwelle-keine-registry p16-d-unveraendert)" 'echo "release: scan: $1: $2" >&2; exit 2; }' 'echo "release: scan: $1: $2" >&2; exit 1; }'
-mf m-p16-befund-exit-2 "p16-alle-befunde p16-alte-marke p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-high-mit-fix p16-plattform-genannt p16-summe p16-ueber-schwelle-keine-registry" $'    exit 1\n  fi\n  : > "$zdir/scan.ok" # P16marke' $'    exit 2\n  fi\n  : > "$zdir/scan.ok" # P16marke'
+mf m-p16-stichwort-plattform "p16-plattform-abweichend p16-plattform-abweichend-arm64 p16-plattform-fehlt p16-stichwort-plattform" 'scan_fehler plattform' 'scan_fehler arch'
+mf m-p16-fehler-exit-1 "$(ausser p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-amd64 p16-e9-arm64 p16-e9-genau-zwei p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-dritter-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-cache-ueber-laeufe p16-pin-form p16-pin-platzhalter p16-critical-mit-fix p16-high-mit-fix p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-critical-ohne-fix p16-alle-befunde p16-plattform-genannt p16-befund-nur-amd64 p16-befund-nur-arm64 p16-befund-im-zweiten-ergebnis p16-summe p16-db-frisch p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-scan-ok-marke p16-marke-loescht-entfaellt p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-ueber-schwelle-keine-registry p16-d-unveraendert p16-stichwort-scan-gescheitert p16-stichwort-pruefmenge p16-stichwort-datenbank p16-stichwort-plattform p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-db-zukunft-toleranz)" 'echo "release: scan: $1: $2" >&2; exit 2; }' 'echo "release: scan: $1: $2" >&2; exit 1; }'
+mf m-p16-befund-exit-2 "p16-alle-befunde p16-befund-im-zweiten-ergebnis p16-befund-nur-amd64 p16-befund-nur-arm64 p16-critical-mit-fix p16-high-mit-fix p16-marke-loescht-entfaellt p16-plattform-genannt p16-summe p16-ueber-schwelle-keine-registry" $'    exit 1\n  fi\n  : > "$zdir/scan.ok" # P16marke' $'    exit 2\n  fi\n  : > "$zdir/scan.ok" # P16marke'
+mf m-p16-db-zukunft-gilt-als-frisch "p16-db-zukunft" 'L:# P16db-zukunft' ''
+mf m-p16-db-zukunft-ohne-toleranz "p16-db-zukunft-toleranz" '-ge -300 ]' '-ge 0 ]'
+mf m-p16-db-zukunft-toleranz-30-minuten "p16-db-zukunft" '-ge -300 ]' '-ge -1800 ]'
+mf m-p16-ergebnis-array-ungeprueft "p16-ergebnis-kein-array" '(type == "array") and ' ''
+mf m-p16-auswertung-fehler-ignoriert "p16-vulnerabilities-nicht-iterierbar" ' || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist nicht auswertbar" # P16auswertung' ' # P16auswertung'
+mf m-p16-gruen-zeile-fehlt "p16-critical-ohne-fix p16-gruen p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-low-mit-fix p16-medium-mit-fix p16-unknown-mit-fix" 'L:# P16gruen-zeile' ''
+mf m-p16-gruen-zeile-auf-stderr "p16-critical-ohne-fix p16-gruen p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-low-mit-fix p16-medium-mit-fix p16-unknown-mit-fix" 'L:# P16gruen-zeile' '  echo "release: scan: 0 Befund(e) über der Schwelle, $m ohne Behebung" >&2 # P16gruen-zeile'
+mf m-p16-summe-vor-befunden "p16-alle-befunde" 'L:# P16summe' '' 'L:# P16alle' $'    echo "release: scan: $n Befund(e) über der Schwelle, $m ohne Behebung" >&2\n    while IFS= read -r z; do [ -z "$z" ] || echo "release: scan: schwachstelle: $z" >&2; done <<< "$bef" # P16alle'
+mf m-p16-cache-mount-entfaellt "$(ausser p16-pin-form p16-pin-platzhalter p16-trivy-exit p16-trivy-exit-125 p16-kein-json p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-fehlt p16-leeres-ergebnis-null p16-db-unlesbar p16-db-unlesbar-arm64 p16-db-unlesbar-kein-json p16-db-unlesbar-ohne-feld p16-db-unlesbar-zahl p16-db-unlesbar-leer p16-db-unlesbar-jetzt p16-db-unlesbar-kein-datum p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-veroeffentlichen-ohne-scan p16-stichwort-scan-gescheitert p16-stichwort-pruefmenge p16-stichwort-datenbank p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-reihenfolge-gescheitert-vor-pruefmenge p16-reihenfolge-pruefmenge-vor-datenbank p16-reihenfolge-datenbank-vor-plattform p16-reihenfolge-amd64-vor-arm64 p16-db-zukunft p16-ergebnis-kein-array)" ' -v "$cache:/cache"' ''
+mf m-p16-cache-mount-ro "$(ausser p16-pin-form p16-pin-platzhalter p16-trivy-exit p16-trivy-exit-125 p16-kein-json p16-kein-json-leer p16-leeres-ergebnis p16-leeres-ergebnis-fehlt p16-leeres-ergebnis-null p16-db-unlesbar p16-db-unlesbar-arm64 p16-db-unlesbar-kein-json p16-db-unlesbar-ohne-feld p16-db-unlesbar-zahl p16-db-unlesbar-leer p16-db-unlesbar-jetzt p16-db-unlesbar-kein-datum p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-veroeffentlichen-ohne-scan p16-stichwort-scan-gescheitert p16-stichwort-pruefmenge p16-stichwort-datenbank p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-reihenfolge-gescheitert-vor-pruefmenge p16-reihenfolge-pruefmenge-vor-datenbank p16-reihenfolge-datenbank-vor-plattform p16-reihenfolge-amd64-vor-arm64 p16-db-zukunft p16-ergebnis-kein-array)" '-v "$cache:/cache"' '-v "$cache:/cache:ro"'
+mf m-p16-meldung-doppelt "$(ausser p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p16-e4-input p16-e5 p16-e6 p16-e7 p16-e8 p16-e9-amd64 p16-e9-arm64 p16-e9-genau-zwei p16-e10-skip-db-update p16-e10-skip-files p16-e10-skip-dirs p16-e10-ignorefile p16-e10-ignore-policy p16-e10-vex p16-e10-dritter-mount p16-user p16-cache-dir p16-cache-kein-zwischenspeicher p16-cache-ueber-laeufe p16-pin-form p16-pin-platzhalter p16-critical-mit-fix p16-high-mit-fix p16-medium-mit-fix p16-low-mit-fix p16-unknown-mit-fix p16-high-ohne-fix p16-high-ohne-fix-leer p16-high-ohne-fix-null p16-critical-ohne-fix p16-alle-befunde p16-plattform-genannt p16-befund-nur-amd64 p16-befund-nur-arm64 p16-befund-im-zweiten-ergebnis p16-summe p16-db-frisch p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-scan-ok-marke p16-marke-loescht-entfaellt p16-eingaben-loescht-marke p16-image-loescht-marke p16-veroeffentlichen-ohne-scan p16-ueber-schwelle-keine-registry p16-d-unveraendert p16-stichwort-vorbedingung p16-reihenfolge-vorbedingung-vor-docker p16-reihenfolge-digest-vor-layout p16-db-zukunft-toleranz)" 'scan_fehler() { echo "release: scan: $1: $2" >&2;' 'scan_fehler() { echo "release: scan: $1: $2" >&2; echo "release: scan: $1: $2" >&2;'
+mf m-p16-reihenfolge-vorbedingung-nach-docker "p16-ohne-image p16-ohne-image-mit-layout p16-ohne-layout p16-reihenfolge-vorbedingung-vor-docker" 'L:# P16image' '' 'L:# P16layout' '' $'  if [ -n "$bef" ]; then\n    n=' $'  verlange image/digest image\n  [ -f "$zdir/image/layout.tar" ] || eingabe vorbedingung "das Layout des Schrittes image fehlt"\n  if [ -n "$bef" ]; then\n    n='
+mf m-p16-reihenfolge-layout-vor-digest "p16-reihenfolge-digest-vor-layout" 'L:# P16image' '' 'L:# P16layout' $'  [ -f "$zdir/image/layout.tar" ] || eingabe vorbedingung "das Layout des Schrittes image fehlt" # P16layout\n  verlange image/digest image # P16image'
+mf m-p16-reihenfolge-pruefmenge-vor-exit "p16-reihenfolge-gescheitert-vor-pruefmenge p16-trivy-exit-125" $'    if [ "$rc" -ne 0 ]; then\n      tail' $'    jq -e \'(.Results // []) | (type == "array") and (length > 0)\' "$json" > /dev/null 2>&1 || scan_fehler pruefmenge "x"\n    if [ "$rc" -ne 0 ]; then\n      tail'
+mf m-p16-reihenfolge-datenbank-vor-pruefmenge "p16-db-alt p16-db-alt-arm64 p16-db-downloadedat p16-reihenfolge-pruefmenge-vor-datenbank" "    jq -e '(.Results // [])" $'    db_alter "$cache"\n    [ "$alter" -le "$DB_GRENZE" ] || scan_fehler datenbank "x"\n    jq -e \'(.Results // [])'
+mf m-p16-reihenfolge-plattform-vor-datenbank "p16-reihenfolge-datenbank-vor-plattform" '    db_alter "$cache"' $'    [ "$(jq -r \'.Metadata.ImageConfig.architecture // ""\' "$json")" = "${plat#linux/}" ] || scan_fehler plattform "x"\n    db_alter "$cache"'
+mf m-p16-reihenfolge-arm64-vor-amd64 "p16-reihenfolge-amd64-vor-arm64" 'SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)' 'SCAN_PLATTFORMEN=(linux/arm64 linux/amd64)'
+mf m-p16-reihenfolge-befund-vor-exit2 "p16-alle-befunde p16-critical-mit-fix p16-high-mit-fix p16-plattform-genannt p16-reihenfolge-exit2-vor-befund p16-summe" '    [ -z "$b" ] || bef+=' $'    [ -z "$b" ] || { echo "release: scan: schwachstelle: $b" >&2; exit 1; }\n    [ -z "$b" ] || bef+='
+mut13g m-p16-werkzeug-jq-entfaellt "p16-werkzeug-jq" 'sha256sum jq da'"te\"" 'sha256sum date"'
+mut13g m-p16-werkzeug-date-entfaellt "p16-werkzeug-date" 'sha256sum jq da'"te\"" 'sha256sum jq"'
 # Punkt 13: Abbruch von release.sh
 mutr m-p13-ende-falle-fehlt "p13-ende" p13 $'\ntrap raeume_auf EXIT\n' $'\n'
 mutr m-p13-int-falle-fehlt "p13-sigint" p13 $'\ntrap abbruch_int INT\n' $'\n'

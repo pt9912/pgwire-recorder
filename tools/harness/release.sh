@@ -318,11 +318,10 @@ DB_GRENZE=$((72 * 3600)) # P16db-grenze
 SCAN_PLATTFORMEN=(linux/amd64 linux/arm64)
 # Ein Eintrag über der Schwelle hat den Schweregrad CRITICAL oder HIGH; er ist behebbar, wenn FixedVersion nicht leer ist (fehlt, null und "" sind ohne Behebung).
 SCAN_EINTRAG='.Results[] | (.Vulnerabilities // [])[] | select(.Severity == "CRITICAL" or .Severity == "HIGH")' # P16schwelle
-SCAN_MIT_FIX='select((.FixedVersion // "") != "")' # P16fix
-SCAN_OHNE_FIX='select((.FixedVersion // "") == "")' # P16ohne-fix
+SCAN_BEHOBEN='(.FixedVersion // "") != ""' # P16fix
 # scan_fehler <Stichwort> <Text> — der Scan ist nicht gelaufen oder nicht auswertbar: Exit 2, kein Überspringen.
 scan_fehler() { echo "release: scan: $1: $2" >&2; exit 2; }
-# db_alter <Cache-Verzeichnis> — setzt alter auf das Alter der Schwachstellen-Datenbank in Sekunden (Feld UpdatedAt von db/metadata.json); Exit 2 `datenbank`, wenn es nicht lesbar ist.
+# db_alter <Cache-Verzeichnis> — setzt alter auf das Alter der Schwachstellen-Datenbank in Sekunden (Feld UpdatedAt von db/metadata.json); Exit 2 `datenbank`, wenn es nicht lesbar ist oder mehr als 5 Minuten in der Zukunft liegt.
 alter=0
 db_alter() {
   local t ts
@@ -330,10 +329,11 @@ db_alter() {
   [[ $t =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$ ]] || scan_fehler datenbank "das Alter der Datenbank ist nicht lesbar (db/metadata.json, UpdatedAt ${t@Q})" # P16db-zeitpunkt
   ts="$(date -u -d "$t" +%s 2> /dev/null)" || scan_fehler datenbank "UpdatedAt ${t@Q} ist kein Zeitpunkt" # P16db-datum
   alter=$(( $(date +%s) - ts ))
+  [ "$alter" -ge -300 ] || scan_fehler datenbank "UpdatedAt ${t@Q} liegt mehr als 5 Minuten in der Zukunft" # P16db-zukunft
 }
 
 schritt_scan() {
-  local plat arch cache json b bef="" n m=0 k z
+  local plat arch cache json erg b bef="" n m=0 z
   zustand
   verlange image/digest image # P16image
   [ -f "$zdir/image/layout.tar" ] || eingabe vorbedingung "das Layout des Schrittes image fehlt" # P16layout
@@ -352,9 +352,9 @@ schritt_scan() {
     [ "$alter" -le "$DB_GRENZE" ] || scan_fehler datenbank "die Datenbank ist $((alter / 3600)) Stunden alt, die Grenze sind 72" # P16db-alt
     arch="$(jq -r '.Metadata.ImageConfig.architecture // ""' "$json" 2> /dev/null)"
     [ "$arch" = "${plat#linux/}" ] || scan_fehler plattform "gescannt wurde die Architektur '$arch' statt ${plat#linux/}" # P16plattform
-    b="$(jq -r --arg p "$plat" "$SCAN_EINTRAG | $SCAN_MIT_FIX"' | "\($p) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) \(.Severity)"' "$json" 2> /dev/null)" || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist nicht auswertbar" # P16auswertung
-    k="$(jq -r "[$SCAN_EINTRAG | $SCAN_OHNE_FIX] | length" "$json" 2> /dev/null)" || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist nicht auswertbar" # P16zaehlung
-    m=$((m + k))
+    erg="$(jq -r --arg p "$plat" "$SCAN_EINTRAG | if $SCAN_BEHOBEN"' then "F \($p) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) \(.Severity)" else "O" end' "$json" 2> /dev/null)" || scan_fehler pruefmenge "die Ausgabe von Trivy für $plat ist nicht auswertbar" # P16auswertung
+    b="$(grep '^F ' <<< "$erg" | cut -c3-)"
+    m=$((m + $(grep -c '^O$' <<< "$erg" || true))) # P16zaehlung
     [ -z "$b" ] || bef+="$b"$'\n'
   done
   if [ -n "$bef" ]; then
@@ -364,7 +364,7 @@ schritt_scan() {
     exit 1
   fi
   : > "$zdir/scan.ok" # P16marke
-  echo "release: scan: 0 Befund(e) über der Schwelle, $m ohne Behebung"
+  echo "release: scan: 0 Befund(e) über der Schwelle, $m ohne Behebung" # P16gruen-zeile
 }
 
 schritt_veroeffentlichen() {
