@@ -39,7 +39,7 @@ mit `**Bezug:** LH-FA-14, LH-FA-15` in einem Stub senkte die Waisen von neun auf
 `trace.slices` ist also nicht die Ursache, und die Zeile in `harness/README.md` §Werkzeuge („ein archivierter Slice unter
 `done/<welle-id>/` zählt nicht“) beschreibt sie falsch. Die neun Waisen: `LH-FA-04`, `-08`, `-14`, `-15`, `-16`, `-19`,
 `LH-QA-04`, `-05`, `LH-RB-02`. Aus den Köpfen der Volltexte in den vier `archiv.zip` (Schätzung des Planners mit `unzip` und `awk`, nicht mit dem
-Werkzeug gemessen) bleibt danach eine Waise: `LH-FA-19` (Homebrew; `slice-v1-abschluss-homebrew` steht in `next/`, die Waise ist richtig).
+Werkzeug gemessen) blieb danach nach Schätzung eine Waise (`LH-FA-19`); gemessen sind es vorher sieben und nachher keine, weil zwei der neun schon zählten und der Rest über ein lebendes Dokument gedeckt ist (Messung in §7).
 
 **Ziel:** `make archiv-bezug` liest aus `docs/plan/planning/done/<welle-id>/archiv.zip` den Kopf des Volltexts jedes Slice, sammelt die
 Kennungen `LH-FA-<n>`, `LH-QA-<n>`, `LH-RB-<n>` aus der Zeile `**Bezug:**` und schreibt sie als Zeile `**Bezug:**` in den Stub
@@ -95,7 +95,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Fälle rot färbt (`AGENTS.md` §3.10); die Zeile im Gate-Index von `harness/README.md` §Sensors nennt Ziel, Vertrag und Bindung.
 - [ ] **Liefer-Punkt 3 (Anwendung und Berichtigung):** `make archiv-bezug` ist über die vier Archive (`welle-walking-skeleton`,
       `welle-extended-query`, `welle-replay-semantik`, `welle-v1-abschluss`; 97 Stubs) gelaufen, das Ergebnis in **einem** Inhalts-Commit je
-      Welle; `make doc-trace` zeigt danach die Waisen, die §7 mit Zahl und Namen nennt (erwartet: eine, `LH-FA-19`); die Zeile von `make doc-trace`
+      Welle; `make doc-trace` zeigt danach die Waisen, die §7 mit Zahl und Namen nennt (gemessen: vorher sieben, nachher keine; `LH-FA-19` zählt über einen lebenden Slice); die Zeile von `make doc-trace`
       in `harness/README.md` §Werkzeuge nennt die Regel an den Schreiber (ein Stub trägt seine Anforderungen in `**Bezug:**`; Quelle der Matrix ist
       `trace:` in `.d-check.yml`) statt der falschen Beschreibung des Verhaltens (`AGENTS.md` §3.11).
 - [ ] Mutation je Zusage der Gegenprobe selbst (`AGENTS.md` §3.10), vom Implementer rot gesehen; der Bericht nennt je Zusage: Zusage · Mutation · roter Test.
@@ -175,7 +175,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-DoD vollständig; `make doc-trace` zeigt nach dem Lauf die in §7 genannte Zahl von Waisen (erwartet: eine, `LH-FA-19`); Review-Report liegt vor;
+DoD vollständig; `make doc-trace` zeigt nach dem Lauf die in §7 genannte Zahl von Waisen (gemessen: vorher sieben, nachher keine); Review-Report liegt vor;
 `make gates` grün; Closure-Notiz mit Lerneintrag (Form: neuer Sensor `make archiv-bezug-gegenprobe`, oder benannte Spec-Lücke zu `archive-welle`:
 Der Stub verliert die Anforderungs-Kennung, die die Matrix braucht).
 
