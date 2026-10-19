@@ -176,6 +176,8 @@ dasteht.
 - *Probe-Tag:* nicht vorgesehen (Entscheidung des Nutzers vom 2026-10-19); Trockenlauf auf einem Zweig statt dessen — Punkt 2, 12.
 - *Plattform, Aufrufarten von `make`, Abbruch, Reihenfolge der Gründe:* Kopf, Punkt 3, 11, 13, 15.
 
+**Entschieden vom Architect am 2026-10-19 nach der Rückgabe des Implementers** ([`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md) Punkt 3, 9, 13): Der Trockenlauf wertet die Zeile der Änderungshistorie aus, eine fehlende Zeile ist dort nur ein Hinweis (Handbuch bleibt Ist-Zustand), eine leere dritte Zelle ein Fehler; die Freigabe fährt den Trockenlauf mit Zeile und `VERSION` des Tags einmal vor dem Tag. Zustand der Schritte in `$RUNNER_TEMP/release` mit Marken. Schlüsselwörter der Meldungen zugesagt, übriger Wortlaut nicht; Vorabversions-Bezeichner nach SemVer 2.0 (`-01` abgelehnt); `gh` mit `--repo`, ohne `GH_TOKEN` Exit 2, nur `release not found` heißt „nicht vorhanden“.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
