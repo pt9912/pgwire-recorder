@@ -2,7 +2,7 @@
 # archiv-bezug — schreibt die Anforderungs-Kennungen aus dem Kopf des archivierten Volltexts als Zeile `**Bezug:**` in den Stub
 # (Vertrag: harness/vertraege/SPEC-068-archiv-bezug.md, Punkte 1 bis 12). Werkzeug, kein Gate; es committet nichts.
 # Aufruf: archiv-bezug.sh <wurzel> [<welle-id>]  (ohne <welle-id> alle Verzeichnisse done/<welle-id>/ mit einer Datei slice-*.md)
-# Exit 0: fertig (bei leerer Menge mit der Zeile `archiv-bezug: keine Stubs` auf stdout); 1: mindestens ein Befund (Punkt 3), nichts geschrieben; 2: Eingabe oder Werkzeug (Punkt 2).
+# Exit 0: fertig (bei leerer Menge mit der Zeile `archiv-bezug: keine Stubs` auf stdout); 1: mindestens ein Befund (Punkt 3), nichts geschrieben; 2: Eingabe, Werkzeug oder Schreibfehler (Punkte 2 und 3).
 # GEPRÜFT DURCH tools/harness/archiv-bezug-gegenprobe.sh, Fälle nach Punkt (p<n>-*).
 set -o pipefail
 export LC_ALL=C
@@ -17,6 +17,7 @@ trap 'rm -rf "$tmp"' EXIT
 sperre() { echo "archiv-bezug: $*" >&2; exit 2; }
 
 # Punkt 2: Eingaben, in dieser Reihenfolge
+[ -d "$wurzel" ] || sperre "Wurzel fehlt oder ist kein Verzeichnis: ${wurzel:-(leer)}"
 if [ -n "$welle" ]; then
   [[ $welle =~ ^welle-[a-z0-9-]+$ ]] || sperre "Form der Welle ungültig: $welle"
   [ -d "$done_dir/$welle" ] || sperre "Verzeichnis fehlt: $rel/$welle"
@@ -24,14 +25,16 @@ fi
 command -v unzip > /dev/null 2>&1 || sperre "Werkzeug fehlt: unzip"
 
 # Punkt 1: Lauf-Menge
-wellen=()
+alle=()
 if [ -n "$welle" ]; then
-  wellen=("$welle")
+  alle=("$welle")
 else
-  for d in "$done_dir"/*/; do
-    compgen -G "${d}slice-*.md" > /dev/null && wellen+=("$(basename "$d")")
-  done
+  for d in "$done_dir"/*/; do alle+=("$(basename "$d")"); done
 fi
+wellen=()
+for w in "${alle[@]}"; do
+  compgen -G "$done_dir/$w/slice-*.md" > /dev/null && wellen+=("$w")
+done
 for w in "${wellen[@]}"; do [ -f "$done_dir/$w/archiv.zip" ] || sperre "archiv.zip fehlt: $w"; done
 for w in "${wellen[@]}"; do unzip -tq "$done_dir/$w/archiv.zip" > /dev/null 2>&1 || sperre "archiv.zip beschädigt: $w/archiv.zip"; done
 
@@ -71,7 +74,6 @@ for w in "${wellen[@]}"; do
   d="$done_dir/$w"
   unzip -Z1 "$d/archiv.zip" > "$tmp/liste"
   for stub in "$d"/slice-*.md; do
-    [ -e "$stub" ] || continue
     gesehen=$((gesehen + 1))
     name="${stub##*/}"
     pfad="$rel/$w/$name"
@@ -86,6 +88,7 @@ for w in "${wellen[@]}"; do
     if [ "$anzahl" -eq 1 ]; then
       ist="$(grep '^\*\*Bezug:\*\*' "$stub")"
       [ "$ist" = "$soll" ] || { befund "$pfad" "Zeile weicht ab: ist \"$ist\", soll \"$soll\""; continue; }
+      [ "$(awk 'f { print; exit } index($0, "**Hervorgegangen:**") == 1 { f = 1 }' "$stub")" = "$soll" ] || { befund "$pfad" "Zeile an falscher Stelle"; continue; }
     fi
     if [ "$anzahl" -eq 0 ]; then
       if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi
@@ -96,5 +99,7 @@ done
 if [ "$gesehen" -eq 0 ]; then echo "archiv-bezug: keine Stubs"; exit 0; fi
 [ "$befunde" -eq 0 ] || exit 1
 
-for stub in "${todo[@]}"; do schreibe "$stub" "${neu[$stub]}"; done
+for stub in "${todo[@]}"; do
+  schreibe "$stub" "${neu[$stub]}" || { rm -f "$stub.$$"; echo "archiv-bezug: $rel/${stub#"$done_dir"/}: Schreiben fehlgeschlagen" >&2; exit 2; }
+done
 exit 0
