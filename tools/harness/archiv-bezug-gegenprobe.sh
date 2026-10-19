@@ -161,6 +161,7 @@ f_p3_nur_stubs() {
   touch -d 2020-01-01 "$w/$DONE/welle-a/archiv.zip" "$w/$DONE/welle-a/slice-b.md"; r="$(rest_snap)"; lauf
   ok rc 0; ok bezug welle-a slice-a.md LH-FA-01; ok eval '[ "$(rest_snap)" = "$r" ]'
 }
+f_p3_fast_gleicher_pfad() { baum; sv welle-a slice-a.md; mv "$w.s/$DONE/welle-a/slice-a.md" "$w.s/$DONE/welle-a/slice-a.md.orig"; fertig; lauf; ok rc 1; ok befund_hat welle-a slice-a.md "kein Eintrag im Archiv"; ok einmal welle-a slice-a.md; ok unveraendert; }
 f_p3_kein_kopf() { baum; sv welle-a slice-a.md; printf '# x\n**Bezug:** LH-FA-01\nText\n' > "$w.s/$DONE/welle-a/slice-a.md"; fertig; lauf; ok rc 1; ok befund_hat welle-a slice-a.md "Eintrag im Archiv ohne Kopf"; ok unveraendert; }
 f_p3_reihenfolge_aufruf() {
   baum; sv welle-a slice-a.md; sv welle-b slice-b.md; rm "$w.s/$DONE/welle-a/slice-a.md"; fertig; rm "$w/$DONE/welle-b/archiv.zip"; lauf
@@ -348,10 +349,11 @@ mut m-p2-schreiben-je-welle "p2-reihenfolge-4-5 p3-reihenfolge-aufruf p2-keine-t
 # Punkt 3
 mut m-p3-schreiben-vor-pruefung "p3-stub-ohne-eintrag p3-alle-befunde p3-datei-nicht-beschreibbar p10-i p3-schreiben-scheitert p3-schreiben-temp-aufgeraeumt" skript 'todo+=("$stub"); neu["$stub"]="$soll"' 'schreibe "$stub" "$soll"'
 mut m-p3-nur-erster-befund "p3-alle-befunde" skript 'echo "archiv-bezug: $1: $2" >&2; befunde=1' 'echo "archiv-bezug: $1: $2" >&2; exit 1'
-mut m-p3-ohne-eintrag-uebersprungen "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p10-i p3-reihenfolge-grund-a-b" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ continue; }'
-mut m-p3-kein-abbruch-bei-befund "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar p3-kein-kopf p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf p10-i p3-reihenfolge-grund-a-b p3-reihenfolge-grund-b-c p3-reihenfolge-grund-c-c p3-reihenfolge-grund-c-d p3-reihenfolge-grund-d-e p6-gleich-falsche-stelle" skript '[ "$befunde" -eq 0 ] || exit 1' ':'
+mut m-p3-ohne-eintrag-uebersprungen "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p10-i p3-reihenfolge-grund-a-b p3-fast-gleicher-pfad" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ continue; }'
+mut m-p3-kein-abbruch-bei-befund "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p3-datei-nicht-beschreibbar p3-verzeichnis-nicht-beschreibbar p3-kein-kopf p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf p10-i p3-reihenfolge-grund-a-b p3-reihenfolge-grund-b-c p3-reihenfolge-grund-c-c p3-reihenfolge-grund-c-d p3-reihenfolge-grund-d-e p6-gleich-falsche-stelle p3-fast-gleicher-pfad" skript '[ "$befunde" -eq 0 ] || exit 1' ':'
 mut m-p3-mv-direkt "p3-temp-und-mv p3-schreiben-scheitert" skript 'mv "$t" "$stub"' 'cat "$t" > "$stub"; rm -f "$t"'
 mut m-p3-temp-bleibt "p3-temp-und-mv p3-nur-stubs p3-schreiben-scheitert p3-schreiben-temp-aufgeraeumt" skript 'mv "$t" "$stub"' 'cp "$t" "$stub"'
+mut m-p3-eintrag-als-teilzeichenkette "p3-fast-gleicher-pfad" skript 'grep -Fxq --' 'grep -Fq --'
 mut m-p3-kein-kopf-geduldet "p3-kein-kopf p3-reihenfolge-grund-b-c" skript '|| { befund "$pfad" "Eintrag im Archiv ohne Kopf (keine Zeile ---)"; continue; }' '|| true'
 mut m-p3-datei-nicht-beschreibbar-geduldet "p3-datei-nicht-beschreibbar" skript '[ ! -w "$stub" ] || ' ''
 mut m-p3-verzeichnis-nicht-beschreibbar-geduldet "p3-verzeichnis-nicht-beschreibbar" skript ' [ ! -w "$d" ]' ' false'
@@ -410,16 +412,16 @@ mut m-p1-keine-stubs-still "p1-leere-menge p1-eine-ohne-stub p2-welle-ohne-stub-
 mut m-p1-keine-stubs-auf-stderr "p1-leere-menge p1-eine-ohne-stub p2-welle-ohne-stub-ohne-archiv" skript 'echo "archiv-bezug: keine Stubs";' 'echo "archiv-bezug: keine Stubs" >&2;'
 mut m-p1-keine-stubs-immer "p1-alle" skript 'if [ "$gesehen" -eq 0 ]; then echo "archiv-bezug: keine Stubs"; exit 0; fi' 'echo "archiv-bezug: keine Stubs"; if [ "$gesehen" -eq 0 ]; then exit 0; fi'
 mut m-p3-nicht-beschreibbar-fuer-alle "p3-nicht-beschreibbar-gleich" skript $'    if [ "$anzahl" -eq 0 ]; then\n      if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi\n' $'    if [ ! -w "$stub" ] || [ ! -w "$d" ]; then befund "$pfad" "nicht beschreibbar"; continue; fi\n    if [ "$anzahl" -eq 0 ]; then\n'
-mut m-p3-erster-grund-nicht-beschreibbar-und-weitere "p3-erster-grund p3-reihenfolge-grund-a-b" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ befund "$pfad" "kein Eintrag im Archiv"; }'
+mut m-p3-erster-grund-nicht-beschreibbar-und-weitere "p3-erster-grund p3-reihenfolge-grund-a-b p3-fast-gleicher-pfad" skript '{ befund "$pfad" "kein Eintrag im Archiv"; continue; }' '{ befund "$pfad" "kein Eintrag im Archiv"; }'
 mut m-p5-laengere-zuerst "p5-gleiche-zahl" skript ' -k4,4n' ' -k4,4nr'
 mut m-stichwort-praefix-eingabe "$FORMEN p2-welle-unbekannt p2-kein-unzip p2-archiv-fehlt p2-archiv-beschaedigt p2-archiv-crc p2-reihenfolge-1-2 p2-reihenfolge-2-3 p2-reihenfolge-3-4 p2-reihenfolge-4-5 p3-reihenfolge-aufruf p2-reihenfolge-0-1 p2-wurzel-fehlt p2-wurzel-kein-verzeichnis p2-wurzel-leer p2-reihenfolge-0-1 p2-wurzel-fehlt p2-wurzel-kein-verzeichnis p2-wurzel-leer" skript 'echo "archiv-bezug: $*"' 'echo "$*"'
-mut m-stichwort-praefix-befund "p10-i p3-alle-befunde p3-datei-nicht-beschreibbar p3-erster-grund p3-kein-kopf p3-stub-ohne-eintrag p3-verzeichnis-nicht-beschreibbar p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf p3-reihenfolge-grund-a-b p3-reihenfolge-grund-b-c p3-reihenfolge-grund-c-c p3-reihenfolge-grund-c-d p3-reihenfolge-grund-d-e p6-gleich-falsche-stelle" skript 'echo "archiv-bezug: $1: $2" >&2' 'echo "$1: $2" >&2'
+mut m-stichwort-praefix-befund "p10-i p3-alle-befunde p3-datei-nicht-beschreibbar p3-erster-grund p3-kein-kopf p3-stub-ohne-eintrag p3-verzeichnis-nicht-beschreibbar p6-abweichend p6-zwei-zeilen p7-ohne-hervorgegangen p7-zweimal-hervorgegangen p8-stub-crlf p3-reihenfolge-grund-a-b p3-reihenfolge-grund-b-c p3-reihenfolge-grund-c-c p3-reihenfolge-grund-c-d p3-reihenfolge-grund-d-e p6-gleich-falsche-stelle p3-fast-gleicher-pfad" skript 'echo "archiv-bezug: $1: $2" >&2' 'echo "$1: $2" >&2'
 mut m-stichwort-form "$FORMEN p2-reihenfolge-1-2" skript 'Form der Welle ungültig' 'Form ungültig'
 mut m-stichwort-verzeichnis "p2-welle-unbekannt p2-reihenfolge-2-3" skript 'Verzeichnis fehlt' 'Ordner fehlt'
 mut m-stichwort-werkzeug "p2-kein-unzip p2-reihenfolge-3-4" skript 'Werkzeug fehlt' 'Tool fehlt'
 mut m-stichwort-archiv-fehlt "p2-archiv-fehlt p2-reihenfolge-4-5 p3-reihenfolge-aufruf" skript 'archiv.zip fehlt' 'Archiv fehlt'
 mut m-stichwort-archiv-beschaedigt "p2-archiv-beschaedigt p2-archiv-crc" skript 'archiv.zip beschädigt' 'Archiv beschädigt'
-mut m-stichwort-kein-eintrag "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p10-i p3-reihenfolge-grund-a-b" skript 'kein Eintrag im Archiv' 'kein Eintrag'
+mut m-stichwort-kein-eintrag "p3-stub-ohne-eintrag p3-alle-befunde p3-erster-grund p10-i p3-reihenfolge-grund-a-b p3-fast-gleicher-pfad" skript 'kein Eintrag im Archiv' 'kein Eintrag'
 mut m-stichwort-ohne-kopf "p3-kein-kopf p3-reihenfolge-grund-b-c" skript 'Eintrag im Archiv ohne Kopf' 'Archiv-Eintrag ohne Kopf'
 mut m-stichwort-cr "p3-alle-befunde p8-stub-crlf p3-reihenfolge-grund-c-c p3-reihenfolge-grund-c-d" skript 'Stub enthält CR' 'CR im Stub'
 mut m-stichwort-hervorgegangen "p7-ohne-hervorgegangen p7-zweimal-hervorgegangen" skript 'Stub hat nicht genau eine Zeile **Hervorgegangen:**' 'Hervorgegangen falsch'
@@ -436,7 +438,7 @@ mut m-p2-reihenfolge-0-1 "p2-reihenfolge-0-1" skript "$L_WURZEL$LF" '' 'command 
 mut m-p3-schreiben-scheitert-exit-0 "p3-schreiben-scheitert" skript 'Schreiben fehlgeschlagen" >&2; exit 2;' 'Schreiben fehlgeschlagen" >&2; exit 0;'
 mut m-p3-schreiben-scheitert-temp-bleibt "p3-schreiben-temp-aufgeraeumt" skript 'rm -f "$stub.$$"; ' ''
 mut m-p3-schreiben-scheitert-weiter "p3-schreiben-scheitert" skript 'Schreiben fehlgeschlagen" >&2; exit 2;' 'Schreiben fehlgeschlagen" >&2;'
-mut m-p3-grund-b-vor-a "p3-reihenfolge-grund-a-b p10-i p3-alle-befunde p3-erster-grund p3-stub-ohne-eintrag" skript "$L_A$LF$L_U$LF$L_B" "$L_U$LF$L_B$LF$L_A"
+mut m-p3-grund-b-vor-a "p3-reihenfolge-grund-a-b p10-i p3-alle-befunde p3-erster-grund p3-stub-ohne-eintrag p3-fast-gleicher-pfad" skript "$L_A$LF$L_U$LF$L_B" "$L_U$LF$L_B$LF$L_A"
 mut m-p3-grund-c-vor-b "p3-reihenfolge-grund-b-c" skript "$L_B$LF$L_C1" "$L_C1$LF$L_B"
 mut m-p3-grund-hervorgegangen-vor-cr "p3-reihenfolge-grund-c-c" skript "$L_C1$LF$L_C2" "$L_C2$LF$L_C1"
 mut m-p3-grund-d-vor-c "p3-reihenfolge-grund-c-d" skript "$L_D1$LF" '' "$L_C1" "$L_ANZ$LF$L_D1$LF$L_C1"
