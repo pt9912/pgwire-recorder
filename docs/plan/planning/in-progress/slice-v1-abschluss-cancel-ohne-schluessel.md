@@ -166,15 +166,19 @@ Regeln: `.claude/commands/implement-slice.md` Schritte 17 bis 19. Die Läufe ste
 | keine Warnung `PGR-W3001` bei `PGR-E6001` (verneinend) | M19: Warnung auch bei fehlendem Rest | `…/Länge_12,_0_von_4_Bytes_Rest` (36) |
 | Prozess-ID und Schlüssel werden nicht ausgewertet | M8: Prozess-ID mit erstem Byte `0xff` abgelehnt; M8b: Prozess-ID mit letztem Byte 0 abgelehnt | `…/Länge_12,_Prozess-ID_0xff` (12); `…/Länge_12,_Prozess-ID_und_Schlüssel_0` (12) |
 | Reihenfolge: Länge außerhalb von 8 bis 10000 (`PGR-W3003`) vor der Länge des `CancelRequest` | M9: `CancelRequest` unter 8 mit `PGR-E6001`; M9b: über 10000 mit `PGR-E6001` | `TestCancelRequestLaengeAusserhalb/…/Länge_0`, `_4`, `_7` und `TestProtokollrandPruefreihenfolge` (14); `…/Länge_10001` (6) |
+| Länge aus dem Kopf entschieden, vor dem Lesen des Rests (Länge 9, 11, 13, 15, 269, 10000 und je Element 8, 10, 14, 270) bei offener Verbindung: `ErrorResponse` und Schließen | K0: Prüfung im Kopf entfernt (die Bibliothek liest den Rest zuerst); K9, K10, K11, K13, K14, K15, K269, K270, K10000: die Prüfung lässt genau diese Länge durch | `TestCancelRequestKopf/…/Länge_<n>_nur_Kopf,_Verbindung_offen` (K0: 108, je Länge 12; Meldung „keine Ablehnung aus dem Kopf“ nach 2 s) |
+| Länge 12, 16, 17 und 268 mit fehlendem Rest bei offener Verbindung: keine Antwort bis zum Ende der Verbindung (Grenze ohne Frist) | W16, W17, W268: genau diese Länge wird aus dem Kopf abgelehnt; W12: Länge 12 wird vor dem Zweig der Länge 12 aus dem Kopf abgelehnt; K12: Länge 12 sofort `PGR-E6001` | `TestCancelRequestKopf/…/Länge_<n>,_<g>_Bytes_Rest,_Verbindung_offen` („Antwort vor dem Ende der Verbindung“), dazu `TestCancelRequestLaenge` |
+| eine laufende Interaktion einer zweiten Verbindung wird nicht abgebrochen | M13: der Zweig beendet alle Verbindungen (neuer Stand: mit laufender Anfrage) | `TestCancelRequestLaufendeInteraktionUnberuehrt/Länge_12`, `_16` |
 | keine Session | M14: der Zweig öffnet eine Session | `…/Länge_12` (74) |
 | eine zweite Verbindung bleibt unberührt, die laufende Anfrage wird nicht abgebrochen | M13: der Zweig beendet alle Verbindungen | `TestCancelRequestZweiteVerbindungUnberuehrt/…` |
 | Exit-Code 0 (`LH-FA-13`) | M1 im Binary: Länge 12 wie bisher abgelehnt | `TestE2ERecordCancelOhneSchluessel`: „Exit-Code 6, erwartet 0“ |
 
 Die Mutanten M2f bis M2i ersetzen das Verhalten der Bibliothek (v5.11.0) durch einen eigenen Zweig und zeigen, dass die Fälle für 16, 268, 269 und 10000 die Längen pinnen; ein Mutant im Quelltext der Bibliothek ist nicht möglich. Die Schlüssel von 4 bis 256 Bytes (16 bis 268) wertet allein die Bibliothek aus; dass der Recorder sie nicht auswertet, belegt der Fall `Länge_16,_Schlüssel_0xff` nur gegen die Bibliothek in dieser Version.
 
-**Grüne Mutanten.** Keiner offen. Eingeordnet:
+**Grüne Mutanten.** Einer, äquivalent mit Invariante, Ort und Sonde:
 
-- Reihenfolge *Länge des `CancelRequest`* vor *Rest nicht geliefert* (Spezifikation): Beide Gründe sind `PGR-E6001` mit `ErrorResponse` und Exit-Code 6; ein Mutant, der die Reihenfolge vertauscht, lässt Code, Antwortart und Exit-Code gleich. Invariante: beide Pfade enden in `fail(CodeUnsupported, …, "Startnachricht nicht lesbar")`. Ort: `server.go`, `cancelOhneSchluessel` und der Fehlerpfad nach `ReceiveStartupMessage`. Sonde (`/tmp/probe/probe3.sh` gegen das gebaute Binary, `record`): Länge 13 mit vollem Rest endet mit `…Startnachricht nicht lesbar: cancel request too short`, Länge 13 ohne Rest mit `…Startnachricht nicht lesbar: EOF`, ebenso Länge 12 ohne Rest und Länge 269 ohne Rest (`EOF`) gegen `cancel request too long` mit vollem Rest. **Die Sonde trennt sie im Text der Meldung**, nicht im Code: Bei Länge 13 und fehlendem Rest nennt der Recorder (Bibliothek) den Rest, nicht die Länge, entgegen der Reihenfolge der Spezifikation. Der Text gehört nicht zum Vertrag (Code, `ErrorResponse`, Exit-Code); der Punkt geht als Frage an den Architect (siehe Bericht), kein Code ist darauf entschieden.
+- K8: Länge 8 wird nicht aus dem Kopf abgelehnt (die Bibliothek entscheidet). Invariante: Eine Nachricht der Länge 8 besteht nur aus dem Kopf, es gibt keinen Rest, auf den der Recorder warten könnte; die Bibliothek liest 0 Bytes und lehnt „cancel request too short“ sofort ab. Ort: das Nachrichtenformat selbst (Länge zählt Kopf und Rest) und `ReceiveStartupMessage` ohne weiteres Lesen. Sonde: der Fall `Länge_8_nur_Kopf,_Verbindung_offen` mit dem Mutanten K8 ist grün (Lauf des Pakets: `rc=0`), also trennt auch der Fall mit offener Verbindung Original und Mutant nicht; der Fall bleibt als Pin im Test.
+- Der frühere Mutant „Reihenfolge *Länge des `CancelRequest`* und *Rest nicht geliefert* vertauscht“ ist **nicht äquivalent** (Review F-1, F-2): Er ändert den Zeitpunkt der Ablehnung. Er ist K0 und für Länge 9 bis 15, 269 bis 10000 die Mutanten K9 bis K10000; die Sonde des Reviewers (Länge 13, nur der Kopf, Verbindung offen) ist der Fall `Länge_13_nur_Kopf,_Verbindung_offen`, rot unter K0 und K13. Die Sonde gegen das gebaute Binary (`/tmp/probe/probe4.sh`, unten): Länge 9, 11, 13, 15, 269 und 10000 mit nur dem Kopf werden bei offener Verbindung sofort mit `PGR-E6001` und `ErrorResponse` beantwortet, Länge 12, 16 und 268 antworten nicht.
 
 **Probe-Tabelle Handbuch und README** (Schritt 17; Binary: `pgwire-recorder:dev` aus `make build`, extrahiert nach `/tmp/probe/`, Probe `/tmp/probe/probe.sh` mit `record --upstream 127.0.0.1:1` (nichts lauscht) und `replay --input test/integration/testdata/ende-terminate.yaml`, je ohne und mit `--tls-cert`, rohe Bytes über `/dev/tcp`; Unit-Test `T` = `TestCancelRequestLaenge` usw.):
 
@@ -217,6 +221,14 @@ Für den neuen Satz *Jede andere Länge von 8 bis 10000 Bytes … ist `PGR-E6001
 - `make abdeckung`: schrieb `abdeckung-e2e.md` und `abdeckung-unit.md`.
 - Metrik der Marke (§4): `git diff --numstat f7aeea92..f3ba1835 -- internal test docs/user README.md`: 340 Einfügungen und 14 Löschungen, Summe **354**, Schätzung 350, Marke 700.
 - `make gates` auf f3ba1835: Exit 0, ein Lauf, keine Wiederholung nötig (`TestE2EPlayVergleichAbweichung` grün); Abdeckung der Unit-Tests 94,43 % bei Schwelle 94 %; `test-integration` und `test-container` grün; `lint` grün. Die Gegenproben liefen nicht: Dieser Slice ändert weder ein Gate noch einen Vertrag eines Werkzeugs (`AGENTS.md` §6, Schritt 6); die Abdeckungstabellen schrieb `make abdeckung`, `make gates` prüft sie über `abdeckung-check`.
+
+**Läufe der Nacharbeit nach dem Review** (Basis `arch-cancel2`, Commit `cb8dfd49`):
+
+- Engster Sensor: Bind-Mount-Lauf des Pakets `pgwire`: grün (21 s); `make lint`: Exit 0; `make abdeckung` schrieb `abdeckung-unit.md`.
+- Mutanten K0, K8 bis K10000, W12 bis W268, K12: siehe Tabelle und Grüne Mutanten; `server.go` danach byte-gleich (`cmp`).
+- Metrik der Marke: `git diff --numstat f7aeea92..cb8dfd49 -- internal test docs/user README.md`: 463 Einfügungen, 14 Löschungen, Summe **477** (Marke 700).
+- `make gates` auf `cb8dfd49`: Exit 0, ein Lauf, kein Flake; Abdeckung der Unit-Tests 94,41 % bei Schwelle 94 %; alle Gates der Kette grün. Gegenproben nicht gefahren: kein Gate und kein Vertrag eines Werkzeugs geändert.
+- F-4: `TestCancelRequestLaufendeInteraktionUnberuehrt` (record, Längen 12 und 16) hält die Anfrage der zweiten Verbindung im Recorder (`queryHalt`), sendet den `CancelRequest`, lässt die Anfrage danach enden; die Deklaration von `TestCancelRequestZweiteVerbindungUnberuehrt` sagt nur noch „sendet nach dem CancelRequest ihre Anfrage“. Im `replay` gibt es keine haltende Anfrage im Fake; dort bleibt die Zusage „laufende Interaktion“ ungeprüft (Grenze, die Zusage der Deklaration nennt nur `record`).
 
 **Beobachtungen.**
 
@@ -269,40 +281,18 @@ done
 lauf record 0 rest-fehlt trunc
 ```
 
-`/tmp/probe/probe3.sh` (Text der Meldung bei Länge 13, 12, 16 und 269 mit und ohne Rest):
+`/tmp/probe/probe4.sh` (nur der Kopf, Verbindung offen):
 
 ```bash
 #!/bin/bash
-B=/tmp/probe/pgwire-recorder; W=/tmp/probe/w3; rm -rf $W; mkdir -p $W; cd $W
+# probe4.sh — nur der Kopf eines CancelRequest, Verbindung bleibt offen, socat -T1 beendet nach 1 s ohne Daten (der Client schliesst vorher nicht)
+B=/tmp/probe/pgwire-recorder; W=/tmp/probe/w4; rm -rf $W; mkdir -p $W; cd $W
 be32() { printf "\\x$(printf %02x $(($1>>24&255)))\\x$(printf %02x $(($1>>16&255)))\\x$(printf %02x $(($1>>8&255)))\\x$(printf %02x $(($1&255)))"; }
 port=$((16000 + RANDOM % 1000))
 $B record --listen 127.0.0.1:$port --upstream 127.0.0.1:1 --output $W/o.yaml 2>$W/err & pid=$!
 sleep 1
-t() { printf "%s: " "$1"; { be32 $2; be32 80877102; head -c $3 /dev/zero; } | socat -t2 - TCP:127.0.0.1:$port | strings | tr '\n' ' '; echo; }
-t "13 voll" 13 5
-t "13 Rest fehlt" 13 0
-t "13 Rest 2 von 5" 13 2
-t "12 Rest fehlt" 12 0
-t "12 Rest 2 von 4" 12 2
-t "16 Rest 2 von 8" 16 2
-t "269 voll" 269 261
-t "269 Rest fehlt" 269 0
+t() { printf "Laenge %s, %s Bytes Rest: " "$1" "$2"; { be32 $1; be32 80877102; head -c $2 /dev/zero; sleep 3; } | socat -T1 - TCP:127.0.0.1:$port | strings | tr '\n' ' '; echo; }
+for l in 9 11 13 15 269 10000; do t $l 0; done
+for l in 12 16 268; do t $l 0; done
 kill -TERM $pid; wait $pid; echo exit=$?
 ```
-
-## 8. Sub-Area-Prüfungen und Modus-Begründung
-
-Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
-§Ziel-Form: Sub-Area-Modus-Begründung — dort die **zwei vorgelagerten
-Schritte** (sie stehen in jedem Slice-Plan, unabhängig von Modus und
-Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
-Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
-nicht mehr.
-
-**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
-
-**Vorgelagert — offene Beobachtungen sichten:** `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — der Fall entstand, weil der Test nur den `CancelRequest` mit Schlüssel prüfte.
-
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (PGWire-Adapter, Dokumentation). Nachgezählt beim Eintragen der Randformen (2026-10-20, Architect, `AGENTS.md` §3.13): zwei Liefer-Punkte (`LH-FA-05`, `LH-FA-13`), zwei Schichten; der Bootstrap bleibt unberührt, der Integrationstest zählt als Test des Binaries; die Spezifikation trägt der Architect vor dem Code, sie zählt nicht in die Marke. Nachtrag nach dem Review (2026-10-20, Architect): die Prüfung der Länge im Kopf ist ein Zweig in `startkopf` und ein Fall mit offener Verbindung; keine neue Schicht, kein neuer Liefer-Punkt.
-
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF.
