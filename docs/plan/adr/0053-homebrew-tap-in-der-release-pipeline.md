@@ -1,6 +1,6 @@
 # ADR-0053: Die Formel des Homebrew-Taps entsteht in einem eigenen Job der Release-Pipeline nach dem GitHub-Release, mit eigenem Token und ohne Probe-Tag
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-20
 
@@ -69,5 +69,6 @@ Wenn der Push in den echten Tap an einer Stelle scheitert, die ein Probe-Tap nic
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-20 | Proposed (Empfehlung des Architect) | — |
+| 2026-10-20 | Accepted (Entscheidung des Nutzers) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
