@@ -130,7 +130,9 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
     Binaries. `test-container-gegenprobe` steht in der Liste für den Container
     ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 und 2), nicht in `GATE_CHECKS`. Die
     Gegenprobe prüft die Punkte 1 bis 11 an der Attrappe; ob das `Dockerfile` selbst
-    deterministisch baut, zeigt jeder Lauf des Gates, nicht die Gegenprobe (Punkt 13).
+    deterministisch baut, zeigt jeder Lauf des Gates, nicht die Gegenprobe (Punkt 13). **Zeit und Platz (Empfehlung,
+    [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16):** ein voller Lauf der Gegenprobe dauert höchstens 300 s; der Ordner `baum-<n>` einer
+    Mutation entfällt nach ihrem Ende.
 13. **Grenzen.** (1) Reproduzierbar ist das Binary, nicht das Image; das Image wird über seinen
     Digest identifiziert (`LH-QA-01`, Messmethode „Bereitstellung“ nennt nur das Binary). (2) Das Gate
     vergleicht zwei Builds auf demselben Docker-Server mit denselben Eingangs-Images; es prüft nicht, dass die

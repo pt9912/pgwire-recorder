@@ -15,7 +15,7 @@ Entscheidung des Nutzers vom 2026-10-18; ändert er sie, ändert sich nur diese 
 Der Vertrag hat zwei Teile an einer Naht: **Teil 1** (Punkte 1 bis 3) legt Listen und Namensregel fest und
 wird von `make gates-schnell-gegenprobe` geprüft; **Teil 2** (Punkte 4 bis 12) legt die Sammelziele fest und
 wird von `make gegenproben-gegenprobe` geprüft, einer Gegenprobe mit Attrappen als Einzelziele, ohne Docker.
-Die Punkte 13 bis 15 gelten für beide Teile und haben keinen eigenen Fall, außer wo sie einen nennen. Der
+Die Punkte 13 bis 15 gelten für beide Teile und haben keinen eigenen Fall, außer wo sie einen nennen. **Punkt 16** (Zeit und Platz einer Gegenprobe) gilt für einzelne Gegenproben, nicht für die Sammelziele; seine Fälle stehen in der Gegenprobe, die er nennt. Der
 Name jedes Falls trägt die Nummer des Punktes, den er prüft. Je Zusage und je Element einer Aufzählung
 gibt es einen Fall und eine Mutation, die nur ihn rot färbt (`AGENTS.md` §3.10); die Gegenprobe verlangt
 genau diese Menge roter Fälle je Mutation (mehr und weniger machen sie rot).
@@ -52,6 +52,11 @@ Plattform ihr eigener Vertrag nennt.
 | Reihenfolge mehrerer Gründe | 12 |
 | Kein Stand | 11 |
 | Plattform | Kopf dieser Kennung, 15 |
+| Z1 Obergrenze der Zeit eines vollen Laufs, Überschreitung | 16 (1) bis (4) |
+| Z2 Arbeitsordner je Mutation und je Fall, rote Mutation, Abbruch, Parallelität | 16 (5) |
+| Z3 Aufrufarten (`GP_MUT`, `GP_FALL`, `GP_ENTDECKE`, `GP_PARALLEL`, `GP_BUDGET`, `make`), Reihenfolge der Gründe | 16 (3), (4), (7) |
+| Z4 Plattform und Umgebung der Fahrt (Last, Platz, root, Locale, Zeitzone) | 16 (6), (8) |
+| Z5 Ergebnisgleichheit nach einer Beschleunigung | 16 (9) |
 
 **Teil 1: Listen und Namensregel.**
 
@@ -208,9 +213,60 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     Gegenproben, und `make gates` grün sagt nichts über sie (akzeptiertes Negativ; Grund: ein Stand der Gegenproben brächte die Laufzeit zurück,
     die die Entscheidung streicht; die Folge einer nicht gefahrenen Gegenprobe ist ein unbemerkter Bruch des geprüften Werkzeugs bis zur
     nächsten Fahrt, `BEO-REPO/gegenprobe-nicht-in-kette-regression-unbemerkt`).
-15. **Grenzen.** (00) Die Sprache von `make` ist Voraussetzung des Hosts, kein Wert, den ein Aufrufer setzt: Die Regel erzwingt `LC_ALL=C` (Punkt 2); Aufrufe von `make` außerhalb der Regel behalten die Sprache des Hosts (kein Fall; Grund: nur die Regel liest die Ausgabe). (0) Der Kommentar in Zeile 2 des generierten `Makefile` („jedes Fragment haengt seine Checks an `GATE_CHECKS`“) gilt für die Gate-Fragmente; die Fragmente, die eine Gegenprobe definieren, hängen sie an eine der beiden Listen. Die Abweichung bleibt stehen (Grund: ein Lauf von `ai-harness-init` schreibt die Datei neu, und eine Änderung hier ginge verloren); kein Fall. (1) Ein Zeitlimit des ganzen Laufs gibt es nicht; `SIGKILL` und der Ausfall des Docker-Dienstes sind nicht zugesagt. (2) Ein
+15. **Grenzen.** (00) Die Sprache von `make` ist Voraussetzung des Hosts, kein Wert, den ein Aufrufer setzt: Die Regel erzwingt `LC_ALL=C` (Punkt 2); Aufrufe von `make` außerhalb der Regel behalten die Sprache des Hosts (kein Fall; Grund: nur die Regel liest die Ausgabe). (0) Der Kommentar in Zeile 2 des generierten `Makefile` („jedes Fragment haengt seine Checks an `GATE_CHECKS`“) gilt für die Gate-Fragmente; die Fragmente, die eine Gegenprobe definieren, hängen sie an eine der beiden Listen. Die Abweichung bleibt stehen (Grund: ein Lauf von `ai-harness-init` schreibt die Datei neu, und eine Änderung hier ginge verloren); kein Fall. (1) Ein Zeitlimit mitten im Lauf gibt es nicht (die Obergrenze von Punkt 16 wird nach dem Lauf gelesen); `SIGKILL` und der Ausfall des Docker-Dienstes sind nicht zugesagt. (2) Ein
     Signal nur an `make` (nicht an das Skript und nicht an die Prozessgruppe) ist Verhalten von `make` und nicht zugesagt; ein Fall auf den
     Zeitpunkt nach dem Ende von `make` wäre zeitabhängig. (3) Die Warnung von `make` zum Jobserver unter `-j` ist weder zugesagt noch
     ausgeschlossen (Punkt 7). (4) Ob eine Gegenprobe das prüft, was ihr Gate zusagt, ist Gegenstand des Vertrags ihres Gates, nicht dieser
     Kennung. (5) Ob die Zuordnung zu Container oder Host stimmt, prüft nichts (Punkt 3). (6) Namen mit Leerraum oder führendem `-` in einer
-    Liste sind nicht zugesagt. (7) Die Zeit der Fahrt ist nicht zugesagt; sie wird gemessen und im Bericht genannt, soweit gelesen.
+    Liste sind nicht zugesagt. (7) Die Zeit der Fahrt ist für zwei Gegenproben nach Punkt 16 zugesagt; für die übrigen ist sie nicht zugesagt, sie wird gemessen und im Bericht genannt, soweit gelesen.
+
+16. **Zeit und Platz einer Gegenprobe (Empfehlung des Architect; die Entscheidung des Nutzers steht aus. Anlass: Hinweis des Nutzers vom 2026-10-20, so vom Koordinator übermittelt, eine Gegenprobe von drei Stunden Dauer werde nicht mehr gefahren; [ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).**
+    Der Punkt gilt für `make release-gegenprobe` ([`SPEC-067`](SPEC-067-release.md) Punkt 14) und `make test-container-gegenprobe`
+    ([`SPEC-055`](SPEC-055-container-und-binaries.md) Punkt 12); jede nennt in ihrem Kopf die Obergrenze und diesen Punkt. Für die übrigen
+    Gegenproben gilt er erst, wenn ein eigener Slice sie misst und aufnimmt (Grund: nicht gemessen; eine Zahl ohne Messung wäre eine Behauptung).
+    (1) **Obergrenze.** Ein voller Lauf (ohne `GP_MUT`, mit allen Fällen und Mutationen) dauert höchstens 600 s (`release-gegenprobe`) bzw. 300 s
+    (`test-container-gegenprobe`), gemessen als Wanduhr vom Start des Skripts bis nach der Auswertung aller Mutationen, auf dem Gegenproben-Container
+    (Linux) bei ruhigem Host. Ruhig heißt: Die Last des Hosts (`/proc/loadavg`, erster Wert) liegt unter einem Fünftel der Kernzahl; die Zahl
+    gilt nicht für einen Host unter Last (`BEO-REPO/lastabhaengige-zaehlung`). (2) **Ausgabe.** Der Lauf endet mit einer Zeile auf stderr
+    `<name>: Zeit <T> s von höchstens <B> s, Last <L>` (`T` ganze Sekunden, `L` der erste Wert von `/proc/loadavg`, `-`, wenn die Datei fehlt oder
+    unlesbar ist); sie steht bei grünem und rotem Ergebnis und fehlt bei Abbruch durch ein Signal und bei Exit 2. (3) **Überschreitung.** Ist `T`
+    größer als `B`, steht davor die Zeile `<name>: ROT — Zeitbudget: <T> s über <B> s`, und der Exit-Code ist 1, auch wenn jede Mutation wie
+    erwartet endete; gleich `B` ist grün (nicht zugesagt, siehe (9) letzter Satz). Der Lauf wird bei Erreichen von `B` nicht abgebrochen, denn ein
+    Abbruch kürzte das Ergebnis; er endet, wenn er endet. Eine Überschreitung unter Last ist kein Befund über den Code: Wer sie
+    sieht, liest `L` und fährt auf einem ruhigen Host neu (Grund: ein Lauf, der die Last erkennt und die Prüfung auslässt, wäre selbst
+    ein Gate mit eigener Zusage). Ein Lauf, der auf ruhigem Host die Obergrenze reißt, ist rot, bis eine Mutation schneller wird oder die
+    Obergrenze per ADR geändert ist (Punkt 16 (9)). (4) **`GP_BUDGET=<s>`.** Setzt `B` in Sekunden; `0` schaltet die Prüfung ab; ohne
+    die Variable ist `B` die Obergrenze aus (1), und nur dann nur bei einem Lauf ohne `GP_MUT` (mit `GP_MUT` gibt es keine Vorgabe, die Zeile
+    nach (2) steht ohne `B` als `Zeit <T> s`). Ein Wert, der keine ganze Zahl ohne Vorzeichen ist, endet vor jedem Fall mit Exit 2 und
+    einer Zeile `<name>: GP_BUDGET: keine ganze Zahl`. **Reihenfolge der Gründe:** (a) `GP_BUDGET` ungültig (Exit 2), (b) Abbruch durch
+    `SIGINT` (130) oder `SIGTERM` (143) ohne Zeile nach (2), (c) rote Mutation oder Fall (Exit 1, Zeilen wie bisher), (d) Zeitbudget (Exit 1);
+    (c) und (d) stehen beide in der Ausgabe, wenn beide zutreffen.
+    (5) **Arbeitsordner.** Der Ordner einer Mutation (bei `release-gegenprobe` `$arbeit/<name>`, bei `test-container-gegenprobe` `baum-<n>`)
+    wird entfernt, sobald ihre Fälle bewertet sind, die rote wie die grüne, und der Ordner jedes Falls, sobald der Fall endet (Grund: ein
+    Ordner je Mutation und Fall summierte sich auf über 5 GB je Lauf). Jede Mutation hat einen eigenen Ordner und kein gemeinsames
+    Verzeichnis mit einer anderen; mehrere Mutationen zugleich (`GP_PARALLEL`) entfernen je ihren. Die Spitze des Platzbedarfs des
+    Arbeitsordners liegt bei der Vorgabe von `GP_PARALLEL` unter 100 MB. Bei `SIGINT`, `SIGTERM` und Ende entfernt das Skript den ganzen
+    Arbeitsordner, den der laufenden Mutationen eingeschlossen, nachdem es seine Nachkommen beendet hat (Bestand, Fälle `p13-*`). Ein
+    Ordner, der nach der Mutation für die Diagnose stehen bliebe, gibt es nicht: Der Arbeitsordner war schon bisher mit dem Lauf weg.
+    (6) **Plattform.** Zeit und Platz sind auf dem Gegenproben-Container (Linux) gemessen; für macOS und Windows gilt die Grenze aus dem Kopf
+    dieser Kennung (nicht zugesagt). (7) **Aufrufarten.** `GP_MUT`, `GP_ENTDECKE`, `GP_FALL` und `GP_PARALLEL` behalten ihre Bedeutung; unter
+    `make` gelten `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` wie bisher ohne eigenen Fall ([`SPEC-067`](SPEC-067-release.md) Kopf von Punkt 14);
+    `GP_BUDGET` aus der Umgebung von `make` erreicht das Skript. Die Vorgabe von `GP_PARALLEL` darf von 4 auf höchstens 8 steigen, wenn zwei
+    volle Läufe in Folge grün sind (Messung im Bericht); Grund für die Grenze: Fälle mit Wartezeiten und `pgrep` fallen unter Last
+    aus (`BEO-REPO/test-faellt-unter-cpu-last-aus`). (8) **Umgebung der Fahrt.** Die Messung nach (1) verlangt einen ruhigen Host. Platz,
+    Benutzer (root und ohne root), Sprache und Zeitzone ändern die Zahlen nach (1) nicht; die Fahrt am Endstand läuft einmal unter einem
+    fremden Benutzer, einer fremden Locale und unter Last und nennt die Zeit dabei, ohne dass die Obergrenze für sie gilt.
+    (9) **Ergebnisgleichheit und Lockerung.** Eine Beschleunigung ändert weder die Mutationen noch ihre erwarteten roten Fälle noch die Liste
+    der Fälle. Beleg: der Unterschied der Deklarationszeilen (Zeilen, die eine Mutation, ihre roten Fälle oder die Fall-Listen deklarieren) zwischen
+    Basis und Endstand ist leer, und ein voller Lauf am Endstand ist grün (die Gegenprobe vergleicht je Mutation die tatsächlichen mit den
+    deklarierten roten Fällen). Eine Mutation zu streichen oder zusammenzulegen, einen Fall zu streichen oder die Obergrenze zu erhöhen ist
+    eine Lockerung (`AGENTS.md` §3.6) und braucht eine ADR; die Option, die roten Fälle nur unter einer Auswahl der Fälle zu prüfen
+    (wie [`SPEC-055`](SPEC-055-container-und-binaries.md) mit `nur`), ist es auch, wo sie die Prüfung der übrigen Fälle je Mutation auslässt.
+    **Fälle und Mutationen** (in der jeweiligen Gegenprobe, Name mit der Nummer ihres Vertrags; je Element eines): Überschreitung rot (Kopie mit
+    `GP_BUDGET=1` und einer billigen Mutation endet mit Exit 1 und der Zeile nach (3)); Grün unter der Grenze (`GP_BUDGET=3600`, Zeile
+    nach (2) ohne `ROT`); `GP_BUDGET=0` ohne Prüfung; ungültiger Wert Exit 2 vor jedem Fall (Leerstring, `-1`, `1.5`, `abc`, je einer);
+    Vorgabe nur ohne `GP_MUT` (Lauf mit `GP_MUT` und ohne `GP_BUDGET` hat keine Zeile `ROT — Zeitbudget`); Zeile nach (2) mit `Last` und
+    `-` bei fehlender Datei; Reihenfolge der Gründe (c) vor (d); keine Zeile nach (2) bei `SIGINT` und `SIGTERM`; Arbeitsordner einer Mutation
+    nach ihrem Ende entfernt (eine Kopie ohne `rm` färbt den Fall rot), je Fall entfernt, und nach Abbruch weg (Bestand). Die Mutation
+    zur Nutzung von `>=` statt `>` bleibt grün (äquivalent in der Praxis; akzeptiertes Negativ: die Zeit ist nicht steuerbar, die Wirkung beträgt eine
+    Sekunde).
