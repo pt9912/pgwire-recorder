@@ -624,7 +624,7 @@ an dieser Stelle (siehe
   gehört nicht dazu. Mit `--fail-on-unconsumed` ist beides ein
   Fehler (`PGR-E5002`, Exit-Code 5) mit demselben Text; die Anwendung erhält
   ihn nicht, weil die Verbindung dann schon endet.
-* `replay` beginnt jede angenommene Verbindung mit `AuthenticationOk`, ohne ein Passwort zu
+* `replay` beginnt jede Verbindung, die es bedient (einen Abbruchwunsch bedient es nicht), mit `AuthenticationOk`, ohne ein Passwort zu
   verlangen, mit und ohne `--tls-cert`; eine abgelehnte Verbindung erhält sofort die Fehlerantwort. Benutzer, Datenbank und Optionen der
   Startnachricht prüft es nicht: Ein Benutzer, den die Aufzeichnung nicht kennt, wird
   bedient. Sendet die Anwendung nach dem Aufbau eine Nachricht `p` (ein Passwort), ist das

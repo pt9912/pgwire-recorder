@@ -74,7 +74,7 @@ Startnachricht und eine Nachricht `p` nach dem Aufbau sind `PGR-E6001`, eine and
 als 3.0 ist `PGR-E6002`. Eine Verbindung, deren Startnachricht das Werkzeug ablehnt, ist keine
 Sitzung und verbraucht im `replay` keine. Ein Abbruchwunsch (`CancelRequest`) ohne Schlüssel oder mit
 einem Schlüssel von 4 bis 256 Bytes schließt seine Verbindung mit der Warnung `PGR-W3001` und wird nicht an die
-Datenbank weitergegeben; jede andere Länge von 8 bis 10000 Bytes ist `PGR-E6001`. `replay` beginnt jede angenommene Verbindung mit `AuthenticationOk`,
+Datenbank weitergegeben; jede andere Länge von 8 bis 10000 Bytes ist `PGR-E6001`. `replay` beginnt jede Verbindung, die es bedient (einen Abbruchwunsch bedient es nicht), mit `AuthenticationOk`,
 ohne ein Passwort zu verlangen, und prüft Benutzer und Datenbank nicht; ein Client, der mit `require_auth` ein
 Anmeldeverfahren verlangt, bricht deshalb selbst ab.
 
