@@ -872,7 +872,7 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			return nil, false
 		}
 		laenge, code := binary.BigEndian.Uint32(kopf[0:4]), binary.BigEndian.Uint32(kopf[4:8])
-		if !s.startkopf(k.conn, k.be, laenge, code) {
+		if !s.startkopf(k, laenge, code) {
 			return nil, false
 		}
 		if laenge == 8 && (code == codeSSLRequest || code == codeGSSEncRequest) {
@@ -886,16 +886,6 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			continue
 		}
 
-		if laenge == laengeCancelOhneSchluessel && code == codeCancelRequest {
-			_, _ = k.br.Discard(8)
-			if _, err := io.ReadFull(k.br, make([]byte, 4)); err != nil {
-				s.fail(k.be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
-				return nil, false
-			}
-			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
-			return nil, false
-		}
-
 		msg, err := k.be.ReceiveStartupMessage()
 		if err != nil {
 			s.fail(k.be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
@@ -903,7 +893,7 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 		}
 		switch m := msg.(type) {
 		case *pgproto3.CancelRequest:
-			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
+			s.cancelGeschlossen()
 			return nil, false
 		case *pgproto3.StartupMessage:
 			if !s.annehmen(k, m) {
@@ -915,6 +905,24 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			return nil, false
 		}
 	}
+}
+
+// cancelOhneSchluessel liest den Rest eines CancelRequest der Länge 12 (die
+// Prozess-ID, 4 Bytes) hinter dem Kopf von 8 Bytes; fehlt er, ist es PGR-E6001
+// mit Fehlerantwort, sonst PGR-W3001 (LH-FA-05.e *Länge des CancelRequest*).
+func (s *Server) cancelOhneSchluessel(k *kanal) {
+	_, _ = k.br.Discard(8)
+	if _, err := io.ReadFull(k.br, make([]byte, 4)); err != nil {
+		s.fail(k.be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
+		return
+	}
+	s.cancelGeschlossen()
+}
+
+// cancelGeschlossen meldet, dass ein CancelRequest nicht weitergeleitet wird
+// und seine Verbindung endet (PGR-W3001).
+func (s *Server) cancelGeschlossen() {
+	s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
 }
 
 // annehmen prüft eine Startnachricht der Version 3.0 und meldet, ob der Aufbau
@@ -949,12 +957,17 @@ func erweiterung(parameter map[string]string) bool {
 // startkopf prüft Länge und Startcode der ersten Client-Nachricht, in dieser
 // Reihenfolge, und meldet, ob pgproto3 sie lesen soll. Eine Länge außerhalb
 // einer Startnachricht schließt die Verbindung ohne Antwort mit der Warnung
-// PGR-W3003, eine unbekannte Sonderanfrage ist PGR-E6001, jede andere
-// Protokollversion als 3.0 PGR-E6002.
-func (s *Server) startkopf(conn net.Conn, be *pgproto3.Backend, laenge, code uint32) bool {
+// PGR-W3003, ein CancelRequest der Länge 12 wird hier ganz gelesen
+// (cancelOhneSchluessel), eine unbekannte Sonderanfrage ist PGR-E6001, jede
+// andere Protokollversion als 3.0 PGR-E6002.
+func (s *Server) startkopf(k *kanal, laenge, code uint32) bool {
+	be := k.be
 	switch {
 	case laenge < 8 || laenge > maxStartLaenge:
-		s.log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", conn.RemoteAddr().String())
+		s.log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", k.conn.RemoteAddr().String())
+		return false
+	case laenge == laengeCancelOhneSchluessel && code == codeCancelRequest:
+		s.cancelOhneSchluessel(k)
 		return false
 	case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
 		return true
