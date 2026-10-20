@@ -1661,6 +1661,8 @@ sie baut nicht aus dem Quelltext und hat keine Abhängigkeiten. Die Formel
 entsteht bei jedem stabilen Release. Eine Vorabversion ändert den Tap nicht.
 Windows wird über Homebrew nicht bedient (`SPEC-042`).
 
+Der Tap trägt genau eine Formel, `Formula/pgwire-recorder.rb`, für die höchste stabile Version; ein neuer stabiler Tag schreibt sie fort, ein älterer Tag setzt sie nicht zurück. Die Formel nennt je Plattform (macOS und Linux, `amd64` und `arm64`) die Adresse des Binaries am GitHub-Release des Tags und dessen Summe aus der Datei `SHA256SUMS` dieses Releases; ihr Test ruft `pgwire-recorder version` und erwartet die Version der Formel. Text der Formel, Ablage im Tap, Zugang und Fälle: `SPEC-067` Punkt 19 (`harness/vertraege/`). Dass Homebrew die Formel annimmt und das Binary läuft, belegt allein die Installation aus dem echten Tap (Abnahmeszenario 11), nicht die Gegenprobe der Pipeline.
+
 ---
 
 ### LH-FA-20.a — Einspielen
@@ -3280,7 +3282,7 @@ Für v1 sind keine Metriken und Tracing-Felder festgelegt.
 | `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | PGWire-Protokollversion 3.0; PostgreSQL-Hauptversionen 14, 15, 16, 17 und 18, Referenz 17 | — |
 | `SPEC-030` | `github.com/jackc/pgx/v5/pgproto3` (Verarbeitung von PGWire-Nachrichten) | Major 5 | — |
 | `SPEC-031` | Docker/OCI-Image `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` | OCI-Image-Format, `linux/amd64` und `linux/arm64` | — |
-| `SPEC-042` | Homebrew-Tap `pt9912/homebrew-pgwire-recorder` | eine Formel je stabilem Release | — |
+| `SPEC-042` | Homebrew-Tap `pt9912/homebrew-pgwire-recorder` | eine Formel, fortgeschrieben je stabilem Release | — |
 | `SPEC-044` | SQLite (Dateiformat der Aufzeichnung) | SQLite 3 | — |
 
 **`SPEC-029` — zugesagte Hauptversionen.** Zugesagt sind die PostgreSQL-Hauptversionen 14,
