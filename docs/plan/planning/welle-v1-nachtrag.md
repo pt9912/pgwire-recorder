@@ -67,7 +67,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 0. `slice-v1-abschluss-verbindungsende-upstream-extended` — Fixtures der Extended-Interaktion mit Ende gegen PostgreSQL; er stand seit dem 2026-10-16 vor dieser Welle, der Platz am Anfang bleibt (Empfehlung des Planners; keine Voraussetzung eines anderen Slice der Welle).
 1. `slice-v1-abschluss-cancel-ohne-schluessel` — `CancelRequest` ohne Schlüssel in `record` und `replay`.
-2. `slice-v1-abschluss-homebrew` — Verfahren der Formel, belegt mit einem Probe-Tag und einem Probe-Tap.
+2. `slice-v1-abschluss-homebrew` — Verfahren der Formel, belegt mit einem lokalen Probe-Tap (ein Bare-Repository; ein Probe-Tag entfällt, Entscheidung des Nutzers vom 2026-10-20, [ADR-0053](../adr/0053-homebrew-tap-in-der-release-pipeline.md)).
 3. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 mit dem echten Tap (setzt 2 voraus).
 
 Vor dieser Welle liegen die Gate-Kette (wellenlos, Entscheidung des Nutzers vom 2026-10-13), `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (M3) und [welle-erster-release](done/welle-erster-release/welle-erster-release.md) (M4). Danach folgen die übrigen Harness-Slices; die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; wellenlos) liegt vor allen Release-Slices (Entscheidung des Nutzers vom 2026-10-13), beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
