@@ -51,6 +51,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 |---|---|---|
 | slice-v1-abschluss-verbindungsende-upstream-extended | Das Ende einer Extended-Interaktion gegen PostgreSQL belegen (Fixtures der Gruppen mit Sync und mit Flush) | [`LH-FA-25`](../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-02`](../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-03`](../../../spec/lastenheft.md#lh-fa-03--replay-modus) |
 | slice-v1-abschluss-cancel-ohne-schluessel | CancelRequest ohne Schlüssel | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
+| slice-v1-abschluss-binary-namen | Release-Binaries ohne Version im Dateinamen | [`LH-FA-01`](../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 | slice-v1-abschluss-homebrew | Homebrew-Bereitstellung | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 | slice-erster-release-homebrew-nachweis | Homebrew-Nachweis (Abnahmeszenario 11) | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 
@@ -60,15 +61,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: —
-- Wird blockiert von: Welle [welle-erster-release](done/welle-erster-release/welle-erster-release.md).
-- Innerhalb der Welle: `slice-v1-abschluss-verbindungsende-upstream-extended` setzt `slice-v1-abschluss-verbindungsende-upstream`, `-record`, `-replay-extended` und `-replay-extended-flush` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (alle vor dem Release in `done/`) und hängt an keinem Slice dieser Welle; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (der übrige Protokollrand); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (Release-Artefakte); `slice-erster-release-homebrew-nachweis` setzt `slice-v1-abschluss-homebrew` (das Verfahren der Formel) und `slice-erster-release-freigabe` aus [welle-erster-release](done/welle-erster-release/welle-erster-release.md) voraus (erster stabiler Tag).
+- Wird blockiert von: Welle [welle-erster-release](done/welle-erster-release/welle-erster-release.md). Der letzte Slice der Welle (`slice-erster-release-homebrew-nachweis`) setzt außerdem einen veröffentlichten stabilen Tag mit dem Schema ohne Version voraus (Handlung des Nutzers nach neuem Ja zum Tag; ein Slice dafür ist noch nicht geplant, Auftrag an den Planner); der Closure-Trigger der Welle hängt damit an diesem Tag.
+- Innerhalb der Welle: `slice-v1-abschluss-verbindungsende-upstream-extended` setzt `slice-v1-abschluss-verbindungsende-upstream`, `-record`, `-replay-extended` und `-replay-extended-flush` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (alle vor dem Release in `done/`) und hängt an keinem Slice dieser Welle; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (der übrige Protokollrand); `slice-v1-abschluss-binary-namen` setzt `slice-v1-abschluss-container` aus [welle-v1-abschluss](done/welle-v1-abschluss/welle-v1-abschluss.md) voraus (`make binaries`, `make test-container`) und `slice-erster-release-veroeffentlichung` aus [welle-erster-release](done/welle-erster-release/welle-erster-release.md) (`release.sh`); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` (Release-Artefakte) und `slice-v1-abschluss-binary-namen` (die Namen, auf die Vorlage und Fälle rechnen) voraus; `slice-erster-release-homebrew-nachweis` setzt `slice-v1-abschluss-homebrew` (das Verfahren der Formel), `slice-v1-abschluss-binary-namen` und einen stabilen Tag nach beiden voraus (nicht mehr `v0.1.0` und den Nachtrag von Hand, Entscheidung des Nutzers vom 2026-10-20).
 
 **Reihenfolge** (Entscheidung des Nutzers vom 2026-10-11, Schritt 0 ergänzt am 2026-10-18; WIP-Limit 1):
 
 0. `slice-v1-abschluss-verbindungsende-upstream-extended` — Fixtures der Extended-Interaktion mit Ende gegen PostgreSQL; er stand seit dem 2026-10-16 vor dieser Welle, der Platz am Anfang bleibt (Empfehlung des Planners; keine Voraussetzung eines anderen Slice der Welle).
 1. `slice-v1-abschluss-cancel-ohne-schluessel` — `CancelRequest` ohne Schlüssel in `record` und `replay`.
-2. `slice-v1-abschluss-homebrew` — Verfahren der Formel, belegt mit einem lokalen Probe-Tap (ein Bare-Repository; ein Probe-Tag entfällt, Entscheidung des Nutzers vom 2026-10-20, [ADR-0053](../adr/0053-homebrew-tap-in-der-release-pipeline.md)).
-3. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 mit dem echten Tap (setzt 2 voraus).
+2. `slice-v1-abschluss-binary-namen` — Binaries als `pgwire-recorder-<os>-<arch>` ohne Version im Namen (Entscheidung des Nutzers vom 2026-10-20, [ADR-0054](../adr/0054-binaries-ohne-version-im-dateinamen.md)); vor der Formel, weil Vorlage und Fälle die Namen brauchen.
+3. `slice-v1-abschluss-homebrew` — Verfahren der Formel, belegt mit einem lokalen Probe-Tap (ein Bare-Repository; ein Probe-Tag entfällt, Entscheidung des Nutzers vom 2026-10-20, [ADR-0053](../adr/0053-homebrew-tap-in-der-release-pipeline.md)); setzt 2 voraus.
+4. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 mit dem echten Tap (setzt 3 und einen stabilen Tag mit dem neuen Schema voraus).
 
 Vor dieser Welle liegen die Gate-Kette (wellenlos, Entscheidung des Nutzers vom 2026-10-13), `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (M3) und [welle-erster-release](done/welle-erster-release/welle-erster-release.md) (M4). Danach folgen die übrigen Harness-Slices; die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; wellenlos) liegt vor allen Release-Slices (Entscheidung des Nutzers vom 2026-10-13), beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 
@@ -81,7 +83,8 @@ der Closure-Trigger unerreichbar wird.
 
 - Die Aufnahme in das Standard-Repository von Homebrew — Out-of-Scope von LH-FA-19.
 - Weitere Plattformen oder Registries — nicht zugesichert.
-- Der erste Release und seine Pipeline — `welle-erster-release`; diese Welle setzt den veröffentlichten ersten stabilen Tag voraus und ändert ihn nicht.
+- Der erste Release und seine Pipeline — `welle-erster-release`; diese Welle ändert `v0.1.0` nicht (er behält die Namen mit Version und bekommt keine Formel).
+- Der nächste stabile Tag (der erste mit dem Schema ohne Version) und der Slice, der ihn liefert — Handlung des Nutzers nach neuem Ja, Planung beim Planner; diese Welle setzt ihn für ihren letzten Slice voraus.
 - Übriger Protokollrand — `slice-v1-abschluss-protokollrand` in `welle-v1-abschluss`.
 - Produktcode zum Verbindungsende — `slice-v1-abschluss-verbindungsende-upstream-extended` liefert nur Tests und Testdaten; findet er eine Änderung am Produkt, geht sie an einen Folge-Slice, die Welle ändert sie nicht.
 
