@@ -5,5 +5,5 @@
 
 **Welle:** [welle-extended-query](welle-extended-query.md)
 **Archiviert mit:** welle-extended-query · **Geschlossen:** 2026-10-05
-**Hervorgegangen:** [slice-extended-query-replay](slice-extended-query-replay.md) · [slice-v1-abschluss-betrieb](../../done/welle-v1-abschluss/slice-v1-abschluss-betrieb.md) · [slice-v1-abschluss-cancel-ohne-schluessel](../../next/slice-v1-abschluss-cancel-ohne-schluessel.md)
+**Hervorgegangen:** [slice-extended-query-replay](slice-extended-query-replay.md) · [slice-v1-abschluss-betrieb](../../done/welle-v1-abschluss/slice-v1-abschluss-betrieb.md) · [slice-v1-abschluss-cancel-ohne-schluessel](../../in-progress/slice-v1-abschluss-cancel-ohne-schluessel.md)
 **Bezug:** LH-FA-06, LH-FA-13, LH-FA-18
