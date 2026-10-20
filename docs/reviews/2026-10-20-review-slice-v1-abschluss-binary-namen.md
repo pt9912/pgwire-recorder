@@ -1,6 +1,6 @@
 # Review-Report: slice-v1-abschluss-binary-namen — 2026-10-20
 
-**Review-Art:** Code — Code-Review gegen Plan + Konventionen (Entscheidung ADR-0054, Verträge `SPEC-055` Punkt 2 und 3, `SPEC-067` Punkt 4, 5 und 9, `AGENTS.md` §3.7, §3.9 bis §3.14).
+**Review-Art:** Code — Code-Review gegen Plan + Konventionen (Entscheidung [ADR-0054](../plan/adr/0054-binaries-ohne-version-im-dateinamen.md), Verträge `SPEC-055` Punkt 2 und 3, `SPEC-067` Punkt 4, 5 und 9, `AGENTS.md` §3.7, §3.9 bis §3.14).
 
 **Gegenstand:** `slice-v1-abschluss-binary-namen`, Diff `de41645c..impl-namen` (Kopf `02a04691`), sechs Commits, neun Dateien.
 
@@ -12,7 +12,7 @@
 **Eingangs-Kontext** (die Verträge, gegen die geprüft wurde):
 
 - Slice-Plan `slice-v1-abschluss-binary-namen` (§1 Ziel und Abgrenzung, §3 Plan, §6 Randformen, §7 Belege des Implementers)
-- ADR-0054 (Accepted), `SPEC-055` Punkt 2 und 3, `SPEC-067` Punkt 4, 5, 9 und 19 (3)
+- [ADR-0054](../plan/adr/0054-binaries-ohne-version-im-dateinamen.md) (Accepted), `SPEC-055` Punkt 2 und 3, `SPEC-067` Punkt 4, 5, 9 und 19 (3)
 - berührte Anforderungen `LH-FA-01`, `LH-FA-19`, `LH-QA-03`
 - `AGENTS.md` (Hard Rules §3.7, §3.9 bis §3.14)
 
@@ -30,10 +30,10 @@
 
 ### Zu den Schwerpunkten des Auftrags
 
-1. **Altes Schema.** `git grep pgwire-recorder_` (ohne vendored Baseline, `done/`, `docs/reviews/`) am Kopf: `binaries.sh`, `run-container.sh`, `release.sh`, `harness/README.md`, `releasing.md` ohne Treffer. Die übrigen Treffer einzeln gelesen: Handbuch Zeilen 101 bis 121 (`v0.1.0`, Bestand nach §1), ADR-0054 (Beschreibung des Alten), `SPEC-055` Punkt 3 und `SPEC-067` Punkt 4 und 19 (3) (nennen das alte Schema als nicht angenommen), `container-gegenprobe.sh` (Fall `p3-dist-altes-schema`, Mutationen `p3-name*`), `release-gegenprobe.sh` (Modus `altes-schema` der Attrappe, Mutation `m-p4-altes-schema-angenommen`), Plan und `slice-v1-abschluss-release-v0-1-1` (übergebener Bezug). Kein Treffer ist ein gültiger Name. Auch `${VERSION}_`-Muster außerhalb davon: keine.
+1. **Altes Schema.** `git grep pgwire-recorder_` (ohne vendored Baseline, `done/`, `docs/reviews/`) am Kopf: `binaries.sh`, `run-container.sh`, `release.sh`, `harness/README.md`, `releasing.md` ohne Treffer. Die übrigen Treffer einzeln gelesen: Handbuch Zeilen 101 bis 121 (`v0.1.0`, Bestand nach §1), [ADR-0054](../plan/adr/0054-binaries-ohne-version-im-dateinamen.md) (Beschreibung des Alten), `SPEC-055` Punkt 3 und `SPEC-067` Punkt 4 und 19 (3) (nennen das alte Schema als nicht angenommen), `container-gegenprobe.sh` (Fall `p3-dist-altes-schema`, Mutationen `p3-name*`), `release-gegenprobe.sh` (Modus `altes-schema` der Attrappe, Mutation `m-p4-altes-schema-angenommen`), Plan und `slice-v1-abschluss-release-v0-1-1` (übergebener Bezug). Kein Treffer ist ein gültiger Name. Auch `${VERSION}_`-Muster außerhalb davon: keine.
 2. **Mutationen.** Stichproben (siehe Läufe): jede färbt genau die in §7 genannten Fälle, die unveränderten Kopien sind grün. `p3-name-version` lässt `p3-name-trenner` grün (wie behauptet). `m-p4-liste-nicht-gezaehlt` und `m-p4-altes-schema-angenommen` färben je genau einen Fall. `m-p9-name-fehlt-<os>-<arch>` färbt den Fall `p4-namen-je-plattform-<os>-<arch>` der Plattform. Kein grüner Mutant, keiner als äquivalent geführt.
 3. **Handbuch und `releasing.md`.** Abschnitt `make binaries`: Namen, `VERSION` im Binary, „muss leer sein“ auch bei Dateien anderer `VERSION` stimmen mit `binaries.sh` und mit den Fällen `p3-dist-andere-version`, `p3-name-ohne-version` überein; Ist-Zustand, keine Chronik, kein Verweis auf Spezifikation oder Slices. `releasing.md` §2 und §3 stimmen, Version 0.11 und Historienzeile vorhanden.
-4. **Plan.** §3 trägt die geänderten Dateien und Fälle des Diffs; §1, §6 und der Kopf sind vom Diff unberührt und treffen weiter zu (§6 ohne neue Randform im Code-Commit); die Verträge und ADR-0054 sind unverändert. §7 steht allein im letzten Commit. Metrik nachgerechnet: `git diff --numstat de41645c..9492d6c4 -- tools harness/README.md docs/user docs/maintainer README.md` = 139 + 77 = 216, Marke über 800 nicht erreicht.
+4. **Plan.** §3 trägt die geänderten Dateien und Fälle des Diffs; §1, §6 und der Kopf sind vom Diff unberührt und treffen weiter zu (§6 ohne neue Randform im Code-Commit); die Verträge und [ADR-0054](../plan/adr/0054-binaries-ohne-version-im-dateinamen.md) sind unverändert. §7 steht allein im letzten Commit. Metrik nachgerechnet: `git diff --numstat de41645c..9492d6c4 -- tools harness/README.md docs/user docs/maintainer README.md` = 139 + 77 = 216, Marke über 800 nicht erreicht.
 5. **`m-p16-*`.** Die sechs Mutationen sind allein grün (nachgefahren). Der Diff berührt weder den Schritt `scan` noch dessen Fälle. Mit der Wachstumsrate des Arbeitsordners ist eine Erschöpfung des Datenträgers die plausible Ursache (F-2); ein echter Fehler, den dieser Slice berührt, ist nicht erkennbar.
 
 ## Negativbefunde
