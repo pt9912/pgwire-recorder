@@ -315,7 +315,7 @@ Eine Mutation mit vielen roten Fällen (`summen-ohne-dir`, `formula-nicht-angele
 - `m-p19-vorlage-pruefung-entfaellt` färbt die drei Zustände gemeinsam: Eine Prüfung unterscheidet sie nicht (ein Satz Code, ein Zustand je Fall ohne eigene Stelle); das ist das akzeptierte Negativ aus `SPEC-067` Punkt 19 (9). Ein Zustand „nicht lesbar“ hat keinen eigenen Fall (als root liest jede Datei); das Verzeichnis ist der Zustand, in dem `cat` scheitert, und liegt an derselben Stelle.
 - `m-p19-token-in-url` trägt den Token nur in die URL des Probe-Taps (Pfad `/…`), nicht in die Vorgabe-URL mit `https://`: der Fall `p19-tap-url-vorgabe` prüft die Vorgabe über `url.<…>.insteadOf` und bliebe sonst rot. Die Zusage „der Token steht nicht in der URL“ belegt das für den Klon des Probe-Taps; die Form `https://x-access-token:<Token>@github.com/…` ist nicht mutiert.
 - Kein grüner Mutant in den gefahrenen Läufen außer den akzeptierten Negativen; keiner wurde als äquivalent eingeordnet.
-- `make gates` und `make docs-check`: Ergebnis unten.
+- `make gates` am Endstand der Dateien außer diesem Abschnitt (Kopf `a0951261` bis `72b6e839` plus die Korrektur der Kennung): grün, 303 s. Davor zwei rote Läufe: der erste endete in `docs-check` (die Kennung `ADR-0054` stand in der Tabelle ohne Link, behoben), der zweite in `test-integration` (`TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild`, `DROP DATABASE … timeout: context deadline exceeded`, Last 10 bis 12 im Container; die Änderungen berühren keinen Go-Code und keinen Test des Binaries, das ist die Klasse `BEO-REPO/test-faellt-unter-cpu-last-aus`); der dritte Lauf war grün.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
