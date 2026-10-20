@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-cancel-ohne-schluessel
+**Fund:** §3 nannte `startup` als Ort der Änderung, die Umsetzung liegt in `startkopf` (Review F-3, LOW); §3 *Größe* nannte nach der Nacharbeit weiter 354 statt 477 (Verifikation F-V4, LOW); §6 Randform 2 stand ohne Einschränkung neben der späteren Randform zum ungelesenen Rest (Nach-Verifikation L-3, LOW). Alle drei nachgezogen. Quelle: Review-Report und beide Verifikationsberichte (Planner, Closure, 2026-10-20).

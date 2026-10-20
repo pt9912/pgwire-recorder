@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-cancel-ohne-schluessel
+**Fund:** Risiko aus §6 („Ein Client sendet einen `CancelRequest` in einer Länge, die die Spezifikation als `PGR-E6001` führt“) trat nicht ein und ist nicht ausgeschlossen: kein Test und keine Probe mit einem Client für 8 bis 11, 13 bis 15, 269 bis 10000; die Handbuch-Probe sendet rohe Bytes über `/dev/tcp`, keinen Client. Ausgang bei der Closure: weiter offen. Quelle: Plan §6 und §7 (Planner, Closure, 2026-10-20).

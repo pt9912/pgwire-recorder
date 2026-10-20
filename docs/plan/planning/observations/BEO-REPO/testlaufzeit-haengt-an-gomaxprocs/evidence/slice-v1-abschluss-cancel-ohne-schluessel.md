@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-cancel-ohne-schluessel
+**Fund:** Verifikation F-V2 (LOW): `TestCancelRequestKopf` hat rund 100 Unterfälle mit bis zu 2 s Wartezeit und `t.Parallel()`; Messung des Verifiers: rund 20 s mit 20 Kernen, 385 s für `-count=4` mit `GOMAXPROCS=2` (rund 96 s je Lauf). Der Implementer notierte es in §7 ohne Entscheidung; der Planner entschied bei der Closure: Eintrag, kein Folge-Slice. Quelle: Verifikationsbericht F-V2, Plan §7 (Planner, Closure, 2026-10-20).

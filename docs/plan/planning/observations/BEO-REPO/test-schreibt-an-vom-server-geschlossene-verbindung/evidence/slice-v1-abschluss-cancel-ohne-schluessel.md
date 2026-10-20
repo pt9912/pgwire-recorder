@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-cancel-ohne-schluessel
+**Fund:** Verifikation F-V3: Beim ersten Lauf des Mutanten K13 färbte ein Unterfall `Länge_10000` zusätzlich rot; der Implementer reproduzierte es am Stand vor der Nacharbeit (`-count=100`, dreimal, ein Lauf rot mit `write tcp …: write: connection reset by peer` beim Schreiben der 10000 Bytes). Behoben im Test (`cancelSenden`). Quelle: Verifikationsbericht F-V3, Plan §7 (Planner, Closure, 2026-10-20).
