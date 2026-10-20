@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # release-gegenprobe — prüft die Zusagen von SPEC-067 (harness/vertraege/SPEC-067-release.md, Punkt 14): den Text von .github/workflows/release.yml
-# (Fälle p1-*, geprüft von der Funktion pruefe_release, die den Text hält) und tools/harness/release.sh (Fälle p2-* bis p16-*): je Fall ein Temp-Baum mit einem
+# (Fälle p1-*, geprüft von der Funktion pruefe_release, die den Text hält), tools/harness/release.sh (Fälle p2-* bis p19-*) und die Vorlage tools/harness/homebrew-formula.rb.tmpl (Fälle p19-*): je Fall ein Temp-Baum mit einem
 # Git-Repository (Commits, Zweig, refs/remotes/origin/main und origin/trunk), dem Auszug des Benutzerhandbuchs, einem PATH, in dem `make`, `gh`, `docker`, `skopeo` und
-# `gp-layout` (schreibt ein OCI-Layout) Attrappen sind, die ihre Aufrufe aufzeichnen; `skopeo` führt Buch über zwei Registries in einem Verzeichnis, `tools/harness/container-smoke.sh`
-# des Baums ist eine Attrappe; `git`, `sha256sum`, `awk`, `tar` und `cmp` sind die echten Werkzeuge. Ohne Docker, ohne Netz, ohne make. Ein Fall besteht,
+# `gp-layout` (schreibt ein OCI-Layout) Attrappen sind, die ihre Aufrufe aufzeichnen, und `git` das echte git mit einem Protokoll davor ist (die Fälle p19-* legen einen Probe-Tap als Bare-Repository im Temp-Baum an, `gh` liefert SHA256SUMS aus einer Datei des Falls); `skopeo` führt Buch über zwei Registries in einem Verzeichnis, `tools/harness/container-smoke.sh`
+# des Baums ist eine Attrappe; `sha256sum`, `awk`, `tar` und `cmp` sind die echten Werkzeuge. Ohne Docker, ohne Netz, ohne make. Ein Fall besteht,
 # wenn Exit-Code, Kennwort der Meldung und die Aufrufe der Attrappen dem erwarteten Text entsprechen; jeder Fall hat seinen Temp-Baum. Je Mutation (Textersatz in
 # pruefe_release bzw. in einer Kopie von release.sh) müssen genau die benannten Fälle rot werden; die unveränderte Kopie besteht jeden Fall. Der Name jedes Falls trägt
 # die Nummer des Punktes; ein Name in der Fallliste ohne Funktion f_<name> zählt als roter Fall.
@@ -50,20 +50,20 @@ trap abbruch_term TERM
 : > "$arbeit/gefahren"
 melde() { echo "release-gegenprobe: ROT — $*" >> "$arbeit/fehler"; }
 
-WERKZEUGE="git sed grep awk cmp tar mktemp sort tr wc cat cp chmod rm env find ls seq sleep mkdir dirname basename head pgrep setsid timeout sha256sum jq date"
+WERKZEUGE="git sed grep awk cmp tar mktemp sort tr wc cat cp chmod rm env find ls ln sh seq sleep mkdir dirname basename head pgrep setsid timeout sha256sum jq date"
 for t in $WERKZEUGE; do
   command -v "$t" > /dev/null 2>&1 || { echo "release-gegenprobe: $t fehlt" >&2; exit 2; }
 done
-for f in .github/workflows/release.yml tools/harness/release.sh; do
+for f in .github/workflows/release.yml tools/harness/release.sh tools/harness/homebrew-formula.rb.tmpl; do
   [ -f "$repo/$f" ] || { echo "release-gegenprobe: $f fehlt im Arbeitsbaum" >&2; exit 2; }
 done
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 export GIT_AUTHOR_NAME=gp GIT_AUTHOR_EMAIL=gp@example.invalid GIT_COMMITTER_NAME=gp GIT_COMMITTER_EMAIL=gp@example.invalid
 
 # --- Punkt 1: der Text -------------------------------------------------------------------------------------------------------------------------------
-# SOLL_ROH ist der Text von Punkt 1b, Zeile für Zeile, mit der Herkunft (A oder B) vor dem ersten `|`; HERKUNFT nennt die Herkunft, die diese Fassung führt. Die Zeile
+# SOLL_ROH ist der Text von Punkt 1c (1b plus der Job homebrew), Zeile für Zeile, mit der Herkunft (A, B, F oder H) vor dem ersten `|`; HERKUNFT nennt die Herkunft, die diese Fassung führt. Die Zeile
 # mit <SHA> und <Tag> prüft PIN_RE. Die Gegenprobe trägt den Text wörtlich als eigene Kopie.
-HERKUNFT=ABF
+HERKUNFT=ABFH
 mapfile -t SOLL_ROH << 'EOT'
 A|name: release
 A|on:
@@ -133,26 +133,52 @@ A|        if: ${{ github.event_name == 'push' }}
 A|        env:
 A|          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 A|        run: bash tools/harness/release.sh github-release
+H|  homebrew:
+H|    name: homebrew
+H|    needs: release
+H|    if: ${{ github.event_name == 'push' }}
+H|    runs-on: ubuntu-24.04
+H|    timeout-minutes: 15
+H|    permissions:
+H|      contents: read
+H|    env:
+H|      RELEASE_EVENT: ${{ github.event_name }}
+H|      RELEASE_REF: ${{ github.ref }}
+H|      RELEASE_REPOSITORY: ${{ github.repository }}
+H|    steps:
+H|      - name: Checkout
+H|        uses: actions/checkout@<SHA> # <Tag>
+H|        with:
+H|          persist-credentials: false
+H|      - name: Homebrew
+H|        env:
+H|          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+H|          RELEASE_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+H|        run: bash tools/harness/release.sh homebrew
 EOT
 SOLL=()
 for z in "${SOLL_ROH[@]}"; do if [[ $HERKUNFT == *"${z%%|*}"* ]]; then SOLL+=("${z#*|}"); fi; done
 N=${#SOLL[@]}
-PIN=-1
-# Die Schritte nach dem Checkout: STEP_AB[k] ist die Zeile `- name:` des Schritts k in SOLL, STEP_ID[k] sein Kürzel (Name des Falls); BEDING[j] ist die Zeile `if:` des Schritts BEDING_ID[j].
+PIN=-1 PIN2=-1
+# JH ist die Zeile des Jobs homebrew (Ende der Schritte des Jobs release). Die Schritte nach dem Checkout: STEP_AB[k] ist die Zeile `- name:` des Schritts k des Jobs release in SOLL, STEP_ID[k] sein Kürzel (Name des Falls); BEDING[j] ist die Zeile `if:` des Schritts BEDING_ID[j].
+JH=$N
+for ((i = 0; i < N; i++)); do if [ "${SOLL[i]}" = "  homebrew:" ]; then JH=$i; fi; done
 declare -A SCHRITT_ID=([Eingaben]=eingaben [Binaries]=binaries [Image]=image [Scan]=scan [Veröffentlichen]=veroeffentlichen [Vergleichen]=vergleichen [Smoke]=smoke [Latest]=latest [GitHub-Release]=github-release)
 STEP_AB=() STEP_ID=() BEDING=() BEDING_ID=()
 schritt_re='^      - name: (.*)$'
 for ((i = 0; i < N; i++)); do
-  if [[ ${SOLL[i]} =~ $schritt_re && ${BASH_REMATCH[1]} != Checkout ]]; then STEP_AB+=("$i"); STEP_ID+=("${SCHRITT_ID[${BASH_REMATCH[1]}]}"); fi
-  if [[ ${SOLL[i]} == *"actions/checkout@<SHA>"* ]]; then PIN=$i; fi
-  if [[ ${SOLL[i]} == *"if: \${{ github.event_name == 'push' }}"* ]]; then BEDING+=("$i"); BEDING_ID+=("${STEP_ID[-1]}"); fi
+  if [ "$i" -lt "$JH" ]; then
+    if [[ ${SOLL[i]} =~ $schritt_re && ${BASH_REMATCH[1]} != Checkout ]]; then STEP_AB+=("$i"); STEP_ID+=("${SCHRITT_ID[${BASH_REMATCH[1]}]}"); fi
+    if [[ ${SOLL[i]} == "        if: \${{ github.event_name == 'push' }}" ]]; then BEDING+=("$i"); BEDING_ID+=("${STEP_ID[-1]}"); fi
+  fi
+  if [[ ${SOLL[i]} == *"actions/checkout@<SHA>"* ]]; then if [ "$PIN" -lt 0 ]; then PIN=$i; else PIN2=$i; fi; fi
 done
 K=${#STEP_AB[@]}
-STEP_AB+=("$N")
+STEP_AB+=("$JH")
 PIN_RE="^${SOLL[PIN]%%<SHA>*}[0-9a-f]{40} # [^ ].*\$"
 SHA_PROBE=0123456789abcdef0123456789abcdef01234567
 
-# pruefe_release <datei> — Exit 0, wenn die Datei außer Leerzeilen und Kommentarzeilen genau aus den Zeilen von SOLL besteht (Pin der Zeile PIN nach PIN_RE).
+# pruefe_release <datei> — Exit 0, wenn die Datei außer Leerzeilen und Kommentarzeilen genau aus den Zeilen von SOLL besteht (Pin der Zeilen PIN und PIN2 nach PIN_RE).
 pruefe_release() {
   local datei="$1" z i j=0
   local -a ist=()
@@ -161,7 +187,7 @@ pruefe_release() {
     ist+=("$z")
   done < "$datei"
   for ((i = 0; i < ${#SOLL[@]}; i++)); do
-    if [ "$i" -eq "$PIN" ]; then
+    if [ "$i" -eq "$PIN" ] || [ "$i" -eq "$PIN2" ]; then
       [[ ${ist[j]-} =~ $PIN_RE ]] || return 1
     else
       [ "${ist[j]-}" = "${SOLL[i]}" ] || return 1
@@ -176,7 +202,7 @@ pruefe_release() {
 text() {
   local i
   for i in "${!SOLL[@]}"; do
-    if [ "$i" -eq "$PIN" ]; then echo "${SOLL[i]/<SHA> # <Tag>/$SHA_PROBE # v7.0.1}"; else echo "${SOLL[i]}"; fi
+    if [ "$i" -eq "$PIN" ] || [ "$i" -eq "$PIN2" ]; then echo "${SOLL[i]/<SHA> # <Tag>/$SHA_PROBE # v7.0.1}"; else echo "${SOLL[i]}"; fi
   done
 }
 # urteil <ok|rot> — schreibt stdin nach $w/release.yml und vergleicht das Urteil von pruefe_release.
@@ -228,6 +254,7 @@ umgestellt() {
   local k
   zeilen "${t[@]:0:STEP_AB[0]}"
   for k in "$@"; do zeilen "${t[@]:STEP_AB[k]:STEP_AB[k+1]-STEP_AB[k]}"; done
+  zeilen "${t[@]:JH}"
 }
 # tausch <k> <l> — die Reihenfolge der Schritte mit den Stellen k und l vertauscht.
 tausch() { local o=() j; for ((j = 0; j < K; j++)); do o+=("$j"); done; o[$1]=$2; o[$2]=$1; echo "${o[*]}"; }
@@ -237,6 +264,27 @@ for tp in "${TAUSCHE[@]}"; do read -r tn tk tl <<< "$tp"; eval "f_p1_reihenfolge
 f_p1_leerzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "" "${t[@]:3}"); }
 f_p1_kommentarzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "# Kommentar" "${t[@]:3}"); }
 f_p1_kommentarzeile_eingerueckt() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "    # Kommentar" "${t[@]:3}"); }
+# Job homebrew (Punkt 1c): sidx <Text> <von> <bis> — Index der ersten Zeile von SOLL mit genau dem Text in [von, bis), sonst -1.
+sidx() { local i; for ((i = $2; i < $3; i++)); do if [ "${SOLL[i]}" = "$1" ]; then echo "$i"; return; fi; done; echo -1; }
+JR=$(sidx '  release:' 0 "$N")
+H_NEEDS=$(sidx '    needs: release' "$JH" "$N")
+H_IF=$(sidx "    if: \${{ github.event_name == 'push' }}" "$JH" "$N")
+H_PERM=$(sidx '      contents: read' "$JH" "$N")
+H_ENV_REPO=$(sidx '      RELEASE_REPOSITORY: ${{ github.repository }}' "$JH" "$N")
+H_SCHRITT=$(sidx '      - name: Homebrew' "$JH" "$N")
+R_ENV_REPO=$(sidx '      RELEASE_REPOSITORY: ${{ github.repository }}' 0 "$JH")
+R_GH_STEP=$(sidx '          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}' 0 "$JH")
+# einfuegen <Index> <Zeile> — der Text mit einer zusätzlichen Zeile hinter der Zeile <Index>.
+einfuegen() { neu; urteil rot < <(zeilen "${t[@]:0:$1+1}" "$2" "${t[@]:$1+1}"); }
+f_p1_homebrew_needs() { neu; unset "t[$H_NEEDS]"; urteil rot < <(zeilen "${t[@]}"); }
+f_p1_homebrew_bedingung() { neu; unset "t[$H_IF]"; urteil rot < <(zeilen "${t[@]}"); }
+f_p1_homebrew_pin() { neu; t[PIN2]="        uses: actions/checkout@$SHA_PROBE"; urteil rot < <(zeilen "${t[@]}"); }
+f_p1_homebrew_geheimnis_nur_im_schritt() { einfuegen "$H_ENV_REPO" '      RELEASE_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}'; }
+f_p1_homebrew_geheimnis_release_job() { einfuegen "$R_ENV_REPO" '      HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}'; }
+f_p1_homebrew_geheimnis_release_schritt() { einfuegen "$R_GH_STEP" '          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}'; }
+f_p1_homebrew_keine_registry_rechte() { einfuegen "$H_PERM" '      packages: write'; }
+f_p1_reihenfolge_jobs() { neu; urteil rot < <(zeilen "${t[@]:0:JR}" "${t[@]:JH}" "${t[@]:JR:JH-JR}"); }
+f_p1_reihenfolge_homebrew_schritte() { neu; urteil rot < <(zeilen "${t[@]:0:PIN2-1}" "${t[@]:H_SCHRITT}" "${t[@]:PIN2-1:H_SCHRITT-PIN2+1}"); }
 
 # --- Welt, Attrappen, Hilfen für release.sh -------------------------------------------------------------------------------------------------------------
 TOKEN=ghs_GeheimerTokenWert0123456789
@@ -291,6 +339,9 @@ case "$1 $2" in
     exit 0 ;;
   "release download")
     dir=""; while [ $# -gt 0 ]; do if [ "$1" = --dir ]; then dir="$2"; fi; shift; done
+    echo "dir-vorher: $([ -d "$dir" ] && { [ -z "$(ls -A "$dir")" ] && echo leer || echo gefuellt; } || echo fehlt)" >> "$GP_LOG/gh-dir"
+    [ "${GP_GH_DL-}" != scheitert ] || { echo "HTTP 404: release not found" >&2; exit 1; }
+    if [ -n "${GP_GH_SUMSFILE-}" ]; then cp "$GP_GH_SUMSFILE" "$dir/SHA256SUMS" || exit 1; exit 0; fi
     case "${GP_GH_SUMS-gleich}" in
       gleich) cp "$RUNNER_TEMP/release/dist/SHA256SUMS" "$dir/SHA256SUMS" ;;
       abweichend) echo "0000000000000000000000000000000000000000000000000000000000000000  pgwire-recorder-x" > "$dir/SHA256SUMS" ;;
@@ -424,6 +475,29 @@ esac
 exit 0
 EOT
   printf '#!/usr/bin/env bash\necho "tar $*" >> "$GP_LOG/tar"\nexec %s "$@"\n' "$(command -v tar)" > "$b/tar"
+  # git: das echte git, vorweg ein Protokoll (Aufruf, Umgebung des Aufrufs, Zugangsskript) und danach die Konfiguration jedes Klons und die Dateien unter TMPDIR, die den Token tragen; GP_GIT=haengt lässt den Klon hängen (Abbruch).
+  cat > "$b/git" << 'EOT'
+#!/usr/bin/env bash
+echo "git $*" >> "$GP_LOG/git"
+echo "GIT_TERMINAL_PROMPT=${GIT_TERMINAL_PROMPT-} GIT_ASKPASS=$([ -n "${GIT_ASKPASS-}" ] && echo gesetzt || echo -)" >> "$GP_LOG/git-env"
+if [ -n "${GIT_ASKPASS-}" ] && [ -f "$GIT_ASKPASS" ]; then cp "$GIT_ASKPASS" "$GP_LOG/askpass.sh"; fi
+if [ "${GP_GIT-}" = haengt ] && [[ " $* " == *" clone "* ]]; then
+  d="$(ls -d "$TMPDIR"/tmp.* | head -n 1)"
+  bash -c 'while :; do mkdir -p "$1"; : > "$1/spur"; sleep 0.1; done' _ "$d/spur" &
+  : > "$GP_LOG/bereit"
+  sleep 60 &
+  wait
+  exit 0
+fi
+@@GIT@@ "$@"
+rc=$?
+for d in "$@" "$PWD"; do
+  if [ -d "$d/.git" ]; then { echo "== $d"; cat "$d/.git/config"; } >> "$GP_LOG/gitconfig"; fi
+done
+if [ -n "${RELEASE_TAP_TOKEN-}" ]; then grep -rlF -- "$RELEASE_TAP_TOKEN" "$TMPDIR" >> "$GP_LOG/token-dateien" 2> /dev/null || true; fi
+exit "$rc"
+EOT
+  sed -i "s|@@GIT@@|$(command -v git)|" "$b/git"
   cat > "$b/skopeo" << 'EOT'
 #!/usr/bin/env bash
 echo "skopeo $*" >> "$GP_LOG/skopeo"
@@ -592,7 +666,7 @@ NAMEN() { local o a e; for o in darwin linux windows; do for a in amd64 arm64; d
 anhaenge() { tr ' ' '\n' <<< "$1" | grep "^$(DIST)/" | LC_ALL=C sort; }
 
 # Punkt 2
-AUSSEN=(github-release)
+AUSSEN=(github-release homebrew)
 f_p2_trockenlauf_ohne_aussenwirkung() {
   fix 0.3.0-dev; umg trocken
   bis eingaben binaries
@@ -611,6 +685,7 @@ f_p2_ref_kein_tag() {
   fix 0.1.0; umg lauf RELEASE_REF=refs/heads/main; lauf eingaben; grund 2 eingaben ereignis
   fix 0.1.0; umg lauf; bis eingaben binaries
   umg lauf RELEASE_REF=refs/heads/main; lauf github-release; grund 2 github-release ereignis; sei "gh nie gerufen" nie gh
+  fix 0.1.0; umg lauf RELEASE_REF=refs/heads/main; lauf homebrew; grund 2 homebrew ereignis; sei "gh nie gerufen (homebrew)" nie gh
 }
 # Punkt 3
 gueltig() { # <Tag>
@@ -1411,6 +1486,349 @@ skript_abbruch() { # <Signal> <Exit>
 f_p13_sigint() { skript_abbruch INT 130; }
 f_p13_sigterm() { skript_abbruch TERM 143; }
 
+# --- Fassung H: Homebrew-Tap (Punkt 19) -------------------------------------------------------------------------------------------------------------------
+# Der Probe-Tap ist ein Bare-Repository im Temp-Baum des Falls ($w/tap.git, echtes git; die Attrappe `git` vor dem echten führt Protokoll), die Attrappe von `gh` liefert die Datei $w/sums als SHA256SUMS
+# des Release. VORLAGE_SOLL ist der Text der Vorlage aus Punkt 19 (4) als eigene Kopie; $vorlage ist die Datei, die der Fall dem Baum beilegt (die des Arbeitsbaums, in den Mutationen der Vorlage eine Kopie).
+TOKEN_T=ghp_GeheimerTapWert0123456789
+vorlage="$repo/tools/harness/homebrew-formula.rb.tmpl"
+FORMEL_PFAD=Formula/pgwire-recorder.rb
+PLAT_H=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64)
+IFS= read -r -d '' VORLAGE_SOLL << 'EOT' || true
+class PgwireRecorder < Formula
+  desc "Zeichnet PostgreSQL-Protokollverkehr auf und spielt ihn wieder ab"
+  homepage "https://github.com/pt9912/pgwire-recorder"
+  version "@@VERSION@@"
+  license "MIT"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-darwin-arm64"
+      sha256 "@@SHA256_DARWIN_ARM64@@"
+    end
+    on_intel do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-darwin-amd64"
+      sha256 "@@SHA256_DARWIN_AMD64@@"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-linux-arm64"
+      sha256 "@@SHA256_LINUX_ARM64@@"
+    end
+    on_intel do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-linux-amd64"
+      sha256 "@@SHA256_LINUX_AMD64@@"
+    end
+  end
+
+  def install
+    bin.install Dir["pgwire-recorder-*"].fetch(0) => "pgwire-recorder"
+  end
+
+  test do
+    assert_match "pgwire-recorder #{version}", shell_output("#{bin}/pgwire-recorder version")
+  end
+end
+EOT
+# hsumme <os-arch> — die Summe der Plattform im Fall (je Plattform und Version verschieden).
+hsumme() { printf '%s' "summe:$1:$V" | sha256sum | cut -d' ' -f1; }
+# sums_schreiben — $w/sums: je Plattform eine gültige Zeile (unter Windows mit .exe).
+sums_schreiben() {
+  local k
+  {
+    for k in "${PLAT_H[@]}"; do printf '%s  pgwire-recorder-%s\n' "$(hsumme "$k")" "$k"; done
+    for k in windows-amd64 windows-arm64; do printf '%s  pgwire-recorder-%s.exe\n' "$(hsumme "$k")" "$k"; done
+  } > "$w/sums"
+}
+# formel_soll — der Text der Formel für V und die Summen des Falls: die Vorlage mit der Version ohne v und den vier Summen.
+formel_soll() {
+  local f="$VORLAGE_SOLL" k kk
+  f="${f//@@VERSION@@/$V}"
+  for k in "${PLAT_H[@]}"; do kk="${k^^}"; f="${f//@@SHA256_${kk//-/_}@@/$(hsumme "$k")}"; done
+  printf '%s' "$f"
+}
+tap_leer() { git init -q --bare -b "${1:-main}" "$w/tap.git"; }
+tap_stand() { git -C "$w/tap.git" for-each-ref --format='%(refname) %(objectname)' | sha256sum | cut -d' ' -f1; }
+tap_zeigt() { git -C "$w/tap.git" show "main:$1" 2> /dev/null; }
+tap_commits() { git -C "$w/tap.git" rev-list --count main 2> /dev/null || echo 0; }
+# tap_mit <Zweig> [<Pfad> <Inhalt>]… — der Inhalt `@<Datei>` kopiert die Datei; der Probe-Tap (HEAD auf <Zweig>) trägt einen Commit mit den Dateien; $w/tapwerk bleibt zum Weiterarbeiten (tap_schiebe).
+tap_mit() {
+  local z="$1"
+  shift
+  rm -rf "$w/tap.git" "$w/tapwerk"
+  git init -q --bare -b "$z" "$w/tap.git"
+  git clone -q "$w/tap.git" "$w/tapwerk" 2> /dev/null
+  while [ "$#" -ge 2 ]; do
+    mkdir -p "$w/tapwerk/$(dirname "$1")"
+    if [[ $2 == @* ]]; then cp "${2#@}" "$w/tapwerk/$1"; else printf '%s' "$2" > "$w/tapwerk/$1"; fi
+    shift 2
+  done
+  tap_schiebe "$z"
+}
+tap_schiebe() { git -C "$w/tapwerk" add -A && git -C "$w/tapwerk" commit -q --allow-empty -m vorher && git -C "$w/tapwerk" push -q origin "$1" 2> /dev/null; }
+# formel_alt <Version> — eine Formel im Tap mit genau einer Zeile version.
+formel_alt() { printf 'class PgwireRecorder < Formula\n  version "%s"\nend\n' "$1"; }
+# formel_ist — die Formel im Tap ist byte-gleich formel_soll; formel_da — eine Formel liegt im Tap (die anderen Fälle prüfen nur das; den Text prüfen p19-formel-text und die Fälle zu „schon aktuell“, die Version p19-formel-version).
+formel_ist() { tap_zeigt "$FORMEL_PFAD" > "$w/formel.ist"; formel_soll > "$w/formel.soll"; cmp -s "$w/formel.ist" "$w/formel.soll"; }
+formel_da() { [ "$(tap_zeigt "$FORMEL_PFAD" | head -n 1)" = "class PgwireRecorder < Formula" ]; }
+# humg <lauf|trocken> [NAME=Wert | -NAME]… — umg mit den Zusätzen des Schrittes homebrew.
+humg() { local art="$1"; shift; umg "$art" "RELEASE_TAP_TOKEN=$TOKEN_T" "RELEASE_TAP_URL=$w/tap.git" "GP_GH_SUMSFILE=$w/sums" "$@"; }
+# hfix [Version] — Baum, Vorlage, SHA256SUMS des Release, leerer Probe-Tap, Umgebung.
+hfix() { fix "${1:-0.1.1}"; mkdir -p "$w/repo/tools/harness"; cp "$vorlage" "$w/repo/tools/harness/homebrew-formula.rb.tmpl"; sums_schreiben; tap_leer; humg lauf; }
+hlauf() { lauf homebrew "$@"; }
+grund1() { sei "Exit 1" test "$code" -eq 1; sei "Meldung release: homebrew: $1:" enthaelt "$err" "release: homebrew: $1:"; }
+h_ruhe() { sei "gh nie gerufen" nie gh; sei "git nie gerufen" nie git; }
+# Eingaben und Reihenfolge der Gründe
+f_p19_ohne_push() { hfix; humg lauf RELEASE_EVENT=workflow_dispatch; hlauf; grund 2 homebrew ereignis; h_ruhe; }
+f_p19_ref_kein_tag() { hfix; humg lauf RELEASE_REF=refs/heads/main; hlauf; grund 2 homebrew ereignis; h_ruhe; }
+f_p19_tag_form() {
+  local t
+  for t in v1.2 v01.2.3 v1.2.3+x vfoo; do hfix; humg lauf "RELEASE_REF=refs/tags/$t"; hlauf; grund 2 homebrew tag-form; h_ruhe; done
+}
+f_p19_vorabversion() {
+  local v h0
+  for v in 0.2.0-rc.1 0.2.0-beta 0.2.0-0a; do
+    hfix "$v"; humg lauf -GH_TOKEN -RELEASE_TAP_TOKEN; h0="$(tap_stand)"
+    hlauf; gruen
+    sei "Meldung der Vorabversion ($v)" enthaelt "$out$err" "release: homebrew: v$v ist eine Vorabversion, der Tap bleibt unverändert"
+    h_ruhe; sei "Tap unverändert ($v)" test "$(tap_stand)" = "$h0"
+  done
+}
+f_p19_gh_token_fehlt() { hfix; humg lauf -GH_TOKEN; hlauf; grund 2 homebrew token; sei "Schlüsselwort token" beginnt token; h_ruhe; }
+f_p19_gh_token_leer() { hfix; humg lauf GH_TOKEN=; hlauf; grund 2 homebrew token; h_ruhe; }
+f_p19_tap_token_fehlt() { hfix; humg lauf -RELEASE_TAP_TOKEN; hlauf; grund 2 homebrew geheimnis; sei "Meldung nennt den Namen" enthaelt "$err" HOMEBREW_TAP_GITHUB_TOKEN; h_ruhe; }
+f_p19_tap_token_leer() { hfix; humg lauf RELEASE_TAP_TOKEN=; hlauf; grund 2 homebrew geheimnis; sei "Meldung nennt den Namen" enthaelt "$err" HOMEBREW_TAP_GITHUB_TOKEN; h_ruhe; }
+f_p19_reihenfolge_gruende_a_b() { hfix; humg lauf RELEASE_REF=refs/tags/x -GH_TOKEN -RELEASE_TAP_TOKEN; hlauf; grund 2 homebrew ereignis; h_ruhe; }
+f_p19_reihenfolge_gruende_b_c() { hfix; humg lauf RELEASE_REF=refs/tags/v1.2-rc.1 -GH_TOKEN -RELEASE_TAP_TOKEN; hlauf; grund 2 homebrew tag-form; h_ruhe; }
+f_p19_reihenfolge_gruende_c_d() { hfix 0.2.0-rc.1; humg lauf -GH_TOKEN -RELEASE_TAP_TOKEN; hlauf; gruen; h_ruhe; }
+f_p19_reihenfolge_gruende_d_e() { hfix; humg lauf -GH_TOKEN -RELEASE_TAP_TOKEN; hlauf; grund 2 homebrew token; sei "Schlüsselwort token" beginnt token; h_ruhe; }
+f_p19_kein_zustand() { hfix; hlauf; gruen; sei "kein Zustand zwischen den Schritten" test ! -e "$w/runner/release"; }
+f_p19_nur_lesen() {
+  hfix; hlauf; gruen
+  sei "gh liest nur" test "$(grep -c -v '^gh release download ' "$w/log/gh")" -eq 0
+  sei "skopeo nie gerufen" nie skopeo; sei "docker nie gerufen" nie docker; sei "make nie gerufen" nie make
+}
+f_p19_ohne_runner_temp() { hfix; humg lauf -RUNNER_TEMP; hlauf; gruen; sei "Formel im Tap" formel_da; }
+# Summen
+f_p19_summen_aufruf() {
+  local g
+  hfix; hlauf; gruen
+  g="$(aufrufe gh)"
+  sei "genau ein Aufruf von gh" test "$(wc -l <<< "$g")" -eq 1
+  sei "Aufruf: release download <Tag> --repo <Repository> --pattern SHA256SUMS --dir <Temp-Verzeichnis>" enthaelt "$g" "gh release download v0.1.1 --repo pt9912/pgwire-recorder --pattern SHA256SUMS --dir $w/tmp/"
+  sei "das Verzeichnis war neu und leer" test "$(cat "$w/log/gh-dir")" = "dir-vorher: leer"
+}
+f_p19_summen_laden_scheitert() { hfix; hlauf GP_GH_DL=scheitert; grund1 summen-laden; sei "Tap nicht geklont" nie git; }
+summen_ohne() { grep -v -e "  pgwire-recorder-$1\$" "$w/sums" > "$w/sums.neu"; mv "$w/sums.neu" "$w/sums"; }
+summen_abgelehnt() { local h0; h0="$(tap_stand)"; hlauf; grund1 summen; sei "Tap unverändert" test "$(tap_stand)" = "$h0"; }
+for k in "${PLAT_H[@]}"; do eval "f_p19_summen_fehlt_${k//-/_}() { hfix; summen_ohne $k; summen_abgelehnt; }"; done
+f_p19_summen_doppelt() { hfix; printf '%s  pgwire-recorder-linux-amd64\n' "$(hsumme x)" >> "$w/sums"; summen_abgelehnt; }
+f_p19_summen_altes_schema() {
+  local k
+  hfix
+  for k in "${PLAT_H[@]}"; do printf '%s  pgwire-recorder_%s_%s\n' "$(hsumme "$k")" "$V" "${k/-/_}"; done > "$w/sums"
+  for k in windows-amd64 windows-arm64; do printf '%s  pgwire-recorder_%s_%s.exe\n' "$(hsumme "$k")" "$V" "${k/-/_}"; done >> "$w/sums"
+  summen_abgelehnt
+}
+summe_ersetzt() { # <sed-Ausdruck auf die Summe von linux-amd64>
+  local s; s="$(hsumme linux-amd64)"
+  sed -i "s/^$s  /$(sed "$1" <<< "$s")  /" "$w/sums"
+}
+f_p19_summen_form_zu_kurz() { hfix; summe_ersetzt 's/.$//'; summen_abgelehnt; }
+f_p19_summen_form_zu_lang() { hfix; summe_ersetzt 's/$/0/'; summen_abgelehnt; }
+f_p19_summen_form_grossbuchstaben() { hfix; summe_ersetzt 's/^./\U&/;s/[a-f]/\U&/g'; summen_abgelehnt; }
+f_p19_summen_form_kein_hex() { hfix; summe_ersetzt 's/^./g/'; summen_abgelehnt; }
+f_p19_summen_name_genau() { hfix; sed -i 's/  pgwire-recorder-linux-amd64$/  pgwire-recorder-linux-amd64.zip/' "$w/sums"; summen_abgelehnt; }
+f_p19_summen_windows_ignoriert() { hfix; printf 'kein-hex  pgwire-recorder-windows-amd64.exe\n' >> "$w/sums"; hlauf; gruen; sei "Formel im Tap" formel_da; }
+f_p19_summen_weitere_namen_ignoriert() { hfix; printf 'abc  weiteres-ding\n' >> "$w/sums"; hlauf; gruen; sei "Formel im Tap" formel_da; }
+f_p19_summen_vor_tap() { hfix; summe_ersetzt 's/.$//'; hlauf; grund1 summen; sei "git nie gerufen" nie git; }
+# Formel
+f_p19_formel_text() { hfix; hlauf; gruen; sei "Formel byte-gleich der Vorlage mit den Werten" formel_ist; }
+# formel_tupel — je Plattform `<os>-<arch> <url> <sha256>` der Formel im Tap (Plattform aus den Blöcken on_macos/on_linux und on_arm/on_intel).
+formel_tupel() {
+  tap_zeigt "$FORMEL_PFAD" | awk '
+    /^  on_macos do$/ { os = "darwin" } /^  on_linux do$/ { os = "linux" }
+    /^    on_arm do$/ { a = "arm64" } /^    on_intel do$/ { a = "amd64" }
+    /^      url "/ { u = $2; gsub(/"/, "", u) }
+    /^      sha256 "/ { s = $2; gsub(/"/, "", s); print os "-" a, u, s }'
+}
+for k in "${PLAT_H[@]}"; do
+  eval "f_p19_formel_url_${k//-/_}() { hfix; hlauf; gruen; sei \"url der Plattform $k\" test \"\$(formel_tupel | awk '\$1 == \"$k\" { print \$1, \$2 }')\" = \"$k https://github.com/pt9912/pgwire-recorder/releases/download/v0.1.1/pgwire-recorder-$k\"; }"
+  eval "f_p19_formel_summe_${k//-/_}() { hfix; hlauf; gruen; sei \"Summe der Plattform $k\" test \"\$(formel_tupel | awk '\$1 == \"$k\" { print \$1, \$3 }')\" = \"$k \$(hsumme $k)\"; }"
+done
+f_p19_formel_version() { hfix; hlauf; gruen; sei "genau eine Zeile version mit der Version ohne v" test "$(tap_zeigt "$FORMEL_PFAD" | grep -c '^  version "0.1.1"$')" -eq 1; }
+f_p19_formel_kein_windows() { hfix; hlauf; gruen; sei "kein windows in der Formel" test "$(tap_zeigt "$FORMEL_PFAD" | grep -ci windows)" -eq 0; sei "vier Plattformen" test "$(formel_tupel | wc -l)" -eq 4; }
+f_p19_formel_kein_platzhalter() { hfix; hlauf; gruen; sei "kein @@ in der Formel" test "$(tap_zeigt "$FORMEL_PFAD" | grep -c '@@')" -eq 0; }
+f_p19_vorlage_text() { sei "die Vorlage hat den Text aus Punkt 19 (4)" cmp -s "$vorlage" <(printf '%s' "$VORLAGE_SOLL"); }
+# Tap
+f_p19_tap_leer() {
+  hfix; hlauf; gruen
+  sei "Zweig main mit einem Commit" test "$(tap_commits)" -eq 1; sei "Formel im Tap" formel_da
+}
+f_p19_tap_leer_head_anders() {
+  hfix; rm -rf "$w/tap.git"; tap_leer master; hlauf; gruen
+  sei "Zweig main mit einem Commit" test "$(tap_commits)" -eq 1; sei "Formel im Tap" formel_da
+}
+f_p19_tap_nicht_leer() {
+  hfix; tap_mit main README.md $'hallo\n'; hlauf; gruen
+  sei "ein Commit mehr" test "$(tap_commits)" -eq 2; sei "Formel im Tap" formel_da; sei "fremde Datei bleibt" test "$(tap_zeigt README.md)" = hallo
+  sei "genau die Formel ist neu" test "$(git -C "$w/tap.git" show --name-only --format= main)" = "$FORMEL_PFAD"
+}
+f_p19_tap_ohne_formula_verzeichnis() { hfix; tap_mit main README.md $'hallo\n'; hlauf; gruen; sei "Formula/ angelegt, Formel im Tap" formel_da; }
+f_p19_tap_formula_vorhanden() {
+  hfix; tap_mit main Formula/andere.rb $'class Andere\nend\n'; hlauf; gruen
+  sei "Formel im Tap" formel_da; sei "andere Formel bleibt" test "$(tap_zeigt Formula/andere.rb)" = $'class Andere\nend'
+}
+f_p19_tap_zweig_anders() {
+  local h0
+  hfix; tap_mit dev README.md $'hallo\n'; h0="$(tap_stand)"; hlauf; grund1 tap-zweig; sei "Tap unverändert" test "$(tap_stand)" = "$h0"
+}
+f_p19_tap_pfad_datei() { local h0; hfix; tap_mit main Formula $'ich bin eine Datei\n'; h0="$(tap_stand)"; hlauf; grund1 tap-pfad; sei "Tap unverändert" test "$(tap_stand)" = "$h0"; }
+f_p19_tap_pfad_formula_symlink() {
+  local h0
+  hfix; tap_mit main README.md $'hallo\n'; mkdir "$w/tapwerk/echt"; printf 'x\n' > "$w/tapwerk/echt/x"; ln -s echt "$w/tapwerk/Formula"; tap_schiebe main; h0="$(tap_stand)"
+  hlauf; grund1 tap-pfad; sei "Tap unverändert" test "$(tap_stand)" = "$h0"
+}
+f_p19_tap_pfad_formel_verzeichnis() { local h0; hfix; tap_mit main Formula/pgwire-recorder.rb/x $'x\n'; h0="$(tap_stand)"; hlauf; grund1 tap-pfad; sei "Tap unverändert" test "$(tap_stand)" = "$h0"; }
+f_p19_tap_pfad_formel_symlink() {
+  local h0
+  hfix; tap_mit main README.md "$(formel_alt 0.0.1)"$'\n'; mkdir -p "$w/tapwerk/Formula"; ln -s ../README.md "$w/tapwerk/$FORMEL_PFAD"; tap_schiebe main; h0="$(tap_stand)"
+  hlauf; grund1 tap-pfad; sei "Tap unverändert" test "$(tap_stand)" = "$h0"
+}
+formel_unlesbar() { # <Inhalt der Formel im Tap>
+  local h0
+  hfix; tap_mit main "$FORMEL_PFAD" "$1"; h0="$(tap_stand)"; hlauf; grund1 tap-formel; sei "Tap unverändert" test "$(tap_stand)" = "$h0"
+}
+f_p19_tap_formel_ohne_version() { formel_unlesbar $'class PgwireRecorder < Formula\nend\n'; }
+f_p19_tap_formel_zwei_versionen() { formel_unlesbar $'class PgwireRecorder < Formula\n  version "0.0.1"\n  version "0.0.2"\nend\n'; }
+f_p19_tap_formel_vorabversion() { formel_unlesbar "$(formel_alt 0.0.1-rc.1)"$'\n'; }
+f_p19_tap_niedriger() {
+  hfix; tap_mit main "$FORMEL_PFAD" "$(formel_alt 0.0.9)"$'\n'; hlauf; gruen
+  sei "ein Commit mehr" test "$(tap_commits)" -eq 2; sei "Formel im Tap" formel_da
+}
+f_p19_tap_gleich_aktuell() {
+  local h0
+  hfix; formel_soll > "$w/formel.alt"; tap_mit main "$FORMEL_PFAD" "@$w/formel.alt"
+  h0="$(tap_stand)"; hlauf; gruen
+  sei "Tap unverändert" test "$(tap_stand)" = "$h0"; sei "kein Push" ohne "$(aufrufe git)" " push "
+}
+f_p19_tap_gleich_andere_vorlage() {
+  hfix; formel_soll | sed 's/^  license.*/  license "Apache-2.0"/' > "$w/formel.alt"; tap_mit main "$FORMEL_PFAD" "@$w/formel.alt"; hlauf; gruen
+  sei "ein Commit mehr" test "$(tap_commits)" -eq 2; sei "Formel im Tap" formel_da
+}
+f_p19_tap_gleich_andere_summe() {
+  local s
+  hfix; s="$(hsumme linux-amd64)"; formel_soll | sed "s/$s/$(hsumme x)/" > "$w/formel.alt"; tap_mit main "$FORMEL_PFAD" "@$w/formel.alt"; hlauf; gruen
+  sei "ein Commit mehr" test "$(tap_commits)" -eq 2; sei "Formel im Tap" formel_da
+}
+f_p19_tap_andere_dateien_bleiben() {
+  hfix; tap_mit main README.md $'hallo\n' Formula/andere.rb $'class Andere\nend\n' LICENSE $'x\n'; hlauf; gruen
+  sei "Dateien neben der Formel bleiben" test "$(git -C "$w/tap.git" ls-tree -r --name-only main | tr '\n' ' ')" = "Formula/andere.rb Formula/pgwire-recorder.rb LICENSE README.md "
+  sei "nur die Formel ist neu" test "$(git -C "$w/tap.git" show --name-only --format= main)" = "$FORMEL_PFAD"
+}
+f_p19_tap_hoeher() {
+  local h0
+  hfix; tap_mit main "$FORMEL_PFAD" "$(formel_alt 0.2.0)"$'\n'; h0="$(tap_stand)"; hlauf; gruen
+  sei "Tap unverändert" test "$(tap_stand)" = "$h0"; sei "kein Push" ohne "$(aufrufe git)" " push "
+  sei "Meldung" enthaelt "$out" "der Tap trägt 0.2.0, höher als 0.1.1, und bleibt unverändert"
+}
+f_p19_tap_semver_numerisch() {
+  local h0
+  hfix 0.10.0; tap_mit main "$FORMEL_PFAD" "$(formel_alt 0.9.0)"$'\n'; hlauf; gruen
+  sei "0.10.0 ist höher als 0.9.0: ein Commit mehr" test "$(tap_commits)" -eq 2; sei "Formel im Tap" formel_da
+  hfix 0.9.0; tap_mit main "$FORMEL_PFAD" "$(formel_alt 0.10.0)"$'\n'; h0="$(tap_stand)"; hlauf; gruen
+  sei "0.9.0 ist niedriger als 0.10.0: Tap unverändert" test "$(tap_stand)" = "$h0"
+}
+f_p19_klon_scheitert() { hfix; humg lauf "RELEASE_TAP_URL=$w/gibt-es-nicht.git"; hlauf; grund1 tap-klon; sei "Meldung von git" enthaelt "$err" "release: git: "; }
+f_p19_commit_identitaet() {
+  hfix; hlauf; gruen
+  sei "Autor und Committer" test "$(git -C "$w/tap.git" log -1 --format='%an <%ae> | %cn <%ce>' main)" = "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+}
+f_p19_commit_nachricht() {
+  hfix; hlauf; gruen
+  sei "Betreff pgwire-recorder <Version>" test "$(git -C "$w/tap.git" log -1 --format=%s main)" = "pgwire-recorder 0.1.1"
+  sei "kein weiterer Text" test -z "$(git -C "$w/tap.git" log -1 --format=%b main)"
+}
+f_p19_push_ohne_force() {
+  local p
+  hfix; hlauf; gruen
+  p="$(grep ' push ' "$w/log/git" 2> /dev/null || true)"
+  sei "genau ein Push, push origin main" test "$(wc -l <<< "$p")" -eq 1 -a "${p% push origin main}" != "$p"
+  sei "kein --force" test "$(grep -c -e ' --force ' "$w/log/git")" -eq 0
+}
+f_p19_push_ohne_lease() { hfix; hlauf; gruen; sei "git gerufen" test -s "$w/log/git"; sei "kein --force-with-lease" ohne "$(aufrufe git)" "--force-with-lease"; }
+f_p19_push_abgewiesen() {
+  local h0
+  hfix; printf '#!/bin/sh\necho "gp: abgewiesen" >&2\nexit 1\n' > "$w/tap.git/hooks/pre-receive"; chmod +x "$w/tap.git/hooks/pre-receive"
+  h0="$(tap_stand)"; hlauf; grund1 tap-push
+  sei "Tap unverändert" test "$(tap_stand)" = "$h0"; sei "Meldung von git mit Präfix" enthaelt "$err" "release: git: "
+  sei "genau ein Push" test "$(grep -c ' push ' "$w/log/git")" -eq 1
+}
+f_p19_tap_url_vorgabe() {
+  hfix; printf '[url "%s"]\n\tinsteadOf = https://github.com/pt9912/homebrew-pgwire-recorder.git\n' "$w/tap.git" > "$w/gitconfig"
+  humg lauf -RELEASE_TAP_URL "GIT_CONFIG_GLOBAL=$w/gitconfig"; hlauf; gruen; sei "Formel im Tap" formel_da
+}
+# Token
+f_p19_token_askpass_benutzer() {
+  hfix; hlauf; gruen
+  sei "Zugangsskript liegt vor" test -f "$w/log/askpass.sh"
+  sei "Benutzername auf die Anfrage danach" test "$(RELEASE_TAP_TOKEN=$TOKEN_T sh "$w/log/askpass.sh" "Username for 'https://github.com': ")" = x-access-token
+}
+f_p19_token_askpass_passwort() {
+  hfix; hlauf; gruen
+  sei "Zugangsskript liegt vor" test -f "$w/log/askpass.sh"
+  sei "Token auf die Anfrage nach dem Passwort" test "$(RELEASE_TAP_TOKEN=$TOKEN_T sh "$w/log/askpass.sh" "Password for 'https://x-access-token@github.com': ")" = "$TOKEN_T"
+  sei "das Skript trägt den Wert nicht" ohne "$(cat "$w/log/askpass.sh")" "$TOKEN_T"
+}
+f_p19_token_askpass_gesetzt() { hfix; hlauf; gruen; sei "jeder Aufruf von git mit GIT_ASKPASS" test "$(grep -c -v 'GIT_ASKPASS=gesetzt$' "$w/log/git-env")" -eq 0; sei "git gerufen" test -s "$w/log/git-env"; }
+f_p19_kein_prompt() { hfix; hlauf; gruen; sei "jeder Aufruf von git mit GIT_TERMINAL_PROMPT=0" test "$(grep -c -v '^GIT_TERMINAL_PROMPT=0 ' "$w/log/git-env")" -eq 0; sei "git gerufen" test -s "$w/log/git-env"; }
+f_p19_credential_helper_leer() { hfix; hlauf; gruen; sei "jeder Aufruf von git mit -c credential.helper=" test "$(grep -c -v '^git -c credential.helper= ' "$w/log/git")" -eq 0; sei "git gerufen" test -s "$w/log/git"; }
+f_p19_token_nicht_im_argument() {
+  hfix; hlauf; gruen
+  sei "kein Aufruf von git trägt den Token" ohne "$(aufrufe git)" "$TOKEN_T"
+  sei "kein Aufruf von gh trägt einen Token" ohne "$(aufrufe gh)" "$TOKEN_T"; sei "kein Aufruf von gh trägt GH_TOKEN" ohne "$(aufrufe gh)" "$TOKEN"
+}
+f_p19_token_nicht_in_url_und_config() {
+  hfix; hlauf; gruen
+  sei "git gerufen" test -s "$w/log/gitconfig"
+  sei "kein Token in der Konfiguration eines Klons" ohne "$(aufrufe gitconfig)" "$TOKEN_T"
+  sei "keine Datei unter TMPDIR trägt den Token" test ! -s "$w/log/token-dateien"
+}
+f_p19_token_nicht_im_log() {
+  hfix; hlauf; gruen; ohne_token
+  hfix; printf '#!/bin/sh\necho "gp: abgewiesen" >&2\nexit 1\n' > "$w/tap.git/hooks/pre-receive"; chmod +x "$w/tap.git/hooks/pre-receive"; hlauf; sei "Push abgewiesen" test "$code" -eq 1; ohne_token
+  hfix; humg lauf "RELEASE_TAP_URL=$w/gibt-es-nicht.git"; hlauf; sei "Klon scheitert" test "$code" -eq 1; ohne_token
+  hfix; hlauf GP_GH_DL=scheitert; sei "Summen nicht ladbar" test "$code" -eq 1; ohne_token
+}
+ohne_token() { sei "kein Token in stdout und stderr" ohne "$out$err" "$TOKEN_T"; sei "kein GH_TOKEN in stdout und stderr" ohne "$out$err" "$TOKEN"; }
+# Abbruch
+f_p19_ende() { hfix; hlauf; gruen; sei "TMPDIR leer nach dem Ende" test -z "$(ls -A "$w/tmp")"; }
+skript_abbruch_h() { # <Signal> <Exit>
+  local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste
+  hfix
+  rm -rf "${w:?}/tmp" && mkdir "$w/tmp"
+  umg_befehl
+  ( trap - INT TERM; cd "$w/repo" && exec "${ENVV[@]}" GP_GIT=haengt setsid bash -c 'echo $$ > "$1"; shift; exec bash "$@"' _ "$w/pid" "$releasesh" homebrew > "$w/o" 2> "$w/e" ) &
+  bg=$!
+  warte_auf test -e "$w/log/bereit" || ok=0
+  pid="$(cat "$w/pid" 2> /dev/null || echo 0)"
+  if [ "$pid" -gt 1 ]; then kill -s "$sig" "$pid" 2> /dev/null; else ok=0; fi
+  wait "$bg" || rc=$?
+  t="$w/tmp"
+  warte_auf_reste
+  [ "$rc" -eq "$soll" ] || ok=0
+  reste="$(ls -A "$t" 2> /dev/null)"
+  ! reste_da || ok=0
+  if [ "$ok" -eq 0 ]; then
+    printf 'erwartet: Exit %s, TMPDIR leer, kein Prozess mit dem Pfad\ngelesen: Exit %s, TMPDIR: %s\nstderr:\n%s\n' "$soll" "$rc" "$reste" "$(cat "$w/e" 2> /dev/null)" >> "$run/log.$fallname"
+    bad=1
+  fi
+  if [ "$pid" -gt 1 ]; then kill -s KILL -- "-$pid" 2> /dev/null || true; fi
+}
+f_p19_sigint() { skript_abbruch_h INT 130; }
+f_p19_sigterm() { skript_abbruch_h TERM 143; }
+
 # --- Läufe ------------------------------------------------------------------------------------------------------------------------------------------
 FAELLE_P1=(p1-gleich p1-text-gleich p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt
   p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action)
@@ -1418,6 +1836,7 @@ for ((n = 1; n <= N; n++)); do FAELLE_P1+=("p1-fehlt-$n" "p1-geaendert-$n"); don
 for k in "${ZUSATZ_NAMEN[@]}"; do FAELLE_P1+=("p1-zusatz-$k"); done
 for j in "${BEDING_ID[@]}"; do FAELLE_P1+=("p1-bedingung-$j"); done
 for tp in "${TAUSCHE[@]}"; do FAELLE_P1+=("p1-reihenfolge-${tp%% *}"); done
+FAELLE_P1+=(p1-homebrew-needs p1-homebrew-bedingung p1-homebrew-pin p1-homebrew-geheimnis-nur-im-schritt p1-homebrew-geheimnis-release-job p1-homebrew-geheimnis-release-schritt p1-homebrew-keine-registry-rechte p1-reihenfolge-jobs p1-reihenfolge-homebrew-schritte)
 FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-kein-tag
   p3-tag-gueltig p3-laenge-100 p3-ohne-v p3-zwei-teile p3-vier-teile p3-fuehrende-null p3-fuehrende-null-minor p3-fuehrende-null-patch p3-vorabversion-fuehrende-null
   p3-leere-vorabversion p3-leerer-bezeichner p3-ungueltiges-zeichen p3-build-metadaten p3-zu-lang p3-ereignis-unbekannt p3-ereignis-fehlt
@@ -1452,9 +1871,10 @@ FAELLE_F=(p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p1
   p16-e9-ohne-platform p16-e10-verzeichnis-inhalt p16-verzeichnis-amd64 p16-verzeichnis-arm64 p16-manifest-fehlt p16-manifest-doppelt p16-auswahl-vor-docker p16-index-attestation p16-index-fremdes-os p16-layout-nicht-entpackbar p16-index-nicht-lesbar p16-index-blob-nicht-lesbar
   p16-marke-alt-entpacken p16-marke-alt-index p16-marke-alt-auswahl p16-blobs-inhalt p16-index-variante p16-manifest-doppelt-variante p16-entpacken-einmal)
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
+FAELLE_H=(p19-summen-weitere-namen-ignoriert p19-kein-zustand p19-nur-lesen p19-summen-name-genau p19-tap-gleich-andere-summe p19-tap-andere-dateien-bleiben p19-ohne-push p19-ref-kein-tag p19-tag-form p19-vorabversion p19-gh-token-fehlt p19-gh-token-leer p19-tap-token-fehlt p19-tap-token-leer p19-reihenfolge-gruende-a-b p19-reihenfolge-gruende-b-c p19-reihenfolge-gruende-c-d p19-reihenfolge-gruende-d-e p19-ohne-runner-temp p19-summen-aufruf p19-summen-laden-scheitert p19-summen-doppelt p19-summen-altes-schema p19-summen-form-zu-kurz p19-summen-form-zu-lang p19-summen-form-grossbuchstaben p19-summen-form-kein-hex p19-summen-windows-ignoriert p19-summen-vor-tap p19-formel-text p19-formel-version p19-formel-kein-windows p19-formel-kein-platzhalter p19-vorlage-text p19-tap-leer p19-tap-leer-head-anders p19-tap-nicht-leer p19-tap-ohne-formula-verzeichnis p19-tap-formula-vorhanden p19-tap-zweig-anders p19-tap-pfad-datei p19-tap-pfad-formula-symlink p19-tap-pfad-formel-verzeichnis p19-tap-pfad-formel-symlink p19-tap-formel-ohne-version p19-tap-formel-zwei-versionen p19-tap-formel-vorabversion p19-tap-niedriger p19-tap-gleich-aktuell p19-tap-gleich-andere-vorlage p19-tap-hoeher p19-tap-semver-numerisch p19-klon-scheitert p19-commit-identitaet p19-commit-nachricht p19-push-ohne-force p19-push-ohne-lease p19-push-abgewiesen p19-tap-url-vorgabe p19-token-askpass-benutzer p19-token-askpass-passwort p19-token-askpass-gesetzt p19-kein-prompt p19-credential-helper-leer p19-token-nicht-im-argument p19-token-nicht-in-url-und-config p19-token-nicht-im-log p19-sigint p19-sigterm p19-summen-fehlt-darwin-amd64 p19-formel-url-darwin-amd64 p19-formel-summe-darwin-amd64 p19-summen-fehlt-darwin-arm64 p19-formel-url-darwin-arm64 p19-formel-summe-darwin-arm64 p19-summen-fehlt-linux-amd64 p19-formel-url-linux-amd64 p19-formel-summe-linux-amd64 p19-summen-fehlt-linux-arm64 p19-formel-url-linux-arm64 p19-formel-summe-linux-arm64 p19-ende)
 FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende p16-werkzeug-jq p16-werkzeug-date)
 
-# faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, sh, b, f, p13, gp13, ok = alle), einen je Zeile. FALL_ZUSATZ nennt einen weiteren Namen (Probe: ein Name ohne
+# faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, sh, b, f, h, p13, gp13, ok = alle), einen je Zeile. FALL_ZUSATZ nennt einen weiteren Namen (Probe: ein Name ohne
 # Funktion ist ein roter Fall).
 faelle() {
   local n
@@ -1464,8 +1884,9 @@ faelle() {
     b) set -- "${FAELLE_B[@]}" ;;
     f) set -- "${FAELLE_F[@]}" ;;
     p13) set -- "${FAELLE_P13[@]}" ;;
+    h) set -- "${FAELLE_H[@]}" ;;
     gp13) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_GP13[@]}"; fi ;;
-    ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_B[@]}" "${FAELLE_F[@]}" "${FAELLE_P13[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" ;;
+    ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_B[@]}" "${FAELLE_F[@]}" "${FAELLE_P13[@]}" "${FAELLE_H[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" ;;
   esac
   for n in "$@" ${FALL_ZUSATZ-}; do
     fallname="$n"
@@ -1562,7 +1983,7 @@ mut13g() {
   wartejob
   (
     run="$arbeit/$name"; m="$run/baum"; mkdir -p "$m/tools/harness" "$m/.github/workflows"
-    for f in .github/workflows/release.yml tools/harness/release.sh; do cp "$repo/$f" "$m/$f"; done
+    for f in .github/workflows/release.yml tools/harness/release.sh tools/harness/homebrew-formula.rb.tmpl; do cp "$repo/$f" "$m/$f"; done
     inhalt="$(cat "$selbst"; printf x)"; inhalt="${inhalt%x}"
     if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
     if [[ ${inhalt#*"$alt"} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
@@ -1597,13 +2018,16 @@ fi
 # Je Zeile n zwei Mutationen: die Zeile ist optional (fehlt sie, rückt die Prüfung nicht weiter) und ihr Inhalt wird nicht verglichen.
 for ((n = 1; n <= N; n++)); do
   i=$((n - 1))
-  if [ "$i" -eq "$PIN" ]; then igel='[[ ${ist[j]-} =~ $PIN_RE ]]'; else igel='[ "${ist[j]-}" = "${SOLL[i]}" ]'; fi
+  if [ "$i" -eq "$PIN" ] || [ "$i" -eq "$PIN2" ]; then igel='[[ ${ist[j]-} =~ $PIN_RE ]]'; else igel='[ "${ist[j]-}" = "${SOLL[i]}" ]'; fi
   rote="p1-fehlt-$n"
   for j in "${!BEDING[@]}"; do if [ "$i" -eq "${BEDING[j]}" ]; then rote+=" p1-bedingung-${BEDING_ID[j]}"; fi; done
-  mut1 "m-p1-zeile-$n-optional" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ] && ! $igel; then continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
+  if [ "$i" -eq "$H_NEEDS" ]; then rote+=" p1-homebrew-needs"; fi
+  if [ "$i" -eq "$H_IF" ]; then rote+=" p1-homebrew-bedingung"; fi
+  mut1 "m-p1-zeile-$n-optional" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ] || [ \"\$i\" -eq \"\$PIN2\" ]; then' 'if [ \"\$i\" -eq $i ] && ! $igel; then continue; fi; if [ \"\$i\" -eq \"\$PIN\" ] || [ \"\$i\" -eq \"\$PIN2\" ]; then'"
   rote="p1-geaendert-$n"
   if [ "$i" -eq "$PIN" ]; then rote+=" p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action"; fi
-  mut1 "m-p1-zeile-$n-nicht-verglichen" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ]; then j=\$((j + 1)); continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
+  if [ "$i" -eq "$PIN2" ]; then rote+=" p1-homebrew-pin"; fi
+  mut1 "m-p1-zeile-$n-nicht-verglichen" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ] || [ \"\$i\" -eq \"\$PIN2\" ]; then' 'if [ \"\$i\" -eq $i ]; then j=\$((j + 1)); continue; fi; if [ \"\$i\" -eq \"\$PIN\" ] || [ \"\$i\" -eq \"\$PIN2\" ]; then'"
 done
 for k in "${!ZUSATZ[@]}"; do
   wort="${ZUSATZ[k]%%|*}"
@@ -1612,7 +2036,7 @@ done
 mut1 m-p1-zusatzzeilen-erlaubt "$(printf 'p1-zusatz-%s ' "${ZUSATZ_NAMEN[@]}")" "fn_ersetze '[ \"\${#ist[@]}\" -eq \"\$j\" ]' 'true'"
 mut1 m-p1-pin-grossbuchstaben "p1-pin-gross" 'PIN_RE="${PIN_RE/0-9a-f/0-9a-fA-F}"'
 mut1 m-p1-pin-39-ziffern "p1-pin-kurz" 'PIN_RE="${PIN_RE/"{40}"/"{39,40}"}"'
-mut1 m-p1-pin-ohne-kommentar "p1-pin-ohne-tag" 'PIN_RE="${PIN_RE/ # \[^ \].*\$/( # [^ ].*)?\$}"'
+mut1 m-p1-pin-ohne-kommentar "p1-pin-ohne-tag p1-homebrew-pin" 'PIN_RE="${PIN_RE/ # \[^ \].*\$/( # [^ ].*)?\$}"'
 mut1 m-p1-pin-kommentar-ohne-text "p1-pin-tag-leer" 'PIN_RE="${PIN_RE/"[^ ]"/}"'
 mut1 m-p1-pin-andere-action "p1-pin-andere-action" 'PIN_RE="${PIN_RE/actions?checkout@/actions/[a-z-]+@}"'
 mut1 m-p1-kommentarzeilen-nicht-ignoriert "p1-kommentarzeile p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^\\ *\$'"
@@ -1628,6 +2052,27 @@ for tp in "${TAUSCHE[@]}"; do
   # shellcheck disable=SC2059
   mut1 "m-p1-reihenfolge-$tn-tauschbar" "p1-reihenfolge-$tn" "$(printf "$tauschbar" "PERM_${tn//-/_}")"
 done
+# Job homebrew: die Reihenfolge der Jobs und der Schritte des Jobs, und je Zusatzzeile genau diese Zeile nicht gezählt (Zeile, bei der Zeile davor genau <vor>).
+mapfile -t PERM_jobs < <(printf '%s\n' "${SOLL[@]:0:JR}" "${SOLL[@]:JH}" "${SOLL[@]:JR:JH-JR}")
+mapfile -t PERM_homebrew_schritte < <(printf '%s\n' "${SOLL[@]:0:PIN2-1}" "${SOLL[@]:H_SCHRITT}" "${SOLL[@]:PIN2-1:H_SCHRITT-PIN2+1}")
+# shellcheck disable=SC2059
+mut1 m-p1-reihenfolge-jobs-tauschbar "p1-reihenfolge-jobs" "$(printf "$tauschbar" PERM_jobs)"
+# shellcheck disable=SC2059
+mut1 m-p1-reihenfolge-homebrew-schritte-tauschbar "p1-reihenfolge-homebrew-schritte" "$(printf "$tauschbar" PERM_homebrew_schritte)"
+# fn_zeile_ueberspringen <Zeile> [<vorige Zeile>] — Textersatz in pruefe_release: die Zeile (und nur sie, bei <vorige Zeile>: nur hinter dieser) zählt nicht mit.
+fn_zeile_ueberspringen() {
+  local ersatz
+  if [ -n "${2-}" ]; then
+    ersatz='if [[ "$z" == '"${1@Q}"' && "${ist[-1]-}" == '"${2@Q}"' ]]; then continue; fi; ist+=("$z")'
+  else
+    ersatz='if [[ "$z" == '"${1@Q}"' ]]; then continue; fi; ist+=("$z")'
+  fi
+  fn_ersetze 'ist+=("$z")' "$ersatz"
+}
+mut1 m-p1-homebrew-registry-rechte-erlaubt "p1-homebrew-keine-registry-rechte" $'fn_zeile_ueberspringen \'      packages: write\' \'      contents: read\''
+mut1 m-p1-homebrew-geheimnis-job-erlaubt "p1-homebrew-geheimnis-nur-im-schritt" $'fn_zeile_ueberspringen \'      RELEASE_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}\''
+mut1 m-p1-homebrew-geheimnis-release-job-erlaubt "p1-homebrew-geheimnis-release-job" $'fn_zeile_ueberspringen \'      HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}\''
+mut1 m-p1-homebrew-geheimnis-release-schritt-erlaubt "p1-homebrew-geheimnis-release-schritt" $'fn_zeile_ueberspringen \'          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}\''
 
 # --- Mutationen von release.sh (Punkte 2 bis 11) ----------------------------------------------------------------------------------------------------
 # Punkt 2
@@ -2049,6 +2494,166 @@ mut13g m-p13-gegenprobe-int-kinder-bleiben "p13-gegenprobe-sigint" $'\nabbruch_i
 mut13g m-p13-gegenprobe-term-kinder-bleiben "p13-gegenprobe-sigterm" $'\nabbruch_term() { trap - EXIT INT TERM; beende_kinder; ' $'\nabbruch_term() { trap - EXIT INT TERM; '
 mut13g m-p13-gegenprobe-int-verzeichnis-zu-frueh "p13-gegenprobe-sigint" $'\nabbruch_int() { trap - EXIT INT TERM; beende_kinder; raeume_auf; exit 130; }' $'\nabbruch_int() { trap - EXIT INT TERM; raeume_auf; sleep 5; beende_kinder; exit 130; }'
 mut13g m-p13-gegenprobe-term-verzeichnis-zu-frueh "p13-gegenprobe-sigterm" $'\nabbruch_term() { trap - EXIT INT TERM; beende_kinder; raeume_auf; exit 143; }' $'\nabbruch_term() { trap - EXIT INT TERM; raeume_auf; sleep 5; beende_kinder; exit 143; }'
+# --- Mutationen von release.sh und der Vorlage: Fassung H (Gruppe h) --------------------------------------------------------------------------------------
+mh() { mutr "$1" "$2" h "${@:3}"; }
+# ausser_h <Fall>… — alle Fälle der Gruppe h außer den genannten (für Mutationen, die fast jeden Fall färben, weil der Schritt dann nicht mehr bis zum Tap kommt).
+ausser_h() { printf '%s\n' "${FAELLE_H[@]}" | grep -vxF -f <(printf '%s\n' "$@") | tr '\n' ' '; }
+# mutv <Name> <rote Fälle> <alt> <neu> — Mutation der Vorlage: Textersatz in einer Kopie von homebrew-formula.rb.tmpl, die der Fall dem Baum beilegt; rot sind genau die benannten Fälle der Gruppe h.
+mutv() {
+  local name="$1" rote="$2" alt="$3" inhalt neu
+  [[ $name =~ ${GP_MUT:-.} ]] || return 0
+  wartejob
+  (
+    run="$arbeit/$name"; mkdir -p "$run"; releasesh="$repo/tools/harness/release.sh"
+    inhalt="$(cat "$repo/tools/harness/homebrew-formula.rb.tmpl"; printf x)"; inhalt="${inhalt%x}"
+    if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
+    if [[ ${inhalt#*"$alt"} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
+    neu="${inhalt/"$alt"/"$4"}"
+    vorlage="$run/vorlage.tmpl"; printf '%s' "$neu" > "$vorlage"
+    lauf_welt
+    bewerte "$name" "$rote" h
+  ) &
+}
+VORAB_ZEILE='  if [[ $tag == *-* ]]; then echo "release: homebrew: $tag ist eine Vorabversion, der Tap bleibt unverändert"; return 0; fi # P19vorabversion'
+GH_ZEILE='  [ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt" # P19gh-token'
+TAP_ZEILE='  [ -n "${RELEASE_TAP_TOKEN-}" ] || eingabe geheimnis "HOMEBREW_TAP_GITHUB_TOKEN ist nicht gesetzt oder leer" # P19tap-token'
+# Eingaben und Reihenfolge der Gründe
+mh m-p19-ereignis-entfernt "p19-ohne-push p19-ref-kein-tag p19-reihenfolge-gruende-a-b" 'L:# P19ereignis' ''
+mh m-p19-ereignis-nicht-geprueft "p19-ohne-push" 'Z:  [ "${RELEASE_EVENT-}" = push ] || eingabe ereignis "Ereignis '"'"'${RELEASE_EVENT-}'"'"' ist kein Push eines Tags" # P2ereignis' ""
+mh m-p19-ref-nicht-geprueft "p19-ref-kein-tag p19-reihenfolge-gruende-a-b" 'Z:  [[ ${RELEASE_REF-} == refs/tags/v* ]] || eingabe ereignis "Ref '"'"'${RELEASE_REF-}'"'"' ist kein Tag v…" # P2ref' ""
+mh m-p19-tag-form-entfernt "p19-reihenfolge-gruende-b-c p19-tag-form" 'L:# P19tag-form' ''
+mh m-p19-vorabversion-nicht-erkannt "p19-reihenfolge-gruende-c-d p19-vorabversion" 'L:# P19vorabversion' ''
+mh m-p19-vorabversion-ruft-gh "p19-reihenfolge-gruende-c-d p19-vorabversion" 'if [[ $tag == *-* ]]; then echo "release: homebrew:' 'if [[ $tag == *-* ]]; then gh --version > /dev/null; echo "release: homebrew:'
+mh m-p19-vorabversion-ruft-git "p19-reihenfolge-gruende-c-d p19-vorabversion" 'if [[ $tag == *-* ]]; then echo "release: homebrew:' 'if [[ $tag == *-* ]]; then git --version > /dev/null; echo "release: homebrew:'
+mh m-p19-vorabversion-nur-rc "p19-vorabversion" 'if [[ $tag == *-* ]]; then echo "release: homebrew:' 'if [[ $tag == *-rc* ]]; then echo "release: homebrew:'
+mh m-p19-reihenfolge-a-b-vertauscht "p19-ref-kein-tag p19-reihenfolge-gruende-a-b" 'L:# P19ereignis' '' '  pruefe_tag_form # P19tag-form' $'  pruefe_tag_form # P19tag-form\n  aussenwirkung_erlaubt'
+mh m-p19-reihenfolge-b-c-vertauscht "p19-reihenfolge-gruende-b-c" 'L:# P19tag-form' '' 'return 0; fi # P19vorabversion' $'return 0; fi # P19vorabversion\n  pruefe_tag_form'
+mh m-p19-reihenfolge-c-d-vertauscht "p19-reihenfolge-gruende-c-d p19-vorabversion" 'L:# P19vorabversion' '' 'eingabe token "GH_TOKEN fehlt" # P19gh-token' $'eingabe token "GH_TOKEN fehlt" # P19gh-token\n'"$VORAB_ZEILE"
+mh m-p19-reihenfolge-d-e-vertauscht "p19-reihenfolge-gruende-d-e" 'L:# P19gh-token' '' 'eingabe geheimnis "HOMEBREW_TAP_GITHUB_TOKEN ist nicht gesetzt oder leer" # P19tap-token' $'eingabe geheimnis "HOMEBREW_TAP_GITHUB_TOKEN ist nicht gesetzt oder leer" # P19tap-token\n'"$GH_ZEILE"
+mh m-p19-gh-token-entfernt "p19-gh-token-fehlt p19-gh-token-leer p19-reihenfolge-gruende-d-e" 'L:# P19gh-token' ''
+mh m-p19-gh-token-leer-gilt-als-gesetzt "p19-gh-token-leer" '[ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt" # P19gh-token' '[ "${GH_TOKEN+x}" ] || eingabe token "GH_TOKEN fehlt" # P19gh-token'
+mh m-p19-tap-token-entfernt "p19-tap-token-fehlt p19-tap-token-leer" 'L:# P19tap-token' ''
+mh m-p19-tap-token-leer-gilt-als-gesetzt "p19-tap-token-leer" '[ -n "${RELEASE_TAP_TOKEN-}" ] ||' '[ "${RELEASE_TAP_TOKEN+x}" ] ||'
+mh m-p19-geheimnis-ohne-namen "p19-tap-token-fehlt p19-tap-token-leer" 'eingabe geheimnis "HOMEBREW_TAP_GITHUB_TOKEN ist nicht gesetzt oder leer"' 'eingabe geheimnis "das Geheimnis ist nicht gesetzt oder leer"'
+mh m-p19-braucht-runner-temp "p19-kein-zustand p19-ohne-runner-temp" '  aussenwirkung_erlaubt # P19ereignis' $'  aussenwirkung_erlaubt # P19ereignis\n  zustand'
+# Summen
+mh m-p19-summen-ohne-repo "p19-summen-aufruf" 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums"' 'release download "$tag" --pattern SHA256SUMS --dir "$scratch/sums"'
+mh m-p19-summen-ohne-pattern "p19-summen-aufruf" 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums"' 'release download "$tag" --repo "$RELEASE_REPOSITORY" --dir "$scratch/sums"'
+mh m-p19-summen-ohne-dir "$(ausser_h p19-ohne-push p19-ref-kein-tag p19-tag-form p19-vorabversion p19-gh-token-fehlt p19-gh-token-leer p19-tap-token-fehlt p19-tap-token-leer p19-reihenfolge-gruende-a-b p19-reihenfolge-gruende-b-c p19-reihenfolge-gruende-c-d p19-reihenfolge-gruende-d-e p19-summen-laden-scheitert p19-vorlage-text)" 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums"' 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS'
+mh m-p19-summen-tag-ohne-v "p19-summen-aufruf" 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums"' 'release download "$v" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums"'
+mh m-p19-summen-dir-nicht-neu "p19-summen-aufruf" 'mkdir "$scratch/sums"' $'mkdir "$scratch/sums"; : > "$scratch/sums/alt"'
+mh m-p19-summen-laden-fehler-ignoriert "p19-summen-laden-scheitert" 'L:# P19summen-laden' ''
+mh m-p19-summen-zahl-mindestens-eins "p19-summen-doppelt" '[ "$c" -eq 1 ] ||' '[ "$c" -ge 1 ] ||'
+for k in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+  liste="$(sed "s/$k //;s/ $k)/)/" <<< 'PLATTFORMEN_TAP=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64)')"
+  case "$k" in
+    darwin-amd64) r="p19-formel-kein-platzhalter p19-formel-summe-darwin-amd64 p19-formel-text p19-summen-fehlt-darwin-amd64 p19-tap-gleich-aktuell" ;;
+    darwin-arm64) r="p19-formel-kein-platzhalter p19-formel-summe-darwin-arm64 p19-formel-text p19-summen-fehlt-darwin-arm64 p19-tap-gleich-aktuell" ;;
+    linux-amd64) r="p19-formel-kein-platzhalter p19-formel-summe-linux-amd64 p19-formel-text p19-summen-doppelt p19-summen-fehlt-linux-amd64 p19-summen-form-grossbuchstaben p19-summen-form-kein-hex p19-summen-form-zu-kurz p19-summen-form-zu-lang p19-summen-name-genau p19-summen-vor-tap p19-tap-gleich-aktuell" ;;
+    linux-arm64) r="p19-formel-kein-platzhalter p19-formel-summe-linux-arm64 p19-formel-text p19-summen-fehlt-linux-arm64 p19-tap-gleich-aktuell" ;;
+  esac
+  mh "m-p19-summen-liste-ohne-$k" "$r" 'PLATTFORMEN_TAP=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64)' "$liste"
+done
+mh m-p19-summen-name-praefix "p19-summen-name-genau" 'awk -v n="pgwire-recorder-$k" '"'"'$2 == n { c++ }' 'awk -v n="pgwire-recorder-$k" '"'"'index($2, n) == 1 { c++ }' 'awk -v n="pgwire-recorder-$k" '"'"'NF == 2 && $2 == n { print $1; exit }' 'awk -v n="pgwire-recorder-$k" '"'"'NF == 2 && index($2, n) == 1 { print $1; exit }'
+mh m-p19-summen-fremde-zeile-abgelehnt "p19-summen-weitere-namen-ignoriert" '  for k in "${PLATTFORMEN_TAP[@]}"; do
+    c=' $'  awk \'$2 !~ /^pgwire-recorder-/ { exit 1 }\' "$sums" || homebrew_fehler summen "fremde Zeile"\n  for k in "${PLATTFORMEN_TAP[@]}"; do\n    c='
+mh m-p19-summen-liste-mit-windows "p19-summen-windows-ignoriert" 'PLATTFORMEN_TAP=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64)' 'PLATTFORMEN_TAP=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64.exe)'
+mh m-p19-summen-form-63 "p19-summen-form-zu-kurz p19-summen-vor-tap" '^[0-9a-f]{64}$ ]] || homebrew_fehler summen' '^[0-9a-f]{63,64}$ ]] || homebrew_fehler summen'
+mh m-p19-summen-form-65 "p19-summen-form-zu-lang" '^[0-9a-f]{64}$ ]] || homebrew_fehler summen' '^[0-9a-f]{64,65}$ ]] || homebrew_fehler summen'
+mh m-p19-summen-form-grossbuchstaben "p19-summen-form-grossbuchstaben" '^[0-9a-f]{64}$ ]] || homebrew_fehler summen' '^[0-9a-fA-F]{64}$ ]] || homebrew_fehler summen'
+mh m-p19-summen-form-kein-hex "p19-summen-form-kein-hex" '^[0-9a-f]{64}$ ]] || homebrew_fehler summen' '^[0-9a-z]{64}$ ]] || homebrew_fehler summen'
+mh m-p19-summen-form-entfernt "p19-summen-form-grossbuchstaben p19-summen-form-kein-hex p19-summen-form-zu-kurz p19-summen-form-zu-lang p19-summen-vor-tap" 'L:# P19summen-form' ''
+mh m-p19-summen-altes-schema-angenommen "p19-summen-altes-schema" 'awk -v n="pgwire-recorder-$k" '"'"'$2 == n { c++ }' 'awk -v n="pgwire-recorder-$k" -v o="pgwire-recorder_${v}_${k/-/_}" '"'"'$2 == n || $2 == o { c++ }' 'awk -v n="pgwire-recorder-$k" '"'"'NF == 2 && $2 == n { print $1; exit }' 'awk -v n="pgwire-recorder-$k" -v o="pgwire-recorder_${v}_${k/-/_}" '"'"'NF == 2 && ($2 == n || $2 == o) { print $1; exit }'
+mh m-p19-tap-vor-summen-geklont "p19-summen-laden-scheitert p19-summen-vor-tap" 'mkdir "$scratch/sums"' $'fuehre tapgit clone --quiet "${RELEASE_TAP_URL:-$TAP_URL_VORGABE}" "$scratch/frueh" 2> /dev/null\n  mkdir "$scratch/sums"'
+# Formel
+mh m-p19-version-nur-erste "p19-formel-kein-platzhalter p19-formel-text p19-formel-url-darwin-amd64 p19-formel-url-darwin-arm64 p19-formel-url-linux-amd64 p19-formel-url-linux-arm64 p19-tap-gleich-aktuell" 'f="${f//@@VERSION@@/$v}"' 'f="${f/@@VERSION@@/$v}"'
+mh m-p19-version-mit-v "p19-formel-text p19-formel-url-darwin-amd64 p19-formel-url-darwin-arm64 p19-formel-url-linux-amd64 p19-formel-url-linux-arm64 p19-formel-version p19-tap-gleich-aktuell" 'f="${f//@@VERSION@@/$v}"' 'f="${f//@@VERSION@@/$tag}"'
+for k in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+  case "$k" in darwin-amd64) o=darwin-arm64 ;; darwin-arm64) o=linux-amd64 ;; linux-amd64) o=linux-arm64 ;; linux-arm64) o=darwin-amd64 ;; esac
+  case "$k" in
+    darwin-amd64) r="p19-formel-summe-darwin-amd64 p19-formel-text p19-tap-gleich-aktuell" ;;
+    darwin-arm64) r="p19-formel-summe-darwin-arm64 p19-formel-text p19-tap-gleich-aktuell" ;;
+    linux-amd64) r="p19-formel-summe-linux-amd64 p19-formel-text p19-tap-gleich-aktuell" ;;
+    linux-arm64) r="p19-formel-summe-linux-arm64 p19-formel-text p19-tap-gleich-aktuell" ;;
+  esac
+  mh "m-p19-summe-$k-aus-$o" "$r" 'f="${f//@@SHA256_${kk//-/_}@@/${summe[$k]-}}"' 'f="${f//@@SHA256_${kk//-/_}@@/${summe[${k/'"$k"'/'"$o"'}]-}}"'
+done
+mh m-p19-formel-ohne-lf-am-ende "p19-formel-text p19-tap-gleich-aktuell" 'printf '"'"'%s'"'"' "$f" > "$scratch/formel.rb"' 'printf '"'"'%s'"'"' "${f%$'"'"'\n'"'"'}" > "$scratch/formel.rb"'
+mutv m-p19-vorlage-text-geaendert "p19-formel-text p19-tap-gleich-aktuell p19-vorlage-text" 'homepage "https://github.com/pt9912/pgwire-recorder"' 'homepage "https://github.com/pt9912/pgwire-recorder/"'
+mutv m-p19-vorlage-version-mit-v "p19-formel-text p19-formel-version p19-tap-gleich-aktuell p19-vorlage-text" '  version "@@VERSION@@"' '  version "v@@VERSION@@"'
+mutv m-p19-vorlage-mit-windows "p19-formel-kein-windows p19-formel-text p19-tap-gleich-aktuell p19-vorlage-text" $'  def install\n' $'  on_windows do\n    url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-windows-amd64.exe"\n  end\n\n  def install\n'
+mutv m-p19-vorlage-sha-vertauscht "p19-formel-summe-darwin-arm64 p19-formel-text p19-tap-gleich-aktuell p19-vorlage-text" 'sha256 "@@SHA256_DARWIN_ARM64@@"' 'sha256 "@@SHA256_DARWIN_AMD64@@"'
+for k in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+  case "$k" in
+    darwin-amd64) r="p19-formel-text p19-formel-url-darwin-amd64 p19-tap-gleich-aktuell p19-vorlage-text" ;;
+    darwin-arm64) r="p19-formel-text p19-formel-url-darwin-arm64 p19-tap-gleich-aktuell p19-vorlage-text" ;;
+    linux-amd64) r="p19-formel-text p19-formel-url-linux-amd64 p19-tap-gleich-aktuell p19-vorlage-text" ;;
+    linux-arm64) r="p19-formel-text p19-formel-url-linux-arm64 p19-tap-gleich-aktuell p19-vorlage-text" ;;
+  esac
+  mutv "m-p19-vorlage-name-mit-version-$k" "$r" "/pgwire-recorder-$k\"" "/pgwire-recorder-v@@VERSION@@-$k\""
+done
+# Tap
+mh m-p19-formula-nicht-angelegt "$(ausser_h p19-summen-name-genau p19-tap-gleich-andere-summe p19-tap-andere-dateien-bleiben p19-ohne-push p19-ref-kein-tag p19-tag-form p19-vorabversion p19-gh-token-fehlt p19-gh-token-leer p19-tap-token-fehlt p19-tap-token-leer p19-reihenfolge-gruende-a-b p19-reihenfolge-gruende-b-c p19-reihenfolge-gruende-c-d p19-reihenfolge-gruende-d-e p19-summen-laden-scheitert p19-summen-doppelt p19-summen-altes-schema p19-summen-form-zu-kurz p19-summen-form-zu-lang p19-summen-form-grossbuchstaben p19-summen-form-kein-hex p19-summen-vor-tap p19-vorlage-text p19-tap-formula-vorhanden p19-tap-zweig-anders p19-tap-pfad-datei p19-tap-pfad-formula-symlink p19-tap-pfad-formel-verzeichnis p19-tap-pfad-formel-symlink p19-tap-formel-ohne-version p19-tap-formel-zwei-versionen p19-tap-formel-vorabversion p19-tap-niedriger p19-tap-gleich-aktuell p19-tap-gleich-andere-vorlage p19-tap-hoeher p19-tap-semver-numerisch p19-klon-scheitert p19-sigint p19-sigterm p19-summen-fehlt-darwin-amd64 p19-summen-fehlt-darwin-arm64 p19-summen-fehlt-linux-amd64 p19-summen-fehlt-linux-arm64)" $'  mkdir -p Formula\n  cp ' $'  cp '
+mh m-p19-andere-dateien-geloescht "p19-tap-andere-dateien-bleiben p19-tap-nicht-leer" $'  mkdir -p Formula\n  cp ' $'  find . -mindepth 1 -maxdepth 1 ! -name .git ! -name Formula -exec rm -rf {} +\n  mkdir -p Formula\n  cp ' 'tapgit add -- "$FORMEL"' 'tapgit add -A'
+mh m-p19-andere-formeln-geloescht "p19-tap-andere-dateien-bleiben p19-tap-formula-vorhanden" $'  mkdir -p Formula\n  cp ' $'  rm -f Formula/*.rb\n  mkdir -p Formula\n  cp ' 'tapgit add -- "$FORMEL"' 'tapgit add -A'
+mh m-p19-gleiche-version-andere-summe-gesperrt "p19-tap-gleich-andere-summe" 'elif cmp -s "$scratch/formel.rb" "$FORMEL"; then' $'elif ! cmp -s <(grep sha256 "$scratch/formel.rb") <(grep sha256 "$FORMEL") && cmp -s <(grep -v sha256 "$scratch/formel.rb") <(grep -v sha256 "$FORMEL"); then\n      homebrew_fehler tap-formel "die Summen weichen ab"\n    elif cmp -s "$scratch/formel.rb" "$FORMEL"; then'
+mh m-p19-verlangt-marke "$(ausser_h p19-ohne-push p19-ref-kein-tag p19-reihenfolge-gruende-a-b p19-vorlage-text)" '  aussenwirkung_erlaubt # P19ereignis' $'  aussenwirkung_erlaubt # P19ereignis\n  zustand\n  verlange smoke.ok smoke'
+mh m-p19-ruft-gh-upload "p19-nur-lesen p19-summen-aufruf" '  [ "$rc" -eq 0 ] || homebrew_fehler summen-laden' $'  gh release upload "$tag" --repo "$RELEASE_REPOSITORY" "$scratch/sums/SHA256SUMS"\n  [ "$rc" -eq 0 ] || homebrew_fehler summen-laden'
+mh m-p19-ruft-skopeo "p19-nur-lesen" '  [ "$rc" -eq 0 ] || homebrew_fehler summen-laden' $'  skopeo inspect docker://x\n  [ "$rc" -eq 0 ] || homebrew_fehler summen-laden'
+mh m-p19-leer-ohne-main "p19-tap-leer-head-anders" 'L:# P19leer' '    :'
+mh m-p19-zweig-nicht-geprueft "p19-tap-zweig-anders" 'L:# P19zweig' ''
+mh m-p19-pfad-verzeichnis-nicht-geprueft "p19-tap-pfad-datei p19-tap-pfad-formula-symlink" 'L:# P19pfad-verzeichnis' '    :'
+mh m-p19-pfad-datei-nicht-geprueft "p19-tap-pfad-formel-symlink p19-tap-pfad-formel-verzeichnis" 'L:# P19pfad-datei' ''
+mh m-p19-pfad-verzeichnis-symlink-erlaubt "p19-tap-pfad-formula-symlink" '{ [ -d Formula ] && [ ! -L Formula ]; }' '[ -d Formula ]'
+mh m-p19-pfad-datei-symlink-erlaubt "p19-tap-pfad-formel-symlink" '{ [ -f "$FORMEL" ] && [ ! -L "$FORMEL" ]; }' '[ -f "$FORMEL" ]'
+mh m-p19-formel-zeilen-mindestens-eine "p19-tap-formel-zwei-versionen" '[ "${#vz[@]}" -eq 1 ]' '[ "${#vz[@]}" -ge 1 ]'
+mh m-p19-formel-stabil-entfernt "p19-tap-formel-vorabversion" 'L:# P19formel-stabil' ''
+mh m-p19-formel-keine-pruefung "p19-tap-formel-ohne-version p19-tap-formel-vorabversion p19-tap-formel-zwei-versionen" 'L:# P19formel-stabil' '' 'L:# P19formel-zeilen' ''
+mh m-p19-sort-lexikografisch "p19-tap-semver-numerisch" 'sort -V | tail -n 1)" # P19sort' 'sort | tail -n 1)" # P19sort'
+mh m-p19-sort-umgekehrt "p19-tap-hoeher p19-tap-niedriger p19-tap-semver-numerisch" 'sort -V | tail -n 1)" # P19sort' 'sort -V | head -n 1)" # P19sort'
+mh m-p19-hoeher-ueberschrieben "p19-tap-hoeher p19-tap-semver-numerisch" 'L:# P19hoeher' ''
+mh m-p19-aktuell-immer-neu "p19-tap-gleich-aktuell" 'elif cmp -s "$scratch/formel.rb" "$FORMEL"; then' 'elif false; then'
+mh m-p19-gleiche-version-immer-aktuell "p19-tap-gleich-andere-summe p19-tap-gleich-andere-vorlage" 'elif cmp -s "$scratch/formel.rb" "$FORMEL"; then' 'elif true; then'
+mh m-p19-klon-fehler-ignoriert "p19-klon-scheitert" 'L:# P19klon-pruefung' ''
+mh m-p19-klon-meldung-entfernt "p19-klon-scheitert" '{ git_meldung; homebrew_fehler tap-klon' '{ homebrew_fehler tap-klon'
+mh m-p19-autor-name "p19-commit-identitaet" 'GIT_AUTHOR_NAME="$TAP_NAME"' 'GIT_AUTHOR_NAME="gp"'
+mh m-p19-autor-mail "p19-commit-identitaet" 'GIT_AUTHOR_EMAIL="$TAP_MAIL"' 'GIT_AUTHOR_EMAIL="gp@example.invalid"'
+mh m-p19-committer-name "p19-commit-identitaet" 'GIT_COMMITTER_NAME="$TAP_NAME"' 'GIT_COMMITTER_NAME="gp"'
+mh m-p19-committer-mail "p19-commit-identitaet" 'GIT_COMMITTER_EMAIL="$TAP_MAIL"' 'GIT_COMMITTER_EMAIL="gp@example.invalid"'
+mh m-p19-nachricht-mit-v "p19-commit-nachricht" '-m "pgwire-recorder $v"' '-m "pgwire-recorder $tag"'
+mh m-p19-nachricht-mit-text "p19-commit-nachricht" '-m "pgwire-recorder $v"' '-m "pgwire-recorder $v" -m "Formel aus SHA256SUMS"'
+mh m-p19-zwei-commits "p19-tap-andere-dateien-bleiben p19-tap-gleich-andere-summe p19-tap-gleich-andere-vorlage p19-tap-leer p19-tap-leer-head-anders p19-tap-nicht-leer p19-tap-niedriger p19-tap-semver-numerisch" '|| rot "git commit im Tap scheitert" # P19commit' $'|| rot "git commit im Tap scheitert" # P19commit\n  GIT_AUTHOR_NAME="$TAP_NAME" GIT_AUTHOR_EMAIL="$TAP_MAIL" GIT_COMMITTER_NAME="$TAP_NAME" GIT_COMMITTER_EMAIL="$TAP_MAIL" tapgit commit --quiet --allow-empty -m "pgwire-recorder $v"'
+mh m-p19-push-force "p19-push-ohne-force" 'tapgit push origin main' 'tapgit push --force origin main'
+mh m-p19-push-force-with-lease "p19-push-ohne-force p19-push-ohne-lease" 'tapgit push origin main' 'tapgit push --force-with-lease origin main'
+mh m-p19-push-auf-anderen-zweig "p19-push-ohne-force" 'tapgit push origin main' 'tapgit push origin HEAD:main'
+mh m-p19-push-fehler-ignoriert "p19-push-abgewiesen p19-token-nicht-im-log" 'L:# P19push-meldung' ''
+mh m-p19-push-meldung-entfernt "p19-push-abgewiesen" '{ git_meldung; homebrew_fehler tap-push' '{ homebrew_fehler tap-push'
+mh m-p19-push-wiederholt "p19-push-abgewiesen" 'fuehre tapgit push origin main 2> "$scratch/git.err" # P19push' $'fuehre tapgit push origin main 2> "$scratch/git.err" # P19push\n  [ "$rc" -eq 0 ] || fuehre tapgit push origin main 2> "$scratch/git.err"'
+mh m-p19-url-vorgabe-falsch "p19-tap-url-vorgabe" "TAP_URL_VORGABE='https://github.com/pt9912/homebrew-pgwire-recorder.git'" "TAP_URL_VORGABE='https://github.com/pt9912/homebrew-pgwire-recorder-x.git'"
+# Token
+mh m-p19-askpass-benutzer-anders "p19-token-askpass-benutzer" 'Username*) printf "%s\n" x-access-token' 'Username*) printf "%s\n" token'
+mh m-p19-askpass-passwort-leer "p19-token-askpass-passwort" '*) printf "%s\n" "$RELEASE_TAP_TOKEN" ;;' '*) printf "%s\n" "" ;;'
+mh m-p19-askpass-nicht-gesetzt "p19-token-askpass-benutzer p19-token-askpass-gesetzt p19-token-askpass-passwort" 'GIT_ASKPASS="$scratch/askpass.sh" GIT_TERMINAL_PROMPT=0' 'GIT_TERMINAL_PROMPT=0'
+mh m-p19-prompt-erlaubt "p19-kein-prompt" 'GIT_ASKPASS="$scratch/askpass.sh" GIT_TERMINAL_PROMPT=0 git' 'GIT_ASKPASS="$scratch/askpass.sh" git'
+mh m-p19-credential-helper-nicht-geleert "p19-credential-helper-leer" 'git -c credential.helper= "$@"; } # P19kein-prompt' 'git "$@"; } # P19kein-prompt'
+mh m-p19-token-im-argument-git "p19-token-nicht-im-argument" 'tapgit push origin main' 'tapgit -c "x.y=$RELEASE_TAP_TOKEN" push origin main'
+mh m-p19-token-im-argument-gh "p19-token-nicht-im-argument" 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums"' 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums" --hostname "$RELEASE_TAP_TOKEN"'
+mh m-p19-token-in-config "p19-token-nicht-in-url-und-config" '  cd "$scratch/tap" || exit 1' $'  cd "$scratch/tap" || exit 1\n  printf \'[tap]\\n\\ttoken = %s\\n\' "$RELEASE_TAP_TOKEN" >> .git/config'
+mh m-p19-token-in-datei "p19-token-nicht-in-url-und-config" '  cd "$scratch/tap" || exit 1' $'  cd "$scratch/tap" || exit 1\n  printf \'%s\' "$RELEASE_TAP_TOKEN" > "$scratch/token"'
+mh m-p19-token-im-log-bei-fehler "p19-token-nicht-im-log" 'homebrew_fehler() { echo "release: homebrew: $1: $2" >&2; exit 1; }' 'homebrew_fehler() { echo "release: homebrew: $1: $2 ${RELEASE_TAP_TOKEN-}" >&2; exit 1; }'
+mh m-p19-token-im-log-bei-erfolg "p19-token-nicht-im-log" 'echo "release: homebrew: Formel $v im Tap abgelegt"' 'echo "release: homebrew: Formel $v im Tap abgelegt ${RELEASE_TAP_TOKEN-}"'
+mh m-p19-gh-token-im-log "p19-token-nicht-im-log" 'echo "release: homebrew: Formel $v im Tap abgelegt"' 'echo "release: homebrew: Formel $v im Tap abgelegt ${GH_TOKEN-}"'
+mh m-p19-set-x "p19-gh-token-fehlt p19-reihenfolge-gruende-d-e p19-token-nicht-im-log" $'set -uo pipefail\nexport LC_ALL=C\n' $'set -uo pipefail\nset -x\nexport LC_ALL=C\n'
+# Abbruch (Punkt 13, für den Schritt homebrew)
+mh m-p19-ende-falle-fehlt "p19-ende" $'\ntrap raeume_auf EXIT\n' $'\n'
+mh m-p19-int-falle-fehlt "p19-sigint" $'\ntrap abbruch_int INT\n' $'\n'
+mh m-p19-term-falle-fehlt "p19-sigterm" $'\ntrap abbruch_term TERM\n' $'\n'
+mh m-p19-int-kinder-bleiben "p19-sigint" $'\nabbruch_int() { trap - EXIT INT TERM; beende_kinder; ' $'\nabbruch_int() { trap - EXIT INT TERM; '
+mh m-p19-term-kinder-bleiben "p19-sigterm" $'\nabbruch_term() { trap - EXIT INT TERM; beende_kinder; ' $'\nabbruch_term() { trap - EXIT INT TERM; '
+mh m-p19-int-verzeichnis-zu-frueh "p19-sigint" $'\nabbruch_int() { trap - EXIT INT TERM; beende_kinder; raeume_auf; exit 130; }' $'\nabbruch_int() { trap - EXIT INT TERM; raeume_auf; sleep 5; beende_kinder; exit 130; }'
+mh m-p19-term-verzeichnis-zu-frueh "p19-sigterm" $'\nabbruch_term() { trap - EXIT INT TERM; beende_kinder; raeume_auf; exit 143; }' $'\nabbruch_term() { trap - EXIT INT TERM; raeume_auf; sleep 5; beende_kinder; exit 143; }'
+# Punkt 2 (Gruppe sh): der Schritt homebrew prüft das Ereignis
+mutr m-p2-homebrew-ohne-ereignispruefung "p2-aussenwirkung-ohne-push p2-ref-kein-tag" sh 'L:# P19ereignis' ''
 wait
 fehler=0
 if [ -s "$arbeit/fehler" ]; then cat "$arbeit/fehler" >&2; fehler=1; fi
