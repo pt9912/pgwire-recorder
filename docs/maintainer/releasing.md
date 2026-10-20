@@ -22,7 +22,7 @@ veröffentlicht es in `ghcr.io` und `docker.io`, vergleicht die Digests, startet
 setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit den Binaries und
 `SHA256SUMS` an (§6); `make release-gegenprobe` prüft sie mit Attrappen für `make`, `docker`,
 `skopeo`, `gh`, den Scanner und den Smoke; der Scan, die Registries und der GitHub-Release hatten noch
-keinen Lauf auf GitHub. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7) und hatte ebenfalls noch keinen Lauf; im Tap liegt keine Formel. Es ist noch kein Tag gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
+keinen Lauf auf GitHub. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7) und hatte ebenfalls noch keinen Lauf; was im echten Tap liegt, prüft kein Gate dieses Repos. Es ist noch kein Tag gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
 Kennung („liefert `slice-…`“), nicht als Zusage. Der Beleg, dass die Pipeline mit einem echten
 Tag durchgelaufen ist, steht hier erst, wenn es ihn gibt.
 
@@ -199,8 +199,8 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
    Änderungshistorie, als Vorabversion bei einem Tag mit `-…`; der Schritt läuft nur, wenn `Smoke` grün war.
 10. Der Job `homebrew` (eigener Job mit `needs: release`, nur bei einem Push, `contents: read`) erzeugt die Formel aus
     der Vorlage `tools/harness/homebrew-formula.rb.tmpl` und der Datei `SHA256SUMS` des GitHub-Release und legt sie im
-    Tap ab (§7). Ein roter Job `homebrew` lässt den Release und die Registries unberührt; „Re-run failed jobs“ wiederholt
-    nur ihn (§11).
+    Tap ab (§7). Ein roter Job `homebrew` lässt den Release und die Registries unberührt; den Wiederanlauf
+    beschreibt §11.
 
 Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
 (`workflow_dispatch`): `Eingaben`, `Binaries`, `Image` und `Scan` mit der Version aus `VERSION` als Tag
@@ -362,7 +362,7 @@ Die Tabelle nennt die Schritte der Pipeline.
 | `vergleichen`, `smoke` | Digest, Zugriff, Plattformen, Smoke | beide Registries beschrieben, kein `latest`, kein GitHub-Release | Ursache beheben (zum Beispiel das Paket öffentlich stellen), wiederholen; bei Abweichung der Digests neuer Tag |
 | `latest` | zweite Registry rot | `latest` in einer Registry neu | wiederholen: setzt beide auf `D` |
 | `github-release` | Anlegen oder Anhang | der Release fehlt oder trägt einen Teil der Anhänge | wiederholen: ergänzt fehlende Anhänge; weicht `SHA256SUMS` am Release von der lokalen Datei ab, neuer Tag |
-| `homebrew` | Summen nicht ladbar oder unbrauchbar, Klon, Zweig, Pfad, Formel im Tap unlesbar, Push abgewiesen | Release und Registries vollständig, der Tap unverändert | Ursache beheben (zum Beispiel das Geheimnis, sein Recht oder die Formel im Tap), den Job wiederholen („Re-run failed jobs“ baut das Image nicht neu) oder den Nachtrag von Hand fahren (§7); kein neuer Tag, auch nicht bei einem Fehler im Skript oder in der Vorlage: die Formel ist kein veröffentlichtes Artefakt, die Korrektur geschieht auf dem Hauptzweig, danach der Nachtrag |
+| `homebrew` | Summen nicht ladbar oder unbrauchbar, Klon, Zweig, Pfad, Formel im Tap unlesbar, Push abgewiesen | Release und Registries vollständig, der Tap unverändert | Ursache beheben (zum Beispiel das Geheimnis, sein Recht oder die Formel im Tap), den Job wiederholen („Re-run failed jobs“ derselben Ausführung; ob GitHub dabei nur diesen Job wiederholt, zeigt kein Test dieses Repos) oder den Nachtrag von Hand fahren (§7); kein neuer Tag, auch nicht bei einem Fehler im Skript oder in der Vorlage: die Formel ist kein veröffentlichtes Artefakt, die Korrektur geschieht auf dem Hauptzweig, danach der Nachtrag |
 
 ### Änderungshistorie
 
