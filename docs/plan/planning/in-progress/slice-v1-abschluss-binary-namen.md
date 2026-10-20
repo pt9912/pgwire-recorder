@@ -178,6 +178,8 @@ Die Gegenprobe der Veröffentlichung lief nicht in einem Zug: Ihr Arbeitsordner 
 
 `SPEC-055` Punkt 4 (Namen in der Meldung): Mutationen `p4-abweichung-<os>/<arch>` (6; `grep -v -e "-<os>-<arch>"` im Vergleich) → je `p4-abweichung-<os>-<arch>` (`linux-amd64` zusätzlich `p8-4-vor-6`), `p4-namen` (Meldung ohne die Namen aus `diff`) → die sechs `p4-abweichung-*` und `p4-namen`. Der Fall `p4-namen` erwartet die Zeile `die Summen zweier Builds weichen ab: pgwire-recorder-darwin-arm64 pgwire-recorder-linux-amd64`.
 
+`SPEC-055` Punkte 3 bis 5 (Name im Prüfer, `binaer()` in `run-container.sh`; Befund F-1 der Prüfung): Die Zusage „der Prüfer erwartet `pgwire-recorder-<os>-<arch>` (Kopf, Summe, Smoke, Image), `.exe` allein bei `windows`“ fängt die Mutation `p5-name-altes-schema` (`local n="pgwire-recorder-$1-$2"` wird `pgwire-recorder_$1_$2`) mit den roten Fällen `p2-gueltig`, `p4-gruen`, `p5-gruen` und den zwölf `p5-arch-*` und `p5-format-*` (je Plattform); die Mutation läuft mit `nur="p2-gueltig p4-gruen p5"`, die übrigen Fälle, die denselben Namen lesen (`p6-*`, `p7-*`, `p9-*`), liegen außerhalb dieser Auswahl und färbt sie im ungewählten Lauf mit (ohne Auswahl rot gesehen: 54 Fälle, `GP_ENTDECKE=1`). Gesehen mit `GP_MUT='^p5-name-altes-schema$' bash tools/harness/container-gegenprobe.sh`: Exit 0, „je Mutation genau die benannten Fälle rot“ (unveränderte Kopie grün).
+
 `SPEC-067` Punkt 4, 5 und 9 (`make release-gegenprobe`, Skript `release-gegenprobe.sh`, Mutation an `release.sh`):
 
 | Zusage | Mutation | roter Fall |

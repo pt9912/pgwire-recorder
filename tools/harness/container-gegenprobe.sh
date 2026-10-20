@@ -750,6 +750,7 @@ mut p5-darwin-arm64 "$G_" 'arm64) erw=0c000001' 'arm64) erw=07000001' "p5-gruen 
 mut p5-windows-amd64 "$G_" 'amd64) erw=6486' 'amd64) erw=64aa' "p5-gruen p5-arch-windows-amd64" p5-gruen p5-arch-windows-amd64
 mut p5-windows-arm64 "$G_" 'arm64) erw=64aa' 'arm64) erw=6486' "p5-gruen p5-arch-windows-arm64" p5-gruen p5-arch-windows-arm64
 mut p5-pe-offset-fest "$G_" 'g="$(hex "$f" $((o + 4)) 2)"' 'g="$(hex "$f" 132 2)"' "p5-gruen p5-arch-windows" p5-gruen p5-arch-windows-amd64 p5-arch-windows-arm64
+mut p5-name-altes-schema "$G_" 'local n="pgwire-recorder-$1-$2"' 'local n="pgwire-recorder_$1_$2"' "p2-gueltig p4-gruen p5" p2-gueltig p4-gruen p5-gruen p5-arch-darwin-amd64 p5-arch-darwin-arm64 p5-arch-linux-amd64 p5-arch-linux-arm64 p5-arch-windows-amd64 p5-arch-windows-arm64 p5-format-darwin-amd64 p5-format-darwin-arm64 p5-format-linux-amd64 p5-format-linux-arm64 p5-format-windows-amd64 p5-format-windows-arm64
 mut p5-pe-offset-3c "$G_" 'o="$(hex "$f" 60 4)"' 'o="$(hex "$f" 56 4)"' "p5-gruen p5-arch-windows" p5-gruen p5-arch-windows-amd64 p5-arch-windows-arm64
 
 # --- Punkt 6: Image je Plattform ---
