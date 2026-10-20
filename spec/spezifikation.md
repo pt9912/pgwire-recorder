@@ -584,7 +584,12 @@ einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
   den Rest einer Nachricht der Länge 12 bis 268 nicht ganz (Abbruch oder Ende mitten in der Nachricht),
   gilt die Zeile *Startnachricht mit vollständigem Kopf* der Tabelle: `PGR-E6001`. Die Reihenfolge der
   Gründe ist: Länge außerhalb von 8 bis `SPEC-045` (`PGR-W3003`), dann Länge des `CancelRequest`
-  (`PGR-E6001` mit `ErrorResponse`), dann Rest der Nachricht nicht geliefert (`PGR-E6001`). Der `CancelRequest` gilt in `record` und in `replay` gleich: Es gibt weder
+  (`PGR-E6001` mit `ErrorResponse`), dann Rest der Nachricht nicht geliefert (`PGR-E6001`). Die beiden
+  ersten Gründe stehen im Kopf (die ersten 8 Bytes); der Recorder lehnt wegen ihrer sofort ab, mit
+  `ErrorResponse` und Schließen, ohne den Rest abzuwarten, auch bei offener Verbindung ohne weitere
+  Bytes. Der dritte Grund ist erst mit dem Ende der Verbindung feststellbar: Liefert ein Client den
+  Rest einer Nachricht der Länge 12 bis 268 nicht und lässt die Verbindung offen, wartet der Recorder
+  auf den Rest oder das Ende (Grenze: eine Frist gibt es nicht). Der `CancelRequest` gilt in `record` und in `replay` gleich: Es gibt weder
   eine Verbindung zum Server noch eine Session noch eine Aufzeichnung, eine zweite Verbindung bleibt
   unberührt (*Modus*), und eine laufende Interaktion dieser zweiten Verbindung wird nicht abgebrochen.
   Der `CancelRequest` gilt als erste Nachricht einer Verbindung und nach einem `SSLRequest` (mit `N`,
@@ -3546,3 +3551,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Ende des Servers beim Aufzeichnen, Upstream-Adapter: Sendefehler an den geschlossenen Upstream im Leerlauf ist `PGR-E4003` statt „kein Fehler“ (Berichtigung gegen *Gelesen*: nach einem Sendefehler wird nicht weitergelesen), Senden nach gelesener Fehlerantwort ohne Fehler, Aufrufe nach dem Ende nicht zugesagt, Schweregrad wie in der Datei (`LH-FA-25.a`, `LH-FA-02.b`) |
 | 2026-10-19 | Containerbetrieb: Beispiel mit Registry und Version statt `latest` ohne Registry; Tags `<Version>` und `latest` (nur stabil, neueste Version) (`LH-FA-16.a`) |
 | 2026-10-20 | Protokollrand: Länge des `CancelRequest` (12 ohne Schlüssel und 16 bis 268 sind `PGR-W3001`, 8 bis 11, 13 bis 15 und 269 bis `SPEC-045` sind `PGR-E6001`), Reihenfolge der Gründe, Modus, Plattform und Exit-Code (`LH-FA-05.e`, `LH-FA-13`) |
+| 2026-10-20 | Protokollrand, `CancelRequest`: die Ablehnung wegen der Länge erfolgt aus dem Kopf, ohne den Rest abzuwarten; ein fehlender Rest einer zugesagten Länge wartet bis zum Ende der Verbindung (`LH-FA-05.e`) |
