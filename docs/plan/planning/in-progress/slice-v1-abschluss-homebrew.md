@@ -294,10 +294,10 @@ Die Mutationen jeder Zeile der Tabelle unten sind damit gefahren; jede Zeile nen
 | (2c) kein Aufruf von `git` bei einer Vorabversion | `m-p19-vorabversion-ruft-git` | `p19-reihenfolge-gruende-c-d`, `p19-vorabversion` |
 | (4) Text der Vorlage, kein Windows | `m-p19-vorlage-mit-windows` | `p19-formel-kein-windows`, `p19-formel-text`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
 | (4) Reihenfolge: `vorlage` vor dem Klon des Taps | `m-p19-vorlage-nach-klon` | `p19-vorlage-fehlt`, `p19-vorlage-leer`, `p19-vorlage-verzeichnis`, `p19-vorlage-vor-tap` |
-| (4) Name in der Adresse ohne Version (ADR-0054), je Plattform | `m-p19-vorlage-name-mit-version-darwin-amd64` | `p19-formel-text`, `p19-formel-url-darwin-amd64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
-| (4) Name in der Adresse ohne Version (ADR-0054), je Plattform | `m-p19-vorlage-name-mit-version-darwin-arm64` | `p19-formel-text`, `p19-formel-url-darwin-arm64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
-| (4) Name in der Adresse ohne Version (ADR-0054), je Plattform | `m-p19-vorlage-name-mit-version-linux-amd64` | `p19-formel-text`, `p19-formel-url-linux-amd64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
-| (4) Name in der Adresse ohne Version (ADR-0054), je Plattform | `m-p19-vorlage-name-mit-version-linux-arm64` | `p19-formel-text`, `p19-formel-url-linux-arm64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
+| (4) Name in der Adresse ohne Version (Punkt 19 (4)), je Plattform | `m-p19-vorlage-name-mit-version-darwin-amd64` | `p19-formel-text`, `p19-formel-url-darwin-amd64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
+| (4) Name in der Adresse ohne Version (Punkt 19 (4)), je Plattform | `m-p19-vorlage-name-mit-version-darwin-arm64` | `p19-formel-text`, `p19-formel-url-darwin-arm64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
+| (4) Name in der Adresse ohne Version (Punkt 19 (4)), je Plattform | `m-p19-vorlage-name-mit-version-linux-amd64` | `p19-formel-text`, `p19-formel-url-linux-amd64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
+| (4) Name in der Adresse ohne Version (Punkt 19 (4)), je Plattform | `m-p19-vorlage-name-mit-version-linux-arm64` | `p19-formel-text`, `p19-formel-url-linux-arm64`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
 | (4) fehlende, leere oder nicht lesbare Vorlage: Exit 1 `vorlage` (die Prüfung unterscheidet die Zustände nicht, akzeptiertes Negativ nach Punkt 19 (9)) | `m-p19-vorlage-pruefung-entfaellt` | `p19-vorlage-fehlt`, `p19-vorlage-leer`, `p19-vorlage-verzeichnis`, `p19-vorlage-vor-tap` |
 | (4) Text der Vorlage, Summe je Plattform | `m-p19-vorlage-sha-vertauscht` | `p19-formel-summe-darwin-arm64`, `p19-formel-text`, `p19-tap-gleich-aktuell`, `p19-vorlage-text` |
 | (4) das Stichwort der Vorlage-Prüfung ist `vorlage` | `m-p19-vorlage-stichwort-tap-formel` | `p19-vorlage-fehlt`, `p19-vorlage-leer`, `p19-vorlage-verzeichnis`, `p19-vorlage-vor-tap` |
