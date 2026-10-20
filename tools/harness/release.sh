@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# release — Schritte der Veröffentlichung bei einem Tag (harness/vertraege/SPEC-067-release.md): eingaben, binaries, image, scan, veroeffentlichen, vergleichen, smoke, latest, github-release.
+# release — Schritte der Veröffentlichung bei einem Tag (harness/vertraege/SPEC-067-release.md): eingaben, binaries, image, scan, veroeffentlichen, vergleichen, smoke, latest, github-release, homebrew.
 # Aufruf: bash tools/harness/release.sh <Schritt> im Wurzelverzeichnis des Klons; die Pipeline ruft es nie unter make (Punkt 13).
 # Umgebung: RELEASE_EVENT, RELEASE_REF, RELEASE_SHA, RELEASE_DEFAULT_BRANCH, RELEASE_REPOSITORY (gesetzt von .github/workflows/release.yml),
 # RUNNER_TEMP (Ort des Zustands zwischen den Schritten: $RUNNER_TEMP/release mit den Dateien eingaben.ok, binaries.ok, scan.ok, vergleichen.ok, smoke.ok und den Verzeichnissen dist/ und image/), GH_TOKEN (github-release),
-# RELEASE_DOCKERHUB_USER und RELEASE_DOCKERHUB_TOKEN (eingaben, veroeffentlichen, latest), RELEASE_GHCR_USER und RELEASE_GHCR_TOKEN (veroeffentlichen, latest).
+# RELEASE_DOCKERHUB_USER und RELEASE_DOCKERHUB_TOKEN (eingaben, veroeffentlichen, latest), RELEASE_GHCR_USER und RELEASE_GHCR_TOKEN (veroeffentlichen, latest), RELEASE_TAP_TOKEN und GH_TOKEN (homebrew), RELEASE_TAP_URL (homebrew, Vorgabe der Tap des Projekts; nur für Gegenprobe und Nachtrag).
 # Ausgang: 0 grün; 1 ein Schritt scheitert (Bau, Summe, Dateiliste, Release, ein Befund des Scans); 2 Eingabe oder Vorbedingung (ein Schritt, dessen Vorgänger nicht grün war) oder ein Scan, der nicht lief. Eine abgelehnte Eingabe
 # steht als `release: <Schlüsselwort>: …` auf stderr, das Schlüsselwort ist der Grund (ereignis, tag-form, version-datei, tag-ungleich, notes, standard-zweig, geheimnis); der Scan meldet `release: scan: <Stichwort>: …`
-# (schwachstelle, scan-gescheitert, pruefmenge, datenbank, plattform); ein Hinweis beginnt mit `release: hinweis: `.
+# (schwachstelle, scan-gescheitert, pruefmenge, datenbank, plattform); der Schritt homebrew `release: homebrew: <Stichwort>: …` bei Exit 1 (summen-laden, summen, tap-klon, tap-zweig, tap-pfad, tap-formel, tap-push); ein Hinweis beginnt mit `release: hinweis: `.
 # Das Skript gibt keinen Wert eines Geheimnisses aus (Punkt 10): kein `set -x`, kein `env`.
-# Braucht bash, git, make, sha256sum, awk, cmp, grep, sed, tar, sort (GNU, mit -V), pgrep, mktemp, docker mit buildx (image) und Zugriff auf das Image des Scanners (scan), jq und date (GNU, scan), skopeo (veroeffentlichen, vergleichen, latest) und gh (github-release); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
-# GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p16-*, je Zusage eine Mutation dieser Datei).
+# Braucht bash, git, make, sha256sum, awk, cmp, grep, sed, tar, sort (GNU, mit -V), pgrep, mktemp, docker mit buildx (image) und Zugriff auf das Image des Scanners (scan), jq und date (GNU, scan), skopeo (veroeffentlichen, vergleichen, latest), gh (github-release, homebrew) und GNU sort mit -V (latest, homebrew); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
+# GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p19-*, je Zusage eine Mutation dieser Datei).
 set -uo pipefail
 export LC_ALL=C
 
@@ -480,6 +480,91 @@ schritt_latest() {
   done
 }
 
+# --- Homebrew (Punkt 19) ---------------------------------------------------------------------------------------------------------------------------------
+TAP_URL_VORGABE='https://github.com/pt9912/homebrew-pgwire-recorder.git' # P19url
+TAP_NAME='github-actions[bot]'
+TAP_MAIL='41898282+github-actions[bot]@users.noreply.github.com'
+FORMEL=Formula/pgwire-recorder.rb
+VORLAGE=tools/harness/homebrew-formula.rb.tmpl
+PLATTFORMEN_TAP=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64) # P19liste
+# homebrew_fehler <Stichwort> <Text> — Exit 1 mit dem Stichwort (Punkt 19).
+homebrew_fehler() { echo "release: homebrew: $1: $2" >&2; exit 1; }
+# tapgit <Argument>… — git gegen den Tap: der Token nur über GIT_ASKPASS, keine Abfrage am Terminal, kein Credential-Helper.
+tapgit() { GIT_ASKPASS="$scratch/askpass.sh" GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"; } # P19kein-prompt
+# git_meldung — die Fehlerausgabe von git aus $scratch/git.err mit dem Präfix `release: git: `.
+git_meldung() { sed 's/^/release: git: /' "$scratch/git.err" >&2; }
+
+schritt_homebrew() {
+  local v sums f k kk s c zweig tv hoch
+  local -A summe
+  aussenwirkung_erlaubt # P19ereignis
+  tag_ableiten
+  pruefe_tag_form # P19tag-form
+  v="${tag#v}"
+  if [[ $tag == *-* ]]; then echo "release: homebrew: $tag ist eine Vorabversion, der Tap bleibt unverändert"; return 0; fi # P19vorabversion
+  [ -n "${GH_TOKEN-}" ] || eingabe token "GH_TOKEN fehlt" # P19gh-token
+  [ -n "${RELEASE_TAP_TOKEN-}" ] || eingabe geheimnis "HOMEBREW_TAP_GITHUB_TOKEN ist nicht gesetzt oder leer" # P19tap-token
+  # (3) Summen aus dem Release
+  mkdir "$scratch/sums"
+  fuehre gh release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/sums" # P19summen-aufruf
+  [ "$rc" -eq 0 ] || homebrew_fehler summen-laden "gh release download endet mit Exit $rc" # P19summen-laden
+  sums="$scratch/sums/SHA256SUMS"
+  for k in "${PLATTFORMEN_TAP[@]}"; do
+    c="$(awk -v n="pgwire-recorder-$k" '$2 == n { c++ } END { print c + 0 }' "$sums" 2> /dev/null)"
+    [ "$c" -eq 1 ] || homebrew_fehler summen "SHA256SUMS nennt pgwire-recorder-$k ${c:-0}-mal statt einmal" # P19summen-zahl
+    s="$(awk -v n="pgwire-recorder-$k" 'NF == 2 && $2 == n { print $1; exit }' "$sums")"
+    [[ $s =~ ^[0-9a-f]{64}$ ]] || homebrew_fehler summen "die Summe für pgwire-recorder-$k ist keine SHA-256-Summe" # P19summen-form
+    summe[$k]="$s"
+  done
+  # (4) Formel aus der Vorlage
+  f="$(cat "$VORLAGE" 2> /dev/null; printf x)"
+  f="${f%x}"
+  [ -n "$f" ] || homebrew_fehler vorlage "die Vorlage $VORLAGE fehlt oder ist leer"
+  f="${f//@@VERSION@@/$v}" # P19version
+  for k in "${PLATTFORMEN_TAP[@]}"; do
+    kk="${k^^}"
+    f="${f//@@SHA256_${kk//-/_}@@/${summe[$k]-}}" # P19summe
+  done
+  printf '%s' "$f" > "$scratch/formel.rb"
+  # (5) Tap
+  printf '%s\n' '#!/bin/sh' 'case "$1" in Username*) printf "%s\n" x-access-token ;; *) printf "%s\n" "$RELEASE_TAP_TOKEN" ;; esac' > "$scratch/askpass.sh"
+  chmod +x "$scratch/askpass.sh"
+  fuehre tapgit clone --quiet "${RELEASE_TAP_URL:-$TAP_URL_VORGABE}" "$scratch/tap" 2> "$scratch/git.err" # P19klon
+  [ "$rc" -eq 0 ] || { git_meldung; homebrew_fehler tap-klon "der Tap ist nicht klonbar (Exit $rc)"; } # P19klon-pruefung
+  cd "$scratch/tap" || exit 1
+  if tapgit rev-parse -q --verify HEAD > /dev/null 2>&1; then
+    zweig="$(tapgit symbolic-ref -q --short HEAD 2> /dev/null)"
+    [ "$zweig" = main ] || homebrew_fehler tap-zweig "der Tap ist auf '${zweig:-HEAD ohne Zweig}' ausgecheckt statt auf main" # P19zweig
+  else
+    tapgit symbolic-ref HEAD refs/heads/main # P19leer
+  fi
+  if [ -e Formula ] || [ -L Formula ]; then
+    { [ -d Formula ] && [ ! -L Formula ]; } || homebrew_fehler tap-pfad "Formula im Tap ist kein Verzeichnis" # P19pfad-verzeichnis
+  fi
+  if [ -e "$FORMEL" ] || [ -L "$FORMEL" ]; then
+    { [ -f "$FORMEL" ] && [ ! -L "$FORMEL" ]; } || homebrew_fehler tap-pfad "$FORMEL im Tap ist keine reguläre Datei" # P19pfad-datei
+    mapfile -t vz < <(grep -a -E '^  version "[^"]*"$' "$FORMEL")
+    [ "${#vz[@]}" -eq 1 ] || homebrew_fehler tap-formel "die Formel im Tap hat ${#vz[@]} Zeilen version statt einer" # P19formel-zeilen
+    tv="${vz[0]#  version \"}"
+    tv="${tv%\"}"
+    [[ $tv =~ ^$KERN$ ]] || homebrew_fehler tap-formel "die Version ${tv@Q} der Formel im Tap ist keine stabile Version" # P19formel-stabil
+    if [ "$tv" != "$v" ]; then
+      hoch="$(printf '%s\n%s\n' "$tv" "$v" | sort -V | tail -n 1)" # P19sort
+      if [ "$hoch" = "$tv" ]; then echo "release: homebrew: der Tap trägt $tv, höher als $v, und bleibt unverändert"; return 0; fi # P19hoeher
+    elif cmp -s "$scratch/formel.rb" "$FORMEL"; then
+      echo "release: homebrew: der Tap trägt $v schon (schon aktuell)" # P19aktuell
+      return 0
+    fi
+  fi
+  mkdir -p Formula
+  cp "$scratch/formel.rb" "$FORMEL"
+  tapgit add -- "$FORMEL" || rot "git add im Tap scheitert"
+  GIT_AUTHOR_NAME="$TAP_NAME" GIT_AUTHOR_EMAIL="$TAP_MAIL" GIT_COMMITTER_NAME="$TAP_NAME" GIT_COMMITTER_EMAIL="$TAP_MAIL" tapgit commit --quiet -m "pgwire-recorder $v" || rot "git commit im Tap scheitert" # P19commit
+  fuehre tapgit push origin main 2> "$scratch/git.err" # P19push
+  [ "$rc" -eq 0 ] || { git_meldung; homebrew_fehler tap-push "der Tap weist den Push ab (Exit $rc)"; } # P19push-meldung
+  echo "release: homebrew: Formel $v im Tap abgelegt"
+}
+
 case "$schritt" in
   eingaben) schritt_eingaben ;;
   binaries) schritt_binaries ;;
@@ -490,5 +575,6 @@ case "$schritt" in
   smoke) schritt_smoke ;;
   latest) schritt_latest ;;
   github-release) schritt_github_release ;;
+  homebrew) schritt_homebrew ;;
   *) echo "release: unbekannter Schritt '$schritt'" >&2; exit 2 ;;
 esac

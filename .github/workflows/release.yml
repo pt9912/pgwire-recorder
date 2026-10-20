@@ -66,3 +66,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash tools/harness/release.sh github-release
+  homebrew:
+    name: homebrew
+    needs: release
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      RELEASE_EVENT: ${{ github.event_name }}
+      RELEASE_REF: ${{ github.ref }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Homebrew
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: bash tools/harness/release.sh homebrew

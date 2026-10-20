@@ -1,0 +1,36 @@
+class PgwireRecorder < Formula
+  desc "Zeichnet PostgreSQL-Protokollverkehr auf und spielt ihn wieder ab"
+  homepage "https://github.com/pt9912/pgwire-recorder"
+  version "@@VERSION@@"
+  license "MIT"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-darwin-arm64"
+      sha256 "@@SHA256_DARWIN_ARM64@@"
+    end
+    on_intel do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-darwin-amd64"
+      sha256 "@@SHA256_DARWIN_AMD64@@"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-linux-arm64"
+      sha256 "@@SHA256_LINUX_ARM64@@"
+    end
+    on_intel do
+      url "https://github.com/pt9912/pgwire-recorder/releases/download/v@@VERSION@@/pgwire-recorder-linux-amd64"
+      sha256 "@@SHA256_LINUX_AMD64@@"
+    end
+  end
+
+  def install
+    bin.install Dir["pgwire-recorder-*"].fetch(0) => "pgwire-recorder"
+  end
+
+  test do
+    assert_match "pgwire-recorder #{version}", shell_output("#{bin}/pgwire-recorder version")
+  end
+end
