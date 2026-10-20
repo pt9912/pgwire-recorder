@@ -1,6 +1,6 @@
 # ADR-0054: Die Release-Binaries tragen keine Version im Dateinamen, das Image behält den Tag mit Version
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-20
 
@@ -63,5 +63,6 @@ Wenn ein Anwender Binaries mehrerer Versionen nebeneinander braucht und die Übe
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-20 | Proposed (Empfehlung des Architect innerhalb der Entscheidung des Nutzers) | — |
+| 2026-10-20 | Accepted (Entscheidung des Nutzers) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
