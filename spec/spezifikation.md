@@ -591,11 +591,11 @@ einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
   Rest einer Nachricht der Länge 12 bis 268 nicht und lässt die Verbindung offen, wartet der Recorder
   auf den Rest oder das Ende (Grenze: eine Frist gibt es nicht). Der `CancelRequest` gilt in `record` und in `replay` gleich: Es gibt weder
   eine Verbindung zum Server noch eine Session noch eine Aufzeichnung, eine zweite Verbindung bleibt
-  unberührt (*Modus*), und eine laufende Interaktion dieser zweiten Verbindung wird nicht abgebrochen.
+  unberührt (*Modus*), und eine laufende Interaktion dieser zweiten Verbindung wird nicht abgebrochen. Laufend heißt in `record`: die Anfrage ist an den Server gesendet und das `ReadyForQuery` beim Client noch nicht angekommen; in `replay`: die zweite Verbindung hat eine Extended-Folge begonnen (Nachrichten bis vor `Sync`) und ihre Antworten nicht vollständig erhalten. In beiden Modi bekommt die zweite Verbindung nach dem `CancelRequest` die vollständigen Antworten ihrer Folge, in `replay` die aufgezeichneten und ohne Veränderung ihres Cursors.
   Der `CancelRequest` gilt als erste Nachricht einer Verbindung und nach einem `SSLRequest` (mit `N`,
   oder mit `S` nach der Aushandlung von TLS) oder `GSSENCRequest`; so sendet ihn ein Client, der seine
-  Hauptverbindung verschlüsselt hat. Der Exit-Code bleibt von der Warnung unberührt (`LH-FA-13`). Die Eigenschaft hängt weder vom
-  Betriebssystem noch vom Dateisystem ab; eine Grenze je Plattform gibt es nicht. Ein Client, der
+  Hauptverbindung verschlüsselt hat. Der Exit-Code bleibt von der Warnung unberührt (`LH-FA-13`). Ablehnung aus dem Kopf bei ungelesenem Rest: Hat der Client Bytes gesendet, die der Recorder bei der Ablehnung nicht gelesen hat (Länge 269 bis `SPEC-045` mit Rest, ebenso jede andere Ablehnung vor dem Lesen des Rests), ist die Zustellung der `ErrorResponse` nicht zugesagt: Das Schließen mit ungelesenen Bytes kann auf der Verbindung als Rücksetzen (`RST`) statt als geordnetes Ende ankommen, und der Client sieht dann nur das Ende der Verbindung. Zugesagt sind in diesem Fall das Schließen, die Meldung `PGR-E6001` des Recorders und der Exit-Code `6`; die `ErrorResponse` ist zugesagt, wenn der Client nach dem Kopf nichts gesendet hat. Das Verhalten beim Schließen hängt vom Betriebssystem ab: geprüft nur unter Linux (Grenze für macOS und Windows, `LH-QA-03`). Sonst hängt die Eigenschaft
+  weder vom Betriebssystem noch vom Dateisystem ab. Ein Client, der
   eine Anfrage mit seinem Kontext abbricht und dafür die Verbindung vor dem `ReadyForQuery` schließt,
   erzeugt das Verbindungsende der laufenden Interaktion (Abschnitt *Verbindungsende*, `PGR-E4003`),
   nicht der `CancelRequest`.
@@ -3552,3 +3552,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-19 | Containerbetrieb: Beispiel mit Registry und Version statt `latest` ohne Registry; Tags `<Version>` und `latest` (nur stabil, neueste Version) (`LH-FA-16.a`) |
 | 2026-10-20 | Protokollrand: Länge des `CancelRequest` (12 ohne Schlüssel und 16 bis 268 sind `PGR-W3001`, 8 bis 11, 13 bis 15 und 269 bis `SPEC-045` sind `PGR-E6001`), Reihenfolge der Gründe, Modus, Plattform und Exit-Code (`LH-FA-05.e`, `LH-FA-13`) |
 | 2026-10-20 | Protokollrand, `CancelRequest`: die Ablehnung wegen der Länge erfolgt aus dem Kopf, ohne den Rest abzuwarten; ein fehlender Rest einer zugesagten Länge wartet bis zum Ende der Verbindung (`LH-FA-05.e`) |
+| 2026-10-20 | Protokollrand, `CancelRequest`: „laufende Interaktion“ je Modus bestimmt (`record`: Anfrage gesendet, `ReadyForQuery` fehlt; `replay`: Extended-Folge vor `Sync`), beide Modi geprüft; bei ungelesenem Rest nach einer Ablehnung aus dem Kopf ist die Zustellung der `ErrorResponse` nicht zugesagt, geprüft nur unter Linux (`LH-FA-05.e`) |
