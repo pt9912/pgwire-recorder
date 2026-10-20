@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-055` (Punkt 2 und 3, [`harness/vertraege/`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)) · `SPEC-067` (Punkt 4 und 19 (3), (4), (7), (9), [`harness/vertraege/`](../../../../harness/vertraege/SPEC-067-release.md)) · `LH-FA-01` · `LH-FA-19.a` · `LH-QA-03`
 
-**Entscheidung:** [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) (Proposed; die Entscheidung des Nutzers vom 2026-10-20 „keine Version im Dateinamen der Binaries“ ist gefallen, das Schema `pgwire-recorder-<os>-<arch>` ist die Empfehlung des Architect, ihre Annahme steht aus)
+**Entscheidung:** [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) (Accepted, Entscheidung des Nutzers vom 2026-10-20: keine Version im Dateinamen der Binaries, Schema `pgwire-recorder-<os>-<arch>`)
 
 **Verantwortlich:** pt9912
 **Autor:** Architect. **Datum:** 2026-10-20.
@@ -40,8 +40,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Vorlage der Formel, der Schritt und der Job `homebrew` — `slice-v1-abschluss-homebrew` (Klasse 1; dort §1 und §6 nehmen die Namen an). Grund: ein eigener Liefergegenstand mit eigener Gegenprobe; dieser Slice ändert nur Namen und ihre Prüfung.
-- Ein neuer Tag und ein neuer Release (der erste mit dem neuen Schema) — Handlung des Nutzers mit neuem Ja zum Tag (Klasse 3, anderer Vorgang). Kein Slice dieser Welle liefert ihn; der Release-Slice des nächsten Tags hat noch keine Kennung (Auftrag an den Planner), und `slice-erster-release-homebrew-nachweis` wartet auf ihn (dort §4).
-- Der Abschnitt „Binary vom GitHub-Release“ im Handbuch und die Zeile zu `v0.1.0` in `README.md` — Bestand bleibt bewusst stehen (Klasse 2). Grund: Sie beschreiben, was `v0.1.0` trägt (Namen mit Version, einmal gelaufen); das bleibt wahr, bis ein neuer Tag erscheint. Der Release-Slice des nächsten Tags schreibt sie nach `SPEC-067` Punkt 18 um; dieser Slice ändert nur den Abschnitt zu `make binaries`.
+- Ein neuer Tag und ein neuer Release (der erste mit dem neuen Schema) — Handlung des Nutzers mit neuem Ja zum Tag (Klasse 3, anderer Vorgang). Den Tag setzt der Nutzer; der Slice, der ihn vorbereitet und belegt, ist `slice-v1-abschluss-release-v0-1-1` (Welle `welle-v1-nachtrag`, Reihenfolge 4), und `slice-erster-release-homebrew-nachweis` wartet auf ihn (dort §4).
+- Der Abschnitt „Binary vom GitHub-Release“ im Handbuch und die Zeile zu `v0.1.0` in `README.md` — Bestand bleibt bewusst stehen (Klasse 2). Grund: Sie beschreiben, was `v0.1.0` trägt (Namen mit Version, einmal gelaufen); das bleibt wahr, bis ein neuer Tag erscheint. `slice-v1-abschluss-release-v0-1-1` schreibt sie nach `SPEC-067` Punkt 18 um (dort §1 und DoD 2 nehmen die Sendung an); dieser Slice ändert nur den Abschnitt zu `make binaries`.
 - Der Release `v0.1.0` selbst — unverändert (Entscheidung des Nutzers vom 2026-10-20); ein Tag wird nie verändert (`SPEC-067` Punkt 11).
 - Das Image, seine Tags und die Registries — Bestand bleibt (Klasse 2); die Entscheidung gilt nur den Binaries.
 - Änderung des Lastenhefts — es legt kein Namensschema fest (`LH-FA-01`, `LH-QA-03` nennen Plattformen); eine Anhebung der Version nach `harness/conventions.md` entfällt.
@@ -90,7 +90,7 @@ Nicht in dieser Liste: `Dockerfile`, `harness/mk/container.mk` und `cmd/`, `inte
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) ist `Accepted` (die Annahme ist die Entscheidung des Nutzers; bis dahin ist das Schema `pgwire-recorder-<os>-<arch>` eine Empfehlung des Architect), und `welle-erster-release` ist `done` (Start-Trigger von `welle-v1-nachtrag`). Der Slice steht in der Reihenfolge der Welle vor `slice-v1-abschluss-homebrew` und blockiert ihn (dessen Start-Trigger nennt ihn).
+**Start** (`next` → `in-progress`): [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) ist `Accepted` (Entscheidung des Nutzers vom 2026-10-20), und `welle-erster-release` ist `done` (Start-Trigger von `welle-v1-nachtrag`). Der Slice steht in der Reihenfolge der Welle vor `slice-v1-abschluss-homebrew` und blockiert ihn (dessen Start-Trigger nennt ihn).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -127,7 +127,7 @@ dasteht.
 | (i) Aufrufarten, Abbruch | unverändert; die Rezepte und die Fälle zu `-n`, `-q`, `-t`, `-i`, `MAKEFLAGS`, `SIGINT`, `SIGTERM` bleiben, nur ihre Namen ziehen nach | `SPEC-055` Punkt 9 und 11 |
 
 - Fundstellen des alten Schemas, die dieser Plan nicht nennt (`grep -rn 'pgwire-recorder_' --exclude-dir=.git --exclude-dir=baseline`, ohne `docs/reviews/` und `done/`; Stand beim Schreiben: die fünf Skripte, die zwei Verträge, `harness/README.md`, Handbuch, `releasing.md`, `README.md`, `slice-v1-abschluss-homebrew`) — **Ausgang:** offen bis Closure (`grep` am Endstand ohne Treffer außer den Zeilen, die das alte Schema als alt nennen).
-- Der Abschnitt zu `v0.1.0` in Handbuch und `README.md` nennt Namen, die der nächste Tag ablöst; wer ihn umschreibt, hat noch keine Kennung (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`) — **Ausgang:** weiter offen, übergeben an den Release-Slice des nächsten Tags (Auftrag an den Planner; `SPEC-067` Punkt 18).
+- Der Abschnitt zu `v0.1.0` in Handbuch und `README.md` nennt Namen, die der nächste Tag ablöst; wer ihn umschreibt, ist `slice-v1-abschluss-release-v0-1-1` (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`) — **Ausgang:** weiter offen, übergeben an `slice-v1-abschluss-release-v0-1-1` (dort §1, DoD 2 und §8; `SPEC-067` Punkt 18).
 
 ## 7. Closure-Notiz
 

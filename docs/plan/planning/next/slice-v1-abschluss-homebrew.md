@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-067` (Punkt 1c und 19, [`harness/vertraege/`](../../../../harness/vertraege/SPEC-067-release.md)) · `SPEC-035` · `SPEC-055` (Punkt 3, Namen der Binaries) · `LH-FA-01`
 
-**Entscheidung:** [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) (Accepted, Entscheidung des Nutzers vom 2026-10-20) · [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) (Namen der Binaries ohne Version; Proposed, Annahme steht aus)
+**Entscheidung:** [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) (Accepted, Entscheidung des Nutzers vom 2026-10-20) · [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) (Namen der Binaries ohne Version; Accepted, Entscheidung des Nutzers vom 2026-10-20)
 
 **Verantwortlich:** pt9912 (Zweig impl-brew)
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Formel für `v0.1.0` — entfällt (Entscheidung des Nutzers vom 2026-10-20): Seine Binaries tragen das alte Schema, und ein neuer Tag mit dem neuen Schema liefert die erste Formel; der Schritt lehnt das alte Schema ab (Klasse 3, anderer Vorgang; die Pflicht, den Tag zu setzen, liegt beim Nutzer, `slice-erster-release-homebrew-nachweis` wartet auf ihn).
+- Die Formel für `v0.1.0` — entfällt (Entscheidung des Nutzers vom 2026-10-20): Seine Binaries tragen das alte Schema, und ein neuer Tag mit dem neuen Schema liefert die erste Formel; der Schritt lehnt das alte Schema ab (Klasse 3, anderer Vorgang; die Pflicht, den Tag zu setzen, liegt beim Nutzer, `slice-v1-abschluss-release-v0-1-1` bereitet ihn vor, `slice-erster-release-homebrew-nachweis` wartet auf ihn).
 - Die Installation aus dem echten Tap, der Abschnitt zu Homebrew im Benutzerhandbuch (§2 *Installation*, Befehle) und die Zeile in `README.md` — `slice-erster-release-homebrew-nachweis` (Klasse 1; die Sendung steht dort in §1 und DoD, mit der Kennung dieses Slice). Grund: Das Handbuch nennt nur Befehle, die einmal gelaufen sind (`AGENTS.md` §3.11, `SPEC-067` Punkt 18), und der Lauf mit dem echten Tap ist dessen Gegenstand; die Formel ist kein Verhalten des Binaries. Dieser Slice ändert deshalb weder Handbuch noch README.
 - Das Anlegen und die Rechte des Geheimnisses `HOMEBREW_TAP_GITHUB_TOKEN` und jede Handlung am echten Tap — Handlung des Betreibers (Klasse 3, anderer Vorgang). Der Slice liest, schreibt und gibt den Wert nie aus und pusht nie in den echten Tap.
 - Ein Probe-Tag — er wäre eine Vorabversion (kann den Tap nicht ändern) und ein weiterer Tag mit Veröffentlichung ([ADR-0051](../../../plan/adr/0051-veroeffentlichung-auf-github-actions.md)); an seine Stelle tritt das lokale Probe-Tap. Das weicht von der Reihenfolge in `welle-v1-nachtrag` §5 ab, die den Probe-Tag nannte; die Reihenfolge ist nachgezogen.
