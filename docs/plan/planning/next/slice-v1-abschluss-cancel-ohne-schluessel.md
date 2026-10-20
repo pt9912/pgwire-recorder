@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-05.e` (Spezifikation, Protokollrand, *Länge des `CancelRequest`*) · `LH-FA-13.b` · `ARC-006`
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-cancel)
 
 **Autor:** pt9912. **Datum:** 2026-10-05.
 
@@ -84,7 +84,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): die Behandlung verlangt die Weitergabe von `BackendKeyData`, oder die **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal test docs/user README.md`, wobei die Basis der Commit des Übergangs nach `in-progress/` ist, liegt **über 1200** (Schätzung in §3: rund 350).
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): die Behandlung verlangt die Weitergabe von `BackendKeyData`, oder die **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal test docs/user README.md`, wobei die Basis der Commit des Übergangs nach `in-progress/` ist, liegt **über 700** (Schätzung in §3: rund 350).
 - `in-progress` → `open` (blockiert — Carveout?): der Adapter kann die Länge 12 nicht vor der Bibliothek lesen (der Kopf wird heute vor der Bibliothek gelesen, `startup`; die Bedingung gilt, wenn das mit `LH-FA-23.a` nicht zusammen geht).
 
 ## 5. Closure-Trigger
