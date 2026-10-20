@@ -179,33 +179,35 @@ make binaries
 ```
 
 In `dist/` liegen danach sechs Binaries und `SHA256SUMS`. Der Name eines Binaries ist
-`pgwire-recorder_<VERSION>_<Betriebssystem>_<Architektur>`, unter Windows mit der Endung
-`.exe`. Ohne Angabe ist `<VERSION>` gleich `dev`:
+`pgwire-recorder-<Betriebssystem>-<Architektur>`, unter Windows mit der Endung `.exe`. Die
+Version steht nicht im Namen:
 
 ```text
-pgwire-recorder_dev_darwin_amd64
-pgwire-recorder_dev_darwin_arm64
-pgwire-recorder_dev_linux_amd64
-pgwire-recorder_dev_linux_arm64
-pgwire-recorder_dev_windows_amd64.exe
-pgwire-recorder_dev_windows_arm64.exe
+pgwire-recorder-darwin-amd64
+pgwire-recorder-darwin-arm64
+pgwire-recorder-linux-amd64
+pgwire-recorder-linux-arm64
+pgwire-recorder-windows-amd64.exe
+pgwire-recorder-windows-arm64.exe
 ```
 
-Mit `make binaries VERSION=1.2.3` tragen die Namen `1.2.3` statt `dev`, und `version` gibt
-`pgwire-recorder 1.2.3` aus. `SHA256SUMS` hat eine Zeile je Binary im Format von
-`sha256sum`. So prüfen Sie die Binaries:
+Mit `make binaries VERSION=1.2.3` gibt `version` `pgwire-recorder 1.2.3` aus statt
+`pgwire-recorder dev`; die Namen bleiben dieselben. `SHA256SUMS` hat eine Zeile je Binary im
+Format von `sha256sum`. So prüfen Sie die Binaries:
 
 ```bash
 ( cd dist && sha256sum -c SHA256SUMS )
 ```
 
 Jede Zeile der Ausgabe endet auf `OK`. Das Verzeichnis `dist/` muss leer sein oder fehlen;
-sonst bricht `make binaries` mit einer Meldung ab.
+sonst bricht `make binaries` mit einer Meldung ab. Das gilt auch für die Dateien eines
+früheren Laufs mit anderer `VERSION`: Löschen Sie `dist/`, bevor Sie `make binaries` erneut
+aufrufen.
 
 Auf einem Linux-Rechner mit `amd64` starten Sie das Binary direkt:
 
 ```bash
-./dist/pgwire-recorder_dev_linux_amd64 version
+./dist/pgwire-recorder-linux-amd64 version
 ```
 
 Die Ausgabe ist `pgwire-recorder dev`. Die Binaries für macOS und Windows sind gebaut, aber

@@ -1,7 +1,7 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.10
-Stand: 2026-10-19
+Version: 0.11
+Stand: 2026-10-20
 
 ## 1. Zweck und Zielgruppe
 
@@ -56,8 +56,9 @@ und den ersten echten Tag liefert `slice-erster-release-freigabe`, das Verfahren
 `slice-v1-abschluss-homebrew`.
 
 **Was lokal läuft:** `make binaries` baut je Zielplattform ein Binary in das Verzeichnis
-`dist/` und schreibt `SHA256SUMS`; die Namen tragen `VERSION` (Vorgabe `dev`), unter Windows
-mit `.exe`, und `dist/` muss leer sein oder fehlen. `make test-container` baut die Binaries
+`dist/` und schreibt `SHA256SUMS`; die Namen sind `pgwire-recorder-<os>-<arch>` ohne Version, unter Windows
+mit `.exe`; `VERSION` (Vorgabe `dev`) steht im Binary (`version`), und `dist/` muss leer sein oder fehlen, auch
+bei Dateien eines Laufs mit anderer `VERSION`. `make test-container` baut die Binaries
 mit `VERSION=0.0.0-test` zweimal in Verzeichnisse außerhalb des Arbeitsbaums und vergleicht
 die Summen, prüft den Dateikopf jedes Binaries, baut das Image für `linux/amd64` und
 `linux/arm64` und prüft Betriebssystem, Architektur und Summe der Datei darin, und startet
@@ -82,8 +83,8 @@ Kopf.
 
 Die Version der Software steht in der Datei `VERSION` im Wurzelverzeichnis: genau eine Zeile
 `<SemVer>` ohne `v`, Anfangswert `0.1.0-dev`. Die Pipeline lehnt einen Tag ab, der nicht `v` plus
-dieser Inhalt ist. `make binaries VERSION=<SemVer>` trägt die Version in die Namen der Binaries
-und ins Binary; ohne Angabe bleibt es bei `dev`.
+dieser Inhalt ist. `make binaries VERSION=<SemVer>` trägt die Version ins Binary, nicht in die Namen der Binaries;
+ohne Angabe bleibt es bei `dev`.
 
 Zwei Begriffe, die nur das Verfahren der Formel (§7) benutzt; für die Veröffentlichung der
 Binaries (§6) gibt es keinen Probe-Tag, dort ersetzt ihn der Trockenlauf: Ein **Probe-Tag** ist ein Vorabversions-Tag
@@ -334,3 +335,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.8 | 2026-10-19 | Image: Bau, Veröffentlichung in beiden Registries, Vergleich der Digests, Smoke, `latest`; Geheimnisse der Registries; Fehlertabelle um die Schritte des Images ergänzt; die Formel gehört nicht zur Pipeline |
 | 0.9 | 2026-10-19 | Scan des Images vor dem Push (Schritt `Scan`, Zeile der Fehlertabelle); Freshness-Audit mit der Form seines Belegs (§5); Freigabe-Checkliste mit Anti-Punkten und Incident-Klausel (§10) |
 | 0.10 | 2026-10-19 | Freshness-Audit optional und kein Punkt der Freigabe-Checkliste mehr (§5); Checkliste mit elf Punkten neu nummeriert, Anti-Punkt zum Audit (§10) |
+| 0.11 | 2026-10-20 | Namen der Binaries ohne Version: `pgwire-recorder-<os>-<arch>` (§2, §3) |

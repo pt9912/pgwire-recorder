@@ -77,11 +77,11 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/binaries.sh` | update | Name `pgwire-recorder-${os}-${arch}` (Marke `P3name`), Meldung bei `DIST` unverändert |
 | `tools/harness/run-container.sh` | update | `binaer()` nennt den neuen Namen (Punkt 4 und 6 von `SPEC-055`) |
 | `tools/harness/release.sh` | update | `erwartete_namen` ohne Version; Summe im Schritt `image` aus `pgwire-recorder-linux-<arch>` |
-| `tools/harness/container-gegenprobe.sh` | update | `bname`, `namen_soll`, Muster der Summen-Zeile, Meldung zu Punkt 4; neue Fälle und Mutationen der Namen und von `DIST` |
-| `tools/harness/release-gegenprobe.sh` | update | Attrappe von `make`, `NAMEN`, `ALLE7`, Fälle zu Punkt 5 und 9; Fälle `p4-altes-schema`, `p4-namen-je-plattform` und ihre Mutationen |
-| `harness/README.md` (§Sensors, Zeile `make binaries`) | update | nennt das Schema |
-| `docs/user/benutzerhandbuch.md` (Abschnitt zu `make binaries`) | update | Namen und Beispiele im Ist-Zustand |
-| `docs/maintainer/releasing.md` | update | §2, §3 (Namen tragen keine Version mehr) |
+| `tools/harness/container-gegenprobe.sh` | update | `bname`, `namen_soll` (ohne Version), Muster der Summen-Zeile, Meldung zu Punkt 4; neue Fälle `p3-name-trenner`, `p3-name-ohne-version`, `p3-sums-zeile-<os>-<arch>`, `p3-dist-andere-version`, `p3-dist-altes-schema`, `p3-exe` je Architektur, und ihre Mutationen (`.exe`, Name, Trenner, Versionsdatei, `DIST`) |
+| `tools/harness/release-gegenprobe.sh` | update | Attrappe von `make` (Namen; Modi `altes-schema` und `datei-fehlt` mit `GP_FEHLT=<os>-<arch>`), `NAMEN`, `ALLE7`, Fälle zu Punkt 5 und 9; Fälle `p4-altes-schema`, `p4-namen-je-plattform-<os>-<arch>` und ihre Mutationen (`m-p4-altes-schema-angenommen`, `m-p4-liste-nicht-gezaehlt`, `m-p9-name-fehlt-<os>-<arch>` mit dem Fall der Plattform), Mutationen des Namens der Summe im Schritt `image` (`m-p5-summe-name-arch-fest`, `m-p5-summe-name-os`) |
+| `harness/README.md` (§Sensors, Zeile `make binaries`) | update | nennt das Schema, `DIST` auch bei Dateien einer anderen `VERSION`, die Bindung [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) |
+| `docs/user/benutzerhandbuch.md` (Abschnitt zu `make binaries`) | update | Namen und Beispiele im Ist-Zustand; `dist/` auch bei Dateien einer anderen `VERSION` nicht leer |
+| `docs/maintainer/releasing.md` | update | §2, §3 (Namen tragen keine Version mehr), Version 0.11 und Zeile der Änderungshistorie |
 
 Nicht in dieser Liste: `Dockerfile`, `harness/mk/container.mk` und `cmd/`, `internal/` (§1), der Abschnitt zu `v0.1.0` im Handbuch und `README.md` (§1), die Verträge `SPEC-055` und `SPEC-067` (liegen vor dem Code, Architect).
 
