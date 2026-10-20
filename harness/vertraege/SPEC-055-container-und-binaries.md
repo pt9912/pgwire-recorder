@@ -21,7 +21,7 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
    nicht in der Liste der Binaries steht. Die Listen sind keine Eingabe des Aufrufers; ein
    überschriebener Wert fällt unter (a) bis (f). Jede Form hat einen Fall und eine Mutation, die nur sie bricht.
 2. **Version.** `VERSION` (Vorgabe `dev`; am Ziel `test-container` `0.0.0-test`) geht in
-   `-X main.version` des Builds ein und in den Dateinamen. Am Ziel `test-container` ist `dev` als
+   `-X main.version` des Builds ein, nicht in den Dateinamen (Punkt 3, [ADR-0054](../../docs/plan/adr/0054-binaries-ohne-version-im-dateinamen.md)). Am Ziel `test-container` ist `dev` als
    `VERSION` rot vor dem ersten Aufruf von `docker`, mit Nennung des Werts, denn `dev` ist die
    Vorgabe des Codes: Fehlte `-X main.version=` im `Dockerfile`, gäbe `version` dasselbe aus, und
    der Smoke (Punkt 7a) belegte nichts. Ein Aufruf mit `VERSION` auf der Befehlszeile gilt vor
@@ -33,8 +33,21 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
    und eine Mutation. Zwei Builds derselben `VERSION` sind das, was Punkt 4 vergleicht; andere
    `VERSION` ergibt andere Summen, und das ist keine Verletzung.
 3. **Binaries (`make binaries`).** Je Plattform ein Build der Stufe `dist` des `Dockerfile`; die
-   Datei heißt `pgwire-recorder_<VERSION>_<os>_<arch>`, bei `windows` mit Endung `.exe`, und
-   liegt in `DIST` (Vorgabe `dist`). `DIST` fehlt (wird angelegt) oder ist leer, sonst rot vor
+   Datei heißt `pgwire-recorder-<os>-<arch>`, bei `windows` mit Endung `.exe` (`pgwire-recorder-windows-amd64.exe`,
+   `pgwire-recorder-windows-arm64.exe`), und liegt in `DIST` (Vorgabe `dist`). **Der Name enthält keine `VERSION`**; er besteht aus
+   Kleinbuchstaben, Ziffern, `-` und `.`, trennt mit `-` (nicht `_`) und ist je Plattform fest. Die Namen sind die sechs Elemente
+   `darwin`, `linux`, `windows` × `amd64`, `arm64`; `.exe` trägt allein `windows`. Die Version eines Laufs steht allein im Binary
+   (`version`); der Lauf schreibt keine weitere Datei dafür, und die Dateiliste von `DIST` ist genau die sechs Binaries und `SHA256SUMS`.
+   Zwei Läufe mit verschiedener `VERSION` liefern gleiche Namen und verschiedene Summen (Punkt 2). Ein `DIST` mit den Dateien eines früheren
+   Laufs, auch einer anderen `VERSION` oder des alten Schemas `pgwire-recorder_<VERSION>_<os>_<arch>`, ist nicht leer und rot (Fälle unten).
+   Fälle der Namen, je Element ein Fall und eine Mutation, die nur ihn bricht: `p3-namen` (genau die sechs Namen und `SHA256SUMS`), `p3-exe`
+   (`.exe` nur bei `windows`, je Architektur), `p3-name-ohne-version` (zwei Läufe mit verschiedener `VERSION`: gleiche Namen, verschiedene
+   Summen; Mutation: `VERSION` im Namen), `p3-name-trenner` (nur `-`; Mutation: `_`), `p3-sums-zeile-<os>-<arch>` (je Plattform die Zeile mit diesem
+   Namen), `p3-dist-andere-version` (`DIST` mit den sechs Dateien eines Laufs anderer `VERSION`: rot, vor dem ersten `docker`, `DIST` unverändert),
+   `p3-dist-altes-schema` (`DIST` mit einer Datei des alten Namens: rot, ebenso). **Plattform** (`AGENTS.md` §3.12): erzeugt und geprüft sind die Namen
+   unter Linux im Docker; ein Name aus Kleinbuchstaben, Ziffern, `-` und `.` ist auf macOS und Windows gültig; alle Namen sind klein geschrieben und bleiben auch auf einem Dateisystem
+   ohne Unterscheidung von Groß- und Kleinschreibung verschieden, geprüft ist das dort nicht (Grenze, Punkt 13 (4); akzeptiertes Negativ,
+   Grund: die Namen sind ASCII ohne Sonderzeichen). `DIST` fehlt (wird angelegt) oder ist leer, sonst rot vor
    dem ersten Aufruf von `docker`; ein leerer Wert von `DIST` ist ungültige Eingabe, rot mit Meldung vor dem ersten Aufruf von `docker`; ein Lauf mischt sich nie mit einem früheren. Gebaut wird in ein Stage-Verzeichnis außerhalb von `DIST`; erst nach dem letzten Build gehen Binaries und `SHA256SUMS` nach `DIST`, bei einem Fehler bleibt `DIST` leer. `SHA256SUMS` hat
    das Format von `sha256sum` (Summe, zwei Leerzeichen, Name), je Binary eine Zeile, nach Name in Byte-Reihenfolge
    (C-Locale) sortiert, mit LF, und `sha256sum -c` darin ist grün. Scheitert ein Build, ist das Ziel rot und
