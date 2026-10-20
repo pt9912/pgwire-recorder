@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Entscheidung:** [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) (Accepted, Entscheidung des Nutzers vom 2026-10-20) · [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) (Namen der Binaries ohne Version; Accepted, Entscheidung des Nutzers vom 2026-10-20)
 
-**Verantwortlich:** pt9912 (Zweig impl-brew)
+**Verantwortlich:** pt9912 (Zweig impl-brew; Nacharbeit nach dem Review: Zweig impl-brew2)
 **Autor:** pt9912. **Datum:** 2026-10-03.
 
 ---
@@ -55,17 +55,20 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Der Schritt `homebrew` von `tools/harness/release.sh` mit der Vorlage `tools/harness/homebrew-formula.rb.tmpl` und der Job `homebrew` in `.github/workflows/release.yml` (Text nach `SPEC-067` Punkt 1c) erzeugen die Formel aus `SHA256SUMS` eines Fixture-Release und legen sie in einem Probe-Tap ab (lokales Bare-Repository, kein Netz, kein Geheimnis); die Prüfsummen und Plattformen stimmen, die Zustände der Vorlage (fehlt, leer, Verzeichnis) enden mit Exit 1 `vorlage`, und jede Randform aus `SPEC-067` Punkt 19 (9) hat ihren Fall und ihre Mutation in `make release-gegenprobe` (Zusage · Mutation · roter Fall im Bericht, `AGENTS.md` §3.10); die Zeile von `make release-gegenprobe` in `harness/README.md` §Sensors nennt die neuen Fälle.
-- [ ] Eine Vorabversion verändert den Tap nicht (`p19-vorabversion`, mit Mutation).
-- [ ] `docs/maintainer/releasing.md` beschreibt das Ausgeführte: §3 (kein Probe-Tag für die Formel, das Probe-Tap), §4 (das Geheimnis als Vorbedingung des Betreibers, mit dem Recht, das der Token mindestens braucht), §6 (der Job), §7, §11 (die Zeile). Handbuch und `README.md` bleiben unverändert (§1).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Der Schritt `homebrew` von `tools/harness/release.sh` mit der Vorlage `tools/harness/homebrew-formula.rb.tmpl` und der Job `homebrew` in `.github/workflows/release.yml` (Text nach `SPEC-067` Punkt 1c) erzeugen die Formel aus `SHA256SUMS` eines Fixture-Release und legen sie in einem Probe-Tap ab (lokales Bare-Repository, kein Netz, kein Geheimnis); die Prüfsummen und Plattformen stimmen, die Zustände der Vorlage (fehlt, leer, Verzeichnis) enden mit Exit 1 `vorlage`, und jede Randform aus `SPEC-067` Punkt 19 (9) hat ihren Fall und ihre Mutation in `make release-gegenprobe` (Zusage · Mutation · roter Fall im Bericht, `AGENTS.md` §3.10); die Zeile von `make release-gegenprobe` in `harness/README.md` §Sensors nennt die neuen Fälle.
+- [x] Eine Vorabversion verändert den Tap nicht (`p19-vorabversion`, mit Mutation).
+- [x] `docs/maintainer/releasing.md` beschreibt das Ausgeführte: §3 (kein Probe-Tag für die Formel, das Probe-Tap), §4 (das Geheimnis als Vorbedingung des Betreibers, mit dem Recht, das der Token mindestens braucht), §6 (der Job), §7, §11 (die Zeile). Handbuch und `README.md` bleiben unverändert (§1).
+- [x] `make gates` grün (am Stand der Dateien bis auf §7: §7; danach ändert nur noch Doku den Zweig, `make docs-check` und `make kopf-check` grün; `make gates` am Endstand fährt der Host vor dem Merge).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+
+Belege der Liefer-Punkte und was der Verifier nicht wiederholt hat: §7, Abschnitt *Belege am Endstand*.
+
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -148,8 +151,6 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
-
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
@@ -317,6 +318,33 @@ Eine Mutation mit vielen roten Fällen (`summen-ohne-dir`, `formula-nicht-angele
 - Kein grüner Mutant in den gefahrenen Läufen außer den akzeptierten Negativen; keiner wurde als äquivalent eingeordnet.
 - `make gates` am Endstand der Dateien außer diesem Abschnitt (Kopf `a0951261` bis `72b6e839` plus die Korrektur der Kennung): grün, 303 s. Davor zwei rote Läufe: der erste endete in `docs-check` (eine ADR-Kennung stand in der Tabelle ohne Link, behoben), der zweite in `test-integration` (`TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild`, `DROP DATABASE … timeout: context deadline exceeded`, Last 10 bis 12 im Container; die Änderungen berühren keinen Go-Code und keinen Test des Binaries, das ist die Klasse `BEO-REPO/test-faellt-unter-cpu-last-aus`); der dritte Lauf war grün.
 
+### Belege am Endstand (Review, Verifikation, Closure)
+
+Zweig `clo-brew` auf `ver-brew` (`2b24763e`); der Code (`tools/`, `.github/`) ist seit dem Stand der Nacharbeit unverändert, danach kamen die Berichte unter `docs/reviews/`, drei Sätze in `docs/maintainer/releasing.md` (V-1) und Planung. Review-Report: [Review-Report](../../../reviews/2026-10-20-review-slice-v1-abschluss-homebrew.md) (0 HIGH, 1 MEDIUM, 2 LOW, 4 INFO; Kopf `3043aed9`). Verifikationsbericht: [Verifikationsbericht](../../../reviews/2026-10-20-verifikation-slice-v1-abschluss-homebrew.md) (0 HIGH, 0 MEDIUM, V-1 LOW, V-2 bis V-4 INFO; Kopf `fd5ef0ef`, konform).
+
+| Liefer-Punkt der DoD | gefahren von | nicht wiederholt |
+|---|---|---|
+| 1 (Schritt, Vorlage, Job, Fälle `p19-*`, Zeile in `harness/README.md`) | Implementer: zwölf Läufe mit `GP_MUT` über alle Mutationen `m-p19-*` und `m-p1-homebrew*` (Tabelle oben); Verifier: Gruppe `p19-*` der unveränderten Kopie grün, die vier Vorlage-Mutationen und `m-p19-token-in-url` mit den Mengen aus §7, zehn weitere Mutationen als Stichprobe je Art (alle wie in §7), `m-p1-homebrew-*`, Vorlage gegen `SPEC-067` Punkt 19 (4) mit `cmp` | rund 95 von rund 110 Mutationen `m-p19-*` (Reihenfolge der Gründe, Randformen des Taps, Askpass, Commit-Identität, Push-Fehler, `SIGTERM` u. a.): nur der Implementer sah sie rot; Gruppen `p1-*` außer `m-p1-homebrew-*`, `p2-*` bis `p16-*` und ihre Mutationen: von keinem gefahren (nicht berührt); der volle Lauf von `make release-gegenprobe` (Entscheid des Nutzers vom 2026-10-20, Angabe der Koordination) |
+| 2 (Vorabversion ändert den Tap nicht) | Implementer: `m-p19-vorabversion-*` (4) und `p19-vorabversion`; Verifier: `m-p19-vorabversion-nur-rc` in der Stichprobe, Gruppe `p19-*` grün | die übrigen drei Mutationen von Hand nicht wiederholt |
+| 3 (`releasing.md`) | Review (Zeile für Zeile gegen Punkt 19), Verifikation; V-1 bei der Closure behoben | — |
+
+Nicht belegt, weil Grenze nach `SPEC-067` Punkt 14 und 15, übergeben an `slice-erster-release-homebrew-nachweis`: Rechte des Tokens, `gh release download` mit dem echten `gh`, Annahme der Formel durch Homebrew, Binary auf macOS, Erreichbarkeit der URLs. `make gates` am Stand `72b6e839` (Implementer, 303 s) hat der Verifier nicht wiederholt; `make docs-check` am Endstand: 1309 Dateien, 0 Befunde; `make kopf-check`: grün.
+
+Größe am Endstand: `git diff --numstat 8dbe6a14..HEAD -- tools .github harness/README.md docs/maintainer`: 860 Einfügungen, 49 Löschungen, Summe 909 (Marke in §4: über 1300, nicht erreicht; Schätzung 900 bis 1200 getroffen).
+
+### Closure-Notiz
+
+- **Was hat funktioniert:** Die Randformen standen vor dem Code in §6 und `SPEC-067` Punkt 19; das Probe-Tap (Bare-Repository) mit echtem `git` und einer Attrappe von `gh` belegte Ablage, Randformen des Taps und den Token-Weg ohne Netz und ohne Geheimnis. Die Mutationen der Zusagen färbten genau die benannten Fälle (Verifier: Stichprobe wie in §7). Jede Behebung der Nacharbeit (F-1 bis F-3) brach die Verifikation von Hand und sah den benannten Fall rot. Der Job `homebrew` entspricht Punkt 1c Zeile für Zeile (Review und `p1-homebrew-*`).
+- **Was ging anders als geplant:** (1) Der Lauf des Implementers wurde abgebrochen, bevor er pushte und berichtete (Angabe der Koordination); §7 trug keine Belege, das Review leitete Zusagen und Mutationen aus dem Diff ab (F-5). Die Nacharbeit (`impl-brew2`) holte sie nach. (2) Das Review fand eine Randform im Code, die §6 und `SPEC-067` nicht nannten (Zustände der Vorlage, F-1 MEDIUM), sechs Anker ohne Leser (F-2), eine Beispiel-Mutation der Spezifikation ohne Namen (F-3) und die Spezifikation noch auf „Proposed“ (F-4); der Architect entschied (h) bis (j), alles behoben. (3) Fünf bestehende Mutationen färbten die neuen Fälle `p19-vorlage-*` mit; die Listen der erwarteten roten Fälle sind nachgezogen (Nebenfolge von F-1, in §7 oben). (4) Die Verifikation fand F-6 des Reviews unbehoben (V-1): Zusagen in `releasing.md` über den Zustand des echten Taps und das Verhalten von GitHub; bei der Closure enger gefasst (`4cf43db3`: kein Satz mehr über den echten Tap oder GitHub außer der Grenze, dass kein Gate sie prüft). (5) Die Läufe im gemeinsamen Klon des Containers wechselten einander den Zweig (Angabe der Koordination); die Rollen arbeiteten danach in eigenen Worktrees. (6) `make gates` war im zweiten Lauf unter Last rot (`Serverfehler_ohne_Vorbild`, Klasse `BEO-REPO/test-faellt-unter-cpu-last-aus`), der dritte Lauf grün.
+- **Steering-Loop-Eintrag:** benannte Lücke: Eine DoD verlangt für einen Vertrag Fälle und Mutationen in einer Gegenprobe, deren voller Lauf Stunden braucht; der Nutzer hat am 2026-10-20 entschieden, dass eine Gegenprobe, die drei Stunden dauert, nicht mehr gefahren wird (Angabe der Koordination, Wortlaut: „dauert eine Gegenprobe drei Stunden, fahren wir keine mehr“). Was an die Stelle des vollen Laufs tritt, steht weder in `SPEC-060` noch in der DoD: Hier ersetzten Läufe mit Auswahl (`GP_MUT`) den vollen Lauf, und rund 95 Mutationen sah nur der Implementer rot. Die Lücke hat eine Adresse: `slice-harness-gegenproben-schneller` (`open/`; DoD 1 und 3: Laufzeit, voller Lauf in einem Zug am Endstand, `GP_ENTDECKE=1` mit Vergleich der roten Mengen je Mutation). Kein `liegt in`: mit diesem Slice wurde nichts verkörpert. **Offen, an die Koordination:** Der ausdrückliche Eintrag der Sendung (die nicht gefahrenen Mutationen von `p19-*` zählen zum vollen Lauf am Endstand jenes Slice) in §1 und DoD des Nehmers fehlt: Sein Plan wird auf dem Zweig `arch-schneller` überarbeitet (nicht auf `main`), und ein Eintrag aus diesem Zweig kollidierte mit ihm; wer den Nehmer auf `main` hat, trägt ihn mit Kennung dieses Gebers und Nachzählung in dessen §8 ein (`AGENTS.md` §3.13). Bis dahin trägt die Sendung nur der Satz in DoD 1 des Nehmers (je Mutation genau die benannten Fälle rot), den `grep` nach der Kennung dieses Slice dort nicht findet.
+- **Beobachtungs-Register (`../observations/`):** Belege `evidence/slice-v1-abschluss-homebrew.md` in `BEO-REPO/test-faellt-unter-cpu-last-aus/` (4×; Schwelle war erreicht, **Zuweisung beim Nutzer**, Vorschlag des Planners im `state.md`: `geplant` mit einem Slice, der die drei Tests unter künstlicher Last fährt, oder `verkörpert` als Regel „Unterfall allein fahren und `make gates` einmal wiederholen, bevor ein Befund geschrieben wird“; nicht entschieden), `BEO-REPO/spec-randform-erst-im-review-entschieden/` (F-1, V-2), `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (F-3), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (F-6, V-1), `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht/` (F-5, V-4; Abbruch statt Übergabe-Lücke), `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` (Laufzeit der Gegenprobe selbst, Entscheid des Nutzers) und neu `BEO-REPO/gemeinsamer-klon-im-container-wechselt-zweig/` (1×, offen, ohne Adresse). Vermerke ohne Evidence: `BEO-REPO/gegenprobe-haengt-an-umgebung-des-hosts` (Last verlängerte die Gruppe `p19-*` auf 140 s, kein falsches Rot oder Grün; bleibt bei 9×) und `BEO-REPO/nacharbeit-nach-review-ohne-erneuten-lauf` (Gegenbeleg: die Verifikation sah die Nacharbeit und brach jede Behebung von Hand; bleibt bei 3×).
+- **Rückgabe an den Architect (V-2, INFO):** `SPEC-067` Punkt 19 (9) nennt für `m-p19-vorlage-nach-klon` nur `p19-vorlage-vor-tap`; die Mutation färbt (wie `m-p19-vorlage-stichwort-tap-formel`) vier Fälle: `p19-vorlage-fehlt`, `p19-vorlage-leer`, `p19-vorlage-verzeichnis`, `p19-vorlage-vor-tap`. Die größere Menge ist folgerichtig (nach dem Klon ist „der Tap bleibt unberührt“ verletzt); der Vertragstext ist Sache des Architect, dieser Slice ändert ihn nicht. Der Punkt ist offen und trägt keine Adresse außer dem Architect.
+- **Folge-Slices:** `slice-harness-gegenproben-schneller` (`open/`, ohne Welle; Adresse der Lücke, nimmt „schneller“ und „voller Lauf am Endstand“ an, nicht in `done/`, kein Ausschluss trifft die Sendung; der ausdrückliche Eintrag steht aus, siehe oben). `slice-erster-release-homebrew-nachweis` (`next/`, `welle-v1-nachtrag`): nimmt die vier Risiken aus §6 an (§1 *Übernommen aus `slice-v1-abschluss-homebrew`*, §6 (a) bis (c) und das erste Risiko; dazu die Sendung des Wiederanlaufs, in diesem Commit-Strang in §6 und §8 eingetragen, Zählung: Liefer-Punkte 2, Schichten zwei); `grep` nach der Kennung dieses Slice findet sie dort in §1, §4, §6 und §8.
+- **Risiken aus §6** (jedes ein Ausgang, *weiter offen*, getragen von der Adresse `slice-erster-release-homebrew-nachweis` statt vom Register): *Verhalten von Homebrew gegenüber Drittanbieter-Taps* — dort §6, erstes Risiko. *Zugangsdaten für den Tap-Push* — dort §6 (a). *Dass Homebrew die Formel annimmt und das Binary auf macOS und Linux läuft* — dort §6 (b) und DoD 1. *Wortlaut von `gh release download` auf dem Runner* — dort §6 (c). Keines ist im Register eingetragen: Es ist keine Beobachtung eines Fehlers, sondern eine Prüfung, die erst der echte Tap zeigt; ob das für *weiter offen* nach `modul-05-planning-harness.md` §Offene Risiken genügt oder jedes einen Eintrag braucht, ist ein Urteil des Nutzers. Die Randformen (a) bis (j) in §6 sind Entscheidungen, keine Risiken; die Belege stehen in der Tabelle oben.
+- **Findings:** Review F-1 bis F-3 behoben (Nacharbeit, Belege in §7 oben), F-4 behoben (`SPEC-067` Kopf und Punkt 19 (6)), F-5 behoben (Belege des Implementers), F-6 behoben bei der Closure (`4cf43db3`), F-7 behoben (Basis `8dbe6a14`). Verifikation V-1 behoben (`4cf43db3`), V-2 an den Architect (oben), V-3 behoben (Kopf: `Verantwortlich:` nennt beide Zweige), V-4 mit dieser Notiz.
+- **Drei Paarungen:** Anker: Der Lerneintrag verkörpert nichts (`liegt in` entfällt, die Lücke ist benannt). Folge-Slice: `slice-harness-gegenproben-schneller` existiert, liegt nicht in `done/`, nimmt den Gegenstand „Laufzeit der Gegenprobe“ an; der Eintrag der Sendung selbst ist offen (oben), `slice-erster-release-homebrew-nachweis` existiert, nimmt an, nicht in `done/`. Register: sechs Einträge fortgeschrieben, einer neu, je mit nicht leerem `evidence/` (zwei Vermerke ohne Evidence, kein Zählerzuwachs).
+- **Welle:** Der Slice trägt `Welle: welle-v1-nachtrag`; er bleibt als Volltext in `done/`, bis die Welle schließt und `make archive-welle` ihn archiviert; die Roadmap bleibt unverändert (keine Umplanung, der Zustand steht in den Verzeichnissen).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -328,8 +356,8 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register bei der Closure durchgegangen (der Plan ist von 2026-10-03, das Register war damals leer): Treffer `gate-laufzeit-waechst-mit-gegenprobe`, `gegenprobe-haengt-an-umgebung-des-hosts` und `test-faellt-unter-cpu-last-aus`; Zählerstände und Evidence in §7.
 
 Nachgezählt am 2026-10-20 beim Eintragen der Randformen (Architect, `AGENTS.md` §3.13; die Schichtzählung aus `slice-doku-ist-stand` gilt): **Liefer-Punkte: 3** (1: Schritt, Vorlage, Job und Gegenprobe; 2: Vorabversion ändert den Tap nicht; 3: `releasing.md`). **Schichten: zwei** — Harness-Werkzeug (Skript, Vorlage, Workflow, Gegenprobe, Zeile in `harness/README.md`) und Wartungs-Doku (`docs/maintainer/`). Der Handbuch- und README-Teil, der bisher im ersten Punkt stand, ist an `slice-erster-release-homebrew-nachweis` abgegeben. Nachgezählt am 2026-10-20 mit der Bindung aus `slice-v1-abschluss-binary-namen` (Architect, `AGENTS.md` §3.13): Der Fall `p19-summen-altes-schema` und eine Mutation gehören zum ersten Punkt, kein neuer Liefer-Punkt; **Liefer-Punkte bleiben 3, Schichten zwei**; die Schätzung in §4 (900 bis 1200) wächst um unter 40 Zeilen, die Marke bleibt. Größe: Schätzung und vorgemerkter Schnitt in §4; Punkt 1 trägt fast den ganzen Umfang.
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (Werkzeug-Skripte, Workflow und Wartungs-Doku; Spezifikation und Entscheidung gehen dem Code voraus).
