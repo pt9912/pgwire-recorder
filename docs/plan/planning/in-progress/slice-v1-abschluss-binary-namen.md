@@ -143,6 +143,77 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
+### Belege des Implementers
+
+Klon im Dev-Container `pgr-dev2`, Zweig `impl-namen` ab `de41645c`. Code- und Doku-Endstand `9492d6c4`; danach ändert nur dieser Abschnitt den Zweig. Die Randformen aus §6 waren vollständig; eine Rückgabe an den Architect war nicht nötig.
+
+**Läufe am Endstand `9492d6c4`**
+
+| Lauf | Ergebnis |
+|---|---|
+| `make gates` | Exit 0 (alle Gates der Kette, darunter `docs-check`, `kopf-check`, `abdeckung-check`, `test-container` mit dem echten `Dockerfile`: „Punkt 4 grün — zwei Builds, dieselben Summen“, „Punkt 7 grün — Smoke auf linux/amd64“) |
+| `make test-container-gegenprobe` | Exit 0, „unveränderte Kopie grün, je Mutation genau die benannten Fälle rot“ (`GP_ENTDECKE=1`, Mutationen mit den roten Fällen im Lauf-Log) |
+| `make release-gegenprobe` | in fünf Teilen (Auswahl `GP_MUT`, Absatz darunter): Teile 1 bis 3 und 5 Exit 0, „unveränderte Kopie grün“; Teil 4 (`m-p16-*`) sechs Mutationen rot, allein gefahren grün, am Stand `de41645c` ebenso rot (Vorbefund) |
+| Metrik (`AGENTS.md` §3.14) | `git diff --numstat de41645c..9492d6c4 -- tools harness/README.md docs/user docs/maintainer README.md`: 139 Einfügungen, 77 Löschungen, Summe 216 (Marke in §4: über 800); dieselbe Zahl mit der Basis `3d927615` aus §4, denn die Pfade der Liste wurden zwischen den Basen nicht geändert |
+
+Die Gegenprobe der Veröffentlichung lief nicht in einem Zug: Ihr Arbeitsordner wächst mit jeder der 535 Mutationen (5 GB am Ende), und der Datenträger des Containers hatte 7,5 GB frei, geteilt mit dem Host, bei einem Lauf voll (0 frei). Die Teile (`GP_ENTDECKE=1`, je `make release-gegenprobe` mit der Auswahl): `^(ok|m-p1-|m-p2-|m-p3-|m-p4-|m-p5-)` (289 Zeilen), `^m-p(6|7|8|9)-` (80), `^m-p1[0-5]-` (36), `^(rekursion|fall-ohne)`, alle Exit 0; `^m-p16-` (130 Mutationen) Exit 2 mit sechs roten Mutationen: `m-p16-marke-loescht-nach-auswahl`, `m-p16-auswahl-gleiche-variante-doppelt`, `m-p16-blobs-leer`, `m-p16-index-mehr-als-zwei-abgelehnt`, `m-p16-entpacken-je-plattform`, `m-p16-auswahl-variante-ausgeschlossen`. Allein gefahren (`GP_MUT` mit diesen sechs Namen) sind sie grün („grün (6 Läufe)“). Am Stand `de41645c` (`git worktree`, ohne diesen Slice) sind in diesem Container mit `GP_MUT='^m-p16-'` dieselben sechs rot (Exit 1): ein Vorbefund der Umgebung, nicht dieses Slice; der Schritt `scan` ist nicht berührt, und die Ursache ist nicht untersucht. Ein Lauf ohne Auswahl am Stand `24a1d1d1` (bis auf die in `9492d6c4` nachgezogenen Listen der Mutationen von Punkt 3 dieser Kopie, die drei Mutationen `m-p3-*` rot färbten) war auch bei `m-p16-*` grün, damals mit 7,5 GB frei. Hinweis für den Verifier: `make release-gegenprobe` in einem Zug braucht rund 6 GB freien Platz; bei Rot in `m-p16-*` zuerst die rote Mutation allein fahren.
+
+**Zusagen und Mutationen** (je Zeile: Zusage · Mutation · roter Fall; „+“ nennt Fälle, die dieselbe Mutation mit färbt, weil sie denselben Namen lesen; Mutationen sind Textersatz in einer Kopie, jede einmal rot gesehen)
+
+`SPEC-055` Punkt 3 (`make test-container-gegenprobe`, Skript `container-gegenprobe.sh`, Mutation an `binaries.sh`):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| der Name ist `pgwire-recorder-<os>-<arch>`, genau die sechs Namen und `SHA256SUMS` | `p3-name`: Zeile `# P3name` wieder `pgwire-recorder_${VERSION}_${os}_${arch}` (Umkehr) | `p3-namen`; + `p3-exe`, `p3-name-ohne-version`, `p3-name-trenner`, `p3-sums-format`, `p3-sums-je-binary`, `p3-sums-zeile-*` |
+| der Name enthält keine `VERSION` (gleiche Namen bei zwei Läufen) | `p3-name-version`: `pgwire-recorder-${VERSION}-${os}-${arch}` | `p3-name-ohne-version` (der Name allein, ohne `_`); + `p3-namen`, `p3-exe`, `p3-sums-*`; `p3-name-trenner` bleibt grün |
+| zwei Läufe mit verschiedener `VERSION` haben verschiedene Summen | `p3-build-arg`: `--build-arg "VERSION=$VERSION"` entfällt | `p3-name-ohne-version`; + `p3-version-im-build` |
+| der Trenner ist `-`, nicht `_` | `p3-name-trenner` (beide `_`), `p3-name-trenner-vorn` (nur zwischen `pgwire-recorder` und `<os>`), `p3-name-trenner-hinten` (nur zwischen `<os>` und `<arch>`) | je `p3-name-trenner`; + `p3-namen`, `p3-exe`, `p3-sums-format`, `p3-sums-je-binary`, `p3-sums-zeile-*` |
+| die Zeichenmenge (Kleinbuchstaben, Ziffern, `-`, `.`) | `p3-name-gross` (`${os^}`), `p3-name-ziffern` (`${arch//64/}`, entfernt die Ziffern), `p3-exe-ohne-punkt` (`_exe`), `p3-name-trenner` (`_`) | je `p3-namen`; + `p3-exe`, `p3-sums-je-binary`, `p3-sums-zeile-*`; `p3-sums-format` bleibt bei den Ziffern grün (Muster `[a-z0-9]+`), `p3-name-trenner` färbt `_exe` |
+| `.exe` trägt allein `windows`, je Architektur | `p3-exe` (Zeile `# P3exe` entfällt), `p3-exe-nur-amd64`, `p3-exe-nur-arm64`, `p3-exe-auch-linux`, `p3-exe-auch-darwin` | je `p3-exe`; + `p3-namen`, `p3-sums-je-binary`, `p3-sums-zeile-` der betroffenen Plattform |
+| die Dateiliste von `DIST` ist genau die sechs Binaries und `SHA256SUMS`, keine Versionsdatei | `p3-versionsdatei`: `echo "$VERSION" > VERSION` nach `sha256sum` | `p3-namen` allein |
+| `SHA256SUMS` führt je Plattform die Zeile mit diesem Namen | `p3-sums-zeile-<os>/<arch>` (6): `grep -v -e "-<os>-<arch>"` hinter `sha256sum` | je `p3-sums-zeile-<os>-<arch>`; + `p3-sums-format`, `p3-sums-je-binary` |
+| ein `DIST` mit den sechs Dateien eines Laufs anderer `VERSION` ist rot vor dem ersten `docker`, `DIST` unverändert | `p3-dist-andere-version`: die Prüfung nimmt `pgwire-recorder-*` und `SHA256SUMS` aus; `p3-dist-unveraendert`: `rm -rf "${dist:?}"/*` vor der Meldung | `p3-dist-andere-version`; + `p3-zweiter-lauf` (ein Name allein trennt „andere“ von „gleiche“ `VERSION` nicht); bei `p3-dist-unveraendert` `p3-dist-andere-version`, `p3-dist-altes-schema`, `p3-dist-nicht-leer` |
+| ein `DIST` mit einer Datei des alten Namens ist rot, ebenso | `p3-dist-altes-schema`: die Prüfung nimmt `pgwire-recorder_*` aus | `p3-dist-altes-schema` allein |
+| (Bestand, Eingaben, nun mit neuen Fällen in der Liste) `DIST` vor dem ersten `docker` | `p3-vor-docker`: `exit 2` entfällt; `p3-dist`: Zeile `# P3dist` entfällt; `p3-dist-fehlt`: `mkdir -p` entfällt | `p3-dist-nicht-leer`, `p3-zweiter-lauf` + `p3-dist-andere-version`, `p3-dist-altes-schema`; `p3-dist-fehlt` färbt zusätzlich die Fälle, die `out` brauchen |
+
+`SPEC-055` Punkt 4 (Namen in der Meldung): Mutationen `p4-abweichung-<os>/<arch>` (6; `grep -v -e "-<os>-<arch>"` im Vergleich) → je `p4-abweichung-<os>-<arch>` (`linux-amd64` zusätzlich `p8-4-vor-6`), `p4-namen` (Meldung ohne die Namen aus `diff`) → die sechs `p4-abweichung-*` und `p4-namen`. Der Fall `p4-namen` erwartet die Zeile `die Summen zweier Builds weichen ab: pgwire-recorder-darwin-arm64 pgwire-recorder-linux-amd64`.
+
+`SPEC-067` Punkt 4, 5 und 9 (`make release-gegenprobe`, Skript `release-gegenprobe.sh`, Mutation an `release.sh`):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| genau die sechs Dateien `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, sonst Exit 1 (Punkt 4) | `m-p4-liste-entfernt` (Zeile `# P4liste` entfällt) | `p4-datei-fehlt`, `p4-datei-zu-viel`, `p4-altes-schema`, `p4-namen-je-plattform-*` (6) |
+| der alte Name `pgwire-recorder_<Version>_<os>_<arch>` wird nicht angenommen | `m-p4-altes-schema-angenommen`: die Liste nimmt auch Dateien mit `pgwire-recorder_` an | `p4-altes-schema` allein |
+| die Liste prüft jeden der sechs Namen (je Plattform) | `m-p9-name-fehlt-<os>-<arch>` (6): `erwartete_namen` lässt einen Namen aus | `p4-namen-je-plattform-<os>-<arch>` der Plattform (bei `linux-arm64` auch `p4-datei-fehlt`); + die Fälle, die den Anhang prüfen (`p9-anhaenge`, `p4-aufruf` u. a.) |
+| die Dateiliste wird gezählt (Überzähliges ist rot) | `m-p4-liste-nicht-gezaehlt`: die Liste prüft nur, dass die sechs Namen da sind | `p4-datei-zu-viel` allein |
+| `VERSION` im Aufruf, `DIST` außerhalb des Baums | `m-p4-version-fehlt`, `m-p4-dist-im-baum`, `m-p4-dist-vorher-angelegt` | `p4-aufruf` (+ `p2-trockenlauf-ohne-aussenwirkung` bei `VERSION`); die Version steht nicht mehr im Namen, die übrigen Fälle der Dateiliste färben diese Mutation nicht mehr (`SPEC-067` Punkt 4: die Bindung ist der Aufruf) |
+| `sha256sum -c` und Exit des Aufrufs | `m-p4-summe-entfernt`, `m-p4-make-fehler-ignoriert` | `p4-summe-falsch`, `p4-make-scheitert` (unverändert) |
+| die Summe im Image kommt aus dem Eintrag `pgwire-recorder-linux-<arch>` (Punkt 5) | `m-p5-summe-name-arch-fest` (immer `linux-amd64`), `m-p5-summe-name-os` (`darwin` statt `linux`) | alle Fälle mit grünem Schritt `image` (53 und 55; Liste in der Mutation) |
+| sieben Anhänge, die Namen der sechs und `SHA256SUMS` (Punkt 9) | `m-p9-achter-anhang`, `m-p9-name-fehlt-sha256sums` | `p9-anhaenge`, `p9-release-existiert-gleich`, `p11-wiederanlauf-release-*` (unverändert, Liste nun ohne Version) |
+
+Grüne Mutanten: keine. Keine Mutation wird als äquivalent geführt; jede der Zeilen oben war rot (`GP_ENTDECKE=1`), und die Mengen der roten Fälle stehen als erwartete Menge im Skript (`mut` und `mutr` melden eine Abweichung als rot). Einen Mitläufer nennt die Tabelle mit „+“: Er liest denselben Namen (`p3-namen` prüft alle sechs, `p3-sums-zeile-*` je einen), er ist kein zweiter Beleg.
+
+**Befundzeilen des alten Schemas** (`grep -rnI 'pgwire-recorder_' --exclude-dir=.git --exclude-dir=baseline .`, ohne `docs/reviews/` und `done/`)
+
+- vorher (`de41645c`, `git grep -nI 'pgwire-recorder_'` ohne `.harness/baseline`, `docs/reviews/` und `done/`): 50 Treffer in 12 Dateien: `binaries.sh` 1, `run-container.sh` 1, `release.sh` 2, `container-gegenprobe.sh` 6, `release-gegenprobe.sh` 13, `SPEC-055` 1, `SPEC-067` 2, `harness/README.md` 1, Handbuch 18 (davon 10 im Abschnitt „Binary vom GitHub-Release“), `slice-v1-abschluss-release-v0-1-1` 1, dieser Plan 1, [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) 3.
+- nachher (`9492d6c4`): Treffer nur noch, wo das alte Schema als alt genannt oder `v0.1.0` beschrieben wird: `container-gegenprobe.sh` 6 (Fall `p3-dist-altes-schema` und die Mutationen `p3-name*`), `release-gegenprobe.sh` 2 (Modus `altes-schema` der Attrappe, Mutation `m-p4-altes-schema-angenommen`), Handbuch 10 (Abschnitt „Binary vom GitHub-Release“, `v0.1.0`, Bestand nach §1), `SPEC-055` 1 und `SPEC-067` 2 (Nennung des alten Schemas im Vertrag), [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) 3, `slice-v1-abschluss-release-v0-1-1` 1, dieser Plan; `binaries.sh`, `run-container.sh`, `release.sh` und `harness/README.md` ohne Treffer
+
+**Handbuch** (`AGENTS.md` §3.11, Schritt 17): Die Proben liefen gegen das gebaute Binary im Dev-Container (`make binaries VERSION=1.2.3` in `dist/`, danach `make binaries` mit `DIST=/tmp/d2`, danach `make binaries` in `dist/`).
+
+| Satz im Abschnitt „Binaries für alle Plattformen bauen“ | Probe, Ergebnis |
+|---|---|
+| In `dist/` liegen sechs Binaries und `SHA256SUMS` | `ls -A dist`: sieben Einträge |
+| der Name ist `pgwire-recorder-<Betriebssystem>-<Architektur>`, unter Windows `.exe` | die sechs Namen der Liste im Handbuch, Zeichen für Zeichen |
+| die Version steht nicht im Namen; die Namen bleiben dieselben | `VERSION=1.2.3` und `VERSION` ohne Angabe: `ls -A` beider Verzeichnisse gleich |
+| `VERSION=1.2.3` gibt `pgwire-recorder 1.2.3` aus statt `pgwire-recorder dev` | `dist/pgwire-recorder-linux-amd64 version`: `pgwire-recorder 1.2.3`; ohne Angabe: `pgwire-recorder dev` |
+| `SHA256SUMS` hat eine Zeile je Binary, jede Zeile der Ausgabe von `sha256sum -c` endet auf `OK` | sechs Zeilen `…: OK`; die Summen der beiden Läufe unterscheiden sich an allen sechs Zeilen |
+| `dist/` muss leer sein oder fehlen, sonst bricht `make binaries` ab; das gilt auch für Dateien eines früheren Laufs mit anderer `VERSION` | zweiter Lauf mit `VERSION=2.0.0` in `dist/` des ersten: `binaries: Eingabe: DIST 'dist' ist nicht leer`, Exit 2, `dist/` unverändert (sieben Einträge) |
+| `./dist/pgwire-recorder-linux-amd64 version` gibt `pgwire-recorder dev` aus | `rm -rf dist; make binaries` (Vorgabe `dev`), dann `dist/pgwire-recorder-linux-amd64 version`: `pgwire-recorder dev`; die Namen in `dist/` sind die sechs Zeilen des Handbuchs (`diff` gegen den Block „text“, leer) |
+
+Quantoren-Durchsicht (Schritt 17): „jede der sechs Plattformen“ (Bestand, sechs Dateien in `dist/`), „Jede Zeile der Ausgabe“ (Bestand, sechs `OK`), „muss leer sein oder fehlen“ (Bestand; die Ausnahme „Dateien einer anderen `VERSION`“ steht nun im Satz, Probe oben), „die Namen bleiben dieselben“ (neu, Probe oben). Eine Ausnahme, die die Seite für diesen Gegenstand sonst aufzählt, gibt es nicht. Der Abschnitt „Binary vom GitHub-Release“ und die Zeile zu `v0.1.0` in `README.md` bleiben (§1).
+
+**Kommentare** (Schritt 20): Die geänderten Kommentare in `container-gegenprobe.sh` (`namen_trenner`, `namen_gleich_summen_verschieden`, „Zwei Läufe mit verschiedener VERSION …“, „Ein DIST mit den Dateien …“, „Eine gültige Version geht in den Build ein“) und `release-gegenprobe.sh` (`GP_FEHLT`) sagen den Ist-Zustand und nennen je einen Fall, der sie prüft.
+
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
