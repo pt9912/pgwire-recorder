@@ -77,3 +77,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-erster-release-vero
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-erster-release-freigabe` (F-2 MEDIUM, Runde 2 F-1 MEDIUM; F-3 LOW, Runde 2 F-2 bis F-4 LOW) — drei Wächter der Auswertung ohne Fall, eine Mutation durch geänderte Fall-Basis grün, die alte Marke nur an einer von vier Fehlerstellen, der Inhalt von `blobs/` nur dem Namen nach geprüft; behoben, die Verifikationen brachen jede Behebung von Hand (Beleg `evidence/slice-erster-release-freigabe.md`). Zähler 62.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-cancel-ohne-schluessel` (F-1, F-V1, L-1) — drei Zusagen ohne fangende Mutation, obwohl der Implementer je Zusage Mutationen fuhr; zwei bekamen Fälle, eine bekam die engere Fassung (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-homebrew` (F-3 LOW) — eine Beispiel-Mutation, die die Spezifikation nannte, fehlte als benannte Mutation, obwohl andere Mutationen derselben Zusage da waren; behoben (Beleg `evidence/slice-v1-abschluss-homebrew.md`). Zähler 64.

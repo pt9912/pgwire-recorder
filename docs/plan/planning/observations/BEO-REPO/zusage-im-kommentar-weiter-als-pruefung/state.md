@@ -109,3 +109,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-erster-release-vero
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-erster-release-veroeffentlichung-image` (F-4 MEDIUM; F-7 LOW) — die Zusage „der erste Lauf zeigt den Wortlaut“ ohne Träger im Log, und der Satz „das Binary jedes Manifests hat die Summe“ weiter als die Prüfung (zweiter Bau statt des kopierten Layouts); behoben bzw. beim Architect (Beleg `evidence/slice-erster-release-veroeffentlichung-image.md`). Zähler 87.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-cancel-ohne-schluessel` (F-4, L-1) — eine Deklaration und ein Satz in §7 sagten mehr zu, als der Test prüfte (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-homebrew` (F-6 INFO; V-1 LOW) — Prosa der Wartungs-Doku über den echten Tap und über GitHub ohne Beleg im Klon; die Nacharbeit übersah sie, die Verifikation brachte sie zurück; behoben bei der Closure (Beleg `evidence/slice-v1-abschluss-homebrew.md`). Zähler 89.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-homebrew
+**Fund:** F-6 (INFO, Review) und V-1 (LOW, Verifikation): `docs/maintainer/releasing.md` sagte den Zustand des echten Taps zu („im Tap liegt keine Formel“) und ein Verhalten von GitHub („Re-run failed jobs“ wiederholt nur den Job `homebrew`, baut das Image nicht neu), das kein Test dieses Repos zeigt; an drei Stellen. Die Nacharbeit ließ sie stehen, die Verifikation fand sie als offen. Behoben bei der Closure: der erste Satz nennt, dass kein Gate den echten Tap prüft, die beiden anderen sagen nichts über das Verhalten von GitHub mehr.

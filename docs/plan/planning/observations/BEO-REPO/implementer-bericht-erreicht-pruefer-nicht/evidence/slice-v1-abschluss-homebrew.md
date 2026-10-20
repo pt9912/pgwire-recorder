@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-homebrew
+**Fund:** Der Lauf des Implementers wurde abgebrochen, bevor er pushte und berichtete (Angabe der Koordination); §7 des Plans trug keine Belege, und das Review leitete Zusage und Mutation aus Diff und `SPEC-067` Punkt 19 (9) ab (F-5 INFO). Die Nacharbeit (Zweig `impl-brew2`) schrieb die Belege nach (Befund-Tabelle, Läufe, Zusage · Mutation · roter Test); die Verifikation wiederholte eine Stichprobe und nannte den Rest als nicht gefahren (V-4).

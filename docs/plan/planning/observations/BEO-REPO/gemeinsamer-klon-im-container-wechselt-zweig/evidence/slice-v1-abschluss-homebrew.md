@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-homebrew
+**Fund:** Läufe im gemeinsamen Klon des Containers `pgr-dev2` wechselten den Zweig (Angabe der Koordination am 2026-10-20); Verifikation (`wt-ver`), Architect (`wt-arch`), Nacharbeit (Worktree auf `impl-brew2`) und Closure (`wt-clo`) arbeiteten in der Folge in eigenen Worktrees. Der genaue Hergang ist nicht belegt; was der Wechsel an Berichten verfälschte, ist nicht untersucht.
