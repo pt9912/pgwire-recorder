@@ -919,6 +919,13 @@ func (s *Server) cancelOhneSchluessel(k *kanal) {
 	s.cancelGeschlossen()
 }
 
+// cancelLaengeZugesagt meldet, ob ein CancelRequest der Länge laenge ohne Schlüssel
+// (12) oder mit einem Schlüssel von 4 bis 256 Bytes (16 bis 268) ist; jede andere
+// Länge ist PGR-E6001, sobald der Kopf gelesen ist (LH-FA-05.e *Länge des CancelRequest*).
+func cancelLaengeZugesagt(laenge uint32) bool {
+	return laenge == laengeCancelOhneSchluessel || (laenge >= 16 && laenge <= 268)
+}
+
 // cancelGeschlossen meldet, dass ein CancelRequest nicht weitergeleitet wird
 // und seine Verbindung endet (PGR-W3001).
 func (s *Server) cancelGeschlossen() {
@@ -957,8 +964,9 @@ func erweiterung(parameter map[string]string) bool {
 // startkopf prüft Länge und Startcode der ersten Client-Nachricht, in dieser
 // Reihenfolge, und meldet, ob pgproto3 sie lesen soll. Eine Länge außerhalb
 // einer Startnachricht schließt die Verbindung ohne Antwort mit der Warnung
-// PGR-W3003, ein CancelRequest der Länge 12 wird hier ganz gelesen
-// (cancelOhneSchluessel), eine unbekannte Sonderanfrage ist PGR-E6001, jede
+// PGR-W3003, ein CancelRequest mit einer Länge außer 12 und 16 bis 268 ist
+// PGR-E6001 aus dem Kopf, ohne den Rest abzuwarten, einer der Länge 12 wird hier
+// ganz gelesen (cancelOhneSchluessel), eine unbekannte Sonderanfrage ist PGR-E6001, jede
 // andere Protokollversion als 3.0 PGR-E6002.
 func (s *Server) startkopf(k *kanal, laenge, code uint32) bool {
 	be := k.be
@@ -968,6 +976,9 @@ func (s *Server) startkopf(k *kanal, laenge, code uint32) bool {
 		return false
 	case laenge == laengeCancelOhneSchluessel && code == codeCancelRequest:
 		s.cancelOhneSchluessel(k)
+		return false
+	case code == codeCancelRequest && !cancelLaengeZugesagt(laenge):
+		s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Startnachricht nicht lesbar"))
 		return false
 	case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
 		return true

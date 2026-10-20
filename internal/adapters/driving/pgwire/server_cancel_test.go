@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
@@ -177,7 +179,7 @@ func TestCancelRequestLaengeAusserhalb(t *testing.T) {
 
 // Abdeckung: LH-FA-05/Boundary — ein CancelRequest berührt eine zweite Verbindung nicht
 // (LH-FA-05.e *Länge des CancelRequest*, *Modus*): Eine reguläre Verbindung, die schon
-// läuft, setzt ihre Anfrage fort und endet regulär, und die nächste reguläre Verbindung
+// offen ist, sendet nach dem CancelRequest ihre Anfrage und endet regulär, und die nächste reguläre Verbindung
 // öffnet die zweite Session; der CancelRequest selbst öffnet keine, in record und replay,
 // für die Längen 12 und 16.
 func TestCancelRequestZweiteVerbindungUnberuehrt(t *testing.T) {
@@ -207,5 +209,112 @@ func TestCancelRequestZweiteVerbindungUnberuehrt(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// cancelFrist ist die Zeit, die ein Test auf eine Antwort wartet, die kommen soll
+// oder nicht kommen darf.
+const cancelFrist = 2 * time.Second
+
+// Abdeckung: LH-FA-05/Negative, LH-FA-05/Boundary — die Länge des CancelRequest ist aus dem
+// Kopf entschieden (LH-FA-05.e *Länge des CancelRequest*, Reihenfolge der Gründe): Bei offener
+// Verbindung, die nach dem Kopf von 8 Bytes nichts mehr sendet, lehnt der Recorder die Längen
+// 8 bis 11, 13 bis 15, 269, 270 und 10000 sofort mit ErrorResponse (PGR-E6001) ab und schließt;
+// bei den Längen 12, 16, 17 und 268 mit fehlendem Rest (0 und 3 Bytes) antwortet er bis zum
+// Ablauf von zwei Sekunden nicht und fehlerfrei erst mit dem Ende der Verbindung (PGR-E6001);
+// in record und replay, an jeder der sechs Stellen der Folge.
+func TestCancelRequestKopf(t *testing.T) {
+	z, _ := tlsEin(t, false, testpki.Blatt{})
+	for _, replay := range []bool{false, true} {
+		for _, st := range cancelStellen() {
+			for _, l := range []int{8, 9, 10, 11, 13, 14, 15, 269, 270, 10000} {
+				t.Run(fmt.Sprintf("replay=%v/%s/Länge %d nur Kopf, Verbindung offen", replay, st.name, l), func(t *testing.T) {
+					t.Parallel()
+					r := neuerRandServer(t, replay, tlsWenn(st, z))
+					tcp, c := r.verbinde(st.klartext)
+					_ = c.SetReadDeadline(time.Now().Add(cancelFrist))
+					if _, err := c.Write(append(append([]byte{}, st.vor...), rohKopf(l, pgwire.CodeCancelRequest)...)); err != nil {
+						t.Fatal(err)
+					}
+					roh, err := io.ReadAll(c)
+					var ne net.Error
+					if errors.As(err, &ne) && ne.Timeout() {
+						t.Fatalf("keine Ablehnung aus dem Kopf, gelesen %q", roh)
+					}
+					_ = tcp.Close()
+					b := r.befund(roh)
+					if b.n != st.n || b.typen != "E" || !strings.Contains(b.fehler, model.CodeUnsupported) || b.erster != model.CodeUnsupported || b.sessions != 0 {
+						t.Fatalf("Befund %+v", b)
+					}
+				})
+			}
+			for _, l := range []int{12, 16, 17, 268} {
+				for _, g := range []int{0, 3} {
+					t.Run(fmt.Sprintf("replay=%v/%s/Länge %d, %d Bytes Rest, Verbindung offen", replay, st.name, l, g), func(t *testing.T) {
+						t.Parallel()
+						r := neuerRandServer(t, replay, tlsWenn(st, z))
+						tcp, c := r.verbinde(st.klartext)
+						if _, err := c.Write(append(append([]byte{}, st.vor...), cancelNachricht(l, g, 0)...)); err != nil {
+							t.Fatal(err)
+						}
+						_ = c.SetReadDeadline(time.Now().Add(cancelFrist))
+						gelesen, err := io.ReadAll(c)
+						var ne net.Error
+						if !errors.As(err, &ne) || !ne.Timeout() || len(gelesen) != st.n {
+							t.Fatalf("Antwort vor dem Ende der Verbindung: gelesen %q, Fehler %v", gelesen, err)
+						}
+						_ = tcp.Close()
+						b := r.befund(nil)
+						if b.erster != model.CodeUnsupported || b.sessions != 0 {
+							t.Fatalf("Befund nach dem Ende der Verbindung %+v", b)
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
+// tlsWenn liefert z, wenn die Stelle TLS verlangt, sonst nil.
+func tlsWenn(st cancelStelle, z *pgwire.TLS) *pgwire.TLS {
+	if st.tls {
+		return z
+	}
+	return nil
+}
+
+// Abdeckung: LH-FA-05/Boundary — ein CancelRequest (Länge 12 und 16) auf einer Verbindung
+// beendet eine laufende Interaktion einer zweiten Verbindung nicht (LH-FA-05.e *Länge des
+// CancelRequest*, *Modus*): Die Anfrage der zweiten Verbindung läuft im Recorder, der
+// CancelRequest wird behandelt und schließt seine Verbindung, danach endet die Anfrage
+// regulär mit ihrer Antwort und CommandComplete, in record.
+func TestCancelRequestLaufendeInteraktionUnberuehrt(t *testing.T) {
+	for _, l := range []int{12, 16} {
+		t.Run(fmt.Sprintf("Länge %d", l), func(t *testing.T) {
+			r := neuerRandServer(t, false, nil)
+			r.rec.queryHalt = make(chan struct{})
+			_, reg := r.verbinde(false)
+			_, _ = reg.Write(append(rohStart("user", "app"), rohNachricht('Q', "SELECT 1\x00")...))
+			for ende := time.Now().Add(cancelFrist); ; time.Sleep(10 * time.Millisecond) {
+				r.rec.mu.Lock()
+				laeuft := slices.Contains(r.rec.ereignisse, "q:SELECT 1")
+				r.rec.mu.Unlock()
+				if laeuft {
+					break
+				}
+				if time.Now().After(ende) {
+					t.Fatal("die Anfrage läuft nicht")
+				}
+			}
+			if roh := cancelSenden(r, cancelVoll(l), false, false); len(roh) != 0 {
+				t.Fatalf("Antwort auf den CancelRequest %q", roh)
+			}
+			close(r.rec.queryHalt)
+			_, _ = reg.Write(rohNachricht('X', ""))
+			rest, _ := io.ReadAll(reg)
+			if !strings.Contains(string(rest), "SELECT 1") || strings.Contains(string(rest), "PGR-") {
+				t.Fatalf("Antwort der laufenden Anfrage %q", rest)
+			}
+		})
 	}
 }
