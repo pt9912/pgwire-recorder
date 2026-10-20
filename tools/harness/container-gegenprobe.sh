@@ -227,7 +227,7 @@ zeile() { grep -nE -- "$1" "$log" | head -1 | cut -d: -f1; }
 dateien() { (cd "$w" && find . -type f | sort); }
 ohne() { local x r=""; for x in $1; do if [ "$x" != "$2" ]; then r+="$x "; fi; done; echo "${r% }"; }
 dt() { echo "${1//\//-}"; }
-bname() { local n="pgwire-recorder_${3:-0.0.0-test}_$1_$2"; if [ "$1" = windows ]; then n+=".exe"; fi; echo "$n"; }
+bname() { local n="pgwire-recorder-$1-$2"; if [ "$1" = windows ]; then n+=".exe"; fi; echo "$n"; }
 
 sel() {
   local p
@@ -296,15 +296,30 @@ signalfall() {
   wait "$wp" || true
 }
 sums_zeilen() { (cd "$w/${1:-dist}" && cat SHA256SUMS); }
-namen_soll() { # <Version> — die sechs Namen, nach Name sortiert
+namen_soll() { # die sechs Namen, nach Name sortiert
   local p
-  for p in $ERF; do bname "${p%/*}" "${p#*/}" "$1"; done | LC_ALL=C sort
+  for p in $ERF; do bname "${p%/*}" "${p#*/}"; done | LC_ALL=C sort
+}
+# namen_trenner <Verzeichnis> — kein "_" in den Namen der Dateien und der Zeilen von SHA256SUMS.
+namen_trenner() {
+  local d="$w/$1" n
+  [ -s "$d/SHA256SUMS" ] || return 1
+  n="$({ ls -A "$d" | grep -vx SHA256SUMS; awk '{print $2}' "$d/SHA256SUMS"; })"
+  [ -n "$n" ] || return 1
+  ! grep -q _ <<< "$n"
+}
+# namen_gleich_summen_verschieden <Verzeichnis a> <Verzeichnis b> — dieselben Namen in SHA256SUMS, an keiner Stelle dieselbe Summe.
+namen_gleich_summen_verschieden() {
+  local a="$w/$1" b="$w/$2"
+  [ -s "$a/SHA256SUMS" ] && [ -s "$b/SHA256SUMS" ] || return 1
+  [ "$(awk '{print $2}' "$a/SHA256SUMS")" = "$(awk '{print $2}' "$b/SHA256SUMS")" ] || return 1
+  ! paste <(awk '{print $1}' "$a/SHA256SUMS") <(awk '{print $1}' "$b/SHA256SUMS") | awk '$1 == $2 { f = 1 } END { exit !f }'
 }
 
 # pruefe <baum> — schreibt die Namen der Fälle, die nicht bestehen (einen je Zeile); $nur wählt aus.
 pruefe() {
   w="$1"
-  local p a v n text sg ort modus ziel ende_name k1 k2
+  local p a v n text sg ort modus ziel ende_name k1 k2 vorher
   ma=()
 
   # Punkt 1: Plattformen, vor dem ersten Aufruf von docker.
@@ -350,7 +365,7 @@ pruefe() {
     ist p2-dev-gate '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "VERSION ${q}dev${q} ist am Gate unzulässig"'
   fi
   ist p2-dockerfile-x 'grep -qF -- "-X main.version=\$VERSION" "$w/Dockerfile"'
-  # Eine gültige Version geht in den Build und in den Dateinamen ein.
+  # Eine gültige Version geht in den Build ein.
   if lauft p2-gueltig; then
     ma=("VERSION=1.0.0-rc.1+b_2"); gate
     ist p2-gueltig 'gruen && [ "$(anzahl "^build .*--target dist .*--build-arg VERSION=1.0.0-rc.1\+b_2 ")" -eq 12 ]'
@@ -394,15 +409,29 @@ pruefe() {
   if lauft p3; then
     ma=(VERSION=7x7 DIST=out); werkz
     ist p3-gruen '[ "$code" -eq 0 ]'
-    ist p3-namen '[ "$(cd "$w/out" && ls -A | LC_ALL=C sort | tr "\n" " ")" = "SHA256SUMS $(namen_soll 7x7 | tr "\n" " ")" ]'
-    ist p3-exe '[ -f "$w/out/pgwire-recorder_7x7_windows_amd64.exe" ] && [ -f "$w/out/pgwire-recorder_7x7_windows_arm64.exe" ] && [ ! -e "$w/out/pgwire-recorder_7x7_linux_amd64.exe" ]'
+    ist p3-namen '[ "$(cd "$w/out" && ls -A | LC_ALL=C sort | tr "\n" " ")" = "SHA256SUMS $(namen_soll | tr "\n" " ")" ]'
+    ist p3-exe '[ -f "$w/out/pgwire-recorder-windows-amd64.exe" ] && [ -f "$w/out/pgwire-recorder-windows-arm64.exe" ] && [ "$(cd "$w/out" && ls -A | grep -c "\.exe$")" -eq 2 ]'
+    ist p3-name-trenner 'namen_trenner out'
     ist p3-version-im-build '[ "$(anzahl "^build .*--target dist .*--build-arg VERSION=7x7 ")" -eq 6 ]'
     ist p3-nur-binaries '[ "$(anzahl "^build ")" -eq 6 ] && [ "$(anzahl "no-cache-filter")" -eq 0 ] && [ "$(anzahl "^(run|create|network) ")" -eq 0 ]'
-    ist p3-sums-format '[ "$(sums_zeilen out | grep -cE "^[0-9a-f]{64}  pgwire-recorder_7x7_[a-z]+_[a-z0-9]+(\.exe)?$")" -eq 6 ]'
-    ist p3-sums-je-binary '[ "$(sums_zeilen out | wc -l)" -eq 6 ] && [ "$(sums_zeilen out | awk "{print \$2}" | LC_ALL=C sort | tr "\n" " ")" = "$(namen_soll 7x7 | tr "\n" " ")" ]'
+    ist p3-sums-format '[ "$(sums_zeilen out | grep -cE "^[0-9a-f]{64}  pgwire-recorder-[a-z]+-[a-z0-9]+(\.exe)?$")" -eq 6 ]'
+    ist p3-sums-je-binary '[ "$(sums_zeilen out | wc -l)" -eq 6 ] && [ "$(sums_zeilen out | awk "{print \$2}" | LC_ALL=C sort | tr "\n" " ")" = "$(namen_soll | tr "\n" " ")" ]'
+    for p in $ERF; do
+      n="$(bname "${p%/*}" "${p#*/}")"
+      ist "p3-sums-zeile-$(dt "$p")" "[ \"\$(sums_zeilen out | grep -cE '^[0-9a-f]{64}  ${n//./\\.}\$')\" -eq 1 ]"
+    done
     ist p3-sums-sortiert 'sums_zeilen out | awk "{print \$2}" | LC_ALL=C sort -c'
     ist p3-sums-lf '! grep -q $'"'"'\r'"'"' "$w/out/SHA256SUMS" && [ "$(tail -c1 "$w/out/SHA256SUMS" | od -An -c | tr -d " ")" = "\\n" ]'
     ist p3-sums-pruefbar '(cd "$w/out" && sha256sum -c SHA256SUMS > /dev/null 2>&1)'
+    # Zwei Läufe mit verschiedener VERSION: gleiche Namen, verschiedene Summen.
+    ma=(VERSION=8y8 DIST=out2); werkz
+    ist p3-name-ohne-version '[ "$code" -eq 0 ] && namen_gleich_summen_verschieden out out2'
+    # Ein DIST mit den Dateien eines Laufs anderer VERSION ist nicht leer: rot vor dem ersten docker, DIST unverändert.
+    vorher="$(cd "$w/out" 2> /dev/null && ls -A && sha256sum -- *)" || true
+    ma=(VERSION=8y8 DIST=out); werkz
+    ist p3-dist-andere-version '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "DIST '"'"'out'"'"' ist nicht leer" && [ "$vorher" = "$(cd "$w/out" 2> /dev/null && ls -A && sha256sum -- *)" ]'
+    mkdir -p "$w/altes"; echo x > "$w/altes/pgwire-recorder_7x7_linux_amd64"; ma=(DIST=altes); werkz
+    ist p3-dist-altes-schema '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "DIST '"'"'altes'"'"' ist nicht leer" && [ "$(ls -A "$w/altes")" = pgwire-recorder_7x7_linux_amd64 ] && [ "$(cat "$w/altes/pgwire-recorder_7x7_linux_amd64")" = x ]'
     ma=(DIST=neu/dist); werkz
     ist p3-dist-fehlt '[ "$code" -eq 0 ] && [ -f "$w/neu/dist/SHA256SUMS" ]'
     mkdir -p "$w/leer"; ma=(DIST=leer); werkz
@@ -434,7 +463,7 @@ pruefe() {
   done
   if lauft p4-namen; then
     ma=(); gate AT_ABWEICH="linux/amd64 darwin/arm64"
-    ist p4-namen '[ "$code" -ne 0 ] && grep -qxF "test-container: ROT — die Summen zweier Builds weichen ab: pgwire-recorder_0.0.0-test_darwin_arm64 pgwire-recorder_0.0.0-test_linux_amd64" "$aus"'
+    ist p4-namen '[ "$code" -ne 0 ] && grep -qxF "test-container: ROT — die Summen zweier Builds weichen ab: pgwire-recorder-darwin-arm64 pgwire-recorder-linux-amd64" "$aus"'
   fi
   if lauft p4-cache; then
     ma=(); gate AT_NICHT_REPRO=1
@@ -490,7 +519,7 @@ pruefe() {
   }
   gfall p7-server-arm64 AT_SERVER_ARCH=arm64 'in_aus "Smoke auf linux/arm64" && [ "$(anzahl "^run --rm --name [^ ]*-version pgr-ct-[0-9]+:linux-arm64 version$")" -eq 1 ]'
   gfall p7-server-fremd AT_SERVER_ARCH=riscv64 'rot "Plattform riscv64 des Docker-Servers ist weder amd64 noch arm64" && ! grep -q "^run " "$log"'
-  gfall p7a-ausgabe-abweichend "AT_VERSION_AUS=pgwire-recorder_x" 'rot "version gibt ${q}pgwire-recorder_x${q} aus statt ${q}pgwire-recorder 0.0.0-test${q} und LF"'
+  gfall p7a-ausgabe-abweichend "AT_VERSION_AUS=pgwire-recorder-x" 'rot "version gibt ${q}pgwire-recorder-x${q} aus statt ${q}pgwire-recorder 0.0.0-test${q} und LF"'
   gfall p7a-zusatzzeile "AT_VERSION_AUS=pgwire-recorder 0.0.0-test"$'\n'"zweite Zeile" '[ "$code" -ne 0 ] && in_aus "version gibt ${q}pgwire-recorder 0.0.0-test"'
   gfall p7a-ohne-lf AT_VERSION_OHNE_LF=1 'rot "version gibt ${q}pgwire-recorder 0.0.0-test${q} aus statt"'
   gfall p7a-exit AT_VERSION_ROT=1 'rot "version endet mit einem Exit-Code ungleich 0"'
@@ -634,7 +663,7 @@ efaelle="p1a-bin-leer p1a-img-leer p1b1-ohne-slash p1b2-os-leer p1b3-arch-leer p
 for p in $ERF; do efaelle+=" p1e-bin-$(dt "$p")"; done
 for p in $IMG; do efaelle+=" p1e-img-$(dt "$p")"; done
 mut p8-vor-docker "$G_" %P8vor-docker "p1a p1b p1c p1d p1e p1f p2 p8" $efaelle p2-dev-gate p8-1-vor-5
-mut p3-vor-docker "$B_" 'if [ "$fehler" -ne 0 ]; then exit 2; fi' 'if [ "$fehler" -ne 0 ]; then :; fi' "p1e-binaries p2-binaries p3-dist p3-zweiter" p1e-binaries p2-binaries p3-dist-nicht-leer p3-zweiter-lauf
+mut p3-vor-docker "$B_" 'if [ "$fehler" -ne 0 ]; then exit 2; fi' 'if [ "$fehler" -ne 0 ]; then :; fi' "p1e-binaries p2-binaries p3-dist p3-zweiter" p1e-binaries p2-binaries p3-dist-nicht-leer p3-dist-andere-version p3-dist-altes-schema p3-zweiter-lauf
 
 # --- Punkt 2: VERSION ---
 mut p2-leer "$L_" '[[ "${VERSION-}" =~' '[[ -z "${VERSION-}" || "${VERSION-}" =~' "p2-leer p2-binaries" p2-leer p2-binaries
@@ -657,19 +686,33 @@ mut p2-dev "$S_" "'pgwire-recorder %s\\n' \"\$VERSION\"" "'pgwire-recorder %s\\n
 
 # --- Punkt 3: das Werkzeug ---
 mut p3-dist-leer "$B_" %P3distleer "p3-dist" p3-dist-leerer-wert
-mut p3-dist "$B_" %P3dist "p3-dist p3-zweiter" p3-dist-nicht-leer p3-dist-datei p3-zweiter-lauf
-mut p3-exe "$B_" %P3exe p3 p3-namen p3-exe p3-sums-je-binary
-mut p3-name "$B_" 'datei="pgwire-recorder_${VERSION}_${os}_${arch}"' 'datei="pgwire-recorder_${os}_${arch}"' p3 p3-exe p3-namen p3-sums-format p3-sums-je-binary
-mut p3-build-arg "$B_" ' --build-arg "VERSION=$VERSION"' '' p3 p3-version-im-build
+mut p3-dist "$B_" %P3dist "p3-dist p3-zweiter" p3-dist-nicht-leer p3-dist-datei p3-dist-andere-version p3-dist-altes-schema p3-zweiter-lauf
+Z6=""; for p in $ERF; do Z6+=" p3-sums-zeile-$(dt "$p")"; done
+ZW="p3-sums-zeile-windows-amd64 p3-sums-zeile-windows-arm64"
+mut p3-exe "$B_" %P3exe p3 p3-namen p3-exe p3-sums-je-binary $ZW
+mut p3-exe-nur-amd64 "$B_" 'if [ "$os" = windows ]; then datei+=".exe"; fi' 'if [ "$os" = windows ] && [ "$arch" = amd64 ]; then datei+=".exe"; fi' p3 p3-namen p3-exe p3-sums-je-binary p3-sums-zeile-windows-arm64
+mut p3-exe-nur-arm64 "$B_" 'if [ "$os" = windows ]; then datei+=".exe"; fi' 'if [ "$os" = windows ] && [ "$arch" = arm64 ]; then datei+=".exe"; fi' p3 p3-namen p3-exe p3-sums-je-binary p3-sums-zeile-windows-amd64
+mut p3-exe-auch-linux "$B_" 'if [ "$os" = windows ]; then datei+=".exe"; fi' 'if [ "$os" = windows ] || [ "$os" = linux ]; then datei+=".exe"; fi' p3 p3-namen p3-exe p3-sums-je-binary p3-sums-zeile-linux-amd64 p3-sums-zeile-linux-arm64
+mut p3-exe-auch-darwin "$B_" 'if [ "$os" = windows ]; then datei+=".exe"; fi' 'if [ "$os" = windows ] || [ "$os" = darwin ]; then datei+=".exe"; fi' p3 p3-namen p3-exe p3-sums-je-binary p3-sums-zeile-darwin-amd64 p3-sums-zeile-darwin-arm64
+mut p3-name "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder_${VERSION}_${os}_${arch}"' p3 p3-exe p3-namen p3-name-ohne-version p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
+mut p3-name-version "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder-${VERSION}-${os}-${arch}"' p3 p3-exe p3-namen p3-name-ohne-version p3-sums-format p3-sums-je-binary $Z6
+mut p3-name-trenner "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder_${os}_${arch}"' p3 p3-exe p3-namen p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
+mut p3-name-trenner-vorn "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder_${os}-${arch}"' p3 p3-exe p3-namen p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
+mut p3-name-trenner-hinten "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder-${os}_${arch}"' p3 p3-exe p3-namen p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
+mut p3-versionsdatei "$B_" '(cd "$dist" && sha256sum "${namen[@]}" > SHA256SUMS)' '(cd "$dist" && sha256sum "${namen[@]}" > SHA256SUMS; echo "$VERSION" > VERSION)' p3 p3-namen
+mut p3-build-arg "$B_" ' --build-arg "VERSION=$VERSION"' '' p3 p3-version-im-build p3-name-ohne-version
 mut p3-sort "$B_" %P3sort p3 p3-sums-sortiert
-mut p3-sums-binaer "$B_" 'sha256sum "${namen[@]}"' 'sha256sum --binary "${namen[@]}"' p3 p3-sums-format p3-sums-je-binary
-mut p3-sums-summe "$B_" 'sha256sum "${namen[@]}"' 'sha1sum "${namen[@]}"' p3 p3-sums-format p3-sums-pruefbar
-mut p3-sums-name "$B_" 'sha256sum "${namen[@]}"' 'sha256sum "${namen[@]/#/.\/}"' p3 p3-sums-format p3-sums-je-binary
-mut p3-sums-lf "$B_" '> SHA256SUMS)' "| sed 's/\$/\\r/' > SHA256SUMS)" p3 p3-sums-lf p3-sums-format p3-sums-je-binary
+mut p3-sums-binaer "$B_" 'sha256sum "${namen[@]}"' 'sha256sum --binary "${namen[@]}"' p3 p3-sums-format p3-sums-je-binary $Z6
+mut p3-sums-summe "$B_" 'sha256sum "${namen[@]}"' 'sha1sum "${namen[@]}"' p3 p3-sums-format p3-sums-pruefbar $Z6
+mut p3-sums-name "$B_" 'sha256sum "${namen[@]}"' 'sha256sum "${namen[@]/#/.\/}"' p3 p3-sums-format p3-sums-je-binary $Z6
+mut p3-sums-lf "$B_" '> SHA256SUMS)' "| sed 's/\$/\\r/' > SHA256SUMS)" p3 p3-sums-lf p3-sums-format p3-sums-je-binary $Z6
 for p in $ERF; do
-  mut "p3-sums-zeile-$p" "$B_" 'sha256sum "${namen[@]}"' "sha256sum \"\${namen[@]}\" | grep -v \"_${p%/*}_${p#*/}\"" p3 p3-sums-format p3-sums-je-binary
+  mut "p3-sums-zeile-$p" "$B_" 'sha256sum "${namen[@]}"' "sha256sum \"\${namen[@]}\" | grep -v -e \"-${p%/*}-${p#*/}\"" p3 "p3-sums-zeile-$(dt "$p")" p3-sums-format p3-sums-je-binary
 done
-mut p3-dist-fehlt "$B_" 'mkdir -p "$dist"' ':' p3 p3-gruen p3-namen p3-exe p3-sums-format p3-sums-je-binary p3-sums-sortiert p3-sums-lf p3-sums-pruefbar p3-dist-fehlt p3-zweiter-lauf
+mut p3-dist-andere-version "$B_" '[ -z "$(ls -A "$dist" 2> /dev/null)" ]' '[ -z "$(ls -A "$dist" 2> /dev/null | grep -v -e "^pgwire-recorder-" -e "^SHA256SUMS$")" ]' p3 p3-dist-andere-version p3-zweiter-lauf
+mut p3-dist-altes-schema "$B_" '[ -z "$(ls -A "$dist" 2> /dev/null)" ]' '[ -z "$(ls -A "$dist" 2> /dev/null | grep -v "^pgwire-recorder_")" ]' p3 p3-dist-altes-schema
+mut p3-dist-unveraendert "$B_" "|| eingabe \"DIST '\$dist' ist nicht leer\"" "|| { rm -rf \"\${dist:?}\"/*; eingabe \"DIST '\$dist' ist nicht leer\"; }" p3 p3-dist-nicht-leer p3-dist-andere-version p3-dist-altes-schema
+mut p3-dist-fehlt "$B_" 'mkdir -p "$dist"' ':' p3 p3-gruen p3-namen p3-exe p3-sums-format p3-sums-je-binary p3-sums-sortiert p3-sums-lf p3-sums-pruefbar p3-dist-fehlt p3-zweiter-lauf p3-dist-andere-version p3-name-ohne-version p3-name-trenner $Z6
 mut p3-rot "$B_" 'exit 1 # P3rot' 'break # P3rot' p3-rot p3-rot-nennt-windows-arm64 p3-rot-ohne-sums p3-rot-keine-teilmenge
 mut p3-teilmenge "$B_" 'mv "$stage/$os-$arch/pgwire-recorder" "$stage/$datei"' 'mv "$stage/$os-$arch/pgwire-recorder" "$dist/$datei"; cp "$dist/$datei" "$stage/$datei"' p3-rot p3-rot-keine-teilmenge
 mut p3-rot-sums "$B_" 'exit 1 # P3rot' '(cd "$stage" && sha256sum * > "$OLDPWD/$dist/SHA256SUMS" 2> /dev/null); exit 1 # P3rot' p3-rot p3-rot-ohne-sums
@@ -678,7 +721,7 @@ mut p3-nur-binaries "$B_" 'if [ "${OHNE_CACHE-}" = 1 ]; then cache=(--no-cache-f
 # --- Punkt 4: zwei Builds, dieselbe Summe ---
 for p in $ERF; do
   x=; if [ "$p" = linux/amd64 ]; then x=p8-4-vor-6; fi
-  mut "p4-abweichung-$p" "$G_" 'if ! cmp -s "$werk/a/SHA256SUMS" "$werk/b/SHA256SUMS"; then # P4cmp' "if ! cmp -s <(grep -v \"_${p%/*}_${p#*/}\" \"\$werk/a/SHA256SUMS\") <(grep -v \"_${p%/*}_${p#*/}\" \"\$werk/b/SHA256SUMS\"); then # P4cmp" "p4-abweichung-$(dt "$p") p8-4" "p4-abweichung-$(dt "$p")" $x
+  mut "p4-abweichung-$p" "$G_" 'if ! cmp -s "$werk/a/SHA256SUMS" "$werk/b/SHA256SUMS"; then # P4cmp' "if ! cmp -s <(grep -v -e \"-${p%/*}-${p#*/}\" \"\$werk/a/SHA256SUMS\") <(grep -v -e \"-${p%/*}-${p#*/}\" \"\$werk/b/SHA256SUMS\"); then # P4cmp" "p4-abweichung-$(dt "$p") p8-4" "p4-abweichung-$(dt "$p")" $x
 done
 mut p4-namen "$G_" "diff <(cat \"\$werk/a/SHA256SUMS\") <(cat \"\$werk/b/SHA256SUMS\") | sed -n 's/^< [0-9a-f]*  //p'" "cat \"\$werk/a/SHA256SUMS\" | sed -n 's/^[0-9a-f]*  //p'" p4 p4-namen p4-abweichung-darwin-amd64 p4-abweichung-darwin-arm64 p4-abweichung-linux-amd64 p4-abweichung-linux-arm64 p4-abweichung-windows-amd64 p4-abweichung-windows-arm64
 mut p4-zweiter "$G_" %P4zweiter "p4-cache p4-gruen" p4-cache-umgehen p4-gruen

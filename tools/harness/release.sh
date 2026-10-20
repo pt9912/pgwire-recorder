@@ -167,14 +167,14 @@ schritt_eingaben() {
   echo "release: eingaben: grün für $tag ($([ "$trockenlauf" -eq 1 ] && echo Trockenlauf || echo Lauf))"
 }
 
-# erwartete_namen <Version> — die sechs Binaries von SPEC-055 Punkt 3 und SHA256SUMS, einer je Zeile.
+# erwartete_namen — die sechs Binaries von SPEC-055 Punkt 3 und SHA256SUMS, einer je Zeile.
 erwartete_namen() {
   local os a e
   for os in darwin linux windows; do
     for a in amd64 arm64; do
       e=""
       if [ "$os" = windows ]; then e=.exe; fi
-      echo "pgwire-recorder_${1}_${os}_${a}$e"
+      echo "pgwire-recorder-${os}-${a}$e"
     done
   done
   echo SHA256SUMS
@@ -190,9 +190,9 @@ schritt_binaries() {
   fuehre make binaries "VERSION=${tag#v}" "DIST=$dist" # P4aufruf
   [ "$rc" -eq 0 ] || rot "make binaries endet mit Exit $rc"
   (cd "$dist" && sha256sum -c SHA256SUMS) > "$scratch/summen" 2>&1 || { sed 's/^/release: binaries: /' "$scratch/summen" >&2; rot "die Summen von SHA256SUMS stimmen nicht"; } # P4summe
-  [ "$(ls -A "$dist" | sort)" = "$(erwartete_namen "${tag#v}" | sort)" ] || rot "die Dateien in $dist sind nicht genau die sechs Binaries und SHA256SUMS" # P4liste
+  [ "$(ls -A "$dist" | sort)" = "$(erwartete_namen | sort)" ] || rot "die Dateien in $dist sind nicht genau die sechs Binaries und SHA256SUMS" # P4liste
   : > "$zdir/binaries.ok"
-  echo "release: binaries: $(erwartete_namen "${tag#v}" | wc -l) Dateien in $dist"
+  echo "release: binaries: $(erwartete_namen | wc -l) Dateien in $dist"
 }
 
 schritt_github_release() {
@@ -210,7 +210,7 @@ schritt_github_release() {
   [ -n "$n" ] || eingabe notes "die Änderungshistorie des Benutzerhandbuchs hat keine Zeile mit Text für $v"
   printf '%s\n' "$n" > "$scratch/notes.md"
   [[ $v != *-* ]] || prerelease=(--prerelease) # P9pre
-  while IFS= read -r a; do anhaenge+=("$dist/$a"); done < <(erwartete_namen "$v") # P9anhaenge
+  while IFS= read -r a; do anhaenge+=("$dist/$a"); done < <(erwartete_namen) # P9anhaenge
   fuehre gh release view "$tag" --repo "$RELEASE_REPOSITORY" --json assets --jq '.assets[].name' > "$scratch/assets" 2> "$scratch/gh.err"
   if [ "$rc" -eq 0 ]; then
     vorhanden=1
@@ -303,7 +303,7 @@ schritt_image() {
   for arch in amd64 arm64; do
     fuehre docker "${bargs[@]}" --platform "linux/$arch" --output "type=local,dest=$scratch/fs-$arch" .
     [ "$rc" -eq 0 ] || rot "docker buildx build für linux/$arch endet mit Exit $rc"
-    soll="$(awk -v n="pgwire-recorder_${v}_linux_$arch" '$2 == n { print $1 }' "$dist/SHA256SUMS")"
+    soll="$(awk -v n="pgwire-recorder-linux-$arch" '$2 == n { print $1 }' "$dist/SHA256SUMS")"
     ist="$(sha256sum "$scratch/fs-$arch/pgwire-recorder" 2> /dev/null | cut -d' ' -f1)"
     [ -n "$soll" ] && [ "$ist" = "$soll" ] || rot "linux/$arch: das Binary im Image hat die Summe '$ist' statt '$soll'" # P5summe
   done

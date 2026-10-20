@@ -67,7 +67,7 @@ rot() {
 hex() { od -An -tx1 -v -j "$2" -N "$3" "$1" | tr -d ' \n'; }
 
 binaer() { # <os> <arch> — Name des Binaries
-  local n="pgwire-recorder_${VERSION}_$1_$2"
+  local n="pgwire-recorder-$1-$2"
   if [ "$1" = windows ]; then n+=".exe"; fi
   echo "$n"
 }

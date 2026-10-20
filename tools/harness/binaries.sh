@@ -46,7 +46,7 @@ namen=()
 for p in "${plattformen[@]}"; do
   os="${p%/*}"
   arch="${p#*/}"
-  datei="pgwire-recorder_${VERSION}_${os}_${arch}" # P3name
+  datei="pgwire-recorder-${os}-${arch}" # P3name
   if [ "$os" = windows ]; then datei+=".exe"; fi # P3exe
   "$docker" build --progress=plain --target dist --platform "$p" --build-arg "VERSION=$VERSION" \
     ${cache[@]+"${cache[@]}"} --output "type=local,dest=$stage/$os-$arch" . > "$stage/log-$os-$arch" 2>&1 &
