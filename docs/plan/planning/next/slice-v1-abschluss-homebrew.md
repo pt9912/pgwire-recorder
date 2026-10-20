@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Entscheidung:** [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) (Proposed, Empfehlung des Architect; die Annahme ist die Entscheidung des Nutzers)
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-brew)
 **Autor:** pt9912. **Datum:** 2026-10-03.
 
 ---
