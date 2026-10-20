@@ -13,7 +13,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-035` · `LH-FA-01`
+**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-067` (Punkt 1c und 19, [`harness/vertraege/`](../../../../harness/vertraege/SPEC-067-release.md)) · `SPEC-035` · `LH-FA-01`
+
+**Entscheidung:** [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) (Proposed, Empfehlung des Architect; die Annahme ist die Entscheidung des Nutzers)
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,15 +31,19 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Bei jedem stabilen Release entsteht die Formel im Tap `pt9912/homebrew-pgwire-recorder`, und die dokumentierten Installationsbefehle liefern auf macOS und Linux das Binary der Version.
+**Ziel:** Bei jedem stabilen Tag erzeugt ein eigener Job der Release-Pipeline (`homebrew`, nach dem GitHub-Release) die Formel `Formula/pgwire-recorder.rb` aus einer Vorlage und der Datei `SHA256SUMS` des Release und legt sie im Tap `pt9912/homebrew-pgwire-recorder` ab; eine Vorabversion ändert den Tap nicht. Belegt ist das gegen ein lokales Probe-Tap (ein Bare-Repository im Temp-Verzeichnis der Gegenprobe), ohne Netz und ohne Geheimnis. Form der Formel, Ablage, Reihenfolge der Gründe, Zugang und Fälle entscheidet [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md) Punkt 1c und 19; warum so, [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md).
 
-**Übernommen aus `slice-erster-release-homebrew-nachweis`** (dort §1, Abgrenzung): das Erzeugen der Formel; das ist DoD-Punkt 1, jener Slice wendet das Verfahren mit dem echten Release an.
+**Übernommen aus `slice-erster-release-homebrew-nachweis`** (dort §1, Abgrenzung): das Erzeugen der Formel; das ist DoD-Punkt 1, jener Slice wendet das Verfahren (Nachtrag von Hand für `v0.1.0`, Punkt 19 (7)) mit dem echten Tap an.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Die Installation aus dem echten Tap, der Abschnitt zu Homebrew im Benutzerhandbuch (§2 *Installation*, Befehle) und die Zeile in `README.md` — `slice-erster-release-homebrew-nachweis` (Klasse 1; die Sendung steht dort in §1 und DoD, mit der Kennung dieses Slice). Grund: Das Handbuch nennt nur Befehle, die einmal gelaufen sind (`AGENTS.md` §3.11, `SPEC-067` Punkt 18), und der Lauf mit dem echten Tap ist dessen Gegenstand; die Formel ist kein Verhalten des Binaries. Dieser Slice ändert deshalb weder Handbuch noch README.
+- Das Anlegen und die Rechte des Geheimnisses `HOMEBREW_TAP_GITHUB_TOKEN` und jede Handlung am echten Tap — Handlung des Betreibers (Klasse 3, anderer Vorgang). Der Slice liest, schreibt und gibt den Wert nie aus und pusht nie in den echten Tap.
+- Ein Probe-Tag — er wäre eine Vorabversion (kann den Tap nicht ändern) und ein weiterer Tag mit Veröffentlichung ([ADR-0051](../../../plan/adr/0051-veroeffentlichung-auf-github-actions.md)); an seine Stelle tritt das lokale Probe-Tap. Das weicht von der Reihenfolge in `welle-v1-nachtrag` §5 (Punkt 2: „Probe-Tag und Probe-Tap“) ab; Auftrag an den Planner, sie nachzuziehen.
 - Aufnahme in das Standard-Repository von Homebrew — Out-of-Scope von LH-FA-19.
 - Windows — Homebrew trägt Windows nicht; dort gilt das Binary direkt (LH-FA-01).
 - Docker/OCI-Image — `slice-v1-abschluss-container`.
+- Änderung des Lastenhefts — `LH-FA-19` trägt Happy Path, Boundary und Negative schon; die Einzelregeln stehen in der Spezifikation.
 
 ## 2. Definition of Done
 
@@ -46,8 +52,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Das Release-Verfahren erzeugt die Formel aus den Release-Binaries eines Probe-Tags und legt sie in einem Probe-Tap ab (nicht im Tap `pt9912/homebrew-pgwire-recorder`); die Prüfsummen stimmen (Test). Die Installation aus dem echten Tap (Abnahmeszenario 11) weist `slice-erster-release-homebrew-nachweis` nach (`welle-v1-nachtrag`, dort §1 und DoD-Punkt 1). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert im Handbuch den Abschnitt zu Homebrew in §2 *Installation* (Formel, Tap, Befehle), soweit das Release-Verfahren im Probe-Tap ihn belegt; was erst die Installation aus dem echten Tap belegt (macOS und Linux), liefert `slice-erster-release-homebrew-nachweis`.
-- [ ] Eine Vorabversion verändert den Tap nicht (Test).
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Der Schritt `homebrew` von `tools/harness/release.sh` mit der Vorlage `tools/harness/homebrew-formula.rb.tmpl` und der Job `homebrew` in `.github/workflows/release.yml` (Text nach `SPEC-067` Punkt 1c) erzeugen die Formel aus `SHA256SUMS` eines Fixture-Release und legen sie in einem Probe-Tap ab (lokales Bare-Repository, kein Netz, kein Geheimnis); die Prüfsummen und Plattformen stimmen, und jede Randform aus `SPEC-067` Punkt 19 (9) hat ihren Fall und ihre Mutation in `make release-gegenprobe` (Zusage · Mutation · roter Fall im Bericht, `AGENTS.md` §3.10); die Zeile von `make release-gegenprobe` in `harness/README.md` §Sensors nennt die neuen Fälle.
+- [ ] Eine Vorabversion verändert den Tap nicht (`p19-vorabversion`, mit Mutation).
+- [ ] `docs/maintainer/releasing.md` beschreibt das Ausgeführte: §3 (kein Probe-Tag für die Formel, das Probe-Tap), §4 (das Geheimnis als Vorbedingung des Betreibers, mit dem Recht, das der Token mindestens braucht), §6 (der Job), §7, §11 (die Zeile). Handbuch und `README.md` bleiben unverändert (§1).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -65,22 +72,27 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Release-Verfahren (`docs/maintainer/releasing.md`) | update | Formel und Tap-Aktualisierung beschreiben |
-| Tap-Repository `pt9912/homebrew-pgwire-recorder` | neu (extern) | Formel je stabilem Release |
-| Smoke-Test der Installation | neu | Happy/Boundary nach LH-FA-19 |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
+| `tools/harness/release.sh` (Schritt `homebrew`) | update | Eingaben, Summen, Formel, Tap, Token über `GIT_ASKPASS` (`SPEC-067` Punkt 19) |
+| `tools/harness/homebrew-formula.rb.tmpl` | neu | Vorlage mit Platzhaltern (Text in Punkt 19 (4)) |
+| `.github/workflows/release.yml` | update | Job `homebrew` nach Punkt 1c; das Geheimnis nur im Schritt `Homebrew` |
+| `tools/harness/release-gegenprobe.sh` | update | Fälle `p19-*` mit Probe-Tap und Attrappe von `gh`; `p1-*` um die Zeilen von 1c; Liste der Schritte mit Außenwirkung in `p2-*` |
+| `harness/README.md` (§Sensors, Zeile `release-gegenprobe`) | update | nennt die neuen Fälle |
+| `docs/maintainer/releasing.md` | update | §3, §4, §6, §7, §11 (Ist-Zustand des Ausgeführten) |
+
+Nicht in dieser Liste: der Tap `pt9912/homebrew-pgwire-recorder` (Handlung des Betreibers, `slice-erster-release-homebrew-nachweis`), Handbuch und `README.md` (§1).
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` ist `done` (Release-Artefakte liegen vor), und `welle-erster-release` ist `done` (Start-Trigger von `welle-v1-nachtrag`; Entscheidung des Nutzers vom 2026-10-11).
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` ist `done` (Release-Artefakte liegen vor), `welle-erster-release` ist `done` (Start-Trigger von `welle-v1-nachtrag`; Entscheidung des Nutzers vom 2026-10-11), und [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) ist `Accepted` (die Annahme ist die Entscheidung des Nutzers; bis dahin sind Art und Rechte des Tap-Tokens eine Empfehlung).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: der Tap-Zugang verlangt eine Entscheidung zu Zugangsdaten — zurück zur Zerlegung.
-- `in-progress` → `open`: Das Release-Binary für eine Plattform fehlt — Carveout.
+- `in-progress` → `next`: **zu groß**, wenn die Summe aus Einfügungen und Löschungen von `git diff --numstat 0256ddff..<letzter Commit des Slice> -- tools .github harness/README.md docs/maintainer` (Tests eingeschlossen, `AGENTS.md` §3.14) **über 1300** liegt. Schätzung des Architect in dieser Metrik: Produktcode rund 250 (Schritt etwa 140, Vorlage 33, Job 24, `releasing.md` etwa 50), die Gegenprobe nach dem Faktor von `release-gegenprobe.sh` zu `release.sh` (rund das Vierfache) 700 bis 800, zusammen 900 bis 1200 — am oberen Rand einer Review-Sitzung. Vorgemerkter Schnitt: (a) Schritt, Vorlage und Fälle `p19-*` (liefert den Nachtrag von Hand), (b) Job in `release.yml`, `p1-*`, `releasing.md`; (b) setzt (a) voraus und bleibt einzeln lieferbar, weil (a) ohne Job über den Nachtrag schon eine Formel liefert.
+- `in-progress` → `next`: Der Nutzer entscheidet gegen die Empfehlung in [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) (anderer Zugang als ein Token über HTTPS, etwa Deploy-Key oder App) — zurück zur Zerlegung.
+- `in-progress` → `open`: Eine Eingabe des Schritts lässt sich nicht ohne Netz oder echtes Geheimnis fassen (etwa der Wortlaut von `gh release download`) und `SPEC-067` Punkt 19 kann sie nicht als Grenze festhalten — Carveout.
 
 ## 5. Closure-Trigger
 
@@ -97,8 +109,25 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+**Randformen des Vertrags** (`AGENTS.md` §3.12; alle vor dem Code entschieden, jede an der Stelle in `SPEC-067` bzw. [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md)). Das Vorbild ist das Verfahren von u-boot (`scripts/homebrew-formula.rb.tmpl`, `homebrew-formula-fill.sh`, `tap-nachzug.sh`, dort ADR 0016 von u-boot); Abweichungen stehen mit Grund in der Tabelle.
+
+| Randform | Entscheidung | Stelle |
+|---|---|---|
+| (a) Form der Formel | Ruby-Datei `Formula/pgwire-recorder.rb` aus einer Vorlage mit Platzhaltern wie bei u-boot; `on_macos`/`on_linux` × `on_arm`/`on_intel`, vier Plattformen, kein Windows; `url` je Plattform am Release des Tags, `sha256` aus `SHA256SUMS`; `test do` ruft `version` und erwartet `pgwire-recorder <Version>`. Abweichung von u-boot: eine Zeile `version` steht in der Formel, weil die Namen `pgwire-recorder_<Version>_<os>_<arch>` Unterstriche tragen und die Erkennung aus der URL nicht gemessen ist; `brew audit --strict` kann sie als überflüssig melden, ein Befund im Nachweis, kein Fehler der Installation | `SPEC-067` Punkt 19 (4); `LH-FA-19.a` |
+| (b) Wer erzeugt, wohin | Schritt `homebrew` in `release.sh` (nutzt Eingaben, Aufräumen, Abbruch des Skripts mit) und Vorlage als Datei; Ablage `Formula/pgwire-recorder.rb` im Tap, ein Commit, Push auf `main`. Abweichung von u-boot: kein Fill-Skript, kein Anhang am Release (SPEC-067 Punkt 9 verlangt genau sieben Dateien) | Punkt 19 (1), (4), (5) |
+| (c) Vorabversion | Exit 0 ohne Aufruf von `gh` und `git`, vor der Prüfung der Token | Punkt 19 (2) |
+| (d) Wiederholung, Fehler, Reihenfolge | Job nach `GitHub-Release` (`needs: release`), damit die URLs der Formel bestehen; Tap schon aktuell: Exit 0 ohne Commit; höhere Version im Tap: Exit 0, unverändert; gleiche Version, anderer Text: neuer Commit; Push abgewiesen: Exit 1, Tap unverändert; der Release besteht schon: die Summen kommen aus ihm, der Schritt legt keinen an; ein roter Job lässt Release und Registries stehen, Wiederanlauf nur dieses Jobs oder Nachtrag von Hand, kein neuer Tag; Exit 2 für Eingaben (Ereignis, Tag-Form, Token), Exit 1 für Summen und Tap, Reihenfolge der Gründe gebunden. Abweichung von u-boot: ein fehlendes Geheimnis ist rot statt Warnung und Überspringen, weil der Job hinter dem Release nichts gefährdet und ein Überspringen den Tap unbemerkt zurückließe | Punkt 19 (2), (3), (5); Punkt 11 |
+| (e) Probe-Tap und Belegtes | lokales Bare-Repository (leer und mit Commits), echtes `git`, Attrappe von `gh`; belegt sind Text der Formel, Ablage, Randformen des Taps, Token-Weg; nicht belegt sind Rechte des Tokens, Annahme durch Homebrew, Binary auf macOS, Erreichbarkeit der URLs | Punkt 19 (9); Punkt 14, 15 |
+| (f) Aufrufarten, Abbruch, Plattform | `release.sh` läuft nie unter `make`, `-n -q -t -i` und `MAKEFLAGS` haben keinen Fall (Grund wie `SPEC-067` Punkt 13: kein Hook und kein Stand liest das Ergebnis); `SIGINT` und `SIGTERM` räumen auf (Fälle `p19-sigint`, `p19-sigterm`); Linux geprüft, macOS und Windows als Ausführungsort Grenze, die Formel gilt für macOS und Linux und ist dort nicht ausgeführt | Punkt 19 (8), (9); Punkt 13 |
+| (g) Zugang | Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` (vom Nutzer gesetzt, kein anderer Name), nur im Schritt `Homebrew` des Jobs `homebrew`, `permissions: {}` oben bleibt, Job mit `contents: read`; Token über `GIT_ASKPASS`, nie als Argument, URL, Datei oder Ausgabe (Abweichung von u-boot: dort steht er in der Klon-URL, hier gilt SPEC-067 Punkt 10). **Empfehlung:** mindestens *Contents: Read and write* auf `pt9912/homebrew-pgwire-recorder` und sonst nichts; der Nutzer bestätigt, dass sein Token dazu passt | Punkt 19 (6); Punkt 10; [ADR-0053](../../../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) |
+| Nachtrag für `v0.1.0` | derselbe Schritt von Hand mit den Token in der Umgebung, Handlung des Betreibers | Punkt 19 (7) |
+
+**Sendung an `slice-erster-release-homebrew-nachweis`** (`AGENTS.md` §3.13): Handbuch- und README-Teil, der Nachtrag für `v0.1.0` mit dem echten Tap und die drei Grenzen unten stehen dort in §1, DoD und §6 mit der Kennung dieses Slice.
+
 - Das Verhalten von Homebrew gegenüber Drittanbieter-Taps zeigt sich erst mit dem echten Tap — **Ausgang:** weiter offen, übergeben an `slice-erster-release-homebrew-nachweis` (`welle-v1-nachtrag`, dort §6).
-- Zugangsdaten für den Tap-Push sind eine externe Betreiber-Handlung — **Ausgang:** offen bis Closure.
+- Zugangsdaten für den Tap-Push: das Geheimnis ist gesetzt (Nutzer, 2026-10-20), Art und Rechte sind unbestätigt, und das Schreibrecht zeigt allein der Push in den echten Tap — **Ausgang:** weiter offen, übergeben an `slice-erster-release-homebrew-nachweis` (dort §6, Risiko Rechte des Tokens).
+- Dass Homebrew die Formel annimmt (Syntax, `version`-Zeile, Installation einer Datei ohne Archiv, `test do`) und das Binary auf macOS und Linux läuft, belegt die Gegenprobe nicht — **Ausgang:** weiter offen, übergeben an `slice-erster-release-homebrew-nachweis` (dort §6); eine Korrektur der Vorlage geht ohne neuen Tag über den Nachtrag.
+- Der Wortlaut von `gh release download` auf dem Runner ist im Dev-Container nicht gemessen (kein `gh`) — **Ausgang:** weiter offen, übergeben an `slice-erster-release-homebrew-nachweis` (dort §6; der Nachtrag fährt den Schritt mit dem echten `gh`).
 
 ## 7. Closure-Notiz
 
@@ -129,6 +158,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Tap mit Formel und Smoke-Test, Dokumentation).
+Nachgezählt am 2026-10-20 beim Eintragen der Randformen (Architect, `AGENTS.md` §3.13; die Schichtzählung aus `slice-doku-ist-stand` gilt): **Liefer-Punkte: 3** (1: Schritt, Vorlage, Job und Gegenprobe; 2: Vorabversion ändert den Tap nicht; 3: `releasing.md`). **Schichten: zwei** — Harness-Werkzeug (Skript, Vorlage, Workflow, Gegenprobe, Zeile in `harness/README.md`) und Wartungs-Doku (`docs/maintainer/`). Der Handbuch- und README-Teil, der bisher im ersten Punkt stand, ist an `slice-erster-release-homebrew-nachweis` abgegeben. Größe: Schätzung und vorgemerkter Schnitt in §4; Punkt 1 trägt fast den ganzen Umfang.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

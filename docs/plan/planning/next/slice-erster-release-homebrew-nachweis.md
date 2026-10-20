@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042`
+**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-067` (Punkt 19 (7), Nachtrag)
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -33,6 +33,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-erster-release-veroeffentlichung`** (dort §1, Abgrenzung): die Homebrew-Formel im Tap und ihr Nachweis; das sind Ziel und DoD-Punkt 1 oben.
 
+**Übernommen aus `slice-v1-abschluss-homebrew`** (dort §1 und §6, `AGENTS.md` §3.13): (1) der Abschnitt zu Homebrew in §2 *Installation* des Benutzerhandbuchs und die Zeile in `README.md`, jeweils nur mit Befehlen, die gegen den echten Tap gelaufen sind; (2) der **Nachtrag** der Formel für `v0.1.0` mit dem echten Tap (`SPEC-067` Punkt 19 (7): der Schritt `homebrew` von Hand mit den Token in der Umgebung, Handlung des Betreibers; der Lauf von `v0.1.0` hatte den Job nicht) oder, wenn inzwischen ein weiterer stabiler Tag gesetzt ist, dessen Lauf; (3) die Belege, die die Gegenprobe jenes Slice nicht liefert: das Schreibrecht des Tap-Tokens, die Annahme der Formel durch Homebrew, das Binary auf macOS und Linux, der Wortlaut von `gh release download`.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Das Erzeugen der Formel — `slice-v1-abschluss-homebrew`; hier wird das fertige Verfahren mit dem echten Release angewandt.
@@ -44,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Abnahmeszenario 11 ist auf macOS und Linux nachgewiesen: Installation mit den dokumentierten Befehlen, `pgwire-recorder version` meldet die installierte Version, ein Replay-Lauf startet. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert die Befehle des Homebrew-Abschnitts in §2 *Installation* des Handbuchs, belegt mit der Installation aus dem echten Tap auf macOS und Linux, und die Plattform-Zeile in §1 *Voraussetzungen* (macOS).
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Der Tap trägt die Formel eines stabilen Tags (Commit im Tap als Beleg; Nachtrag nach `SPEC-067` Punkt 19 (7) oder Lauf eines weiteren Tags), und Abnahmeszenario 11 ist auf macOS und Linux nachgewiesen: Installation mit den dokumentierten Befehlen, `pgwire-recorder version` meldet die installierte Version, ein Replay-Lauf startet. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert die Befehle des Homebrew-Abschnitts in §2 *Installation* des Handbuchs, belegt mit der Installation aus dem echten Tap auf macOS und Linux, und die Plattform-Zeile in §1 *Voraussetzungen* (macOS).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -71,7 +73,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-erster-release-freigabe` ist `done` (der erste stabile Tag ist veröffentlicht; die Pipeline belegen `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` nur mit dem Trockenlauf, ein Probe-Tag ist nicht vorgesehen, Entscheidung des Nutzers vom 2026-10-19), und `slice-v1-abschluss-homebrew` ist `done` (das Verfahren der Formel, das dieser Slice mit dem echten Release anwendet; Reihenfolge in §5 von [welle-v1-nachtrag](../welle-v1-nachtrag.md), Entscheidung des Nutzers vom 2026-10-11).
+**Start** (`next` → `in-progress`): `slice-erster-release-freigabe` ist `done` (der erste stabile Tag ist veröffentlicht; die Pipeline belegen `slice-erster-release-veroeffentlichung` und `slice-erster-release-veroeffentlichung-image` nur mit dem Trockenlauf, ein Probe-Tag ist nicht vorgesehen, Entscheidung des Nutzers vom 2026-10-19), und `slice-v1-abschluss-homebrew` ist `done` (das Verfahren der Formel, das dieser Slice mit dem echten Release anwendet; das Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` ist gesetzt, seine Rechte bestätigt der Nutzer vor dem Nachtrag; Reihenfolge in §5 von [welle-v1-nachtrag](../welle-v1-nachtrag.md), Entscheidung des Nutzers vom 2026-10-11).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -94,6 +96,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Das Verhalten von Homebrew gegenüber Drittanbieter-Taps (`brew trust`) ist erst mit dem echten Tap belegbar — **Ausgang:** offen bis Closure.
+- Aus `slice-v1-abschluss-homebrew` (§6 dort), je mit Ausgang bei Closure dieses Slice: (a) das Schreibrecht des Tap-Tokens (der Push in den echten Tap zeigt es); (b) die Annahme der Formel durch Homebrew (Syntax, die Zeile `version`, Installation einer Datei ohne Archiv, `test do`) — eine Korrektur geht über die Vorlage und einen erneuten Nachtrag, ohne neuen Tag; (c) der Wortlaut von `gh release download` mit dem echten `gh` — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -124,6 +127,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Tap mit Formel, Dokumentation).
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Tap mit Formel, Dokumentation). Nachgezählt am 2026-10-20 mit der Sendung aus `slice-v1-abschluss-homebrew` (Architect, `AGENTS.md` §3.13): **Liefer-Punkte: 2** (1: Formel im echten Tap durch den Nachtrag; 2: Abnahmeszenario 11 mit Handbuch- und README-Teil); Schichten bleiben zwei (der Tap als Ergebnis einer Handlung des Betreibers, Dokumentation); der Nachtrag ist kein Code. Der Slice liegt damit unter der Grenze.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
