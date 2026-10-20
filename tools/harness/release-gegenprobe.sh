@@ -265,12 +265,13 @@ esac
 mkdir -p "$dist"
 for os in darwin linux windows; do for a in amd64 arm64; do
   e=""; [ "$os" = windows ] && e=.exe
-  printf 'binary %s %s %s\n' "$v" "$os" "$a" > "$dist/pgwire-recorder_${v}_${os}_${a}$e"
+  n="pgwire-recorder-${os}-${a}$e"; [ "${GP_MAKE-ok}" != altes-schema ] || n="pgwire-recorder_${v}_${os}_${a}$e"
+  printf 'binary %s %s %s\n' "$v" "$os" "$a" > "$dist/$n"
 done; done
-[ "${GP_MAKE-ok}" != datei-fehlt ] || rm "$dist/pgwire-recorder_${v}_linux_arm64"
+[ "${GP_MAKE-ok}" != datei-fehlt ] || rm "$dist/pgwire-recorder-${GP_FEHLT:-linux-arm64}"*
 [ "${GP_MAKE-ok}" != datei-zu-viel ] || echo extra > "$dist/extra"
 (cd "$dist" && sha256sum -- * > SHA256SUMS)
-[ "${GP_MAKE-ok}" != summe-falsch ] || echo manipuliert >> "$dist/pgwire-recorder_${v}_linux_amd64"
+[ "${GP_MAKE-ok}" != summe-falsch ] || echo manipuliert >> "$dist/pgwire-recorder-linux-amd64"
 [ "${GP_MAKE-ok}" != scheitert ] || exit 1
 exit 0
 EOT
@@ -292,7 +293,7 @@ case "$1 $2" in
     dir=""; while [ $# -gt 0 ]; do if [ "$1" = --dir ]; then dir="$2"; fi; shift; done
     case "${GP_GH_SUMS-gleich}" in
       gleich) cp "$RUNNER_TEMP/release/dist/SHA256SUMS" "$dir/SHA256SUMS" ;;
-      abweichend) echo "0000000000000000000000000000000000000000000000000000000000000000  pgwire-recorder_x" > "$dir/SHA256SUMS" ;;
+      abweichend) echo "0000000000000000000000000000000000000000000000000000000000000000  pgwire-recorder-x" > "$dir/SHA256SUMS" ;;
     esac
     exit 0 ;;
 esac
@@ -586,7 +587,7 @@ bis() { local s; for s in "$@"; do lauf "$s"; sei "Schritt $s grün" test "$code
 aufrufe() { cat "$w/log/$1" 2> /dev/null || true; }
 nie() { [ ! -s "$w/log/$1" ]; }
 DIST() { echo "$w/runner/release/dist"; }
-NAMEN() { local o a e; for o in darwin linux windows; do for a in amd64 arm64; do e=""; [ "$o" = windows ] && e=.exe; echo "pgwire-recorder_${1}_${o}_${a}$e"; done; done; echo SHA256SUMS; }
+NAMEN() { local o a e; for o in darwin linux windows; do for a in amd64 arm64; do e=""; [ "$o" = windows ] && e=.exe; echo "pgwire-recorder-${o}-${a}$e"; done; done; echo SHA256SUMS; }
 # anhaenge_der_zeile <Zeile des Aufrufs von gh> — die Wörter, die unter dem Verzeichnis des Baus liegen, sortiert, einer je Zeile.
 anhaenge() { tr ' ' '\n' <<< "$1" | grep "^$(DIST)/" | LC_ALL=C sort; }
 
@@ -718,8 +719,14 @@ f_p4_summe_falsch() { fix 0.1.0; umg lauf; bis eingaben; lauf binaries GP_MAKE=s
 f_p4_datei_fehlt() { fix 0.1.0; umg lauf; bis eingaben; lauf binaries GP_MAKE=datei-fehlt; sei "Exit 1" test "$code" -eq 1; sei "ROT" enthaelt "$err" "release: binaries: ROT"; }
 f_p4_datei_zu_viel() { fix 0.1.0; umg lauf; bis eingaben; lauf binaries GP_MAKE=datei-zu-viel; sei "Exit 1" test "$code" -eq 1; sei "ROT" enthaelt "$err" "release: binaries: ROT"; }
 f_p4_make_scheitert() { fix 0.1.0; umg lauf; bis eingaben; lauf binaries GP_MAKE=scheitert; sei "Exit 1" test "$code" -eq 1; sei "ROT" enthaelt "$err" "release: binaries: ROT"; }
+f_p4_altes_schema() { fix 0.1.0; umg lauf; bis eingaben; lauf binaries GP_MAKE=altes-schema; sei "Exit 1" test "$code" -eq 1; sei "ROT" enthaelt "$err" "release: binaries: ROT"; sei "die Liste ist der Grund" enthaelt "$err" "nicht genau die sechs Binaries und SHA256SUMS"; sei "keine Marke" test ! -e "$w/runner/release/binaries.ok"; }
+P4PLATTFORMEN=(darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 windows-arm64)
+P4PJ=""; for k in "${P4PLATTFORMEN[@]}"; do P4PJ+=" p4-namen-je-plattform-$k"; done
+for k in "${P4PLATTFORMEN[@]}"; do
+  eval "f_p4_namen_je_plattform_${k//-/_}() { fix 0.1.0; umg lauf; bis eingaben; lauf binaries GP_MAKE=datei-fehlt GP_FEHLT=$k; sei \"Exit 1\" test \"\$code\" -eq 1; sei \"ROT\" enthaelt \"\$err\" \"release: binaries: ROT\"; sei \"die Liste ist der Grund\" enthaelt \"\$err\" \"nicht genau die sechs Binaries und SHA256SUMS\"; sei \"keine Marke\" test ! -e \"\$w/runner/release/binaries.ok\"; }"
+done
 # Punkt 9
-ALLE7="pgwire-recorder_0.1.0_darwin_amd64 pgwire-recorder_0.1.0_darwin_arm64 pgwire-recorder_0.1.0_linux_amd64 pgwire-recorder_0.1.0_linux_arm64 pgwire-recorder_0.1.0_windows_amd64.exe pgwire-recorder_0.1.0_windows_arm64.exe SHA256SUMS"
+ALLE7="pgwire-recorder-darwin-amd64 pgwire-recorder-darwin-arm64 pgwire-recorder-linux-amd64 pgwire-recorder-linux-arm64 pgwire-recorder-windows-amd64.exe pgwire-recorder-windows-arm64.exe SHA256SUMS"
 # release_neu [Version [Modus]] — Lauf bis github-release ohne vorhandenen Release; setzt c (die Zeile des Aufrufs `release create`).
 release_neu() { fix "${1:-0.1.0}" "${2:-normal}"; umg lauf; bis eingaben binaries; lauf github-release GP_GH=fehlt; gruen; c="$(grep '^gh release create' "$w/log/gh" 2> /dev/null || true)"; }
 f_p9_anhaenge() {
@@ -748,14 +755,14 @@ vorhanden() { # <Assets> <Summe> — Release ist da; setzt code/out/err des Schr
 }
 f_p9_release_existiert_gleich() {
   local u
-  vorhanden "pgwire-recorder_0.1.0_linux_amd64 SHA256SUMS" gleich; gruen
+  vorhanden "pgwire-recorder-linux-amd64 SHA256SUMS" gleich; gruen
   sei "kein create" ohne "$(aufrufe gh)" "release create"
   u="$(grep '^gh release upload' "$w/log/gh" 2> /dev/null || true)"
-  sei "upload der fehlenden fünf" test "$(anhaenge "$u")" = "$(for n in $ALLE7; do [ "$n" = pgwire-recorder_0.1.0_linux_amd64 ] || [ "$n" = SHA256SUMS ] || echo "$(DIST)/$n"; done | LC_ALL=C sort)"
+  sei "upload der fehlenden fünf" test "$(anhaenge "$u")" = "$(for n in $ALLE7; do [ "$n" = pgwire-recorder-linux-amd64 ] || [ "$n" = SHA256SUMS ] || echo "$(DIST)/$n"; done | LC_ALL=C sort)"
   sei "kein --clobber" ohne "$(aufrufe gh)" "--clobber"
 }
 f_p9_release_existiert_abweichend() {
-  vorhanden "pgwire-recorder_0.1.0_linux_amd64 SHA256SUMS" abweichend
+  vorhanden "pgwire-recorder-linux-amd64 SHA256SUMS" abweichend
   sei "Exit 1" test "$code" -eq 1; sei "ROT" enthaelt "$err" "release: github-release: ROT"
   sei "kein upload" ohne "$(aufrufe gh)" "release upload"; sei "kein create" ohne "$(aufrufe gh)" "release create"; sei "kein --clobber" ohne "$(aufrufe gh)" "--clobber"
 }
@@ -775,7 +782,7 @@ repo_in_jedem_aufruf() {
 }
 f_p9_repo_argument() {
   release_neu; repo_in_jedem_aufruf
-  vorhanden "pgwire-recorder_0.1.0_linux_amd64 SHA256SUMS" gleich; repo_in_jedem_aufruf
+  vorhanden "pgwire-recorder-linux-amd64 SHA256SUMS" gleich; repo_in_jedem_aufruf
   sei "view, download, upload gerufen" enthaelt "$(aufrufe gh)" "gh release upload"
 }
 f_p9_gh_token_fehlt() {
@@ -799,10 +806,10 @@ f_p13_release_ohne_binaries() { fix 0.1.0; umg lauf; bis eingaben; lauf github-r
 # Punkt 11
 f_p11_wiederanlauf_release_teilweise() {
   local u
-  vorhanden "pgwire-recorder_0.1.0_linux_amd64 pgwire-recorder_0.1.0_darwin_arm64" gleich; gruen
+  vorhanden "pgwire-recorder-linux-amd64 pgwire-recorder-darwin-arm64" gleich; gruen
   sei "kein create" ohne "$(aufrufe gh)" "release create"
   u="$(grep '^gh release upload' "$w/log/gh" 2> /dev/null || true)"
-  sei "upload der fehlenden fünf, SHA256SUMS dabei" test "$(anhaenge "$u")" = "$(for n in $ALLE7; do [ "$n" = pgwire-recorder_0.1.0_linux_amd64 ] || [ "$n" = pgwire-recorder_0.1.0_darwin_arm64 ] || echo "$(DIST)/$n"; done | LC_ALL=C sort)"
+  sei "upload der fehlenden fünf, SHA256SUMS dabei" test "$(anhaenge "$u")" = "$(for n in $ALLE7; do [ "$n" = pgwire-recorder-linux-amd64 ] || [ "$n" = pgwire-recorder-darwin-arm64 ] || echo "$(DIST)/$n"; done | LC_ALL=C sort)"
   sei "kein download ohne SHA256SUMS am Release" ohne "$(aufrufe gh)" "release download"
   sei "kein --clobber" ohne "$(aufrufe gh)" "--clobber"
 }
@@ -915,7 +922,7 @@ f_p5_summe_amd64() { bild_mit GP_SUMME=amd64; rotgrund image "linux/amd64"; sei 
 f_p5_summe_arm64() { bild_mit GP_SUMME=arm64; rotgrund image "linux/arm64"; sei "nicht amd64" ohne "$err" "linux/amd64: das Binary"; sei "kein Digest" test ! -e "$(IMG)/digest"; }
 f_p5_summe_eintrag_fehlt() {
   fix 0.1.0; umg lauf; bis eingaben binaries
-  grep -v '_linux_arm64$' "$(DIST)/SHA256SUMS" > "$w/s"; mv "$w/s" "$(DIST)/SHA256SUMS"
+  grep -v -e '-linux-arm64$' "$(DIST)/SHA256SUMS" > "$w/s"; mv "$w/s" "$(DIST)/SHA256SUMS"
   lauf image GP_OHNE_BINARY=arm64; rotgrund image "linux/arm64"; sei "kein Digest" test ! -e "$(IMG)/digest"
 }
 f_p5_digest() {
@@ -1419,7 +1426,8 @@ FAELLE_SH=(p2-trockenlauf-ohne-aussenwirkung p2-aussenwirkung-ohne-push p2-ref-k
   p3-notes-fehlen p3-notes-zelle-leer p3-notes-pipe p3-notes-abschnitt p3-notes-ueberschrift-endet p3-notes-abschnitt-ende p3-nicht-im-standard-zweig p3-nicht-im-standard-zweig-vorwaerts
   p3-standard-zweig-aus-umgebung p3-trockenlauf-gueltig p3-trockenlauf-im-standard-zweig p3-trockenlauf-nicht-im-standard-zweig p3-trockenlauf-notes-fehlen p3-trockenlauf-notes-zelle-leer p3-trockenlauf-notes-vorhanden
   p3-trockenlauf-version-datei-form p3-schluesselwort-ereignis p3-schluesselwort-tag-form p3-schluesselwort-version-datei p3-schluesselwort-tag-ungleich p3-schluesselwort-notes p3-schluesselwort-standard-zweig p3-reihenfolge-1-2 p3-reihenfolge-2-3 p3-reihenfolge-3-4 p3-reihenfolge-4-5 p3-reihenfolge-5-6
-  p4-aufruf p4-summe-falsch p4-datei-fehlt p4-datei-zu-viel p4-make-scheitert
+  p4-aufruf p4-summe-falsch p4-datei-fehlt p4-datei-zu-viel p4-make-scheitert p4-altes-schema
+  p4-namen-je-plattform-darwin-amd64 p4-namen-je-plattform-darwin-arm64 p4-namen-je-plattform-linux-amd64 p4-namen-je-plattform-linux-arm64 p4-namen-je-plattform-windows-amd64 p4-namen-je-plattform-windows-arm64
   p9-anhaenge p9-aufruf p9-stabil-ohne-prerelease p9-vorabversion-prerelease p9-notes-aus-zelle p9-notes-zeile-der-version p9-notes-aus-abschnitt
   p9-release-existiert-gleich p9-release-existiert-abweichend p9-view-anderer-fehler p9-repo-argument p9-gh-token-fehlt p13-binaries-ohne-eingaben p13-release-ohne-binaries p10-nicht-im-log
   p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig p11-reihenfolge-gruende p11-alte-marke)
@@ -1706,11 +1714,13 @@ mutr m-p3-hinweis-fehlt "p3-trockenlauf-im-standard-zweig p3-trockenlauf-nicht-i
 mutr m-p3-trockenlauf-tag-aus-ref "p2-trockenlauf-ohne-aussenwirkung p3-trockenlauf-gueltig p3-trockenlauf-im-standard-zweig p3-trockenlauf-nicht-im-standard-zweig p3-trockenlauf-notes-fehlen p3-trockenlauf-notes-vorhanden p3-trockenlauf-notes-zelle-leer p3-trockenlauf-version-datei-form p4-aufruf p3-notes-pipe" sh \
   $'tag="v$(head -n 1 VERSION 2> /dev/null)"' $'tag="${RELEASE_REF-}"; tag="${tag#refs/tags/}"'
 # Punkt 4
-mutr m-p4-version-fehlt "$BIN" sh ' "VERSION=${tag#v}" "DIST=$dist"' ' "DIST=$dist"'
-mutr m-p4-dist-im-baum "$BIN" sh '"DIST=$dist"' '"DIST=dist"'
+mutr m-p4-version-fehlt "p2-trockenlauf-ohne-aussenwirkung p4-aufruf" sh ' "VERSION=${tag#v}" "DIST=$dist"' ' "DIST=$dist"'
+mutr m-p4-dist-im-baum "$BIN p4-altes-schema$P4PJ" sh '"DIST=$dist"' '"DIST=dist"'
 mutr m-p4-dist-vorher-angelegt "p4-aufruf" sh $'  dist="$zdir/dist"\n  fuehre make' $'  dist="$zdir/dist"\n  mkdir -p "$dist"\n  fuehre make'
 mutr m-p4-summe-entfernt "p10-nicht-im-log p11-alte-marke p11-reihenfolge-gruende p4-summe-falsch" sh '(cd "$dist" && sha256sum -c SHA256SUMS)' '(cd "$dist" && true)'
-mutr m-p4-liste-entfernt "p4-datei-fehlt p4-datei-zu-viel" sh 'L:# P4liste' ''
+mutr m-p4-liste-entfernt "p4-datei-fehlt p4-datei-zu-viel p4-altes-schema$P4PJ" sh 'L:# P4liste' ''
+mutr m-p4-altes-schema-angenommen "p4-altes-schema" sh '[ "$(ls -A "$dist" | sort)" = "$(erwartete_namen | sort)" ] ||' '{ [ "$(ls -A "$dist" | sort)" = "$(erwartete_namen | sort)" ] || ! ls -A "$dist" | grep -qvE '"'"'^(pgwire-recorder_.*|SHA256SUMS)$'"'"'; } ||'
+mutr m-p4-liste-nicht-gezaehlt "p4-datei-zu-viel" sh '[ "$(ls -A "$dist" | sort)" = "$(erwartete_namen | sort)" ] ||' '( for n in $(erwartete_namen); do [ -e "$dist/$n" ] || exit 1; done ) ||'
 mutr m-p4-make-fehler-ignoriert "p4-make-scheitert" sh $'  [ "$rc" -eq 0 ] || rot "make binaries endet mit Exit $rc"\n' ''
 # Punkt 9
 mutr m-p9-achter-anhang "p9-anhaenge p9-release-existiert-gleich p11-wiederanlauf-release-teilweise p11-wiederanlauf-release-vollstaendig" sh \
@@ -1752,9 +1762,9 @@ mutr m-p9-repo-fehlt-upload "p9-repo-argument" sh 'release upload "$tag" --repo 
 mutr m-p9-gh-ohne-token-pruefung "p9-gh-token-fehlt" sh 'L:# P9token' ''
 mutr m-p9-view-muster-geweitet "p9-view-anderer-fehler" sh "grep -q 'release not found'" "grep -qi 'not found'"
 # Anhänge: je Element von erwartete_namen eine Mutation
-for el in darwin_amd64 darwin_arm64 linux_amd64 linux_arm64 windows_amd64 windows_arm64; do
-  r="$BIN"; if [ "$el" = linux_arm64 ]; then r+=" p4-datei-fehlt"; fi
-  mutr "m-p9-name-fehlt-$el" "$r" sh '      echo "pgwire-recorder_${1}_${os}_${a}$e"' "      [ \"\${os}_\${a}\" = $el ] || echo \"pgwire-recorder_\${1}_\${os}_\${a}\$e\""
+for el in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 windows-arm64; do
+  r="$BIN p4-namen-je-plattform-$el"; if [ "$el" = linux-arm64 ]; then r+=" p4-datei-fehlt"; fi
+  mutr "m-p9-name-fehlt-$el" "$r" sh '      echo "pgwire-recorder-${os}-${a}$e"' "      [ \"\${os}-\${a}\" = $el ] || echo \"pgwire-recorder-\${os}-\${a}\$e\""
 done
 mutr m-p9-name-fehlt-sha256sums "$BIN" sh 'L:  echo SHA256SUMS' ''
 mutr m-p3-pipe-abgeschnitten-angenommen "p3-notes-pipe" sh 'L:# P3pipe' ''
@@ -1849,6 +1859,8 @@ mutr m-p8-zustand-fehlt "p8-zweite-registry-faellt" b '; $(zustand_tag latest)"'
 # Punkt 9 (B), 13
 mutr m-p5-builder-arg-entfaellt "p5-aufruf" b 'bargs=(buildx build --builder pgr-release' 'bargs=(buildx build'
 mutr m-p5-summe-waechter-entfernt "p5-summe-eintrag-fehlt" b '[ -n "$soll" ] && [ "$ist" = "$soll" ] ||' '[ "$ist" = "$soll" ] ||'
+mutr m-p5-summe-name-arch-fest "p10-nicht-im-log-image p10-stdin p11-alte-marke-b p11-alte-marke-image-b p11-image-rot-loescht-digest-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p13-veroeffentlichen-ohne-image-bei-scan-ok p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p2-trockenlauf-image p5-aufruf p5-digest p5-epoch-committer p6-all-und-digests p6-anmeldung-scheitert p6-inspect-anderer-fehler p6-inspect-meldung-im-log p6-reihenfolge p6-tag-fehlt-manifest-unknown p6-tag-fehlt-name-unknown p6-tag-fehlt-not-found p6-tag-satz p6-tag-vorhanden-anders p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-anonym-docker p7-anonym-ghcr p7-digest-docker p7-digest-ghcr p7-digest-lokal p7-eine-plattform p7-gleich p7-postgres-fehlt p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p7-smoke-ohne-vergleichen p7-smoke-ok-marke p7-tag-fehlt p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-nach-rotem-vergleich p8-ohne-smoke p8-semver-numerisch p8-stabil-hoechste p8-tag-satz p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt p9-nicht-vor-registries" b '-v n="pgwire-recorder-linux-$arch"' '-v n="pgwire-recorder-linux-amd64"'
+mutr m-p5-summe-name-os "p10-nicht-im-log-image p10-stdin p11-alte-marke-b p11-alte-marke-image-b p11-image-rot-loescht-digest-b p11-wiederanlauf-ghcr-vorhanden p11-wiederanlauf-latest p13-veroeffentlichen-ohne-image-bei-scan-ok p2-aussenwirkung-ohne-push-b p2-ref-kein-tag-b p2-trockenlauf-image p5-aufruf p5-digest p5-epoch-committer p5-summe-arm64 p5-summe-eintrag-fehlt p6-all-und-digests p6-anmeldung-scheitert p6-inspect-anderer-fehler p6-inspect-meldung-im-log p6-reihenfolge p6-tag-fehlt-manifest-unknown p6-tag-fehlt-name-unknown p6-tag-fehlt-not-found p6-tag-satz p6-tag-vorhanden-anders p6-tag-vorhanden-gleich p6-zweite-registry-faellt p7-anonym-docker p7-anonym-ghcr p7-digest-docker p7-digest-ghcr p7-digest-lokal p7-eine-plattform p7-gleich p7-postgres-fehlt p7-rohbytes p7-smoke-aufruf p7-smoke-docker p7-smoke-ghcr p7-smoke-ohne-vergleichen p7-smoke-ok-marke p7-tag-fehlt p8-aelterer-zweig p8-erster-stabiler p8-fremder-tag p8-nach-rotem-vergleich p8-ohne-smoke p8-semver-numerisch p8-stabil-hoechste p8-tag-satz p8-vorabversion p8-vorabversion-hoeher-zaehlt-nicht p8-zweite-registry-faellt p9-nicht-vor-registries" b '-v n="pgwire-recorder-linux-$arch"' '-v n="pgwire-recorder-darwin-$arch"'
 mutr m-p6-meldung-verworfen "p6-inspect-meldung-im-log" b 'L:# P6meldung' ''
 mutr m-p7-meldung-verworfen "p6-inspect-meldung-im-log" b 'L:# P7meldung' ''
 mutr m-p7-plattformen-docker-nicht-geprueft "p7-eine-plattform" b 'index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen' '[ "$reg" = docker.io ] || index_pruefen "$scratch/roh-$reg" "der Index aus $reg" # P7plattformen'

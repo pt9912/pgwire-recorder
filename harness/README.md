@@ -100,7 +100,7 @@ Die Gegenproben (jedes Ziel mit Namen auf `-gegenprobe`) und `make a-check-negat
 
 | Target | Tut was | Bindung |
 |---|---|---|
-| `make binaries` | baut die sechs Binaries `pgwire-recorder_<VERSION>_<os>_<arch>` (unter Windows `.exe`) mit `SHA256SUMS` nach `DIST` (Vorgabe `dist`, muss fehlen oder leer sein; steht in `.gitignore`); Vertrag [`SPEC-055`](vertraege/SPEC-055-container-und-binaries.md) Punkt 3 | kein Gate |
+| `make binaries` | baut die sechs Binaries `pgwire-recorder-<os>-<arch>` ohne Version im Namen (unter Windows `.exe`; die Version steht im Binary) mit `SHA256SUMS` nach `DIST` (Vorgabe `dist`, muss fehlen oder leer sein, auch bei Dateien einer anderen `VERSION`; steht in `.gitignore`); Vertrag [`SPEC-055`](vertraege/SPEC-055-container-und-binaries.md) Punkt 3 | kein Gate, [ADR-0054](../docs/plan/adr/0054-binaries-ohne-version-im-dateinamen.md) · seit slice-v1-abschluss-binary-namen |
 | `make slice-mv` | bewegt einen Slice zwischen den Lifecycle-Verzeichnissen und zieht die Verweise nach, prüft nichts | kein Gate |
 | `make archive-welle` | archiviert die Zeitdokumente einer geschlossenen Welle | kein Gate |
 | `make schema-validate` | prüft das neutrale Schema der SQLite-Aufzeichnung mit d-migrate (netzlos), prüft sonst nichts | kein Gate |
