@@ -699,6 +699,9 @@ mut p3-name-version "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire
 mut p3-name-trenner "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder_${os}_${arch}"' p3 p3-exe p3-namen p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
 mut p3-name-trenner-vorn "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder_${os}-${arch}"' p3 p3-exe p3-namen p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
 mut p3-name-trenner-hinten "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder-${os}_${arch}"' p3 p3-exe p3-namen p3-name-trenner p3-sums-format p3-sums-je-binary $Z6
+mut p3-name-gross "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder-${os^}-${arch}"' p3 p3-exe p3-namen p3-sums-format p3-sums-je-binary $Z6
+mut p3-name-ziffern "$B_" 'datei="pgwire-recorder-${os}-${arch}"' 'datei="pgwire-recorder-${os}-${arch//64/}"' p3 p3-exe p3-namen p3-sums-je-binary $Z6
+mut p3-exe-ohne-punkt "$B_" 'if [ "$os" = windows ]; then datei+=".exe"; fi' 'if [ "$os" = windows ]; then datei+="_exe"; fi' p3 p3-namen p3-exe p3-name-trenner p3-sums-format p3-sums-je-binary $ZW
 mut p3-versionsdatei "$B_" '(cd "$dist" && sha256sum "${namen[@]}" > SHA256SUMS)' '(cd "$dist" && sha256sum "${namen[@]}" > SHA256SUMS; echo "$VERSION" > VERSION)' p3 p3-namen
 mut p3-build-arg "$B_" ' --build-arg "VERSION=$VERSION"' '' p3 p3-version-im-build p3-name-ohne-version
 mut p3-sort "$B_" %P3sort p3 p3-sums-sortiert
