@@ -3,12 +3,14 @@ package pgwire_test
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -37,6 +39,10 @@ type cancelErwartung struct {
 	halb bool
 	// fehler ist PGR-E6001 mit ErrorResponse; sonst gilt die Warnung PGR-W3001 ohne Antwort.
 	fehler bool
+	// restUngelesen: Der Client hat mehr Bytes gesendet, als der Recorder bei der Ablehnung
+	// gelesen hat; die ErrorResponse ist dann nicht zugesagt (LH-FA-05.e), geprüft werden das
+	// Ende der Verbindung, PGR-E6001 im Log und der gemerkte Fehler.
+	restUngelesen bool
 }
 
 func cancelFaelle() []cancelErwartung {
@@ -49,8 +55,11 @@ func cancelFaelle() []cancelErwartung {
 		cancelErwartung{name: "Länge 12, Prozess-ID 0xff", daten: cancelNachricht(12, 4, 0xff)},
 		cancelErwartung{name: "Länge 16, Schlüssel 0xff", daten: cancelNachricht(16, 8, 0xff)},
 	)
-	for _, l := range []int{8, 9, 10, 11, 13, 14, 15, 269, 270, 10000} {
+	for _, l := range []int{8, 9, 10, 11, 13, 14, 15} {
 		fs = append(fs, cancelErwartung{name: fmt.Sprintf("Länge %d", l), daten: cancelVoll(l), fehler: true})
+	}
+	for _, l := range []int{269, 270, 10000} {
+		fs = append(fs, cancelErwartung{name: fmt.Sprintf("Länge %d", l), daten: cancelVoll(l), fehler: true, restUngelesen: true})
 	}
 	for _, l := range []int{12, 16, 268} {
 		for _, g := range []int{0, 1, 3} {
@@ -86,11 +95,14 @@ func cancelStellen() []cancelStelle {
 }
 
 // cancelSenden schickt daten und liest, ohne die Schreibseite zu schließen (außer halb),
-// bis der Server die Verbindung schließt; ein Warten bis zur Frist ist ein Fehler.
+// bis der Server die Verbindung schließt; ein Warten bis zur Frist ist ein Fehler. Ein
+// Rücksetzen der Verbindung (beim Schreiben ECONNRESET oder EPIPE, beim Lesen
+// connection reset) gilt als Ende: Schließt der Server mit ungelesenen Bytes, kann es als
+// RST ankommen (LH-FA-05.e, Ablehnung aus dem Kopf bei ungelesenem Rest).
 func cancelSenden(r *randServer, daten []byte, halb, klartext bool) []byte {
 	r.t.Helper()
 	tcp, c := r.verbinde(klartext)
-	if _, err := c.Write(daten); err != nil {
+	if _, err := c.Write(daten); err != nil && !errors.Is(err, syscall.ECONNRESET) && !errors.Is(err, syscall.EPIPE) {
 		r.t.Fatal(err)
 	}
 	if halb {
@@ -111,8 +123,10 @@ func cancelSenden(r *randServer, daten []byte, halb, klartext bool) []byte {
 // Abdeckung: LH-FA-05/Negative, LH-FA-05/Boundary — die Länge des CancelRequest
 // (LH-FA-05.e *Länge des CancelRequest*): 12 (Prozess-ID ohne Schlüssel) und 16 bis 268
 // sind PGR-W3001 ohne Antwort und ohne Fehler, die Verbindung wird geschlossen, es
-// entsteht keine Session; 8 bis 11, 13 bis 15 und 269 bis 10000 sind PGR-E6001 mit
-// ErrorResponse und ohne Warnung PGR-W3001; ein Rest, den die Verbindung nicht ganz
+// entsteht keine Session; 8 bis 11 und 13 bis 15 sind PGR-E6001 mit ErrorResponse und
+// ohne Warnung PGR-W3001; 269, 270 und 10000 mit vollem Rest sind PGR-E6001 mit Ende der
+// Verbindung und Eintrag im Log, die ErrorResponse wird nicht verlangt (ungelesener Rest,
+// Zustellung nicht zugesagt; geprüft nur unter Linux); ein Rest, den die Verbindung nicht ganz
 // liefert (Länge 12, 16, 268 mit 0, 1 und 3 Bytes), ist PGR-E6001; Prozess-ID und
 // Schlüssel werden nicht ausgewertet (0, 0xff, 0x2a); in record und replay, an jeder
 // Stelle der Folge (erste Nachricht, nach SSLRequest mit N, nach GSSENCRequest, über TLS
@@ -131,6 +145,12 @@ func TestCancelRequestLaenge(t *testing.T) {
 					roh := cancelSenden(r, append(append([]byte{}, st.vor...), f.daten...), f.halb, st.klartext)
 					b := r.befund(roh)
 					warn := strings.Count(r.log.String(), "level=WARN")
+					if f.restUngelesen {
+						if b.sessions != 0 || b.erster != model.CodeUnsupported || !strings.Contains(r.log.String(), "code="+model.CodeUnsupported) || strings.Contains(r.log.String(), model.CodeCancelRequest) {
+							t.Fatalf("Befund %+v, erwartet PGR-E6001 im Log und als gemerkter Fehler, keine Session, keine Warnung %s:\n%s", b, model.CodeCancelRequest, r.log.String())
+						}
+						return
+					}
 					if b.n != st.n || b.sessions != 0 {
 						t.Fatalf("Befund %+v, erwartet n=%d, keine Session", b, st.n)
 					}
@@ -285,9 +305,10 @@ func tlsWenn(st cancelStelle, z *pgwire.TLS) *pgwire.TLS {
 
 // Abdeckung: LH-FA-05/Boundary — ein CancelRequest (Länge 12 und 16) auf einer Verbindung
 // beendet eine laufende Interaktion einer zweiten Verbindung nicht (LH-FA-05.e *Länge des
-// CancelRequest*, *Modus*): Die Anfrage der zweiten Verbindung läuft im Recorder, der
-// CancelRequest wird behandelt und schließt seine Verbindung, danach endet die Anfrage
-// regulär mit ihrer Antwort und CommandComplete, in record.
+// CancelRequest*, *Modus*), in record: Die Anfrage der zweiten Verbindung läuft im Recorder,
+// der CancelRequest wird behandelt und schließt seine Verbindung, danach endet die Anfrage
+// regulär mit ihrer Antwort und CommandComplete. Die Hälfte für replay steht in
+// TestCancelRequestLaufendeInteraktionUnberuehrtReplay.
 func TestCancelRequestLaufendeInteraktionUnberuehrt(t *testing.T) {
 	for _, l := range []int{12, 16} {
 		t.Run(fmt.Sprintf("Länge %d", l), func(t *testing.T) {
@@ -314,6 +335,67 @@ func TestCancelRequestLaufendeInteraktionUnberuehrt(t *testing.T) {
 			rest, _ := io.ReadAll(reg)
 			if !strings.Contains(string(rest), "SELECT 1") || strings.Contains(string(rest), "PGR-") {
 				t.Fatalf("Antwort der laufenden Anfrage %q", rest)
+			}
+		})
+	}
+}
+
+// rohTypen liefert die Typbytes der Nachrichten eines Stroms hinter dem Verbindungsaufbau.
+func rohTypen(roh []byte) string {
+	var typen []byte
+	for len(roh) >= 5 {
+		l := int(binary.BigEndian.Uint32(roh[1:5]))
+		if l < 4 || 1+l > len(roh) {
+			typen = append(typen, '?')
+			break
+		}
+		typen = append(typen, roh[0])
+		roh = roh[1+l:]
+	}
+	return string(typen)
+}
+
+// Abdeckung: LH-FA-05/Boundary — ein CancelRequest (Länge 12 und 16) auf einer Verbindung
+// beendet eine laufende Interaktion einer zweiten Verbindung nicht (LH-FA-05.e *Länge des
+// CancelRequest*, *Modus*), in replay: Die zweite Verbindung hat eine Extended-Folge bis vor
+// Sync begonnen (Parse, Bind, Execute), der CancelRequest wird behandelt und schließt seine
+// Verbindung, ohne dass der Use Case eine Verbindung beendet, abbricht oder eine weitere
+// Session öffnet; danach bekommt die zweite Verbindung mit Sync die vollständigen
+// aufgezeichneten Antworten (ParseComplete, BindComplete, DataRow, CommandComplete,
+// ReadyForQuery), und der Use Case sieht genau die vier Nachrichten in ihrer Reihenfolge.
+func TestCancelRequestLaufendeInteraktionUnberuehrtReplay(t *testing.T) {
+	for _, l := range []int{12, 16} {
+		t.Run(fmt.Sprintf("Länge %d", l), func(t *testing.T) {
+			r := neuerRandServer(t, true, nil)
+			_, reg := r.verbinde(false)
+			_, _ = reg.Write(append(rohStart("user", "app"), rohNachricht('P', "\x00SELECT 1\x00\x00\x00")...))
+			_, _ = reg.Write(rohNachricht('B', "\x00\x00\x00\x00\x00\x00\x00\x00"))
+			_, _ = reg.Write(rohNachricht('E', "\x00\x00\x00\x00\x00"))
+			for ende := time.Now().Add(cancelFrist); len(r.rep.nachrichten()) < 3; time.Sleep(10 * time.Millisecond) {
+				if time.Now().After(ende) {
+					t.Fatal("die Extended-Folge erreicht den Use Case nicht")
+				}
+			}
+			if roh := cancelSenden(r, cancelVoll(l), false, false); len(roh) != 0 {
+				t.Fatalf("Antwort auf den CancelRequest %q", roh)
+			}
+			r.rep.mu.Lock()
+			geoeffnet, geschlossen, erzwungen, shutdowns := r.rep.geoeffnet, r.rep.closed, r.rep.forced, r.rep.shutdowns
+			r.rep.mu.Unlock()
+			if geoeffnet != 1 || geschlossen != 0 || erzwungen != 0 || shutdowns != 0 {
+				t.Fatalf("nach dem CancelRequest: geöffnet %d, geschlossen %d, erzwungen %d, Shutdown %d; erwartet 1, 0, 0, 0", geoeffnet, geschlossen, erzwungen, shutdowns)
+			}
+			_, _ = reg.Write(append(rohNachricht('S', ""), rohNachricht('X', "")...))
+			rest, _ := io.ReadAll(reg)
+			if typen := rohTypen(rest); !strings.HasSuffix(typen, "Z12DCZ") || strings.Contains(typen, "E") || strings.Contains(string(rest), "PGR-") {
+				t.Fatalf("Antworten der zweiten Verbindung %q (Typen %q), erwartet bis ReadyForQuery, 1, 2, D, C, Z", rest, typen)
+			}
+			var folge []model.ClientMessageType
+			for _, m := range r.rep.nachrichten() {
+				folge = append(folge, m.Type)
+			}
+			if !slices.Equal(folge, []model.ClientMessageType{model.ClientParse, model.ClientBind, model.ClientExecute, model.ClientSync}) {
+				t.Fatalf("Nachrichten beim Use Case %v", folge)
 			}
 		})
 	}
