@@ -78,9 +78,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/release.sh` (Schritt `homebrew`) | update | Eingaben, Summen, Formel, Tap, Token über `GIT_ASKPASS` (`SPEC-067` Punkt 19) |
 | `tools/harness/homebrew-formula.rb.tmpl` | neu | Vorlage mit Platzhaltern (Text in Punkt 19 (4)) |
 | `.github/workflows/release.yml` | update | Job `homebrew` nach Punkt 1c; das Geheimnis nur im Schritt `Homebrew` |
-| `tools/harness/release-gegenprobe.sh` | update | Fälle `p19-*` mit Probe-Tap und Attrappe von `gh`; `p1-*` um die Zeilen von 1c; Liste der Schritte mit Außenwirkung in `p2-*` |
+| `tools/harness/release-gegenprobe.sh` | update | Fälle `p19-*` mit Probe-Tap, einer Attrappe von `gh` für `SHA256SUMS` und einem Protokoll vor dem echten `git`; `p1-*` um die Zeilen von 1c; Liste der Schritte mit Außenwirkung in `p2-*` |
 | `harness/README.md` (§Sensors, Zeile `release-gegenprobe`) | update | nennt die neuen Fälle |
-| `docs/maintainer/releasing.md` | update | §3, §4, §6, §7, §11 (Ist-Zustand des Ausgeführten) |
+| `docs/maintainer/releasing.md` | update | §1, §2, §3, §4, §6, §7, §11 und die Änderungshistorie (Ist-Zustand des Ausgeführten; §1 und §2 sagten, die Formel entstehe nicht in der Pipeline) |
 
 Nicht in dieser Liste: der Tap `pt9912/homebrew-pgwire-recorder` (Handlung des Betreibers, `slice-erster-release-homebrew-nachweis`), Handbuch und `README.md` (§1).
 

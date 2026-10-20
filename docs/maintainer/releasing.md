@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.11
+Version: 0.12
 Stand: 2026-10-20
 
 ## 1. Zweck und Zielgruppe
@@ -22,7 +22,7 @@ veröffentlicht es in `ghcr.io` und `docker.io`, vergleicht die Digests, startet
 setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit den Binaries und
 `SHA256SUMS` an (§6); `make release-gegenprobe` prüft sie mit Attrappen für `make`, `docker`,
 `skopeo`, `gh`, den Scanner und den Smoke; der Scan, die Registries und der GitHub-Release hatten noch
-keinen Lauf auf GitHub. Eine Formel im Tap gibt es nicht. Es ist noch kein Tag gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
+keinen Lauf auf GitHub. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7) und hatte ebenfalls noch keinen Lauf; im Tap liegt keine Formel. Es ist noch kein Tag gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
 Kennung („liefert `slice-…`“), nicht als Zusage. Der Beleg, dass die Pipeline mit einem echten
 Tag durchgelaufen ist, steht hier erst, wenn es ihn gibt.
 
@@ -43,7 +43,7 @@ Ein Release liefert:
   (`LH-FA-16.a`, `SPEC-031`);
 
 Eine Formel im Homebrew-Tap `pt9912/homebrew-pgwire-recorder` (`LH-FA-19.a`, `SPEC-042`) entsteht
-nicht in dieser Pipeline (§7).
+bei einem stabilen Tag im eigenen Job `homebrew` derselben Pipeline, nach dem GitHub-Release (§6, §7).
 
 **Reproduzierbar ist nur das Binary:** Zwei Builds desselben Quellstands für
 dieselbe Plattform liefern dieselbe Prüfsumme (`LH-QA-01`). Für das Image gilt das
@@ -86,13 +86,12 @@ Die Version der Software steht in der Datei `VERSION` im Wurzelverzeichnis: gena
 dieser Inhalt ist. `make binaries VERSION=<SemVer>` trägt die Version ins Binary, nicht in die Namen der Binaries;
 ohne Angabe bleibt es bei `dev`.
 
-Zwei Begriffe, die nur das Verfahren der Formel (§7) benutzt; für die Veröffentlichung der
-Binaries (§6) gibt es keinen Probe-Tag, dort ersetzt ihn der Trockenlauf: Ein **Probe-Tag** ist ein Vorabversions-Tag
-(`v<SemVer>-probe.<N>`), mit dem das Release-Verfahren geprüft wird, ohne einen
-Release zu veröffentlichen. Ein **Probe-Tap** ist ein Tap außerhalb von
-`pt9912/homebrew-pgwire-recorder`, in den die Formel eines Probe-Tags geschrieben
-wird. Beide benutzt `slice-v1-abschluss-homebrew`, um das Verfahren der Formel zu
-prüfen.
+Es gibt keinen **Probe-Tag**: Für die Veröffentlichung (§6) ersetzt ihn der Trockenlauf, für die
+Formel (§7) das Probe-Tap. Ein Probe-Tag wäre eine Vorabversion, und eine Vorabversion ändert den Tap nicht.
+Ein **Probe-Tap** ist ein lokales Bare-Repository im Temp-Verzeichnis eines Falls von
+`make release-gegenprobe`; die Gegenprobe legt die Formel dort ab und liest nach dem Lauf Zweig, Commits und
+Dateien (§7). Sie greift weder auf `pt9912/homebrew-pgwire-recorder` noch auf das Netz zu und nutzt kein
+echtes Geheimnis.
 
 ## 4. Vorbedingungen
 
@@ -110,6 +109,13 @@ Vor dem ersten Release gilt:
    nur in den Schritten, die sie brauchen; fehlt oder ist leer eines der beiden, endet `Eingaben` mit Exit 2,
    bevor etwas veröffentlicht wird. Ob die Token schreiben dürfen und das Paket öffentlich ist, zeigt erst der
    Lauf für den ersten Tag.
+5. Für die Formel (§7) ist das Repository-Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` hinterlegt, ebenfalls eine
+   Handlung des Betreibers. Der Token braucht mindestens das Recht, in `pt9912/homebrew-pgwire-recorder`
+   Inhalte zu schreiben und nichts darüber hinaus; bei einem Fine-grained Personal Access Token heißt das:
+   nur dieses eine Repository, *Contents: Read and write*, mit Ablaufdatum. Der Job `homebrew` liest das Geheimnis
+   als einziger, nur im Schritt `Homebrew`. Fehlt es oder ist es leer, endet der Schritt bei einem stabilen Tag mit
+   Exit 2 und der Tap bleibt unverändert; ob der Token das Schreibrecht hat, zeigt erst der Lauf für einen stabilen
+   Tag (Abnahmeszenario 11).
 
 Wer taggen darf, bestimmt die Konfiguration des Repositorys, nicht dieses
 Dokument.
@@ -191,6 +197,10 @@ aus). Die Schritte, die Logik steht in `tools/harness/release.sh`:
    `latest` unverändert.
 9. `GitHub-Release` legt `v<SemVer>` mit den sieben Dateien an, mit dem Text aus der Zeile der
    Änderungshistorie, als Vorabversion bei einem Tag mit `-…`; der Schritt läuft nur, wenn `Smoke` grün war.
+10. Der Job `homebrew` (eigener Job mit `needs: release`, nur bei einem Push, `contents: read`) erzeugt die Formel aus
+    der Vorlage `tools/harness/homebrew-formula.rb.tmpl` und der Datei `SHA256SUMS` des GitHub-Release und legt sie im
+    Tap ab (§7). Ein roter Job `homebrew` lässt den Release und die Registries unberührt; „Re-run failed jobs“ wiederholt
+    nur ihn (§11).
 
 Dieselbe Datei läuft als **Trockenlauf**, wenn man sie auf einem Zweig von Hand startet
 (`workflow_dispatch`): `Eingaben`, `Binaries`, `Image` und `Scan` mit der Version aus `VERSION` als Tag
@@ -199,7 +209,7 @@ nicht im Standard-Zweig, steht das als Hinweis `release: hinweis: …`, kein Feh
 dass die Token schreiben dürfen, dass das Paket in `ghcr.io` öffentlich ist und das Repository auf Docker Hub
 besteht, dass der Smoke aus den Registries gelingt und dass der GitHub-Release angelegt wird; das zeigt
 erst der Lauf für den Tag. Der Scan braucht Netz für das Image des Scanners und die Schwachstellen-Datenbank und läuft deshalb
-auch dort; ein grüner Scan sagt „am Tag des Laufs ist nichts Behebbares mit `HIGH` oder `CRITICAL` bekannt“, nicht „sicher“, und dieselbe
+auch dort; der Job `homebrew` läuft dort nicht; ein grüner Scan sagt „am Tag des Laufs ist nichts Behebbares mit `HIGH` oder `CRITICAL` bekannt“, nicht „sicher“, und dieselbe
 Quelle kann an zwei Tagen verschieden bewertet werden. Die Binaries am GitHub-Release werden nicht gescannt.
 
 ## 7. Homebrew
@@ -209,11 +219,43 @@ Linux (`amd64`, `arm64`) und prüft es gegen die SHA-256-Summe desselben Release
 sie baut nicht aus dem Quelltext (`LH-FA-19.a`). Sie entsteht nur bei einem stabilen
 Tag; Windows bedient Homebrew nicht.
 
-- Das Verfahren, die Formel aus den Release-Binaries zu erzeugen und im Tap
-  abzulegen, liefert `slice-v1-abschluss-homebrew`, geprüft mit einem Probe-Tag und
-  einem Probe-Tap (§3).
-- Den Nachweis mit dem echten Tap (Abnahmeszenario 11) liefert
-  `slice-erster-release-homebrew-nachweis`.
+Der Schritt `homebrew` (`tools/harness/release.sh homebrew`, Job `homebrew`) prüft in dieser Reihenfolge und endet
+beim ersten Treffer: Ereignis und Ref (Exit 2, `ereignis`), die Form des Tags (Exit 2, `tag-form`), dann eine Vorabversion
+(Exit 0, die Zeile `release: homebrew: <Tag> ist eine Vorabversion, der Tap bleibt unverändert`, ohne Aufruf von `gh` und
+`git` und ohne Prüfung der Token), `GH_TOKEN` (Exit 2, `token`) und `HOMEBREW_TAP_GITHUB_TOKEN` (Exit 2, `geheimnis`; die
+Meldung nennt den Namen, nie einen Wert). Danach:
+
+1. Die Datei `SHA256SUMS` kommt aus dem GitHub-Release (`gh release download`). Sie muss für `darwin` und `linux`, je `amd64`
+   und `arm64`, genau eine Zeile `<Summe>  pgwire-recorder-<os>-<arch>` mit einer SHA-256-Summe aus 64 Zeichen `0-9a-f`
+   tragen, sonst Exit 1 (`summen`, `summen-laden`), bevor der Tap angefasst wird. Das alte Schema mit der Version im Namen
+   (so trägt es `v0.1.0`) wird nicht angenommen: Für `v0.1.0` gibt es keine Formel, der Schritt endet dort mit Exit 1 `summen`.
+2. Die Formel ist die Vorlage mit der Version ohne `v` und den vier Summen.
+3. Der Tap wird in ein neues Temp-Verzeichnis geklont (Exit 1 `tap-klon`). Ein leerer Tap bekommt den Zweig `main`, ein Tap
+   mit Commits muss auf `main` ausgecheckt sein (Exit 1 `tap-zweig`). Der Schritt schreibt nur
+   `Formula/pgwire-recorder.rb` (Exit 1 `tap-pfad`, wenn `Formula` oder die Formel keine Datei bzw. kein Verzeichnis ist; Exit 1
+   `tap-formel`, wenn die Formel im Tap nicht genau eine Zeile `  version "<X.Y.Z>"` mit einer stabilen Version hat). Trägt der
+   Tap eine höhere Version, bleibt er unverändert (Exit 0); trägt er dieselbe Version mit demselben Text, ebenfalls (Exit 0,
+   „schon aktuell“); sonst, also bei derselben Version mit anderem Text, bei einer niedrigeren Version und bei fehlender
+   Formel, entsteht ein Commit `pgwire-recorder <Version>` mit Autor und Committer `github-actions[bot]` und ein
+   `git push origin main` ohne `--force`. Weist der Tap den Push ab, endet der Schritt mit Exit 1 `tap-push` und der Tap
+   bleibt unverändert; der Schritt wiederholt den Push nicht.
+4. Der Token von `HOMEBREW_TAP_GITHUB_TOKEN` gelangt nur über `GIT_ASKPASS` zu `git` (`GIT_TERMINAL_PROMPT=0`,
+   `-c credential.helper=` leer); er steht nie in einem Argument von `git` oder `gh`, nie in `.git/config` des Klons, in
+   keiner Datei unter dem Temp-Verzeichnis und nie in der Ausgabe.
+
+**Nachtrag von Hand** (Handlung des Betreibers, mit seinem eigenen Token): Wer einen Tag nachziehen muss, dessen Lauf den Job
+nicht hatte oder dessen Formel die Vorlage nicht mehr trägt, ruft in einem Klon des Hauptzweigs
+`bash tools/harness/release.sh homebrew` mit `RELEASE_EVENT=push`, `RELEASE_REF=refs/tags/v<Version>`,
+`RELEASE_REPOSITORY=pt9912/pgwire-recorder`, `GH_TOKEN` und `RELEASE_TAP_TOKEN` in der Umgebung, nie als Argument. Der
+Schritt unterscheidet das nicht vom Lauf des Jobs. Das Skript ist unter Linux zugesagt (bash ab 5.1, `git`, `gh`, GNU `awk`
+und `sort`); macOS und Windows als Ausführungsort sind es nicht.
+
+**Was `make release-gegenprobe` belegt:** den Text der Formel und der Vorlage, die Ablage und die Randformen des Taps gegen
+ein lokales Probe-Tap (§3), die Reihenfolge der Gründe und den Umgang mit dem Token. **Was sie nicht belegt:** dass
+Homebrew die Formel annimmt, dass die URLs am GitHub-Release erreichbar sind, dass das Binary auf macOS und Linux läuft, dass
+das Tap-Token das Schreibrecht hat, dass `https://github.com/pt9912/homebrew-pgwire-recorder.git` die Form des Klons
+trägt und den Wortlaut von `gh release download` auf dem Runner. Das zeigt erst `slice-erster-release-homebrew-nachweis` mit
+dem echten Tap (Abnahmeszenario 11), die Installation aus dem Tap und der Abschnitt im Benutzerhandbuch gehören dorthin.
 
 ## 8. Nach dem Push kontrollieren
 
@@ -320,6 +362,7 @@ Die Tabelle nennt die Schritte der Pipeline.
 | `vergleichen`, `smoke` | Digest, Zugriff, Plattformen, Smoke | beide Registries beschrieben, kein `latest`, kein GitHub-Release | Ursache beheben (zum Beispiel das Paket öffentlich stellen), wiederholen; bei Abweichung der Digests neuer Tag |
 | `latest` | zweite Registry rot | `latest` in einer Registry neu | wiederholen: setzt beide auf `D` |
 | `github-release` | Anlegen oder Anhang | der Release fehlt oder trägt einen Teil der Anhänge | wiederholen: ergänzt fehlende Anhänge; weicht `SHA256SUMS` am Release von der lokalen Datei ab, neuer Tag |
+| `homebrew` | Summen nicht ladbar oder unbrauchbar, Klon, Zweig, Pfad, Formel im Tap unlesbar, Push abgewiesen | Release und Registries vollständig, der Tap unverändert | Ursache beheben (zum Beispiel das Geheimnis, sein Recht oder die Formel im Tap), den Job wiederholen („Re-run failed jobs“ baut das Image nicht neu) oder den Nachtrag von Hand fahren (§7); kein neuer Tag, auch nicht bei einem Fehler im Skript oder in der Vorlage: die Formel ist kein veröffentlichtes Artefakt, die Korrektur geschieht auf dem Hauptzweig, danach der Nachtrag |
 
 ### Änderungshistorie
 
@@ -336,3 +379,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.9 | 2026-10-19 | Scan des Images vor dem Push (Schritt `Scan`, Zeile der Fehlertabelle); Freshness-Audit mit der Form seines Belegs (§5); Freigabe-Checkliste mit Anti-Punkten und Incident-Klausel (§10) |
 | 0.10 | 2026-10-19 | Freshness-Audit optional und kein Punkt der Freigabe-Checkliste mehr (§5); Checkliste mit elf Punkten neu nummeriert, Anti-Punkt zum Audit (§10) |
 | 0.11 | 2026-10-20 | Namen der Binaries ohne Version: `pgwire-recorder-<os>-<arch>` (§2, §3) |
+| 0.12 | 2026-10-20 | Formel im Tap: Job `homebrew` nach dem GitHub-Release, Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` als Vorbedingung (§4), Probe-Tap statt Probe-Tag (§3), Verfahren und Nachtrag von Hand (§7), Zeile der Fehlertabelle (§11) |
