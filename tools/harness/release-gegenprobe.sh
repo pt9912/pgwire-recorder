@@ -2044,8 +2044,8 @@ mut1 m-p1-leerzeilen-nicht-ignoriert "p1-leerzeile" "fn_ersetze '^\\ *(#|\$)' '^
 mut1 m-p1-kommentar-irgendwo-in-der-zeile "p1-gleich p1-text-gleich p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^.*#|^\\ *\$'"
 mut1 m-p1-kommentar-nur-am-zeilenanfang "p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^(#|\$)'"
 # Reihenfolge: die Prüfung nimmt zusätzlich die Folge mit vertauschten Schritten an.
-soll_umgestellt() { local k; printf '%s\n' "${SOLL[@]:0:STEP_AB[0]}"; for k in "$@"; do printf '%s\n' "${SOLL[@]:STEP_AB[k]:STEP_AB[k+1]-STEP_AB[k]}"; done; }
-tauschbar='src="$(declare -f pruefe_release)"; eval "${src/pruefe_release/pruefe_release_orig}"; pruefe_release() { pruefe_release_orig "$1" && return 0; local -a s=("${SOLL[@]}"); local r; SOLL=("${%s[@]}"); pruefe_release_orig "$1"; r=$?; SOLL=("${s[@]}"); return $r; }'
+soll_umgestellt() { local k; printf '%s\n' "${SOLL[@]:0:STEP_AB[0]}"; for k in "$@"; do printf '%s\n' "${SOLL[@]:STEP_AB[k]:STEP_AB[k+1]-STEP_AB[k]}"; done; printf '%s\n' "${SOLL[@]:JH}"; }
+tauschbar='src="$(declare -f pruefe_release)"; eval "${src/pruefe_release/pruefe_release_orig}"; pruefe_release() { pruefe_release_orig "$1" && return 0; local -a s=("${SOLL[@]}"); local r p1=$PIN p2=$PIN2 i; SOLL=("${%s[@]}"); PIN=-1; PIN2=-1; for i in "${!SOLL[@]}"; do if [[ ${SOLL[i]} == *"actions/checkout@<SHA>"* ]]; then if [ "$PIN" -lt 0 ]; then PIN=$i; else PIN2=$i; fi; fi; done; pruefe_release_orig "$1"; r=$?; SOLL=("${s[@]}"); PIN=$p1; PIN2=$p2; return $r; }'
 for tp in "${TAUSCHE[@]}"; do
   read -r tn tk tl <<< "$tp"
   mapfile -t "PERM_${tn//-/_}" < <(soll_umgestellt $(tausch "$tk" "$tl"))
@@ -2202,7 +2202,7 @@ done
 # Punkt 9
 mutr m-p9-repo-fehlt-view "p9-repo-argument" sh 'release view "$tag" --repo "$RELEASE_REPOSITORY" --json' 'release view "$tag" --json'
 mutr m-p9-repo-fehlt-create "p9-repo-argument" sh 'release create "$tag" --repo "$RELEASE_REPOSITORY" --verify-tag' 'release create "$tag" --verify-tag'
-mutr m-p9-repo-fehlt-download "p9-repo-argument" sh 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern' 'release download "$tag" --pattern'
+mutr m-p9-repo-fehlt-download "p9-repo-argument" sh 'release download "$tag" --repo "$RELEASE_REPOSITORY" --pattern SHA256SUMS --dir "$scratch/remote"' 'release download "$tag" --pattern SHA256SUMS --dir "$scratch/remote"'
 mutr m-p9-repo-fehlt-upload "p9-repo-argument" sh 'release upload "$tag" --repo "$RELEASE_REPOSITORY" "${fehlend[@]}"' 'release upload "$tag" "${fehlend[@]}"'
 mutr m-p9-gh-ohne-token-pruefung "p9-gh-token-fehlt" sh 'L:# P9token' ''
 mutr m-p9-view-muster-geweitet "p9-view-anderer-fehler" sh "grep -q 'release not found'" "grep -qi 'not found'"
