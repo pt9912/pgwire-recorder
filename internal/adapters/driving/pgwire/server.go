@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -29,6 +30,10 @@ const (
 	// maxStartLaenge begrenzt die Länge einer Startnachricht (SPEC-045); eine
 	// längere erste Nachricht ist keine PGWire-Startnachricht.
 	maxStartLaenge = 10000
+
+	// laengeCancelOhneSchluessel ist die Länge eines CancelRequest aus Kopf und
+	// Prozess-ID ohne Schlüssel.
+	laengeCancelOhneSchluessel = 12
 )
 
 // Server nimmt PostgreSQL-Clients an und übersetzt ihre Nachrichten in Aufrufe
@@ -843,8 +848,11 @@ func kopieOderNil[T any](s []T) []T {
 
 // startup liest die erste Client-Nachricht. Eine SSL-Anfrage beantwortet
 // sslAnfrage, eine GSS-Anfrage „N“ (LH-FA-05.c); auf einer verschlüsselten
-// Verbindung ist die GSS-Anfrage PGR-E6001. Ein CancelRequest schließt die
-// Verbindung (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002,
+// Verbindung ist die GSS-Anfrage PGR-E6001. Ein CancelRequest der Länge 12
+// (Prozess-ID ohne Schlüssel) liest der Adapter selbst, weil pgproto3 ihn
+// ablehnt; er und jeder von pgproto3 gelesene CancelRequest schließen die
+// Verbindung (PGR-W3001), ein unvollständiger PGR-E6001 (LH-FA-05.e *Länge des
+// CancelRequest*). Jede andere Protokollversion als 3.0 ist PGR-E6002,
 // eine unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001, ebenso eine
 // Startnachricht mit einem Parameter _pq_. (vor der Prüfung auf TLS und vor dem
 // Aufbau zum Upstream). Eine erste Nachricht, die keine PGWire-Startnachricht
@@ -876,6 +884,16 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 				return nil, false
 			}
 			continue
+		}
+
+		if laenge == laengeCancelOhneSchluessel && code == codeCancelRequest {
+			_, _ = k.br.Discard(8)
+			if _, err := io.ReadFull(k.br, make([]byte, 4)); err != nil {
+				s.fail(k.be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
+				return nil, false
+			}
+			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
+			return nil, false
 		}
 
 		msg, err := k.be.ReceiveStartupMessage()

@@ -775,6 +775,15 @@ auch wenn sie keine Interaktionen hat.
   mit Exit-Code 6. Ein Parameter `_pq_.` ist eine Protokollerweiterung; `record` baut dafür keine
   Verbindung zur Datenbank auf. Stellen Sie den Treiber so ein, dass er keine Protokollerweiterung
   anfordert.
+* Einen Abbruchwunsch (`CancelRequest`) leitet das Werkzeug nicht an die Datenbank weiter. Er
+  schließt seine Verbindung mit der Warnung `PGR-W3001`, ohne Fehler und ohne den Exit-Code zu
+  ändern; andere Verbindungen laufen unberührt weiter, und er öffnet keine Sitzung. Das gilt für einen
+  Abbruchwunsch ohne Schlüssel (12 Bytes lang) und für einen mit einem Schlüssel von 4 bis 256 Bytes
+  (16 bis 268 Bytes lang), in `record` und `replay`, als erste Nachricht einer Verbindung und nach
+  einer Anfrage nach Verschlüsselung, mit `--tls-cert` auch unverschlüsselt (ohne `PGR-E6003`). Jede
+  andere Länge von 8 bis 10000 Bytes (8 bis 11, 13 bis 15, 269 bis 10000) ist `PGR-E6001` mit
+  Exit-Code 6, ebenso ein Abbruchwunsch, dessen Rest die Verbindung nicht ganz liefert; eine Länge
+  unter 8 oder über 10000 ist `PGR-W3003`.
 * Sendet die Anwendung nach dem Aufbau eine Nachricht `p` (ein Passwort) oder COPY-Daten
   (`CopyData`), ist das `PGR-E6001`: Die Anwendung erhält die Fehlerantwort, die Verbindung
   endet, und das Werkzeug endet mit Exit-Code 6. Die Verbindung ist keine Sitzung, auch nicht mit

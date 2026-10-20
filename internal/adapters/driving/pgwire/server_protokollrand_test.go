@@ -29,13 +29,14 @@ type randServer struct {
 	s      *pgwire.Server
 	l      net.Listener
 	tls    *pgwire.TLS
+	log    *syncBuffer
 	fertig chan struct{}
 }
 
 func neuerRandServer(t *testing.T, replay bool, z *pgwire.TLS) *randServer {
 	t.Helper()
-	r := &randServer{t: t, replay: replay, rec: &fakeRecorder{}, rep: &fakeReplayer{}, tls: z, fertig: make(chan struct{})}
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	r := &randServer{t: t, replay: replay, rec: &fakeRecorder{}, rep: &fakeReplayer{}, tls: z, log: &syncBuffer{}, fertig: make(chan struct{})}
+	log := slog.New(slog.NewTextHandler(r.log, nil))
 	if replay {
 		r.s = pgwire.NewReplayServer(r.rep, log)
 	} else {

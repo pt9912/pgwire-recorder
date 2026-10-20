@@ -1,0 +1,211 @@
+package pgwire_test
+
+import (
+	"bytes"
+	"crypto/tls"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"strings"
+	"testing"
+
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/testpki"
+)
+
+// cancelNachricht ist ein CancelRequest der Länge laenge im Kopf, dessen Rest
+// geliefert Bytes mit dem Wert fuell hat.
+func cancelNachricht(laenge, geliefert int, fuell byte) []byte {
+	return rohKopf(laenge, pgwire.CodeCancelRequest, bytes.Repeat([]byte{fuell}, geliefert)...)
+}
+
+// cancelVoll ist ein CancelRequest der Länge laenge mit vollständigem Rest.
+func cancelVoll(laenge int) []byte {
+	return cancelNachricht(laenge, laenge-8, 0x2a)
+}
+
+// cancelErwartung ist, was der Client von einem CancelRequest sieht: Warnung
+// PGR-W3001 ohne Antwort, oder eine ErrorResponse mit PGR-E6001 und gemerktem Fehler.
+type cancelErwartung struct {
+	name  string
+	daten []byte
+	// halb schließt nach dem Senden die Schreibseite (der Rest wird nicht geliefert).
+	halb bool
+	// fehler ist PGR-E6001 mit ErrorResponse; sonst gilt die Warnung PGR-W3001 ohne Antwort.
+	fehler bool
+}
+
+func cancelFaelle() []cancelErwartung {
+	var fs []cancelErwartung
+	for _, l := range []int{12, 16, 17, 20, 268} {
+		fs = append(fs, cancelErwartung{name: fmt.Sprintf("Länge %d", l), daten: cancelVoll(l)})
+	}
+	fs = append(fs,
+		cancelErwartung{name: "Länge 12, Prozess-ID und Schlüssel 0", daten: cancelNachricht(12, 4, 0)},
+		cancelErwartung{name: "Länge 12, Prozess-ID 0xff", daten: cancelNachricht(12, 4, 0xff)},
+		cancelErwartung{name: "Länge 16, Schlüssel 0xff", daten: cancelNachricht(16, 8, 0xff)},
+	)
+	for _, l := range []int{8, 9, 10, 11, 13, 14, 15, 269, 270, 10000} {
+		fs = append(fs, cancelErwartung{name: fmt.Sprintf("Länge %d", l), daten: cancelVoll(l), fehler: true})
+	}
+	for _, l := range []int{12, 16, 268} {
+		for _, g := range []int{0, 1, 3} {
+			fs = append(fs, cancelErwartung{name: fmt.Sprintf("Länge %d, %d von %d Bytes Rest", l, g, l-8), daten: cancelNachricht(l, g, 0), halb: true, fehler: true})
+		}
+	}
+	for _, l := range []int{9, 11, 13, 15, 269} {
+		fs = append(fs, cancelErwartung{name: fmt.Sprintf("Länge %d, Rest nicht geliefert", l), daten: cancelNachricht(l, 0, 0), halb: true, fehler: true})
+	}
+	return fs
+}
+
+// cancelStelle ist die Stelle in der Folge der Nachrichten: was vor dem CancelRequest
+// steht, wie viele „N“ der Client dafür liest, und ob TLS ausgehandelt ist.
+type cancelStelle struct {
+	name     string
+	tls      bool
+	klartext bool
+	vor      []byte
+	n        int
+}
+
+func cancelStellen() []cancelStelle {
+	gss := rohKopf(8, pgwire.CodeGSSEncRequest)
+	return []cancelStelle{
+		{name: "erste Nachricht"},
+		{name: "nach SSLRequest mit N", vor: sslAnfrage(), n: 1},
+		{name: "nach GSSENCRequest mit N", vor: gss, n: 1},
+		{name: "über TLS nach S", tls: true},
+		{name: "unverschlüsselt bei TLS-Pflicht", tls: true, klartext: true},
+		{name: "nach GSSENCRequest bei TLS-Pflicht", tls: true, klartext: true, vor: gss, n: 1},
+	}
+}
+
+// cancelSenden schickt daten und liest, ohne die Schreibseite zu schließen (außer halb),
+// bis der Server die Verbindung schließt; ein Warten bis zur Frist ist ein Fehler.
+func cancelSenden(r *randServer, daten []byte, halb, klartext bool) []byte {
+	r.t.Helper()
+	tcp, c := r.verbinde(klartext)
+	if _, err := c.Write(daten); err != nil {
+		r.t.Fatal(err)
+	}
+	if halb {
+		if tc, ok := c.(*tls.Conn); ok {
+			_ = tc.CloseWrite()
+		} else {
+			_ = tcp.CloseWrite()
+		}
+	}
+	roh, err := io.ReadAll(c)
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		r.t.Fatalf("Verbindung nicht geschlossen, gelesen %q", roh)
+	}
+	return roh
+}
+
+// Abdeckung: LH-FA-05/Negative, LH-FA-05/Boundary — die Länge des CancelRequest
+// (LH-FA-05.e *Länge des CancelRequest*): 12 (Prozess-ID ohne Schlüssel) und 16 bis 268
+// sind PGR-W3001 ohne Antwort und ohne Fehler, die Verbindung wird geschlossen, es
+// entsteht keine Session; 8 bis 11, 13 bis 15 und 269 bis 10000 sind PGR-E6001 mit
+// ErrorResponse und ohne Warnung PGR-W3001; ein Rest, den die Verbindung nicht ganz
+// liefert (Länge 12, 16, 268 mit 0, 1 und 3 Bytes), ist PGR-E6001; Prozess-ID und
+// Schlüssel werden nicht ausgewertet (0, 0xff, 0x2a); in record und replay, an jeder
+// Stelle der Folge (erste Nachricht, nach SSLRequest mit N, nach GSSENCRequest, über TLS
+// nach S, unverschlüsselt bei TLS-Pflicht ohne PGR-E6003).
+func TestCancelRequestLaenge(t *testing.T) {
+	z, _ := tlsEin(t, false, testpki.Blatt{})
+	for _, replay := range []bool{false, true} {
+		for _, st := range cancelStellen() {
+			for _, f := range cancelFaelle() {
+				t.Run(fmt.Sprintf("replay=%v/%s/%s", replay, st.name, f.name), func(t *testing.T) {
+					var zt *pgwire.TLS
+					if st.tls {
+						zt = z
+					}
+					r := neuerRandServer(t, replay, zt)
+					roh := cancelSenden(r, append(append([]byte{}, st.vor...), f.daten...), f.halb, st.klartext)
+					b := r.befund(roh)
+					warn := strings.Count(r.log.String(), "level=WARN")
+					if b.n != st.n || b.sessions != 0 {
+						t.Fatalf("Befund %+v, erwartet n=%d, keine Session", b, st.n)
+					}
+					if f.fehler {
+						if b.typen != "E" || !strings.Contains(b.fehler, model.CodeUnsupported) || b.erster != model.CodeUnsupported {
+							t.Fatalf("Befund %+v, erwartet ErrorResponse mit %s", b, model.CodeUnsupported)
+						}
+						if strings.Contains(r.log.String(), model.CodeCancelRequest) {
+							t.Fatalf("Warnung %s trotz Fehler:\n%s", model.CodeCancelRequest, r.log.String())
+						}
+						return
+					}
+					if b.typen != "" || b.erster != "" {
+						t.Fatalf("Befund %+v, erwartet keine Antwort und keinen Fehler", b)
+					}
+					if warn != 1 || !strings.Contains(r.log.String(), "code="+model.CodeCancelRequest) {
+						t.Fatalf("Log ohne genau eine Warnung %s:\n%s", model.CodeCancelRequest, r.log.String())
+					}
+				})
+			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-05/Boundary — eine Länge außerhalb von 8 bis 10000 ist PGR-W3003, auch
+// mit dem Code des CancelRequest: Die Länge wird vor der Länge des CancelRequest geprüft,
+// und die Antwort ist leer (LH-FA-05.e *Länge des CancelRequest*, Reihenfolge der Gründe).
+func TestCancelRequestLaengeAusserhalb(t *testing.T) {
+	for _, replay := range []bool{false, true} {
+		for _, l := range []int{0, 4, 7, 10001} {
+			t.Run(fmt.Sprintf("replay=%v/Länge %d", replay, l), func(t *testing.T) {
+				r := neuerRandServer(t, replay, nil)
+				roh := cancelSenden(r, rohKopf(l, pgwire.CodeCancelRequest), false, false)
+				b := r.befund(roh)
+				if len(roh) != 0 || b.erster != "" || b.sessions != 0 {
+					t.Fatalf("Antwort %q, Befund %+v", roh, b)
+				}
+				log := r.log.String()
+				if !strings.Contains(log, "code="+model.CodeForeignProtocol) || strings.Contains(log, model.CodeCancelRequest) {
+					t.Fatalf("Log ohne %s oder mit %s:\n%s", model.CodeForeignProtocol, model.CodeCancelRequest, log)
+				}
+			})
+		}
+	}
+}
+
+// Abdeckung: LH-FA-05/Boundary — ein CancelRequest berührt eine zweite Verbindung nicht
+// (LH-FA-05.e *Länge des CancelRequest*, *Modus*): Eine reguläre Verbindung, die schon
+// läuft, setzt ihre Anfrage fort und endet regulär, und die nächste reguläre Verbindung
+// öffnet die zweite Session; der CancelRequest selbst öffnet keine, in record und replay,
+// für die Längen 12 und 16.
+func TestCancelRequestZweiteVerbindungUnberuehrt(t *testing.T) {
+	for _, replay := range []bool{false, true} {
+		for _, l := range []int{12, 16} {
+			t.Run(fmt.Sprintf("replay=%v/Länge %d", replay, l), func(t *testing.T) {
+				r := neuerRandServer(t, replay, nil)
+				_, reg := r.verbinde(false)
+				_, _ = reg.Write(rohStart("user", "app"))
+				if _, err := io.ReadFull(reg, make([]byte, 1)); err != nil {
+					t.Fatal(err)
+				}
+				roh := cancelSenden(r, cancelVoll(l), false, false)
+				if len(roh) != 0 || r.zaehler() != 1 {
+					t.Fatalf("Antwort %q, Sessions %d", roh, r.zaehler())
+				}
+				_, _ = reg.Write(append(rohNachricht('Q', "SELECT 1\x00"), rohNachricht('X', "")...))
+				rest, _ := io.ReadAll(reg)
+				if !strings.Contains(string(rest), "SELECT 1") || strings.Contains(string(rest), "PGR-") {
+					t.Fatalf("Antwort der regulären Verbindung %q", rest)
+				}
+				_, zweite := r.verbinde(false)
+				_, _ = zweite.Write(append(rohStart("user", "app"), rohNachricht('X', "")...))
+				_, _ = io.ReadAll(zweite)
+				if n := r.zaehler(); n != 2 {
+					t.Fatalf("Sessions %d, erwartet 2", n)
+				}
+			})
+		}
+	}
+}
