@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-067` ([`harness/vertraege/`](../../../../harness/vertraege/SPEC-067-release.md); `make release-gegenprobe`) · `SPEC-055` ([`harness/vertraege/`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md); `make test-container-gegenprobe`) · `SPEC-060` ([`harness/vertraege/`](../../../../harness/vertraege/SPEC-060-gegenproben.md); Regeln für Gegenproben). Die Zusagen zu Zeit und Arbeitsordner stehen in `SPEC-060` Punkt 16 (Entscheidung des Nutzers vom 2026-10-21; [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md), Accepted) und mit Verweis in `SPEC-067` Punkt 14 und `SPEC-055` Punkt 12.
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** Planner. **Datum:** 2026-10-20.
 
 ---
@@ -101,7 +101,7 @@ Nicht in dieser Liste: Produkt-Code, `Dockerfile`, andere Gegenproben, CI (§1).
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`open` → `next`): Der Nutzer priorisiert den Slice ([ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) ist angenommen, 2026-10-21); Reihenfolge laut Auftrag vom 2026-10-20: nach `slice-v1-abschluss-homebrew` (der Slice steht beim Schreiben in `next/`); eine Stellung zu `slice-v1-abschluss-release-v0-1-1` und `slice-erster-release-homebrew-nachweis` ist nicht entschieden, keiner der beiden setzt diesen Slice voraus. Das Lesen der zwei Skripte, Zielzahl, Randformen und Schnitt sind geschehen (Architect, 2026-10-20; §3, §6, §8); vor dem ersten Code-Commit trägt der Architect `<Basis>` ein.
+**Start** (`open` → `next`, erledigt am 2026-10-21): [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) ist angenommen (Entscheidung des Nutzers vom 2026-10-21: „die gegenproben werden zeitlich begrenzt. höchstens 10 minuten“), und der Slice ist eingeplant (Planner) mit `Verantwortlich: pt9912`. Reihenfolge: **hinter `slice-v1-abschluss-release-v0-1-1`**, der zuerst dran ist (Empfehlung des Planners; der Nutzer will zuerst den Release, Entscheidung des Nutzers vom 2026-10-21: „ich gebe alles frei, damit wir jetzt endlich diesen brew release machen können“); `slice-v1-abschluss-release-v0-1-1` setzt diesen Slice nicht voraus und er jenen nicht, die Punkte 2 und 3 der Freigabe laufen bis zu dessen Lieferung über `CO-001`. Eine Stellung zu `slice-erster-release-homebrew-nachweis` ist nicht entschieden, keiner der beiden setzt den anderen voraus. Das Lesen der zwei Skripte, Zielzahl, Randformen und Schnitt sind geschehen (Architect, 2026-10-20; §3, §6, §8); **Start von `next` nach `in-progress`:** `slice-v1-abschluss-release-v0-1-1` liegt nicht mehr in `in-progress/` (WIP-Limit 1 je Rolleninhaber), und vor dem ersten Code-Commit trägt der Architect `<Basis>` ein.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
