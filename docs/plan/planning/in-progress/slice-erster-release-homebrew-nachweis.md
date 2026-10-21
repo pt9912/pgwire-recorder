@@ -271,7 +271,7 @@ homebrew-nachweis: Exit-Code 0 (Code des Skripts im Container, nicht der von mak
 
 Gefahren am Stand `e81a303c` (Werkzeug, Beleg, Handbuch und `README.md`); danach kam allein dieser Plan hinzu — kein Pfad außerhalb von `docs/plan/planning/`. Keine Gegenprobe gefahren: Dieses Ziel hat keine (Punkt 20 (7)), und für die unveränderten Gates sieht der Lauf keine Änderung (Entscheidung des Nutzers vom 2026-10-21).
 
-**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): Einfügungen 245, Löschungen 2, **Summe 247** — unter der Meldeschwelle 700 und weit unter der Marke 900. Die Schätzung des Architect (300 bis 500) liegt darüber, weil Vertragstext und `harness/README.md`-Zeile schon vor dem ersten Code-Commit lagen und damit nicht in diese Messung fallen.
+**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): am Stand `2fc48b87` Einfügungen 257, Löschungen 2, **Summe 259**; die Zeilen dieser Berichtigung selbst sind nicht mitgezählt — ein Plan kann die Messung seines eigenen Commits nicht enthalten —, mit ihnen bleibt der Wert unter 270. Das liegt unter der Meldeschwelle 700 und weit unter der Marke 900. Die Schätzung des Architect (300 bis 500) liegt darüber, weil Vertragstext und `harness/README.md`-Zeile schon vor dem ersten Code-Commit lagen und damit nicht in diese Messung fallen.
 
 #### Was der Implementer beim Schreiben entschieden hat (kein Vertragstext)
 
