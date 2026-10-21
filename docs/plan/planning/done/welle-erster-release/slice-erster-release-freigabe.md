@@ -5,5 +5,5 @@
 
 **Welle:** [welle-erster-release](welle-erster-release.md)
 **Archiviert mit:** welle-erster-release · **Geschlossen:** 2026-10-19
-**Hervorgegangen:** [slice-erster-release-homebrew-nachweis](../../next/slice-erster-release-homebrew-nachweis.md) · [slice-harness-gegenproben-aus-gates-fahrstelle-betrieb](../../open/slice-harness-gegenproben-aus-gates-fahrstelle-betrieb.md)
+**Hervorgegangen:** [slice-erster-release-homebrew-nachweis](../../in-progress/slice-erster-release-homebrew-nachweis.md) · [slice-harness-gegenproben-aus-gates-fahrstelle-betrieb](../../open/slice-harness-gegenproben-aus-gates-fahrstelle-betrieb.md)
 **Bezug:** LH-FA-16, LH-FA-19, LH-QA-03
