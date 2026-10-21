@@ -19,6 +19,10 @@
 # Der Kopf nennt Datum, `uname -s` und `uname -m` — die Angaben, aus denen der Beleg je Kombination
 # aus Betriebssystem und Architektur besteht (Punkt 20 (6)); unter Linux nennt das Fragment dazu Tag
 # und Digest des Image.
+# Die letzte Zeile der Ausgabe nennt den Exit-Code des Skripts selbst:
+# `homebrew-nachweis: Skript endet mit Exit-Code <n>`. Wer die Ausgabe liest, erkennt daran, wessen
+# Code der Lauf meldet — fehlt die Zeile, kam das Skript nicht zum Ende, und der Code stammt vom
+# Treiber davor (unter Linux von der Docker-CLI, harness/mk/homebrew-nachweis.mk).
 set -u
 
 tap='pt9912/pgwire-recorder'
@@ -43,7 +47,8 @@ aufraeumen() {
 }
 trap 'aufraeumen; exit 130' INT
 trap 'aufraeumen; exit 143' TERM
-trap 'aufraeumen' EXIT
+# Die EXIT-Falle raeumt auf und nennt den Exit-Code, mit dem dieses Skript endet; sie aendert ihn nicht.
+trap 'c=$?; aufraeumen; echo "homebrew-nachweis: Skript endet mit Exit-Code $c"' EXIT
 
 # schritt <Befehl>… — nennt den Befehl auf stdout und fuehrt ihn aus.
 schritt() {
