@@ -540,7 +540,7 @@ Pro Slice:
 3. Betroffene Requirement-/ADR-IDs identifizieren.
 4. Kleinste sinnvolle Änderung planen.
 5. Engsten nützlichen Sensor laufen lassen.
-6. Repo-weiten Gate-Lauf vor Handoff (`make gates`). Wer ein Gate, eine Gegenprobe oder einen Vertrag ändert, fährt die betroffene Gegenprobe (`make <name>`, Zuordnung in `harness/README.md` §Sensors); bei `release-gegenprobe` und `test-container-gegenprobe` fährt der Implementer bis zur Lieferung von `slice-harness-gegenproben-schneller` nur den engsten Fall mit `GP_MUT=<Muster>` und der Verifier den vollen Lauf einmal am Endstand (Vorschlag des Architect, vom Nutzer am 2026-10-21 mit „ich gebe alles frei“ freigegeben; die Zeit begrenzt [ADR-0055](docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)); am Ende jeder Welle und vor dem Release fahren `make gegenproben` im Gegenproben-Container und `make gegenproben-host` am Host.
+6. Repo-weiten Gate-Lauf vor Handoff (`make gates`). Wer ein Gate, eine Gegenprobe oder einen Vertrag ändert, fährt die betroffene Gegenprobe (`make <name>`, Zuordnung in `harness/README.md` §Sensors); bei `release-gegenprobe` und `test-container-gegenprobe` fährt der Implementer bis zur Lieferung von `slice-harness-gegenproben-schneller` nur den engsten Fall mit `GP_MUT=<Muster>` und der Verifier den vollen Lauf einmal am Endstand (Zeitgrenze: [ADR-0055](docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)); am Ende jeder Welle und vor dem Release fahren `make gegenproben` im Gegenproben-Container und `make gegenproben-host` am Host.
 7. Doku/Indizes aktualisieren, falls ein öffentlicher Vertrag berührt.
 8. Ausgeführte Sensors und verbleibende Risiken berichten — keine Erfolgsmeldung ohne Gate-Ausführung.
 
