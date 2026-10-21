@@ -194,8 +194,11 @@ ex() {
   for t; do grep -qF -- "$t" "$w/err" || rot; done
   [[ $code =~ ^[234]$ ]] || return 0
   if sel p4-nichts-geaendert; then
-    { [ "$s0" = "$(snap)" ] && [ ! -s "$w/out" ] && [ "$(grep -c '^ssh ' "$w/log")" -le 1 ] \
-      && ! grep -qvE '^ssh |^git (rev-parse|config --get|remote get-url|check-ref-format|-C [^ ]+ (rev-parse|remote get-url|status|for-each-ref|symbolic-ref))' "$w/log"; } || rot p4-nichts-geaendert
+    local sn; sn=$(snap)
+    { [ "$s0" = "$sn" ] && [ ! -s "$w/out" ] && [ "$(grep -c '^ssh ' "$w/log")" -le 1 ] \
+      && ! grep -qvE '^ssh |^git (rev-parse|config --get|remote get-url|check-ref-format|-C [^ ]+ (rev-parse|remote get-url|status|for-each-ref|symbolic-ref))' "$w/log"; } \
+      || { rot p4-nichts-geaendert
+           [ -z "${GP_ENTDECKE-}" ] || { echo "  p4-nichts-geaendert in $fn: $(diff <(printf '%s\n' "$s0") <(printf '%s\n' "$sn") | head -4 | tr '\n' '|')" >&2; } }
   fi
   sel p4-meldung-form && { ! grep -qvE '^container-einrichten: (eingaben|werkzeuge|zustand): ' "$w/err" || rot p4-meldung-form; }
   return 0
