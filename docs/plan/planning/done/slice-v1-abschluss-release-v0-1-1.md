@@ -174,7 +174,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 **Die drei Paarungen.**
 
 - **Anker:** keiner, und das ist kein Versäumnis — der Slice verkörpert keine Regel (kein Diff an `AGENTS.md`, an einem Gate oder an einem Command), also steht kein `liegt in` und kein `seit slice-v1-abschluss-release-v0-1-1` irgendwo. Der Lerneintrag ist eine benannte Spec-Lücke.
-- **Folge-Slice:** `slice-erster-release-homebrew-nachweis`, in `next/` und nicht geschlossen; er nimmt die Sendung in §1 („Wiederanlauf des Jobs, Nachtrag von Hand und alle Belege des Taps gehören diesem Slice“) und in §6 ausdrücklich an und nennt dort die Kennung dieses Slice — `grep -n slice-v1-abschluss-release-v0-1-1 docs/plan/planning/in-progress/slice-erster-release-homebrew-nachweis.md` findet sie in §1, §4, §6 und §8. Nachgezählt im selben Commit: Liefer-Punkte 2, Schichten zwei.
+- **Folge-Slice:** `slice-erster-release-homebrew-nachweis`, in `next/` und nicht geschlossen; er nimmt die Sendung in §1 („Wiederanlauf des Jobs, Nachtrag von Hand und alle Belege des Taps gehören diesem Slice“) und in §6 ausdrücklich an und nennt dort die Kennung dieses Slice — `grep -n slice-v1-abschluss-release-v0-1-1 docs/plan/planning/done/slice-erster-release-homebrew-nachweis.md` findet sie in §1, §4, §6 und §8. Nachgezählt im selben Commit: Liefer-Punkte 2, Schichten zwei.
 - **Register:** vier Einträge berührt (unten).
 
 **Beobachtungs-Register** (`../observations/BEO-REPO/`):
