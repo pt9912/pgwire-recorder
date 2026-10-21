@@ -7,12 +7,12 @@ das Werkzeug. Das Werkzeug ist kein Gate: Es steht im Abschnitt *Werkzeuge* von
 [`harness/README.md`](../README.md), nicht in `GATE_CHECKS`, und kein Hook und kein Stand glaubt sein
 Ergebnis. Diese Kennung legt fest, was es zusagt, woran es scheitert und was die Gegenprobe belegt.
 
-**Stand.** Die Entscheidungen dieser Kennung sind die **Empfehlung** des Architect vom 2026-10-21 bis zur
-Annahme von [ADR-0057](../../docs/plan/adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md)
-(die Annahme ist die Entscheidung des Nutzers). Entschieden sind zwei Hälften schon: `ssh` als
-Voraussetzung am Host für dieses Ziel (Entscheidung des Nutzers vom 2026-10-17, „ja“) und die Obergrenze
-von 600 s für jede Gegenprobe (Entscheidung des Nutzers vom 2026-10-21,
-[ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
+**Stand.** Die Entscheidungen dieser Kennung gelten:
+[ADR-0057](../../docs/plan/adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) ist
+angenommen (Entscheidung des Nutzers vom 2026-10-21). `ssh` als Voraussetzung am Host für dieses Ziel
+ist Entscheidung des Nutzers vom 2026-10-17 („ja“), die Obergrenze von 600 s für jede Gegenprobe seine
+Entscheidung vom 2026-10-21
+([ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
 
 **Was es nicht ist.** Es legt kein Gerüst an, erzeugt kein Schlüsselpaar, startet, stoppt und entfernt
 keinen Container und prüft keine Voraussetzung von `u-boot`, der `devcontainer`-CLI oder `node`: Das sagt

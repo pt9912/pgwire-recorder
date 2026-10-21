@@ -1,10 +1,10 @@
 # ADR-0057: Die Einrichtung im Dev-Container ist ein Werkzeug im Repo; ihre Gegenprobe fährt ohne Container, der Lauf gegen einen echten Container ist ein Nachweis
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-21
 
-**Autor:** Architect. Die Fassung unten ist die **Empfehlung** des Architect; die Annahme ist die Entscheidung des Nutzers. Eine Hälfte ist schon entschieden: `ssh` als Voraussetzung am Host für dieses Ziel ist Entscheidung des Nutzers vom 2026-10-17 (auf die Frage, ob `ssh` als Voraussetzung in Ordnung ist, antwortete er „ja“), und die Obergrenze von zehn Minuten für jede Gegenprobe ist seine Entscheidung vom 2026-10-21 ([ADR-0055](0055-gegenproben-haben-ein-zeitbudget.md)).
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-21 (wörtlich, vom Koordinator übermittelt): „ok deine Empfehlungen“ auf eine Vorlage mit drei Punkten, deren erster die Annahme dieser ADR war. Zwei Hälften waren davor schon entschieden: `ssh` als Voraussetzung am Host für dieses Ziel ist Entscheidung des Nutzers vom 2026-10-17 (auf die Frage, ob `ssh` als Voraussetzung in Ordnung ist, antwortete er „ja“), und die Obergrenze von zehn Minuten für jede Gegenprobe ist seine Entscheidung vom 2026-10-21 ([ADR-0055](0055-gegenproben-haben-ein-zeitbudget.md)).
 
 **Bezug:** [ADR-0045](0045-container-start-als-werkzeug-im-repo.md) (Ort eines solchen Ziels im Repo), [ADR-0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) (Aufteilung der Gegenproben in Container und Host), [ADR-0048](0048-gegenproben-verlassen-die-gate-kette.md), [ADR-0055](0055-gegenproben-haben-ein-zeitbudget.md) (Obergrenze 600 s), [ADR-0051](0051-veroeffentlichung-auf-github-actions.md) (Nachweis als Handlung, [`SPEC-067`](../../../harness/vertraege/SPEC-067-release.md) Punkt 20), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes). Bindung an das Register: `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, `BEO-REPO/implementer-im-hauptbaum-sperrt-stop-hook`, `BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`.
 
@@ -33,7 +33,7 @@ Eine Mutation fährt die Fälle ihrer Gruppe erneut. Bei rund 65 Fällen und run
 
 ## Entscheidung
 
-Wir empfehlen **Option B: ein Ziel im Repo, eine Gegenprobe mit Attrappen ohne Container, und ein Nachweis-Lauf gegen einen echten Container als Handlung.**
+Wir wählen **Option B: ein Ziel im Repo, eine Gegenprobe mit Attrappen ohne Container, und ein Nachweis-Lauf gegen einen echten Container als Handlung.**
 
 1. **Ort und Art.** `make container-einrichten` liegt im Repo (Fragment unter `harness/mk/`, Skript unter `tools/harness/`), ist kein Gate und steht im Abschnitt *Werkzeuge* von `harness/README.md` — dieselbe Form wie `container-start` ([ADR-0045](0045-container-start-als-werkzeug-im-repo.md)) und `hooks-install`. Es setzt einen laufenden Container voraus und startet keinen.
 2. **Host-Voraussetzungen** sind `ssh` (Entscheidung des Nutzers vom 2026-10-17) und `git`; `u-boot`, die `devcontainer`-CLI und `node` gehören `container-start` und werden von diesem Ziel nicht geprüft und nicht gebraucht.
