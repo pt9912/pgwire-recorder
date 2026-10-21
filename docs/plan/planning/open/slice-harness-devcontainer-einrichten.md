@@ -16,7 +16,7 @@ Vorgänger: `slice-harness-devcontainer-austausch-repo` und `slice-harness-devco
 
 **Berührte Spec-Stellen:** [`SPEC-069`](../../../../harness/vertraege/SPEC-069-container-einrichten.md) (neuer Vertrag des Werkzeugs; vom Architect am 2026-10-21 geschrieben, jede Randform aus §6 ist dort entschieden); gebunden an [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) (Punkte 2 und 11, Zusagen der Geber, §1); Host-Voraussetzungen: [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität); `SPEC-060` Punkte 2 und 3 (die Liste, an der die Gegenprobe hängt).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** Planner. **Datum:** 2026-10-17, geschnitten 2026-10-18.
 
