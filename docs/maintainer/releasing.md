@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.14
+Version: 0.15
 Stand: 2026-10-21
 
 ## 1. Zweck und Zielgruppe
@@ -26,8 +26,9 @@ GitHub-Release trägt die sechs Binaries `pgwire-recorder-<os>-<arch>` und `SHA2
 liegt in `ghcr.io` und `docker.io` unter den Tags `0.1.1` und `latest` mit demselben Index-Digest
 `sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); im Lauf des
 Tags `v0.1.1` endet er im vierten Versuch grün und meldet `Formel 0.1.1 im Tap abgelegt`. Was im
-echten Tap liegt und ob Homebrew es annimmt, prüft kein Gate dieses Repos und belegt erst
-`slice-erster-release-homebrew-nachweis`. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
+echten Tap liegt und ob Homebrew es annimmt, prüft kein Gate dieses Repos; belegt hat es das Werkzeug
+`make homebrew-nachweis` (§7) für **Linux/amd64** mit der Formel `0.1.1`, und für die übrigen
+Kombinationen aus Betriebssystem und Architektur steht die Grenze in `LH-FA-19.a`. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
 [`freigaben/0.1.1.md`](freigaben/0.1.1.md), für `v0.1.0` in der Closure von `welle-erster-release`.
 Was ein Slice erst liefert, nennt dieses Dokument mit seiner Kennung („liefert `slice-…`“), nicht als
 Zusage.
@@ -258,10 +259,18 @@ und `sort`); macOS und Windows als Ausführungsort sind es nicht.
 
 **Was `make release-gegenprobe` belegt:** den Text der Formel und der Vorlage, die Ablage und die Randformen des Taps gegen
 ein lokales Probe-Tap (§3), die Reihenfolge der Gründe und den Umgang mit dem Token. **Was sie nicht belegt:** dass
-Homebrew die Formel annimmt, dass die URLs am GitHub-Release erreichbar sind, dass das Binary auf macOS und Linux läuft, dass
+Homebrew die Formel annimmt, dass die URLs am GitHub-Release erreichbar sind, dass das Binary läuft, dass
 das Tap-Token das Schreibrecht hat, dass `https://github.com/pt9912/homebrew-pgwire-recorder.git` die Form des Klons
-trägt und den Wortlaut von `gh release download` auf dem Runner. Das zeigt erst `slice-erster-release-homebrew-nachweis` mit
-dem echten Tap (Abnahmeszenario 11), die Installation aus dem Tap und der Abschnitt im Benutzerhandbuch gehören dorthin.
+trägt und den Wortlaut von `gh release download` auf dem Runner.
+
+Von diesen sechs zeigt das Werkzeug `make homebrew-nachweis` (Abnahmeszenario 11, Vertrag `SPEC-067` Punkt 20) vier gegen den
+echten Tap, belegt für **Linux/amd64** mit der Formel `0.1.1`: Homebrew nimmt die Formel an (`brew install`, `brew test` ohne
+Befund), die Adresse des Anhangs ist erreichbar, der Klon trägt die Form (`brew tap` leitet `pt9912/pgwire-recorder` auf
+`pt9912/homebrew-pgwire-recorder` ab), und das Binary läuft unter Linux/amd64. **Die drei übrigen zeigt es nicht:** das Binary
+auf macOS und auf `arm64` (Grenze in `LH-FA-19.a`; das Handbuch nennt nur die geprüfte Kombination), das Schreibrecht des
+Tap-Tokens ohne Eingriff des Betreibers (es zeigte sich im vierten Versuch des Jobs im Lauf `39551891874`, nach zwei
+Eingriffen; `BEO-REPO/vorbedingung-geheimnis-nur-existenz-geprueft`) und den Wortlaut von `gh release download` auf dem Runner
+(den zeigt allein ein Lauf des Jobs). Die Installation aus dem Tap und der Abschnitt im Benutzerhandbuch liegen beim Nachweis.
 
 ## 8. Nach dem Push kontrollieren
 
