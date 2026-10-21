@@ -29,3 +29,5 @@ Kein Auftreten, Vermerk (`slice-erster-release-veroeffentlichung`, Urteil des Pl
 Kein Auftreten, gegenläufiger Beleg (`slice-erster-release-freigabe`, Urteil des Planners, 2026-10-19): Die Äquivalenz von `manifests[-1]` statt `manifests[0]` im äußeren Index trug Invariante, Ort und Sonde (Review Runde 2 F-6, Verifikation Runde 3: tragfähig). Kein Evidence, der Zähler bleibt bei 9.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-cancel-ohne-schluessel` (F-2) — ein Mutant, der den Zeitpunkt der Ablehnung ändert, stand ohne Sonde als äquivalent in §7; die Sonde des Reviews trennte ihn (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-devcontainer-einrichten` (F-V6) — einer von drei als äquivalent geführten Mutanten war es nicht (er brach die Zusage selbst), und die Sonde eines zweiten hing an einer Bedingung, die nie wahr wird; die Verifikation und der Lauf der Sonde fanden es (Beleg `evidence/slice-harness-devcontainer-einrichten.md`). Zähler 11.
