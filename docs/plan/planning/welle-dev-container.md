@@ -37,7 +37,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht — der Trigger muss das *Mehr* gegenüber den
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
-- Alle Slices der Welle liegen in `done/`. Für `slice-harness-devcontainer-einrichten-zugang` gilt das auch mit §7 `Gegenstand: entfallen: <Grund>`, wenn der Nutzer den Zugang endgültig nicht verlangt (Liefer-Punkte leer).
+- Alle Slices der Welle liegen in `done/` — seit dem 2026-10-21 fünf statt vier, `slice-harness-devcontainer-einrichten-doku` eingeschlossen: Ohne ihn beschreibt `docs/developer/devcontainer.md` §6 und §9 weiter die Einzelbefehle statt des Ziels, und die Welle wäre mit einem Dokument geschlossen, das dem Werkzeug hinterherhinkt (`AGENTS.md` §3.11, Entscheidung des Nutzers vom 2026-10-10 zu `slice-doku-ist-stand`). Für `slice-harness-devcontainer-einrichten-zugang` gilt das auch mit §7 `Gegenstand: entfallen: <Grund>`, wenn der Nutzer den Zugang endgültig nicht verlangt (Liefer-Punkte leer).
 - Das *Mehr* gegenüber den Slice-DoDs (**Empfehlung des Planners, vom Nutzer nicht entschieden**): Ein frischer Scratch-Container wird mit `make container-start` und danach `make container-einrichten` aufgebaut, im Klon läuft `make gates` grün, und ein Commit im Zweig des Klons kommt per `git fetch container` am Host an; die Läufe stehen in der Closure-Notiz. Die DoDs belegen Start und Einrichtung je für sich (Attrappen, je einmal ein Scratch-Container), nicht die Kette bis zum Ergebnis am Host. Verwirft der Nutzer das Kriterium, gibt es keines: Die Welle hat dann kein *Mehr* und die Bündelung ist Thema, nicht Closure-Bedingung.
 - `make gates` grün.
 - Closure-Notiz in `welle-dev-container-results.md`.
@@ -52,10 +52,11 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 |---|---|---|
 | slice-harness-devcontainer-einrichten-geruest | Make-Ziel `container-start` legt das Gerüst des Dev-Containers an und startet ihn (Teil I) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
 | slice-harness-devcontainer-einrichten-start | `container-start` startet den Container, prüft Port und Bereitschaft und fängt den Abbruch ab (Teil II) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
-| slice-harness-devcontainer-einrichten | Make-Ziel `container-einrichten` richtet Bare-Repo, Einlieferung, Klon und Zweig ein (`docs/developer/devcontainer.md`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (neu: `ssh` am Host); kein Anspruch des Produkts |
+| slice-harness-devcontainer-einrichten | Make-Ziel `container-einrichten` richtet Bare-Repo, Einlieferung, Klon und Zweig ein, mit Gegenprobe ohne Container | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (neu: `ssh` am Host); kein Anspruch des Produkts |
+| slice-harness-devcontainer-einrichten-doku | `docs/developer/devcontainer.md` §6 und §9 nennen `make container-einrichten` statt der Einzelbefehle (Doku-Folge-Slice, `AGENTS.md` §3.11) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (Host-Voraussetzungen im Dokument); kein Anspruch des Produkts |
 | slice-harness-devcontainer-einrichten-zugang | `container-einrichten` löst den Zugang von Claude Code auf und reicht ihn an den Container (zurzeit nicht gebraucht, Entscheidung des Nutzers vom 2026-10-18) | kein Anspruch des Produkts |
 
-`slice-harness-devcontainer-einrichten-start` trägt `Welle: welle-dev-container` (Entscheidung des Nutzers vom 2026-10-18), ebenso `slice-harness-devcontainer-einrichten-geruest`.
+`slice-harness-devcontainer-einrichten-start` trägt `Welle: welle-dev-container` (Entscheidung des Nutzers vom 2026-10-18), ebenso `slice-harness-devcontainer-einrichten-geruest`. `slice-harness-devcontainer-einrichten-doku` entstand am 2026-10-21 durch den Schnitt von `slice-harness-devcontainer-einrichten` (Entscheidung des Nutzers vom selben Tag) und trägt dieselbe Welle, weil `AGENTS.md` §3.11 den Doku-Folge-Slice **in derselben Welle** direkt hinter dem Slice verlangt, der das Verhalten liefert.
 
 ## 5. Abhängigkeiten
 
@@ -69,8 +70,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 1. `slice-harness-devcontainer-einrichten-geruest` — Gerüst und Teil I von `container-start`.
 2. `slice-harness-devcontainer-einrichten-start` — Teil II: Start, Port, Bereitschaft, Abbruch; setzt 1 voraus.
-3. `slice-harness-devcontainer-einrichten` — setzt den laufenden Container voraus (2).
-4. `slice-harness-devcontainer-einrichten-zugang` — setzt 1 und 3 voraus **und** den Wunsch des Nutzers; bleibt bis dahin in `open/`, ohne Priorisierung.
+3. `slice-harness-devcontainer-einrichten` — setzt den laufenden Container voraus (2); liefert Ziel und Gegenprobe, nicht das Dokument.
+4. `slice-harness-devcontainer-einrichten-doku` — **direkt hinter 3**, setzt 3 in `done/` voraus: Er beschreibt das gelieferte Ziel in `docs/developer/devcontainer.md` §6 und §9, und vor der Lieferung gäbe es nichts zu beschreiben (`AGENTS.md` §3.11). Zwischen 3 und 4 hinkt das Dokument dem Werkzeug hinterher; das nimmt §3.11 für diese Form ausdrücklich hin, und die Welle schließt erst mit beiden.
+5. `slice-harness-devcontainer-einrichten-zugang` — setzt 1 und 3 voraus **und** den Wunsch des Nutzers; bleibt bis dahin in `open/`, ohne Priorisierung.
 
 ## 6. Out-of-Scope für diese Welle
 
