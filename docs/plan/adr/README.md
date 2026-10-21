@@ -54,6 +54,7 @@
 | [0048](0048-gegenproben-verlassen-die-gate-kette.md) | Die Gegenproben verlassen die Gate-Kette, zwei Sammelziele fahren sie | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0049](0049-nachweis-aus-anderer-umgebung-uebernehmen.md) | Der Nachweis des vollen Laufs darf aus einer anderen Umgebung übernommen werden, wenn die Dateiliste gleich ist | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0050](0050-ci-auf-github-actions.md) | Die CI läuft auf GitHub Actions, gehärtet durch Pins, leere Rechte und Zeitgrenzen, mit einem Gate für die Workflows | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0056](0056-groessen-metrik-misst-den-gelieferten-diff.md) | Die Größen-Metrik der Rückführungs-Marke misst den gelieferten Diff, nicht die Bücher des Slice | Proposed | — |
 
 ## Konventionen
 
@@ -102,3 +103,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0053](0053-homebrew-tap-in-der-release-pipeline.md) | Formel des Homebrew-Taps in einem eigenen Job der Release-Pipeline, eigenes Token, Probe-Tap statt Probe-Tag (Accepted, 2026-10-20); ergänzt [0051](0051-veroeffentlichung-auf-github-actions.md), ersetzt keine ADR |
 | [0054](0054-binaries-ohne-version-im-dateinamen.md) | Release-Binaries ohne Version im Dateinamen (`pgwire-recorder-<os>-<arch>`), Image behält den Tag mit Version (Accepted, 2026-10-20); ergänzt [0053](0053-homebrew-tap-in-der-release-pipeline.md) um den Wegfall des Nachtrags für `v0.1.0`, ersetzt keine ADR
 | [0055](0055-gegenproben-haben-ein-zeitbudget.md) | Jede Gegenprobe hat eine Obergrenze von 600 s für den vollen Lauf (Entscheidung des Nutzers: höchstens zehn Minuten), räumt je Mutation auf und streicht keine Mutation (Accepted, 2026-10-21); ergänzt [0048](0048-gegenproben-verlassen-die-gate-kette.md), ersetzt keine ADR | — |
+| [0056](0056-groessen-metrik-misst-den-gelieferten-diff.md) | Berichtigt die Messung der Rückführungs-Marke aus `AGENTS.md` §3.14 (Planungsbaum und Reports fallen aus der Zählung, Basis und Messpunkt benannt, Umbenennungs-Schwelle gepinnt); die Schwellen selbst bleiben; ergänzt [0032](0032-kopf-sensor-fuer-slice-plaene.md), ersetzt keine ADR |
