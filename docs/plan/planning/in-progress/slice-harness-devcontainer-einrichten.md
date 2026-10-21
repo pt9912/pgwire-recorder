@@ -259,9 +259,9 @@ diesen Abschnitt.
 
 | Lauf | Ort und Stand | Ergebnis |
 |---|---|---|
-| `make container-einrichten-gegenprobe`, **voller Lauf in einem Zug** | **Gegenproben-Container `pgr-gp`** (Port 2225, frischer Klon aus einem `git bundle`, **ohne** `.harness/state`, also ohne vorherigen `make gates`), Stand `407dae88` | **grün**, 225 Fälle, **Zeit 176 s von höchstens 600 s** (Zeile: `Last 10.60`; Last des Hosts zum Start **3.35**, die Zahl der Zeile ist die Last **nach** dem Lauf, den die Gegenprobe mit `GP_PARALLEL` 4 selbst erzeugt) |
-| derselbe Lauf, `SPEC-060` Punkt 16 (8): **fremder Benutzer, fremde Locale, unter Last** | `pgr-gp`, Stand `407dae88`, als `root`, `LC_ALL=en_US.utf8`, drei Rechenlasten daneben, `GP_BUDGET=0` | **grün**, 225 Fälle, **181 s** Wanduhr (Zeile: `Zeit 181 s`, `Last 74.38`); Last des Hosts zum Start 8.25; die Schlusszeile nennt den als root entfallenen Fall `p5-schluessel-unlesbar` und die mit ihm entfallene Mutation `m-p5-schluessel-lesbar` |
-| voller Lauf, Stände davor (Dev-Container `pgr-dev2`, frischer Worktree ohne `make gates`) | `5c8a17d2` / `6c7f635d` | grün, 159 s bei Last 4.75 / 157 s bei Last 5.58 (216 Fälle) |
+| `make container-einrichten-gegenprobe`, **voller Lauf in einem Zug** | **Gegenproben-Container `pgr-gp`** (Port 2225, frischer Klon aus einem `git bundle`, **ohne** `.harness/state`, also ohne vorherigen `make gates`), Stand `4d145d66` | **grün**, 225 Fälle, **Zeit 176 s von höchstens 600 s, Last 4.22** (Last des Hosts zum Start 4.42); der Lauf am Endstand steht im Bericht des Implementers (er ist der letzte Lauf dieses Slice) |
+| derselbe Lauf, `SPEC-060` Punkt 16 (8): **fremder Benutzer, fremde Locale, unter Last** | `pgr-gp`, **Endstand `a322b844`**, als `root`, `LC_ALL=en_US.utf8`, sechs Rechenlasten daneben, `GP_BUDGET=0` | **grün**, 225 Fälle, **193 s** Wanduhr (Zeile: `Zeit 193 s`, `Last 10.65`; Last zum Start 10.72); die Schlusszeile nennt den als root entfallenen Fall `p5-schluessel-unlesbar` und die mit ihm entfallene Mutation `m-p5-schluessel-lesbar` |
+| voller Lauf, Stände davor | `pgr-gp` `407dae88` (176 s, Last 10.60) · `pgr-dev2` `34c1f1a0` (174 s, Last 4.12) und zweimal mit Diagnose (grün) · `pgr-dev2` `5c8a17d2` / `6c7f635d` (159 s bei Last 4.75 / 157 s bei Last 5.58, damals 216 Fälle) |
 | `make gates` im Klon | `pgr-dev2`, Stand `5c8a17d2` | **grün, Exit 0, 4 min 20 s** (Start 14:07 UTC; a-check, baseline-verify, build, test, lint, docs-check, kopf-check, meldungskatalog-check, workflows-check, abdeckung-check, test-integration, test-container, test-postgres-versionen 15/16/18); der Lauf am Endstand steht im Bericht des Implementers |
 | `make docs-check`, `make kopf-check` | `pgr-dev2`, Endstände der Nacharbeit | grün, 1340 Dateien, 0 Befunde (2 s); `kopf-check` Exit 0 |
 | Nachweis gegen einen echten Container (Punkt 18) | Host, Stand `6c7f635d` | **durchgelaufen**, Beleg unten; zwei Läufe davor brachen vor Schritt 2 ab (unten, *Zwei Läufe, die nicht durchliefen*) |
@@ -285,26 +285,26 @@ git diff --numstat --find-renames=10% 28bb1f01..HEAD -- tools harness \
   ':(exclude)docs/plan/planning' ':(exclude)docs/reviews' | awk '{a+=$1; b+=$2} END {print a+b+0}'
 ```
 
-| Datei | Zeilen (Stand `48ada9b2`, nach der Nacharbeit) |
+| Datei | Zeilen (Endstand `a322b844`) |
 |---|---|
-| `tools/harness/container-einrichten-gegenprobe.sh` | 883 |
+| `tools/harness/container-einrichten-gegenprobe.sh` | 898 |
 | `tools/harness/container-einrichten.sh` | 318 |
 | `harness/vertraege/SPEC-069-container-einrichten.md` | 85 + 14 (die sieben Entscheidungen des Architect vom 2026-10-21) |
 | `harness/mk/container-einrichten-gegenprobe.mk` | 12 |
 | `harness/mk/container-einrichten.mk` | 11 |
 | `harness/README.md` | 2 |
 | `harness/vertraege/SPEC-060-gegenproben.md` | 1 |
-| **Summe** | **1326** |
+| **Summe** | **1341** |
 
-Gemessen am Stand `48ada9b2` (nach der Nacharbeit zum Review): **1326**; vor der Nacharbeit 1164
-(`19567b8c`), davor 1162 (`6c7f635d`). Die Nacharbeit trägt 162 Zeilen: 99 Vertragstext der sieben
-Entscheidungen des Architect, 48 Gegenprobe (neun Fälle, sechzehn Mutationen, Diagnose), 15 Skript
-(Zeichenvorrat, `set -f`, Weitergabe auf stderr, Kopf). **Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
+Gemessen am Endstand `a322b844`: **1341**; nach der ersten Runde der Nacharbeit 1326 (`48ada9b2`), vor der
+Nacharbeit 1164 (`19567b8c`), davor 1162 (`6c7f635d`). Die Nacharbeit trägt 177 Zeilen: 99 Vertragstext der
+sieben Entscheidungen des Architect, 63 Gegenprobe (neun Fälle, sechzehn Mutationen, Härtung der
+Momentaufnahme, Diagnose), 15 Skript (Zeichenvorrat, `set -f`, Weitergabe auf stderr, Kopf). **Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
 2026-10-21 (§4, *Kein weiterer Schnitt*) ist das ein **Befund an den Planner** und keine Rückführung: Der
 Implementer meldet die Zahl und arbeitet weiter. Die Schätzung des Architect lautete 745 bis 1090 (§4); über
 ihrer oberen Hälfte liegen 236 Zeilen (vor der Nacharbeit 74). Woran es liegt, in der Reihenfolge des Gewichts: (1) Die Gegenprobe
-trägt 883 statt der geschätzten 530 bis 770 Zeilen — 225 Fälle und 194 Mutationen statt „rund 65 Fälle und
-rund 120 Mutationen"; der Faktor gegen das Skript ist **2,8** (883 zu 318), also unter dem Faktor 3,2 des
+trägt 898 statt der geschätzten 530 bis 770 Zeilen — 225 Fälle und 194 Mutationen statt „rund 65 Fälle und
+rund 120 Mutationen"; der Faktor gegen das Skript ist **2,8** (898 zu 318), also unter dem Faktor 3,2 des
 nächsten Verwandten (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Die Zahl der Fälle wächst mit
 den Aufzählungen des Vertrags, nicht mit dem Umfang des Ziels: allein Punkt 1 verlangt 24 Fälle (zwei
 Aufzählungen), Punkt 9 verlangt 26 Zeichen-Fälle, Punkt 2 verlangt 36 Eingabe-Fälle, Punkt 14 zehn
@@ -665,14 +665,31 @@ Fall, in dem ein roter Name gesetzt wurde) und einem Vergleich der zwei Momentau
 3. **`git status --porcelain` im Lesebefehl schreibt `.git/index` neu**, wenn die Stat-Daten im selben
    Sekundenfenster liegen (*racily clean*). Das ist eine Eigenschaft des gerufenen `git`, kein Zustand, den
    Punkt 4 meint; `.git/index` bleibt in der Momentaufnahme außen vor, mit Grund im Kopf der Funktion.
+4. **`git` startet nach einem Commit seine Wartung im Hintergrund** und legt `.git/objects/maintenance.lock`
+   an, die es wieder entfernt. Unter Last liegt die Sperre in der **ersten** Momentaufnahme (gleich nach dem
+   Aufbau der Welt) und in der zweiten nicht mehr — der Vergleich meldete eine Änderung, die das Ziel nicht
+   gemacht hat. Gefunden mit der Diagnose aus 1. bis 3. (`GP_ENTDECKE=1` nennt seit diesem Lauf den Fall und
+   die ersten Zeilen des Unterschieds); jede Datei `*.lock` bleibt jetzt außen vor, mit Grund im Kopf der
+   Funktion.
 
-Nach den drei Korrekturen sind der volle Lauf im Dev-Container (174 s, Last 4.12) und die beiden Läufe im
-Gegenproben-Container grün (Läufe-Tabelle oben). **Offen für die Verifikation:** ob ein voller Lauf unter
-schwerer Last reproduzierbar grün bleibt — die drei Ursachen sind benannt und behoben, die Obergrenze gilt
-für die Fahrt nach Punkt 16 (8) ohnehin nicht.
+**Was die Zusage „bis einschließlich `zustand` ändert das Ziel nichts" nach der Härtung trägt:** Die
+Momentaufnahme vergleicht Pfad, Rechte, Art, Link-Ziel, Größe und Änderungszeit **ohne** `.git/index` und
+ohne `*.lock`; was in diesen beiden Ausnahmen geschieht, fängt sie nicht. Getragen wird die Zusage dort von
+der **Positivliste der lesenden Kommandos** in derselben Prüfung (`^ssh ` höchstens einmal und von `git` nur
+`rev-parse`, `config --get`, `remote get-url`, `check-ref-format` und die lesenden `-C`-Formen) — ein
+schreibendes `git`-Kommando fällt an der Liste auf, auch wenn es nur den Index oder eine Sperre berührt
+(gemessen: `m-p5-remote-gesetzt` mit `remote set-url` und `m-p5-ident-nur-lokal` mit `config --local --get`
+färben `p4-nichts-geaendert` rot).
+
+Nach den vier Korrekturen sind grün: der volle Lauf im Gegenproben-Container (176 s), die Fahrt nach
+Punkt 16 (8) am Endstand unter Last als root (193 s, Last 10.72 zum Start — dieselbe Fahrt war vor der
+vierten Korrektur rot) und zwei volle Läufe im Dev-Container mit Diagnose. **Zahl der Läufe:** Dieser Slice
+hat die Gegenprobe oft gefahren (46 volle Sätze zu je rund 175 s); auf Anweisung des Nutzers vom 2026-10-21
+wird jede Wiederholung seither eng ausgewählt (`GP_MUT`, `GP_NUR`), und der volle Satz läuft einmal am
+Endstand.
 
 **Für die Closure vorgemerkt (Beobachtungen dieses Laufs, keine Register-Einträge — die schreibt der
-Planner): (1) Die Größe liegt mit 1326 über der Marke 900, der Faktor Gegenprobe zu Skript bei 2,8
+Planner): (1) Die Größe liegt mit 1341 über der Marke 900, der Faktor Gegenprobe zu Skript bei 2,8
 (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Ein Kind-Lauf der Gegenprobe mit 42 Fällen fiel
 unter Last (Last 10) in `p17-ordner-fall` und `p17-budget-*` aus; seit `GP_NUR` je Mutation fährt die Kopie
 einen Fall (`BEO-REPO/test-faellt-unter-cpu-last-aus`, `BEO-REPO/lastabhaengige-zaehlung`). (3) Eine
