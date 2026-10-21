@@ -536,9 +536,15 @@ Lücke im *Text*, nicht im entschiedenen Verhalten; der Implementer hat nichts d
    einschließlich `zustand` sind die lesenden `git`-Kommandos einschließlich `check-ref-format` erlaubt). Das
    Skript ruft in `eingaben` nur dieses eine Kommando und kein `ssh` und kein `make`; die Gegenprobe prüft
    genau das (`p4-nichts-geaendert`: höchstens ein `ssh`-Aufruf, von `git` nur die lesenden Kommandos).
-   Folge im Verhalten, die der Vertrag so nicht ausschreibt: Fehlt `git` am Host, bleibt die Prüfung von
-   `check-ref-format` aus, und ein ungültiger Zweigname endet erst im Schritt `werkzeuge` mit Exit 3
-   (Fall `p3-fehlt-git-zweig-ungueltig`) — sonst wäre `p3-fehlt-git` nicht erreichbar.
+   **Daran hängt eine Randform, die der Vertrag nicht entscheidet, und sie geht als Rückgabe an den
+   Architect** (`AGENTS.md` §3.12; die Liste *Randform · Frage* steht im Bericht des Implementers): Was gilt,
+   wenn `PGR_ZWEIG` ungültig ist **und** `git` am Host fehlt? Punkt 14 ordnet „Eingabe vor Werkzeug" (Exit 2),
+   Punkt 2 bindet die Prüfung des Zweignamens aber an `git check-ref-format`, und Punkt 3 verlangt einen Fall
+   `je Werkzeug fehlt` mit Exit 3. Beides zugleich ist nicht erfüllbar: Entweder die Prüfung bleibt ohne `git`
+   aus (dann endet die Kombination mit Exit 3), oder `eingaben` lehnt ohne `git` jeden Zweignamen ab (dann ist
+   `p3-fehlt-git` mit gültigem Zweig nicht erreichbar). Die Lieferung trägt die **erste** Antwort, weil sie
+   beide Fälle des Punktes 3 erreichbar hält; der Fall `p3-fehlt-git-zweig-ungueltig` hält sie fest, und ein
+   Satz im Vertrag kann sie bestätigen oder umdrehen (dann ändert sich eine Zeile im Skript und ein Fall).
 3. **`PGR_SSH_OPTS` im Push.** Für die eigenen `ssh`-Aufrufe reisen die Optionen als einzelne Argumente,
    die keine Shell sieht (Punkt 2, Fall `p2-opts-keine-shell`). `GIT_SSH_COMMAND` ist nach Punkt 7 eine
    **Zeichenkette**, und `git` gibt sie an `sh -c`: eine Option mit Shell-Metazeichen wird dort ausgewertet.
