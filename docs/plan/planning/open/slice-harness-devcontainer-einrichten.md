@@ -76,7 +76,7 @@ Liefer-Punkte (drei):
 Gates und Closure:
 
 - [ ] `make gates` grün (Stop-Hook verlangt den vollen Lauf, weil `tools/`, `harness/` und das Makefile-Fragment ändern); die Regel, nicht gleichzeitig mit dem Lauf eines anderen Slice auf demselben Daemon zu laufen, richtet sich an den Aufrufer (§3).
-- [ ] `make container-einrichten-gegenprobe` am Endstand **in einem Zug** grün, mit ihrer Zeit im Bericht (`SPEC-060` Punkt 16); während der Arbeit fährt der Implementer nur den engsten Fall mit `GP_MUT`, den vollen Lauf fährt der Verifier einmal am Endstand ([ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md), *Übergang*). `make gegenproben` und `make gegenproben-host` gehören der Welle, nicht diesem Slice.
+- [ ] `make container-einrichten-gegenprobe` am Endstand **in einem Zug** grün, mit ihrer Zeit im Bericht (`SPEC-060` Punkt 16); während der Arbeit fährt der Implementer nur den engsten Fall mit `GP_MUT`, den vollen Lauf fährt der Verifier einmal am Endstand ([ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md), *Übergang*). Der Lauf findet in einem frischen Gegenproben-Container **ohne vorherigen `make gates`** statt und belegt damit die Zusage von `SPEC-060` Punkt 3 für diese Gegenprobe (`SPEC-069` Punkt 17); `make gegenproben` und `make gegenproben-host` gehören der Welle und dem Release (`AGENTS.md` §6), nicht diesem Slice.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review.
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder in §7 „keine Beobachtung“ notiert.

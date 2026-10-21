@@ -365,6 +365,15 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
       entfernt), und der Slice, der sie anlegt, trägt sie in der Tabelle dort als `aufgenommen` ein und
       nennt die gemessene Zeit. Die Obergrenze ist 600 s
       ([ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
+    - **Grün ohne vorherigen Lauf von `make gates`** ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 3, Regel
+      an die Lieferung): Das belegt der Slice, der die Gegenprobe anlegt, durch **ihren eigenen** Lauf in
+      einem frischen Gegenproben-Container — nicht durch eine Fahrt des Sammelziels (Entscheidung des
+      Architect, 2026-10-21; Grund: Die Zusage gilt dieser Gegenprobe, und ihr eigener Lauf belegt sie
+      vollständig; eine Fahrt von `make gegenproben` fährt heute die Gegenproben mit, die noch über der
+      Obergrenze liegen, und ist deshalb nach [ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)
+      *Übergang* vorerst keine Handlung eines Slice). Die Pflicht, `make gegenproben` und
+      `make gegenproben-host` am Ende einer Welle und vor einem Release zu fahren (`AGENTS.md` §6,
+      `SPEC-060` Punkt 14), bleibt davon unberührt; dieser Vertrag ändert sie nicht.
 
     **Grund, warum kein echter Container Teil der Gegenprobe ist** (Entscheidung des Architect, 2026-10-21,
     innerhalb von [ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)): Gemessen im
