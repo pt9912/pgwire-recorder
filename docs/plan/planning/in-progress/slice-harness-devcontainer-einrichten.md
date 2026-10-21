@@ -257,19 +257,26 @@ diesen Abschnitt.
 
 **Läufe.**
 
-| Lauf | Stand | Ergebnis |
+| Lauf | Ort und Stand | Ergebnis |
 |---|---|---|
-| `make container-einrichten-gegenprobe`, voller Lauf in einem Zug | `5c8a17d2` | **grün**, 216 Fälle, **Zeit 159 s von höchstens 600 s, Last 4.75** (Last zum Start 3.82); je Mutation genau die benannten roten Fälle, drei Mutanten ohne roten Fall (unten) |
-| derselbe Lauf, Stand davor | `6c7f635d` | grün, 157 s, Last 5.58 |
-| `make docs-check` | `6c7f635d` | grün, 1340 Dateien, 0 Befunde, 2 s |
-| `make gates` im Klon | `5c8a17d2` | Start 14:07 UTC; Ergebnis und Dauer siehe Bericht des Implementers (der Lauf dauert rund 28 min, Dokument §8) |
-| Nachweis gegen einen echten Container (Punkt 18) | `6c7f635d` | **durchgelaufen**, Beleg unten; zwei Läufe davor brachen vor Schritt 2 ab (unten, *Zwei Läufe, die nicht durchliefen*) |
+| `make container-einrichten-gegenprobe`, **voller Lauf in einem Zug** | **Gegenproben-Container `pgr-gp`** (Port 2225, frischer Klon aus einem `git bundle`, **ohne** `.harness/state`, also ohne vorherigen `make gates`), Stand `407dae88` | **grün**, 225 Fälle, **Zeit 176 s von höchstens 600 s** (Zeile: `Last 10.60`; Last des Hosts zum Start **3.35**, die Zahl der Zeile ist die Last **nach** dem Lauf, den die Gegenprobe mit `GP_PARALLEL` 4 selbst erzeugt) |
+| derselbe Lauf, `SPEC-060` Punkt 16 (8): **fremder Benutzer, fremde Locale, unter Last** | `pgr-gp`, Stand `407dae88`, als `root`, `LC_ALL=en_US.utf8`, drei Rechenlasten daneben, `GP_BUDGET=0` | **grün**, 225 Fälle, **181 s** Wanduhr (Zeile: `Zeit 181 s`, `Last 74.38`); Last des Hosts zum Start 8.25; die Schlusszeile nennt den als root entfallenen Fall `p5-schluessel-unlesbar` und die mit ihm entfallene Mutation `m-p5-schluessel-lesbar` |
+| voller Lauf, Stände davor (Dev-Container `pgr-dev2`, frischer Worktree ohne `make gates`) | `5c8a17d2` / `6c7f635d` | grün, 159 s bei Last 4.75 / 157 s bei Last 5.58 (216 Fälle) |
+| `make gates` im Klon | `pgr-dev2`, Stand `5c8a17d2` | **grün, Exit 0, 4 min 20 s** (Start 14:07 UTC; a-check, baseline-verify, build, test, lint, docs-check, kopf-check, meldungskatalog-check, workflows-check, abdeckung-check, test-integration, test-container, test-postgres-versionen 15/16/18); der Lauf am Endstand steht im Bericht des Implementers |
+| `make docs-check`, `make kopf-check` | `pgr-dev2`, Endstände der Nacharbeit | grün, 1340 Dateien, 0 Befunde (2 s); `kopf-check` Exit 0 |
+| Nachweis gegen einen echten Container (Punkt 18) | Host, Stand `6c7f635d` | **durchgelaufen**, Beleg unten; zwei Läufe davor brachen vor Schritt 2 ab (unten, *Zwei Läufe, die nicht durchliefen*) |
 
-**Zur Zusage von `SPEC-060` Punkt 3** (ohne vorherigen Lauf von `make gates` grün): Der volle Lauf fand in
-einem **frischen Worktree** statt, in dem `make gates` nie gelaufen war (allein `make docs-check`, das keine
-Datei anlegt, die die Gegenprobe liest); die Gegenprobe ruft Docker nicht und braucht kein Bau-Ergebnis. Was
-der Lauf **nicht** belegt: eine Fahrt in einem eigens dafür gestarteten Gegenproben-Container — ein solcher
-stand in diesem Lauf nicht bereit; der Dev-Container trägt dieselben Werkzeuge (bash, git, make, GNU-coreutils).
+**Zur Zusage von `SPEC-060` Punkt 3 und Punkt 16 (1)** (grün ohne vorherigen Lauf von `make gates`, Messung
+im Gegenproben-Container): Nachgeholt nach Review F-9. Der Gegenproben-Container `pgr-gp` lief nicht; er ist
+mit dem Werkzeug des Repos gestartet (`PGR_DEV=/Development/pgr-gp PGR_NAME=pgr-gp PGR_SSH_PORT=2225 make
+container-start`, 2 min 2 s, Zeile `container-start: bereit pgr-gp 127.0.0.1:2225`, Limits des Gerüsts
+unberührt: `--cpus=8 --memory=8g`). Der Zweig kam **nicht** per `git push` in sein Bare-Repo — dort hängt der
+`post-receive`-Hook, der `make gegenproben` über die ganze Liste fährt —, sondern als `git bundle` über
+`scp` in einen frischen Klon `/workspaces/pgr-gp/ce-pruefung`, in dem `.harness/state` fehlt: in diesem Baum
+ist `make gates` nie gelaufen. Dort lief **nur** `make container-einrichten-gegenprobe`. Der eigene
+Hostschlüssel-Eintrag des Containers änderte sich mit dem Neubau; die eigenen `ssh`-Aufrufe des Implementers
+nutzten eine eigene `known_hosts`-Datei unter `/tmp`, `/Development/pgr-gp/known_hosts` des Nutzers blieb
+unberührt (`BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`).
 
 **Größe** (Metrik §4, [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md), Basis `28bb1f01`):
 
@@ -278,23 +285,26 @@ git diff --numstat --find-renames=10% 28bb1f01..HEAD -- tools harness \
   ':(exclude)docs/plan/planning' ':(exclude)docs/reviews' | awk '{a+=$1; b+=$2} END {print a+b+0}'
 ```
 
-| Datei | Zeilen |
+| Datei | Zeilen (Stand `48ada9b2`, nach der Nacharbeit) |
 |---|---|
-| `tools/harness/container-einrichten-gegenprobe.sh` | 835 |
-| `tools/harness/container-einrichten.sh` | 303 |
+| `tools/harness/container-einrichten-gegenprobe.sh` | 883 |
+| `tools/harness/container-einrichten.sh` | 318 |
+| `harness/vertraege/SPEC-069-container-einrichten.md` | 85 + 14 (die sieben Entscheidungen des Architect vom 2026-10-21) |
 | `harness/mk/container-einrichten-gegenprobe.mk` | 12 |
 | `harness/mk/container-einrichten.mk` | 11 |
 | `harness/README.md` | 2 |
 | `harness/vertraege/SPEC-060-gegenproben.md` | 1 |
-| **Summe** | **1164** |
+| **Summe** | **1326** |
 
-Gemessen am Endstand `19567b8c`; am Stand des vollen Gegenprobe-Laufs (`5c8a17d2`) dieselbe Summe, am Stand
-davor (`6c7f635d`) 1162. **Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
+Gemessen am Stand `48ada9b2` (nach der Nacharbeit zum Review): **1326**; vor der Nacharbeit 1164
+(`19567b8c`), davor 1162 (`6c7f635d`). Die Nacharbeit trägt 162 Zeilen: 99 Vertragstext der sieben
+Entscheidungen des Architect, 48 Gegenprobe (neun Fälle, sechzehn Mutationen, Diagnose), 15 Skript
+(Zeichenvorrat, `set -f`, Weitergabe auf stderr, Kopf). **Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
 2026-10-21 (§4, *Kein weiterer Schnitt*) ist das ein **Befund an den Planner** und keine Rückführung: Der
 Implementer meldet die Zahl und arbeitet weiter. Die Schätzung des Architect lautete 745 bis 1090 (§4); über
-ihrer oberen Hälfte liegen 74 Zeilen. Woran es liegt, in der Reihenfolge des Gewichts: (1) Die Gegenprobe
-trägt 835 statt der geschätzten 530 bis 770 Zeilen — 216 Fälle und 161 Mutationen statt „rund 65 Fälle und
-rund 120 Mutationen"; der Faktor gegen das Skript ist **2,8** (835 zu 303), also unter dem Faktor 3,2 des
+ihrer oberen Hälfte liegen 236 Zeilen (vor der Nacharbeit 74). Woran es liegt, in der Reihenfolge des Gewichts: (1) Die Gegenprobe
+trägt 883 statt der geschätzten 530 bis 770 Zeilen — 225 Fälle und 194 Mutationen statt „rund 65 Fälle und
+rund 120 Mutationen"; der Faktor gegen das Skript ist **2,8** (883 zu 318), also unter dem Faktor 3,2 des
 nächsten Verwandten (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Die Zahl der Fälle wächst mit
 den Aufzählungen des Vertrags, nicht mit dem Umfang des Ziels: allein Punkt 1 verlangt 24 Fälle (zwei
 Aufzählungen), Punkt 9 verlangt 26 Zeichen-Fälle, Punkt 2 verlangt 36 Eingabe-Fälle, Punkt 14 zehn
@@ -304,7 +314,7 @@ Kommentar (Punkt-Verweise und Gründe).
 **Mutationsprotokoll (Zusage · Mutation · roter Fall).** Eine Zeile je Zusage oder Element einer Aufzählung;
 `GP_ENTDECKE=1` nennt je Mutation die roten Fälle, und `mut` verlangt genau diese Menge (mehr und weniger
 machen den Lauf rot). Die Tabelle der Mutationen in `tools/harness/container-einrichten-gegenprobe.sh`
-(Abschnitt *Tabelle der Mutationen*) führt die 161 Einzelzeilen mit Text und roter Menge; hier stehen sie
+(Abschnitt *Tabelle der Mutationen*) führt sie in 174 Zeilen (zwei davon Schleifen über 17 und 3 Elemente, zusammen **194** Mutationen) mit Text und roter Menge; hier stehen sie
 nach Zusage gebündelt.
 
 | Zusage (`SPEC-069`) | Mutation | roter Fall |
@@ -529,7 +539,9 @@ rm -rf /tmp/pgr-ce-nachweis.XIg9Fw: Exit 0
    `PGR_SSH_OPTS` (`-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=…`), wie Punkt 20 (5) es
    vorsieht.
 
-**Vier Beobachtungen zum Vertrag — Hinweise an den Architect, keine Randform-Rückgabe** (jede Zeile ist eine
+**Vier Beobachtungen zum Vertrag — Hinweise an den Architect** (alle vier sind am 2026-10-21 entschieden
+und im Vertrag eingearbeitet, siehe *Nacharbeit nach dem Review* unten; der Text darunter ist der Stand der
+Lieferung, der zur Entscheidung führte), **keine Randform-Rückgabe** (jede Zeile ist eine
 Lücke im *Text*, nicht im entschiedenen Verhalten; der Implementer hat nichts davon selbst entschieden):
 
 1. **Punkt 18, Schritt 5 räumt nicht vollständig.** `docker rm -fv` entfernt die **anonymen** Volumes; das
@@ -568,8 +580,84 @@ Lücke im *Text*, nicht im entschiedenen Verhalten; der Implementer hat nichts d
 core.hooksPath=.githooks`, `traeger-fetch: Traeger abgelegt … Digest verifiziert`, Schritt 4:
 `ls …/.harness/` nennt `baseline skills state`).
 
-**Für die Closure vorgemerkt** (Beobachtungen dieses Laufs, keine Register-Einträge — die schreibt der
-Planner): (1) Die Größe liegt mit 1162 über der Marke 900, der Faktor Gegenprobe zu Skript bei 2,7
+### Nacharbeit nach dem Review vom 2026-10-21
+
+**Sieben Entscheidungen des Architect vom 2026-10-21** (alle in diesem Slice, keine ADR berührt; Randformen
+26 bis 32 in §6):
+
+| Entscheidung | Vertragsstelle |
+|---|---|
+| Ausnahme von „Eingabe vor Werkzeug“: fehlt `git` am Host, bleibt allein die Prüfung von `check-ref-format` aus, der Lauf endet mit **Exit 3** (Review F-7, die Rückgabe des Implementers) | `SPEC-069` Punkt 14 (neuer Absatz), Punkt 2 (Tabelle `PGR_ZWEIG`), Punkt 3 (Fall und Mutation) |
+| Aufräumen des Nachweises: die benannten Volumes und das Image-Paar werden **per Name** entfernt, der Beleg zeigt beide Zustände (Hinweis 1 der Lieferung) | `SPEC-069` Punkt 18 Schritt 5 und *Akzeptiertes Negativ* |
+| Eine Option in `PGR_SSH_OPTS` mit Shell-Metazeichen: **Grenze**, nicht zugesagt und nicht gemessen (Hinweis 3) | `SPEC-069` Punkt 20 (7), Punkt 2 (Einschub) |
+| Der Exit-Code von `git push` bei gescheiterter Verbindung bleibt **ungebunden**, akzeptiertes Negativ (Hinweis 4) | `SPEC-069` Punkt 20 (11) |
+| `PGR_DEV` trägt denselben Zeichenvorrat wie `SPEC-058` Punkt 2 und wird **hier erneut geprüft** (Review F-3) | `SPEC-069` Punkt 2 (Tabelle, Absatz *Warum `PGR_DEV` hier erneut geprüft wird*, Fälle), Punkt 20 (7) |
+| Die Plattform-Zusage lautet bash **≥ 4.4**, mit akzeptiertem Negativ und **ohne** Selbsttest (Review F-4) | `SPEC-069` Kopf *Plattform*, Punkt 19; Kopf des Skripts; §6 (Randform *Plattform*) |
+| `ssh` und `git` am Host: die Lage bleibt, der Grund steht im Vertrag; `AGENTS.md` bleibt unverändert (Review F-17) | `SPEC-069` Punkt 3 (Absatz *Warum zwei Werkzeuge am Host*) |
+
+**Was die Befunde geändert haben:**
+
+- **F-1** (Ausgabe von `ssh` verschluckt): `zust_lesezug` ordnet die Zeilen des Lesebefehls den Schlüsseln
+  zu und schreibt **jede andere Zeile auf stderr** (Punkt 4); der Fehlerpfad nennt sie weiter in der Meldung
+  (Punkt 5 (5)). Die Attrappe von `ssh` schreibt auf Wunsch (`AT_SSH_LAUT`) im **Erfolgsfall** auf stderr.
+- **F-2** (Pfadnamen-Expansion): `set -f` um die Teilung von `PGR_SSH_OPTS`.
+- **F-3** (`PGR_DEV` in `GIT_SSH_COMMAND`): Zeichenvorrat geprüft, Kopf des Skripts berichtigt.
+- **F-5** (`MAKEFLAGS` nur für `n`, `q`, `t`): drei Fälle ergänzt.
+- **F-6** (Fälle ohne Mutation): neun Fälle haben jetzt je eine Mutation, dazu ein Fall, der liest, **wo der
+  lokale `main` des Klons steht** (`p11-main-unbewegt`).
+- **F-8** (§6 trug den Stand vor der Lieferung): §6 nennt die sieben Randformen und ihre Entscheidung.
+- **F-10** (Zahlen): 225 Fälle, 194 Mutationen, Metrik 1326 — alle Zahlen am Stand `48ada9b2`.
+- **F-11** (`--force-with-lease`, URL ohne Port): je ein eigener Fall bzw. eine eigene Mutation; das Muster
+  von `p1-nie-push-force` endet jetzt auf `( |$)` und trennt beide Formen.
+- **F-12** (`pgrep`): aus Voraussetzung, Kopf, Fragment-Kommentar und Pfad der Welten entfernt.
+- **F-13** (Fahrt unter fremdem Benutzer, fremder Locale, unter Last): gefahren, siehe Läufe-Tabelle.
+- **F-9** (Messung im Gegenproben-Container): gefahren, siehe Läufe-Tabelle und der Absatz zu `SPEC-060`.
+- **F-14** (der Absatz *Kein weiterer Schnitt* in §4 kam mit einem Code-Commit): §4 bleibt inhaltlich
+  unverändert — die Entscheidung ist die des Nutzers vom 2026-10-21, vom Koordinator übermittelt; dass ein
+  Commit des Implementers sie in §4 setzte, ist unten als Beobachtung für den Planner vermerkt.
+- **F-15, F-16** (INFO, Zuständigkeit Verifier): Das Ergebnis von `make gates` steht jetzt in der
+  Läufe-Tabelle; `make gates-schnell-gegenprobe` (Namensregel von `SPEC-060` im Arbeitsbaum) ist **nicht**
+  gefahren — der Auftrag dieses Laufs nennt nur die eigene Gegenprobe ([ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) *Übergang*), und der
+  Reviewer hat `namensregel .` ohne Verletzung gefahren. Die vier Listen des Arbeitsbaums sind geprüft:
+  `container-einrichten-gegenprobe` steht genau einmal in `GEGENPROBEN_CONTAINER`, in keiner Hälfte von
+  `GATE_CHECKS`, nicht in `GATE_SCHNELL_AUSNAHME` und nicht in `GEGENPROBEN_HOST`.
+
+**Mutationsprotokoll der Nacharbeit (Zusage · Mutation · roter Fall).** Gemessen mit `GP_ENTDECKE=1`, je
+Mutation verlangt `mut` genau diese Menge.
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| Punkt 4: die Ausgabe eines gerufenen Werkzeugs erscheint auf ihrem Strom — auch die von `ssh` im Lesezug | `m-p4-lesezug-stderr`: die Weitergabe der fremden Zeilen entfällt | `p4-werkzeug-stderr-ssh` |
+| Punkt 2: `PGR_SSH_OPTS` wird an Leerraum geteilt, als einzelne Argumente übergeben, **ohne Pfadnamen-Expansion** | `m-p2-opts-glob`: `set -f` entfällt | `p2-opts-muster` |
+| Punkt 2: `PGR_DEV` trägt nur `A-Za-z0-9._+-` und `/` | `m-p2-dev-zeichen`: die Prüfung entfällt | `p2-dev-metazeichen`, `p2-dev-leerzeichen` |
+| Punkt 14, Ausnahme: ohne `git` bleibt allein die Prüfung von `check-ref-format` aus | `m-p2-zweig-ohne-git`: der Vorbehalt `command -v git` entfällt | `p3-fehlt-git`, `p3-fehlt-beide`, `p3-fehlt-git-zweig-ungueltig` |
+| Punkt 2: Grenze `a` angenommen | `m-p2-zweig-kurz`: `a` abgelehnt | `p2-zweig-a` |
+| Punkt 2: Grenze `slice-harness-devcontainer-einrichten` angenommen | `m-p2-zweig-lang`: Länge über 20 abgelehnt | `p2-zweig-kennung` |
+| Punkt 2: `PGR_REMOTE` mit 64 Zeichen angenommen | `m-p2-remote-laenge-63`: Grenze 63 | `p2-remote-64` |
+| Punkt 5 (3): die Identität kommt aus **allen Ebenen**, auch `--global` | `m-p5-ident-nur-lokal`: `config --local --get` | `p5-ident-global`, `p4-nichts-geaendert` |
+| Punkt 5 (3): gültiges UTF-8 wird angenommen | `m-p5-ident-nur-ascii`: die Folge aus zwei Bytes entfällt | `p5-ident-utf8-gut`, `p9-zeichen-umlaut` |
+| Punkt 7: das Remote heißt `PGR_REMOTE`, nicht `container` | `m-p5-remote-name-fest`: `remote add container` | `p5-remote-anderer-name` |
+| Punkt 7: die URL trägt den Port | `m-p7-url-ohne-port`: Port aus der URL | `p2-vorgaben`, `p5-remote-andere-url`, `p5-remote-anderer-name`, `p5-remote-gleich`, `p7-remote-fehlt` |
+| Punkt 8: der Klon entsteht am Pfad des Vertrags | `m-p8-clone-ziel`: anderes Ziel | `p8-fehlt`, `p13-erfolg`, `p13-umgebung`, `p13-zweiter-aufruf` |
+| Punkt 11: ein fehlender Zweig entsteht mit `-c` | `m-p11-nie-c`: `switch` ohne `-c` | `p11-fehlt`, `p11-aus-origin-main`, `p11-main-unbewegt`, `p11-sonderzeichen` |
+| Punkt 11: der lokale `main` des Klons wird **nie bewegt** | `m-p11-main-bewegt`: `branch -f main origin/main` nach dem Wechsel | `p11-main-unbewegt` |
+| Punkt 14: je Nachbarpaar vertauscht — erstes Paar `eingaben`/`werkzeuge` | `m-p14-eingaben-nach-werkzeuge`: die zwei Schritte vertauscht | `p14-eingabe-vor-werkzeug` |
+| Punkt 1: ruft nie `git push --force-with-lease` auf | `m-p1-nie-push-force-with-lease`: ein Schritt ruft es | `p1-nie-push-force-with-lease`, `p4-reihenfolge-der-schritte` |
+| Punkt 16: je `MAKEFLAGS` aus der Umgebung mit demselben Flag | `m-p16-rezept-make` (Rezept mit `$(MAKE)`) und `m-p16-voraussetzung-fehlt` | `p16-makeflags-n/-q/-t` bzw. `p16-makeflags-i/-k/-j` |
+| `SPEC-060` Punkt 16 (8): als root entfällt der Fall mit Dateirechten und **mit ihm seine Mutation** | eine Kopie ohne das Überspringen in `mut` meldet `rot sind [nichts]` (gemessen am 2026-10-21 im Lauf als root, vor dem Fix) | `m-p5-schluessel-lesbar` (die Mutation selbst, nicht ein Fall) |
+
+**Zwei Läufe unter Last, die rot endeten, und einer, der grün endete.** Die Fahrt nach `SPEC-060` Punkt 16 (8)
+(als root, `en_US.utf8`) lief dreimal: mit acht bzw. sechs Rechenlasten daneben endete sie rot mit **je einem
+zusätzlichen** `p4-nichts-geaendert` — beim ersten Lauf unter `m-p2-alle-gemeldet`, beim zweiten unter
+`m-p5-ident-steuerzeichen` und `m-p5-ident-utf8`; dieselben Mutationen einzeln und ohne Last sind grün, und
+der dritte Lauf (drei Rechenlasten, Last 8.25 zum Start) war grün. Die Abweichung ist damit lastabhängig und
+nicht an eine Mutation gebunden (`BEO-REPO/test-faellt-unter-cpu-last-aus`, `BEO-REPO/lastabhaengige-zaehlung`);
+welcher Fall den Namen setzte, ist in den roten Läufen nicht festgehalten — seit diesem Lauf nennt
+`GP_ENTDECKE=1` den Fall, in dem ein roter Name gesetzt wurde. **Offen für die Verifikation:** ob ein voller
+Lauf unter Last reproduzierbar rot wird; die Obergrenze gilt für diese Fahrt nicht (Punkt 16 (8)).
+
+**Für die Closure vorgemerkt (Beobachtungen dieses Laufs, keine Register-Einträge — die schreibt der
+Planner): (1) Die Größe liegt mit 1326 über der Marke 900, der Faktor Gegenprobe zu Skript bei 2,8
 (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Ein Kind-Lauf der Gegenprobe mit 42 Fällen fiel
 unter Last (Last 10) in `p17-ordner-fall` und `p17-budget-*` aus; seit `GP_NUR` je Mutation fährt die Kopie
 einen Fall (`BEO-REPO/test-faellt-unter-cpu-last-aus`, `BEO-REPO/lastabhaengige-zaehlung`). (3) Eine
@@ -578,7 +666,16 @@ endet sie wie `ssh` mit 255; ein Fall endet zusätzlich nach zwei Minuten (`time
 trug den Namen der Mutation, und eine Prüfung fand ihren Text im Pfad statt in der Meldung (falsches Grün);
 die Welten heißen jetzt neutral. (5) `u-boot` am Host steht auf 0.13.0, `SPEC-058` nennt 0.10.0 als
 gemessene Umgebung; für dieses Ziel ohne Belang (Punkt 20 (3)), der Nehmer ist
-`slice-harness-container-start-u-boot-0-13`.
+`slice-harness-container-start-u-boot-0-13`. (6) Sieben Randformen kamen erst in der Umsetzung und im
+Review auf und wurden am 2026-10-21 entschieden; eine davon (F-7) hatte der Implementer im Code
+beantwortet und zurückgegeben (`BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`), drei kamen
+aus Messungen des Reviewers (`BEO-REPO/spec-randform-erst-im-review-entschieden`). (7) Der Absatz *Kein
+weiterer Schnitt* in §4 kam mit dem ersten Code-Commit in den Plan, obwohl `AGENTS.md` §3.9 dem Implementer
+§1, §3, §6 und den Kopf nennt (Review F-14); die Entscheidung selbst ist die des Nutzers vom 2026-10-21.
+(8) Neun von 216 Fällen hatten keine Mutation, drei vom Vertrag verlangte Mutationen fehlten, und zwei
+Aufzählungselemente waren nur mittelbar geprüft (Review F-5, F-6, F-11,
+`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`). (9) Die Messung lief zuerst im Dev-Container statt im
+Gegenproben-Container, und die Tabelle in `SPEC-060` stand schon auf `aufgenommen` (Review F-9).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
