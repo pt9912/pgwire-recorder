@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # container-einrichten-gegenprobe — prüft tools/harness/container-einrichten.sh und die Fragmente
 # harness/mk/container-einrichten.mk und harness/mk/container-einrichten-gegenprobe.mk gegen SPEC-069
-# (harness/vertraege/SPEC-069-container-einrichten.md, Punkte 1 bis 20) OHNE CONTAINER, ohne Docker, ohne Netz
-# und ohne echtes ssh (Punkt 17, ADR-0057). Je Fall eine Welt in einem Temp-Verzeichnis (mktemp -d): ein
+# (harness/vertraege/SPEC-069-container-einrichten.md) OHNE CONTAINER, ohne Docker, ohne Netz und ohne echtes
+# ssh (Punkt 17, ADR-0057). Fälle gibt es zu den Punkten 1 bis 17; Punkt 18 ist der Nachweis, Punkt 19 die
+# Plattform und Punkt 20 sind die Grenzen, ohne Fall. Je Fall eine Welt in einem Temp-Verzeichnis (mktemp -d): ein
 # Host-Repo mit einem Commit und lokaler Identität, $PGR_DEV mit u-boot.yaml und ssh/id_ed25519, das
 # Verzeichnis welt/workspaces/<Projektname>/ und ein Pfad, in dem ssh, make, docker, u-boot und devcontainer
 # Attrappen sind, `id` eine Attrappe ist und git und rm das echte Werkzeug mit einem Protokoll davor sind.
@@ -242,6 +243,9 @@ mt() {
 mk() { local fl=(); while [[ ${1-} == -* ]]; do fl+=("$1"); shift; done; lauf_cmd=("$sys/make" "${fl[@]}" container-einrichten); lauf "$@"; lauf_cmd=(); }
 # dbank <Variable>: der Wert einer Make-Variablen im Temp-Baum
 dbank() { make -C "$w/t" -pq help 2> /dev/null | awk -v z="$1" '$1 == z && ($2 == ":=" || $2 == "=") { $1 = ""; $2 = ""; print; exit }'; }
+# vorauss: die Zahl der Wörter hinter dem Namen in jeder Zeile `container-einrichten:` der Datenbank von make
+# im Temp-Baum, je Zeile eine Zahl (0: keine Voraussetzung, auch keine der Form `| …`)
+vorauss() { make -C "$w/t" -pq help 2> /dev/null | awk '$1 == "container-einrichten:" { print NF - 1 }' | sort -u | tr '\n' ' '; }
 # gp_kind <GP_MUT> [<sed-Ausdruck>…] -- [<ZUWEISUNG>…]: eine Kopie dieser Gegenprobe in eigenem Arbeitsordner
 # ($kw); ihre Quellen sind die der Mutation, ihre Fälle p17-* sind abgeschaltet (GP_KIND).
 gp_kind() {
@@ -380,7 +384,8 @@ for p in tabulator:'"A\\tB"' zeilenumbruch:'"A\\nB"' cr:'"A\rB"'; do
 done
 fall p5-ident-nicht-utf8 'printf "[user]\n\tname = A\xffB\n" >> "$repo/.git/config"; lauf; ex 4 "user.name des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8"
   { ! grep -q "$(printf "A\xffB")" "$w/err" && ! grep -q "der Wert" "$w/out"; } || rot'
-fall p5-ident-mail-nicht-utf8 'printf "[user]\n\temail = A\xffB\n" >> "$repo/.git/config"; lauf; ex 4 "user.email des Host-Repos trägt ein Steuerzeichen"'
+fall p5-ident-mail-nicht-utf8 'printf "[user]\n\temail = A\xffB\n" >> "$repo/.git/config"; lauf; ex 4 "user.email des Host-Repos trägt ein Steuerzeichen"
+  ! grep -q "$(printf "A\xffB")" "$w/err" || rot'
 fall p5-ident-utf8-gut 'git -C "$repo" config user.name "Käthe 日 😀"; gruen'
 fall p5-remote-andere-url 'git -C "$repo" remote add container ssh://vscode@127.0.0.1:9/x.git
   lauf; ex 4 "zeigt auf ssh://vscode@127.0.0.1:9/x.git" "nicht auf ssh://vscode@127.0.0.1:2222$BP"'
@@ -410,6 +415,10 @@ fall p6-fehler 'lauf "AT_SSH_ROT=*init --bare*"; ex 5 "bare: git init --bare $BP
 
 # Punkt 7: Remote und Einlieferung.
 fall p7-remote-fehlt 'gruen; log "^git remote add container ssh://vscode@127.0.0.1:2222$BP$"'
+# Der Port der URL stammt aus PGR_SSH_PORT (Randform 8: mehrere Instanzen): die URL des Remotes trägt ihn, und
+# der Push ruft `ssh` mit genau diesem Port; die Attrappe protokolliert die Argumente, auch das -p, das git setzt.
+fall p7-url-port 'gruen PGR_SSH_PORT=2253; [ "$(git -C "$repo" remote get-url container)" = "ssh://vscode@127.0.0.1:2253$BP" ] || rot
+  log "^ssh .*-p 2253 vscode@127.0.0.1 git-receive-pack"; nicht "-p 2222"'
 fall p7-push-aufruf 'gruen; log "^git push container refs/heads/main:refs/heads/main$"; nicht "git push .*--force"'
 fall p7-push-angekommen 'gruen; [ "$(git -C "$bp" rev-parse main)" = "$(git -C "$repo" rev-parse main)" ] || rot'
 fall p7-git-ssh-command 'gruen; log "^UMGEBUNG ssh GIT_SSH_COMMAND=ssh -i $dev/ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes$"
@@ -506,6 +515,8 @@ fall p15-wiederholung 'sig INT 130 "*switch*" zweig; gruen; [ "$(git -C "$kp" re
 
 # Punkt 16: Aufrufarten des Treibers.
 fall p16-phony 'mt; : > "$w/t/container-einrichten"; mk; [ "$code" = 0 ] || rot; grep -q "eingerichtet" "$w/out" || rot'
+# Der Wortlaut von Punkt 16: das Ziel hat keine Voraussetzung, auch keine vorhandene Datei ohne Regel.
+fall p16-keine-voraussetzung 'mt; [ "$(vorauss)" = "0 " ] || rot'
 for f in n q t; do
   fall "p16-$f" "mt; mk -$f; [ ! -s \"\$w/log\" ] || rot; ! grep -q eingerichtet \"\$w/out\" || rot
     [ -z \"\$(git -C \"\$w/t\" remote)\" ] || rot"
@@ -734,7 +745,11 @@ mut m-p2-opts-glob s "$A2" '  set -f
 mut m-p2-vorgabe-port s "$A2" 'PGR_SSH_PORT=${PGR_SSH_PORT-2222}' 'PGR_SSH_PORT=${PGR_SSH_PORT-2223}' p2-vorgaben p2-opts-nicht-gesetzt p2-opts-leer p2-opts-eine p2-opts-zwei p2-opts-tabulator p2-opts-keine-shell p2-opts-muster
 mut m-p2-vorgabe-remote s "$A2" 'PGR_REMOTE=${PGR_REMOTE-container}' 'PGR_REMOTE=${PGR_REMOTE-behaelter}' p2-vorgaben
 mut m-p2-reihenfolge s "$A2" 'for v in PGR_DEV PGR_SSH_PORT PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS' 'for v in PGR_SSH_PORT PGR_DEV PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS' p2-reihenfolge
-mut m-p2-erster-verstoss s "$A2" '  (( bad == 0 )) || exit 2' '  (( bad == 0 )) || { (( bad > 1 )) && exit 2; exit 2; }' # äquivalent
+mut m-p2-erster-verstoss s "$A2" '  (( bad == 0 )) || exit 2' '  (( bad == 0 )) || { (( bad > 1 )) && exit 2; exit 2; }' # äquivalent (§7: Sonde ist die folgende Mutation)
+# Sonde zu m-p2-erster-verstoss: dieselbe Stelle, aber ein Zweig, den ein Fall erreicht, endet mit einem
+# anderen Exit-Code (`meld` setzt bad nur auf 1, ein Zweig für bad > 1 wird nie erreicht); die Fälle mit
+# PGR_ZWEIG=main sehen den Code.
+mut m-p2-erster-verstoss-anderer-exit s "$A2" '  (( bad == 0 )) || exit 2' '  (( bad == 0 )) || { [ "${PGR_ZWEIG-}" = main ] && exit 9; exit 2; }' p2-zweig-main p2-alle-gemeldet p2-reihenfolge
 mut m-p2-alle-gemeldet s "$A2" '  for v in PGR_DEV PGR_SSH_PORT PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS; do "pruefe_$v"; done' '  for v in PGR_DEV PGR_SSH_PORT PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS; do "pruefe_$v"; (( bad == 0 )) || break; done' p2-alle-gemeldet p2-reihenfolge
 # Punkt 3: Werkzeuge und Projektname
 mut m-p3-ssh s "$A3" '  for t in ssh git; do' '  for t in git; do' p3-fehlt-ssh p3-fehlt-beide p14-werkzeug-vor-geruest
@@ -774,9 +789,12 @@ mut m-p5-ident-nur-ascii s "$A5|p9-zeichen-(umlaut|cjk|emoji)" '[\xc2-\xdf][\x80
 mut m-p5-ident-nur-lokal s "$A5" 'iname=$(git config --get user.name 2> /dev/null)' 'iname=$(git config --local --get user.name 2> /dev/null)' p5-ident-global p4-nichts-geaendert
 mut m-p5-ident-mail-geprueft s "$A5" '  [[ $imail =~ $re ]] ||' '  true ||' p5-ident-mail-nicht-utf8
 mut m-p5-ident-wert-in-meldung s "$A5" 'ende 4 "user.name des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8 (der Wert steht nicht in dieser Meldung)"' 'ende 4 "user.name $iname des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8"' p5-ident-tabulator p5-ident-zeilenumbruch p5-ident-cr p5-ident-nicht-utf8 p4-meldung-form
+mut m-p5-ident-wert-in-meldung-mail s "$A5" 'ende 4 "user.email des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8 (der Wert steht nicht in dieser Meldung)"' 'ende 4 "user.email des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8 (der Wert steht nicht in dieser Meldung) $imail"' p5-ident-mail-nicht-utf8
 mut m-p5-remote-url s "$A5" '    [ "$ist" = "$url" ] ||' '    [ -n "$ist" ] ||' p5-remote-andere-url p14-remote-vor-lesezug p5-remote-nichts-gesetzt
 mut m-p5-remote-name-fest s "$A5|p7-.*" 'git remote add "$PGR_REMOTE" "$url"' 'git remote add container "$url"' p5-remote-anderer-name
-mut m-p7-url-ohne-port s "$A5|p7-.*|p2-vorgaben" 'url=ssh://vscode@127.0.0.1:$PGR_SSH_PORT/workspaces/$projekt/austausch.git' 'url=ssh://vscode@127.0.0.1/workspaces/$projekt/austausch.git' p2-vorgaben p5-remote-andere-url p5-remote-anderer-name p5-remote-gleich p7-remote-fehlt
+mut m-p7-url-ohne-port s "$A5|p7-.*|p2-vorgaben" 'url=ssh://vscode@127.0.0.1:$PGR_SSH_PORT/workspaces/$projekt/austausch.git' 'url=ssh://vscode@127.0.0.1/workspaces/$projekt/austausch.git' p2-vorgaben p5-remote-andere-url p5-remote-anderer-name p5-remote-gleich p7-remote-fehlt p7-url-port
+# Der Port der URL stammt aus der Eingabe: ein fest eingesetzter 2222 färbt allein den Fall mit einem anderen Port.
+mut m-p7-url-port-fest s "$A5|p7-.*|p2-vorgaben|p2-port-.*" 'url=ssh://vscode@127.0.0.1:$PGR_SSH_PORT/workspaces/$projekt/austausch.git' 'url=ssh://vscode@127.0.0.1:2222/workspaces/$projekt/austausch.git' p7-url-port
 mut m-p5-remote-gesetzt s "$A5|p1-nie-remote-set-url" '  if ist=$(git remote get-url "$PGR_REMOTE" 2> /dev/null); then' '  if ist=$(git remote set-url "$PGR_REMOTE" "$url" 2> /dev/null); then' p5-remote-andere-url p5-remote-nichts-gesetzt p5-remote-gleich p14-remote-vor-lesezug p1-nie-remote-set-url p4-nichts-geaendert
 mut m-p5-lesezug-batchmode s "$A5" ' -o BatchMode=yes -o ConnectTimeout=5' ' -o ConnectTimeout=5' p5-lesezug-aufruf
 mut m-p5-lesezug-timeout s "$A5" ' -o ConnectTimeout=5' '' p5-lesezug-aufruf
@@ -860,8 +878,8 @@ mut m-p15-rueckbau s "$A15" 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/
 # Punkt 16: Aufrufarten des Treibers (Fragment)
 mut m-p16-rezept-make m "$A16" '	@bash tools/harness/container-einrichten.sh' '	@$(MAKE) -f /dev/null -q; bash tools/harness/container-einrichten.sh' p16-n p16-q p16-t p16-makeflags-n p16-makeflags-q p16-makeflags-t p16-n-und-i
 mut m-p16-nicht-phony m "$A16|p17-phony" '.PHONY: container-einrichten' '.PHONY: container-einrichten-nicht' p16-phony p17-phony
-mut m-p16-voraussetzung m "$A16" 'container-einrichten: ##' 'container-einrichten: Makefile ##' # äquivalent am Ergebnis (§7: Sonde)
-mut m-p16-voraussetzung-fehlt m "$A16" 'container-einrichten: ##' 'container-einrichten: gibtsnicht ##' p16-phony p16-k p16-j p16-i p16-makeflags-i p16-makeflags-j p16-makeflags-k
+mut m-p16-voraussetzung m "$A16" 'container-einrichten: ##' 'container-einrichten: Makefile ##' p16-keine-voraussetzung
+mut m-p16-voraussetzung-fehlt m "$A16" 'container-einrichten: ##' 'container-einrichten: gibtsnicht ##' p16-phony p16-k p16-j p16-i p16-makeflags-i p16-makeflags-j p16-makeflags-k p16-keine-voraussetzung
 # Punkt 17: Listen und Zeitbudget
 mut m-p17-liste-fehlt g "$A17" 'GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe' '# keine Liste' p17-liste-container
 mut m-p17-liste-host g "$A17" 'GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe' 'GEGENPROBEN_HOST += container-einrichten-gegenprobe' p17-liste-container p17-nicht-host
@@ -895,4 +913,4 @@ fehler=0
 if [ -s "$arbeit/fehler" ]; then cat "$arbeit/fehler" >&2; fehler=1; fi
 abschluss
 [ "$fehler" = 0 ] || exit 1
-echo "$GPN: gruen — SPEC-069 Punkte 1 bis 20 (${#FN[@]} Fälle) und SPEC-060 Punkt 16 (9); je Mutation genau die benannten roten Fälle, ausgenommen die ohne roten Fall (äquivalent, §7 des Plans): ${GRUEN[*]-keine}$([ "$root" = 0 ] || echo "; als root entfällt der Fall p5-schluessel-unlesbar und mit ihm die Mutation ${ROOTWEG[*]-keine}")"
+echo "$GPN: gruen — ${#FN[@]} Fälle zu SPEC-069 Punkt 1 bis 17, darunter die zu SPEC-060 Punkt 16 (9); je Mutation genau die benannten roten Fälle, ausgenommen die ohne roten Fall (äquivalent, §7 des Plans): ${GRUEN[*]-keine}$([ "$root" = 0 ] || echo "; als root entfällt der Fall p5-schluessel-unlesbar und mit ihm die Mutation ${ROOTWEG[*]-keine}")"
