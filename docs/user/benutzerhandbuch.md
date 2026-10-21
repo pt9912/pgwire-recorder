@@ -64,6 +64,10 @@ CI-Systemen ausführen.
 * Zum Bauen: Docker und GNU `make`. Zum Ausführen: das Binary Ihrer Plattform aus
   `make binaries` oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
+* Zum Installieren mit Homebrew: Homebrew auf macOS oder Linux (siehe
+  [Mit Homebrew installieren](#mit-homebrew-installieren)). Gefahren ist die Installation
+  aus dem Tap unter Linux auf `amd64`; für macOS (`amd64` und `arm64`) und für Linux auf
+  `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation dort nicht.
 * Das Werkzeug lässt sich für sechs Plattformen bauen: Linux, macOS (`darwin`) und Windows,
   je für `amd64` und `arm64`. Das Image baut das `Dockerfile` für `linux/amd64` und
   `linux/arm64`. Gestartet und mit Aufzeichnen und Wiedergeben geprüft ist nur das Image
@@ -88,9 +92,28 @@ Sie Aufzeichnungen so, wie es zu ihrem Inhalt passt.
 
 ## 2. Installation
 
-Sie beziehen das Werkzeug als Binary vom GitHub-Release, als Container-Image aus
+Sie beziehen das Werkzeug mit Homebrew, als Binary vom GitHub-Release, als Container-Image aus
 `ghcr.io` oder `docker.io`, oder Sie bauen es aus dem Repository des Projekts. Der Build läuft
 in Docker; auf Ihrem Rechner brauchen Sie dafür nur Docker und GNU `make`.
+
+### Mit Homebrew installieren
+
+Die Formel liegt im Tap `pt9912/pgwire-recorder`. So installieren Sie das Werkzeug und
+zeigen seine Version an:
+
+```bash
+brew tap pt9912/pgwire-recorder
+brew install pt9912/pgwire-recorder/pgwire-recorder
+pgwire-recorder version
+```
+
+`brew tap` meldet `Tapped 1 formula`, `brew install` lädt das Binary des Release `v0.1.1`
+und installiert es, und `version` gibt `pgwire-recorder 0.1.1` aus. Homebrew baut dabei
+nichts aus dem Quelltext und installiert kein weiteres Paket; die Formel trägt die höchste
+stabile Version.
+Gefahren ist diese Installation unter Linux auf `amd64`; für macOS (`amd64` und `arm64`)
+und für Linux auf `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation
+dort nicht. Windows wird über Homebrew nicht bedient.
 
 ### Binary vom GitHub-Release
 

@@ -86,6 +86,11 @@ Benutzerhandbuch.
   mit sechs Binaries ohne Version im Namen und `SHA256SUMS` und als Image
   `ghcr.io/pt9912/pgwire-recorder:0.1.1` und `docker.io/pt9912/pgwire-recorder:0.1.1` vor;
   das Benutzerhandbuch beschreibt Bezug und Prüfung.
+- Mit Homebrew installieren Sie die Version 0.1.1 aus dem Tap `pt9912/pgwire-recorder`:
+  `brew tap pt9912/pgwire-recorder`, dann `brew install pt9912/pgwire-recorder/pgwire-recorder`.
+  Gefahren ist das unter Linux auf `amd64`; für macOS (`amd64` und `arm64`) und für Linux auf
+  `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation dort nicht. Die Befehle
+  stehen im [Benutzerhandbuch](docs/user/benutzerhandbuch.md).
 - `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make binaries` baut
   die Binaries für Linux, macOS und Windows, je `amd64` und `arm64`, mit `SHA256SUMS` nach
   `dist/`; `make gates` führt die Gates aus, `make help` zeigt alle Targets. Das Image für
