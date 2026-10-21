@@ -2171,3 +2171,4 @@ oder Aufzeichnungen weitergeben.
 | Version | Datum | Änderung |
 |---|---|---|
 | 0.1.0 | 2026-10-19 | Erste veröffentlichte Version: `record` zeichnet einfache und vorbereitete Anfragen zwischen einer Anwendung und PostgreSQL auf (YAML oder SQLite), `replay` beantwortet sie daraus ohne Datenbank, `play` spielt sie gegen eine Datenbank ein und kann die Antworten vergleichen; Binaries für Linux, macOS und Windows (amd64, arm64) und ein Container-Image für linux/amd64 und linux/arm64 |
+| 0.1.1 | 2026-10-21 | Die Binaries des GitHub-Release heißen `pgwire-recorder-<Betriebssystem>-<Architektur>` (unter Windows mit `.exe`), die Version steht nicht im Namen; ein Abbruchwunsch (`CancelRequest`) mit oder ohne Schlüssel schließt in `record` und `replay` nur seine Verbindung mit der Warnung `PGR-W3001`, ohne Fehler und ohne den Exit-Code zu ändern |
