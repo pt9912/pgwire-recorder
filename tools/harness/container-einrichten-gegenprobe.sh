@@ -14,6 +14,10 @@
 # GRENZE (Punkt 17, akzeptiertes Negativ): Dass ein echtes ssh die Argumente so annimmt, dass der Befehl im
 # Container läuft, und dass make hooks-install und make traeger-fetch im Klon gelingen, belegt die Gegenprobe
 # nicht; das belegt der Nachweis aus Punkt 18 (Beleg in §7 des Slice-Plans).
+# GRENZE (SPEC-060 Punkt 17, akzeptiertes Negativ): Diese Gegenprobe setzt SIGINT beim Start als nicht ignoriert
+# voraus. Ein Start mit ignoriertem SIGINT (Hintergrundstart mit & oder nohup, auch setsid -f allein) ist für
+# ihre Fälle mit SIGINT nicht zugesagt. Aufruf im Vordergrund oder mit setsid -f env --default-signal=INT,QUIT
+# <Befehl>; Rezept, Messung und Grund stehen in SPEC-060 Punkt 17.
 # Der Name jedes Falls trägt die Nummer seines Punktes in SPEC-069; die Fälle des Zeitbudgets heißen
 # p17-budget-* und p17-ordner-* (SPEC-069 Punkt 17 verlangt sie, ihre Form steht in SPEC-060 Punkt 16 (9)).
 # Die unveränderte Kopie besteht jeden Fall, und bei jeder Mutation (genau eine Textersetzung in einer Kopie;
