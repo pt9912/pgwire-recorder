@@ -37,7 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Bindung aus `slice-v1-abschluss-binary-namen`** (`AGENTS.md` §3.13): Der Slice setzt einen veröffentlichten stabilen Tag voraus, dessen Binaries `pgwire-recorder-<os>-<arch>` heißen. Einen solchen Tag bereitete `slice-v1-abschluss-release-v0-1-1` vor (Welle `welle-v1-nachtrag`, Reihenfolge 4: `VERSION`, Eintrag der Freigabe, Bezug im Handbuch); gesetzt hat ihn die Koordination (Claude) am 2026-10-21 nach dem Ja des Nutzers vom selben Tag („bitte auch den tag fahren“), nicht der Nutzer und nicht ein Implementer-Lauf (`SPEC-067` Punkt 18). **Bindung aus `slice-v1-abschluss-release-v0-1-1`** (`AGENTS.md` §3.13): Der Eintrag der Freigabe nennt das Ergebnis des Jobs `homebrew` (Lauf-Kennung, grün oder rot); Wiederanlauf des Jobs, Nachtrag von Hand und alle Belege des Taps gehören diesem Slice. Die Abschnitte „Binary vom GitHub-Release“ und „Container-Image aus der Registry“ in §2 *Installation* des Handbuchs und die Zeile zur Version in `README.md` schreibt `slice-v1-abschluss-release-v0-1-1`; dieser Slice ergänzt nur den Abschnitt zu Homebrew und die Plattform-Zeile (dieselbe Datei, andere Abschnitte, der Nachweis folgt dem Release-Slice).
 
-**Entschieden vom Architect am 2026-10-21 (Randformen vor dem Code, `AGENTS.md` §3.12):** Der Nachweis unter Linux läuft als Werkzeug `make homebrew-nachweis` in einem Container des per Digest gepinnten Image `homebrew/brew`; die Schritte (`brew tap`, `brew install`, `pgwire-recorder version`, `brew test`, Start eines Replay-Laufs) liegen in `tools/harness/homebrew-nachweis.sh` und sind auf beiden Plattformen dieselben. Der Nachweis unter macOS ist die Handlung des Nutzers an seinem Rechner mit demselben Skript (`--schritte`). Was ein Beleg ist, was eine Angabe ohne Ausgabe wert ist, was „ein Replay-Lauf startet“ verlangt und welche Kombination aus Betriebssystem und Architektur zugesagt oder Grenze ist, steht als Vertragstext in `SPEC-067` Punkt 20 (`harness/vertraege/`) und in `LH-FA-19.a`; beides liegt vor dem ersten Code-Commit dieses Slice.
+**Entschieden vom Architect am 2026-10-21 (Randformen vor dem Code, `AGENTS.md` §3.12):** Der Nachweis unter Linux läuft als Werkzeug `make homebrew-nachweis` in einem Container des per Digest gepinnten Image `homebrew/brew`; die Schritte (`brew tap`, `brew install`, `pgwire-recorder version`, `brew test`, Start eines Replay-Laufs) liegen in `tools/harness/homebrew-nachweis.sh` und sind auf beiden Plattformen dieselben. Der Nachweis unter macOS ist die Handlung des Nutzers an seinem Rechner mit demselben Skript (`--schritte`). Was ein Beleg ist, was eine Angabe ohne Ausgabe wert ist, was „ein Replay-Lauf startet“ verlangt und welche Kombination aus Betriebssystem und Architektur zugesagt oder Grenze ist, steht als Vertragstext in `SPEC-067` Punkt 20 (`harness/vertraege/`) und in `LH-FA-19.a`; beides liegt vor dem ersten Code-Commit dieses Slice. **Nachgeführt am 2026-10-21 (§3.9):** Drei Teile von Punkt 20 hat der Architect erst **nach** dem ersten Lauf und nach dem Review entschieden — das Maß des Wartens vor dem `SIGTERM` samt Exit-Code 7 und die zulässigen Zeilen der Fehlerausgabe (Punkt 20 (3)), die Zusage des Kopfes über den Wächter (Punkt 20 (5)) und Lauf-Fassung und Kürzung des Belegs (Punkt 20 (6)); der Code dieses Slice folgt dieser Fassung, und §6 nennt die drei Randformen (8, 10, 11) in ihrer nachentschiedenen Form.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -140,7 +140,7 @@ dasteht.
 - **Randform 3 (Pin):** umgesetzt als `homebrew/brew:4.6.20@sha256:b0072bfd…fdedfd`; der Digest ist am 2026-10-21 gegen die Registry aufgelöst und ist der des Index (`MediaType: application/vnd.oci.image.index.v1+json`, Manifeste `linux/amd64` und `linux/arm64`), Nachweis in §7. Kein Platzhalter.
 - **Randform 5 (Aufräumen):** nach dem Lauf kein Container (`docker ps -a` leer), kein Volume (`docker volume ls -q | wc -l` gibt `0`), nichts Neues im Arbeitsbaum (`git status --short` leer).
 - **Randform 10 (Beleg-Form):** Das Skript gibt `date -u`, `uname -s` und `uname -m` als erste Befehle aus, damit die Angaben des Belegs aus dem Lauf selbst stammen und auf beiden Plattformen dieselbe Form haben; Tag und Digest nennt die erste Zeile des Rezepts. Das ist die Umsetzung von Punkt 20 (6), keine Entscheidung einer Randform.
-- **Randform 11 (Replay-Lauf):** erfüllt — drei Zeilen `level=INFO`, keine `level=ERROR`, Exit-Code `0` nach `SIGTERM`. Die eine Zeile `level=WARN` (`PGR-W2001`, nie zugeordnete Session) folgt daraus, dass keine Anwendung verbindet; sie gehört nach Punkt 20 (3) nicht zur Zusage.
+- **Randform 11 (Replay-Lauf):** erfüllt — drei Zeilen `level=INFO`, keine `level=ERROR`, Exit-Code `0` nach `SIGTERM`, und genau eine Zeile `level=WARN` mit `code=PGR-W2001`: die eine zulässige und in diesem Szenario erwartete Warnung nach Punkt 20 (3), weil keine Anwendung verbindet. Keine weitere Zeile. Das Warten vor dem `SIGTERM` ist seit der Nachentscheidung des Architect ein Ereignis mit Grenze (Größe der Fehlerausgabe, Abstand 1 s, Grenze 60 s, sonst Exit-Code 7); beide Wege sind gefahren (§7, Nacharbeit zu F-6).
 - **Risiko `brew trust`:** im Lauf nicht eingetreten — Homebrew hat für den Drittanbieter-Tap keine Bestätigung verlangt (`brew tap` meldet `Tapped 1 formula`, `brew install` läuft ohne Rückfrage).
 - **Risiko Umgebung des Image:** im Lauf nicht eingetreten — `brew tap` klont mit dem im Image vorhandenen `git` als Benutzer `linuxbrew`, `brew install` legt die Datei ohne Archiv an (`4 files, 11.4MB`), `brew test` läuft ohne TTY. Kein Halt, keine Rückgabe an den Architect.
 - **Was dieser Lauf nicht berührt:** der Wortlaut von `gh release download` mit dem echten `gh` (das ist der Job `homebrew` auf dem Runner, den dieser Slice nicht erneut gefahren hat), das Schreibrecht des Geheimnisses ohne Eingriff des Betreibers und der Wiederanlauf eines Jobs (der Job war im vierten Versuch grün, ein Wiederanlauf war nicht nötig).
@@ -193,21 +193,23 @@ Nachweis in dieser Sektion liegt.
 
 #### Nachweis Linux · x86_64 (Abnahmeszenario 11, Form nach `SPEC-067` Punkt 20 (6))
 
-> **Dieser Beleg ist der Lauf am Endstand des Werkzeugs** (nach der Nacharbeit zu F-1, Commit `8632a78f`). Der erste Lauf (08:38:05Z, Exit 0) war in jeder Zeile gleich bis auf die beiden letzten, die es damals noch nicht gab (`Skript endet mit Exit-Code 0`, `der Lauf endet mit Exit-Code 0`); er steht in `/tmp/nachweis-lauf1.log` des Dev-Containers und ist mit diesem ersetzt, damit Beleg und Code zusammenpassen.
+> **Dieser Beleg stammt aus einem Lauf der gelieferten Fassung** (Punkt 20 (6)): Stand `74e19478`, also nach der Nacharbeit zu F-1, F-2 und F-6. Zwei frühere Läufe sind damit ersetzt und zählen nicht als Beleg — der erste (08:38:05Z) stammt aus der Fassung ohne die beiden Exit-Code-Zeilen, der zweite (09:17:20Z) aus der Fassung mit `sleep 5`; beide endeten mit Exit 0 und liegen als `/tmp/nachweis-lauf1.log` und `/tmp/nachweis-lauf2.log` im Dev-Container.
+>
+> **Gekürzt** ist allein die Zeile `==> Downloading from https://release-assets.githubusercontent.com/…`, und zwar genau der Teil, der Signatur, JWT und Ablaufzeit der signierten Adresse trägt (kurzlebiger Token, Ablauf `2026-10-21T10:04:42Z`); Dienst, Pfad und Dateiname bleiben lesbar, die Stelle trägt die Marke `[gekürzt: …]`. Keine andere Zeile ist gekürzt (Punkt 20 (6)).
 
-- **Datum:** `2026-10-21T09:17:20Z` (Ausgabe von `date -u` im Container des Laufs).
+- **Datum:** `2026-10-21T09:29:42Z` (Ausgabe von `date -u` im Container des Laufs).
 - **`uname -s`:** `Linux` · **`uname -m`:** `x86_64`. Dazu, als Beleg der Plattform des Docker-Servers (F-5): `docker version --format '{{.Server.Os}}/{{.Server.Arch}}'` gibt `linux/amd64` (Client ebenso), `docker info --format '{{.OSType}}/{{.Architecture}}'` gibt `linux/x86_64`. Die Kombination des Belegs ist damit **Linux/amd64**.
 - **Image:** Tag `4.6.20`, Digest `sha256:b0072bfdebf5934ae24b93b44a1928a88057399b3283ffa0177bb86084fdedfd`. Der Digest ist am 2026-10-21 gegen die Registry aufgelöst worden (`docker buildx imagetools inspect homebrew/brew:4.6.20`: `MediaType: application/vnd.oci.image.index.v1+json`, Manifeste für `linux/amd64` und `linux/arm64`; `--raw | sha256sum` gibt denselben Wert) — also der Digest des **Index**, nicht eines Plattform-Manifests.
 - **Umgebung:** `HOMEBREW_NO_ANALYTICS=1`, `HOMEBREW_NO_AUTO_UPDATE=1`, `HOMEBREW_NO_ENV_HINTS=1`; keine weitere `HOMEBREW_*`-Variable. `docker run --rm` ohne `-t`, Standardeingang `/dev/null`, allein `tools/harness/homebrew-nachweis.sh` schreibgeschützt eingehängt.
-- **Befehl:** `make homebrew-nachweis` · **Dauer:** 17,5 s · **Exit-Code des Skripts:** `0` (die letzte Zeile des Skripts nennt ihn selbst).
+- **Befehl:** `make homebrew-nachweis` · **Dauer:** 14,4 s · **Exit-Code des Skripts:** `0` (die letzte Zeile des Skripts nennt ihn selbst).
 - **Version aus (c):** `pgwire-recorder 0.1.1` · **Exit-Code des Replay-Laufs aus (3):** `0`.
 
-Ausgabe des Laufs, vollständig; allein die zweite Zeile `==> Downloading from https://release-assets.githubusercontent.com/…` ist hinter dem Pfad gekürzt (signierte Adresse mit Ablauf `2026-10-21T09:59:41Z`, Signatur und JWT), die Kürzung ist im Text markiert:
+Ausgabe des Laufs, vollständig bis auf die eine markierte Kürzung oben:
 
 ```text
 homebrew-nachweis: Image homebrew/brew:4.6.20@sha256:b0072bfdebf5934ae24b93b44a1928a88057399b3283ffa0177bb86084fdedfd
 + date -u +%Y-%m-%dT%H:%M:%SZ
-2026-10-21T09:17:20Z
+2026-10-21T09:29:42Z
 + uname -s
 Linux
 + uname -m
@@ -220,7 +222,7 @@ Tapped 1 formula (13 files, 68.6KB).
 ==> Fetching downloads for: pgwire-recorder
 ==> Fetching pt9912/pgwire-recorder/pgwire-recorder
 ==> Downloading https://github.com/pt9912/pgwire-recorder/releases/download/v0.1.1/pgwire-recorder-linux-amd64
-==> Downloading from https://release-assets.githubusercontent.com/github-production-release-asset/1403356322/e5be8986-543a-4a75-8c54-5946309ffb16?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-21T09%3A59%3A41Z&rscd=attachment%3B+filename%3Dpgwire-recorder-linux-amd64&… [gekürzt: Signatur und JWT der zeitlich begrenzten Adresse]
+==> Downloading from https://release-assets.githubusercontent.com/github-production-release-asset/1403356322/e5be8986-543a-4a75-8c54-5946309ffb16?rscd=attachment%3B+filename%3Dpgwire-recorder-linux-amd64&rsct=application%2Foctet-stream&… [gekürzt: Signatur, JWT und Ablaufzeit der signierten Adresse]
 ==> Installing pgwire-recorder from pt9912/pgwire-recorder
 🍺  /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1: 4 files, 11.4MB, built in 3 seconds
 ==> Running `brew cleanup pgwire-recorder`...
@@ -235,19 +237,20 @@ To turn developer mode off, run:
 ✔︎ JSON API cask_tap_migrations.jws.json
 ==> Testing pt9912/pgwire-recorder/pgwire-recorder
 ==> /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1/bin/pgwire-recorder version
-+ pgwire-recorder replay --listen 127.0.0.1:55432 --input /tmp/tmp.VfF1lFLLL4/aufzeichnung.yaml (Fehlerausgabe in eine Datei)
++ pgwire-recorder replay --listen 127.0.0.1:55432 --input /tmp/tmp.4bIPcMQH9K/aufzeichnung.yaml (Fehlerausgabe in eine Datei)
++ warten, bis der Replay-Lauf seine erste Zeile geschrieben hat (Groesse der Fehlerausgabe, Abstand 1 s, Grenze 60 s)
 + kill -TERM <Replay-Lauf>
 --- Fehlerausgabe des Replay-Laufs ---
-time=2026-10-21T09:17:32.014Z level=INFO msg="replay gestartet" listen=127.0.0.1:55432 input=/tmp/tmp.VfF1lFLLL4/aufzeichnung.yaml
-time=2026-10-21T09:17:37.012Z level=INFO msg="Herunterfahren begonnen" sessions=0
-time=2026-10-21T09:17:37.012Z level=WARN msg="1 aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung 1" code=PGR-W2001
-time=2026-10-21T09:17:37.012Z level=INFO msg="replay beendet"
+time=2026-10-21T09:29:55.513Z level=INFO msg="replay gestartet" listen=127.0.0.1:55432 input=/tmp/tmp.4bIPcMQH9K/aufzeichnung.yaml
+time=2026-10-21T09:29:56.511Z level=INFO msg="Herunterfahren begonnen" sessions=0
+time=2026-10-21T09:29:56.511Z level=WARN msg="1 aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung 1" code=PGR-W2001
+time=2026-10-21T09:29:56.511Z level=INFO msg="replay beendet"
 --- Exit-Code des Replay-Laufs: 0
 homebrew-nachweis: Skript endet mit Exit-Code 0
 homebrew-nachweis: der Lauf endet mit Exit-Code 0
 ```
 
-**Was der Lauf zeigt, Schritt für Schritt.** (a) `brew tap pt9912/pgwire-recorder` ohne zweites Argument leitet die Adresse auf `pt9912/homebrew-pgwire-recorder` ab (Zeile `Cloning into '…/Taps/pt9912/homebrew-pgwire-recorder'`) und nimmt die eine Formel an (`Tapped 1 formula`) — eine Bestätigung wie `brew trust` hat Homebrew nicht verlangt. (b) `brew install` lädt das Binary des Tags `v0.1.1` vom GitHub-Release unter dem Namen ohne Version (`pgwire-recorder-linux-amd64`) und installiert es ohne Abbruch; Homebrew prüft die Summe der Formel beim Laden, eine Abweichung bräche den Schritt mit `SHA256 mismatch`. (c) `pgwire-recorder version` gibt `pgwire-recorder 0.1.1` — die Version der Formel im Tap. (d) `brew test pgwire-recorder` fährt den Block `test do` der Formel (`==> /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1/bin/pgwire-recorder version`) ohne Befund. (e) Der Replay-Lauf gegen die im Skript erzeugte Aufzeichnung schreibt drei Zeilen `level=INFO` und keine `level=ERROR`, endet nach `SIGTERM` mit Exit-Code `0`; die eine Zeile `level=WARN` (`PGR-W2001`, nie zugeordnete Session) ist erwartet, weil keine Anwendung verbindet — das gehört nach `SPEC-067` Punkt 20 (3) nicht zum Nachweis.
+**Was der Lauf zeigt, Schritt für Schritt.** (a) `brew tap pt9912/pgwire-recorder` ohne zweites Argument leitet die Adresse auf `pt9912/homebrew-pgwire-recorder` ab (Zeile `Cloning into '…/Taps/pt9912/homebrew-pgwire-recorder'`) und nimmt die eine Formel an (`Tapped 1 formula`) — eine Bestätigung wie `brew trust` hat Homebrew nicht verlangt. (b) `brew install` lädt das Binary des Tags `v0.1.1` vom GitHub-Release unter dem Namen ohne Version (`pgwire-recorder-linux-amd64`) und installiert es ohne Abbruch; Homebrew prüft die Summe der Formel beim Laden, eine Abweichung bräche den Schritt mit `SHA256 mismatch`. (c) `pgwire-recorder version` gibt `pgwire-recorder 0.1.1` — die Version der Formel im Tap. (d) `brew test pgwire-recorder` fährt den Block `test do` der Formel (`==> /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1/bin/pgwire-recorder version`) ohne Befund. (e) Der Replay-Lauf gegen die im Skript erzeugte Aufzeichnung schreibt drei Zeilen `level=INFO` und endet nach `SIGTERM` mit Exit-Code `0`; dazu steht genau eine Zeile `level=WARN` mit `code=PGR-W2001` (nie zugeordnete Session) — die eine zulässige und in diesem Szenario erwartete Warnung nach `SPEC-067` Punkt 20 (3), weil keine Anwendung verbindet. Keine Zeile `level=ERROR`, keine Warnung mit einem anderen Code, keine zweite mit `PGR-W2001`, keine Zeile ohne Feld `level=`; damit trägt die Fehlerausgabe genau die Zeilen, die Punkt 20 (3) verlangt und zulässt. Vor dem `SIGTERM` steht die Zeile des Wartens: Das Skript hat gewartet, bis die Fehlerausgabe nicht mehr leer war (eine Sekunde, weit unter der Grenze von 60 s).
 
 **Was dieser Beleg nicht trägt.** Er gilt für **Linux/amd64** und für die Version `0.1.1`. `linux/arm64` ist nicht gefahren (kein Rechner, kein emulierter Lauf, §1 Abgrenzung); macOS ist nicht gefahren (die Angabe des Nutzers oben trägt keine Ausgaben und bleibt eine Angabe der Koordination). Diese drei Kombinationen stehen als **Grenze** in `LH-FA-19.a` und im Handbuch. `brew audit` gehört nicht zum Nachweis (§1 Abgrenzung). Ein Fehler im Skript selbst fiele nur dem Leser der Ausgabe auf (§6 Randform 13, akzeptiertes Negativ).
 
@@ -266,15 +269,21 @@ homebrew-nachweis: der Lauf endet mit Exit-Code 0
 
 #### Läufe des Implementers (Zweig `impl-nachweis`, Dev-Container `pgr-dev2`, 2026-10-21)
 
-| Lauf | Ergebnis | Dauer |
-|---|---|---|
-| `make homebrew-nachweis` | grün, Exit-Code des Skripts `0` (Beleg oben) | 19,3 s |
-| `make docs-check` | grün, 1322 Dateien, 0 Befunde | 1,7 s |
-| `make gates` | grün, Exit 0 (alle 13 Einträge von `GATE_CHECKS`); `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` `PASS` in 15,28 s, Last beim Start 6,8 auf 20 Kernen (`BEO-REPO/test-faellt-unter-cpu-last-aus` nicht aufgetreten) | 4 min 42 s |
+| Lauf | Stand | Ergebnis | Dauer |
+|---|---|---|---|
+| `make homebrew-nachweis` (Beleg oben) | `74e19478` | grün, Exit-Code des Skripts `0` | 14,4 s |
+| Sonde zur abgelaufenen Grenze (F-6) | `74e19478` | Exit `7` wie zugesagt, obwohl der Lauf `0` lieferte | 3 s |
+| `make homebrew-nachweis HOMEBREW_IMAGE=<nicht ziehbar>` (F-1) | `8632a78f` | Exit `125`, keine Skript-Zeile | 2 s |
+| `make homebrew-nachweis HOMEBREW_IMAGE="--network none <Pin>"` (F-1) | `8632a78f` | Skript-Zeile mit Exit `1` (`brew tap` ohne Netz) | 2 s |
+| `make test-integration` allein | `b39beea7` | grün, Exit 0; `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` `PASS` in 19,85 s | 2 min 20 s |
+| `make gates` (erster Lauf) | `e81a303c` | grün, Exit 0 (alle 13 Einträge von `GATE_CHECKS`), `Serverfehler_ohne_Vorbild` `PASS` in 15,28 s | 4 min 42 s |
+| `make gates` (nach der ersten Nacharbeit) | `b39beea7` | **rot, Exit 2** — `test-integration`: `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` `FAIL` nach 30,02 s mit `DROP DATABASE IF EXISTS vgl_abw: timeout: context deadline exceeded`, Last 6,0 auf 20 Kernen; der Unterfall allein danach grün (Zeile darüber) — das ist `BEO-REPO/test-faellt-unter-cpu-last-aus`, **fünftes Auftreten**, kein Befund gegen diesen Slice | 4 min 2 s |
+| `make gates`, `make docs-check` (Endstand) | siehe Zeile unten | — | — |
+| `make docs-check` | `e81a303c`, `a9bd85f6` | grün, 1322 Dateien, 0 Befunde | je ~2 s |
 
-Gefahren am Stand `e81a303c` (Werkzeug, Beleg, Handbuch und `README.md`); danach kam allein dieser Plan hinzu — kein Pfad außerhalb von `docs/plan/planning/`. Keine Gegenprobe gefahren: Dieses Ziel hat keine (Punkt 20 (7)), und für die unveränderten Gates sieht der Lauf keine Änderung (Entscheidung des Nutzers vom 2026-10-21).
+Keine Gegenprobe gefahren: Dieses Ziel hat keine (Punkt 20 (7)), und für die unveränderten Gates sieht der Lauf keine Änderung (Entscheidung des Nutzers vom 2026-10-21).
 
-**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): am Stand `2fc48b87` Einfügungen 257, Löschungen 2, **Summe 259**; die Zeilen dieser Berichtigung selbst sind nicht mitgezählt — ein Plan kann die Messung seines eigenen Commits nicht enthalten —, mit ihnen bleibt der Wert unter 270. Das liegt unter der Meldeschwelle 700 und weit unter der Marke 900. Die Schätzung des Architect (300 bis 500) liegt darüber, weil Vertragstext und `harness/README.md`-Zeile schon vor dem ersten Code-Commit lagen und damit nicht in diese Messung fallen.
+**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): am Stand `74e19478` Einfügungen 417, Löschungen 13, **Summe 430** (ohne die Zeilen dieses Nachtrags selbst — ein Plan kann die Messung seines eigenen Commits nicht enthalten; mit ihnen bleibt der Wert unter 500). Darin stecken 69 Zeilen Review-Report und 23 Zeilen Vertragstext des Architect (`SPEC-067`, `spec/spezifikation.md`); auf die Arbeit des Implementers entfallen 338 (Skript 129, Plan 139, Fragment 38, Handbuch 27, `README.md` 5). Das liegt unter der Meldeschwelle 700 und weit unter der Marke 900; die Schätzung des Architect (300 bis 500) trifft zu.
 
 #### Was der Implementer beim Schreiben entschieden hat (kein Vertragstext)
 
@@ -290,13 +299,25 @@ Punkt 20 lässt diese vier offen; keine davon ist eine Randform im Sinne von `AG
 
 Dem Implementer gehören F-1, F-4, F-5, F-7 und F-9; F-2, F-3, F-6 und F-8 sind Vertragstext und gehören dem Architect (`SPEC-067` Punkt 20 (3) und (5), `spec/spezifikation.md`, Plan §6) — dieser Nachtrag fasst §6 und den Vertragstext nicht an.
 
-**F-1 (MEDIUM, behoben, Commit `8632a78f`).** Die alte Rezeptzeile schrieb jeden Code von `docker run` dem Skript zu. Jetzt gilt: Das **Skript** nennt seinen eigenen Code als letzte Zeile (`homebrew-nachweis: Skript endet mit Exit-Code <n>`, aus der `EXIT`-Falle, die den Code nicht verändert), und das **Rezept** nennt den Code des **Laufs** mit drei Fällen — `0`, die CLI-Codes `125|126|127` mit dem Hinweis auf Punkt 20 (4), und sonst der Verweis auf die Skript-Zeile darüber. Kommentarblock des Fragments und Skript-Kopf sagen dasselbe. Drei Läufe, je mit der rot gesehenen Unterscheidung:
+**F-1 (MEDIUM, behoben, Commit `8632a78f`).** Die alte Rezeptzeile schrieb jeden Code von `docker run` dem Skript zu. Jetzt gilt: Das **Skript** nennt seinen eigenen Code als letzte Zeile (`homebrew-nachweis: Skript endet mit Exit-Code <n>`, aus der `EXIT`-Falle, die den Code nicht verändert), und das **Rezept** nennt den Code des **Laufs** mit vier Fällen — `0`; `7`, den allein das Skript für die abgelaufene Grenze des Wartens wählt (seit F-6, außerhalb der Codes 0 bis 6 des Produkts und keiner der CLI-Codes); die CLI-Codes `125|126|127` mit dem Hinweis auf Punkt 20 (4); und sonst der Verweis auf die Skript-Zeile darüber. Kommentarblock des Fragments und Skript-Kopf sagen dasselbe. Drei Läufe, je mit der rot gesehenen Unterscheidung:
 
 | Lauf | Ergebnis | Was er zeigt |
 |---|---|---|
 | `make homebrew-nachweis HOMEBREW_IMAGE=pgr-review-nicht-vorhanden:kein-tag` | `docker: Error response from daemon: pull access denied …`; `homebrew-nachweis: der Lauf endet mit Exit-Code 125; mit 125, 126 und 127 meldet die Docker-CLI …`; **keine** Zeile `Skript endet mit Exit-Code`; `make: *** … Error 125`, `make`-Exit `2` | der Fall des Reviewers: der Code stammt von der CLI, und die Ausgabe behauptet das Gegenteil nicht mehr |
 | `make homebrew-nachweis HOMEBREW_IMAGE="--network none <Pin>"` | `brew tap` scheitert mit `Could not resolve host: github.com` (Punkt 20 (4), fehlendes Netz); `homebrew-nachweis: Skript endet mit Exit-Code 1`; `der Lauf endet mit Exit-Code 1; wessen Code das ist, sagt die Zeile … darüber`; `make`-Exit `2` | das Gegenstück: das Skript lief, der Code ist seiner, und die Zeile belegt es |
-| `make homebrew-nachweis` | beide Zeilen mit `0`, 17,5 s (der Beleg oben) | der grüne Fall, Exit-Code 0 vom Skript |
+| `make homebrew-nachweis` | beide Zeilen mit `0`, 14,4 s (der Beleg oben) | der grüne Fall, Exit-Code 0 vom Skript |
+| Sonde zur abgelaufenen Grenze (F-6, Zeile darunter) | `Skript endet mit Exit-Code 7`, `der Lauf endet mit Exit-Code 7; den waehlt das Skript …` | der Code `7` wird nicht als Code der Docker-CLI gelesen |
+
+**F-6 (LOW, behoben, Commit `74e19478`; Vertragstext des Architect in Punkt 20 (2), (3)).** Das feste `sleep 5` ist weg. Das Skript nennt das Warten wie einen Schritt (`+ warten, bis der Replay-Lauf seine erste Zeile geschrieben hat (Groesse der Fehlerausgabe, Abstand 1 s, Grenze 60 s)`) und wartet, bis `[ -s <Fehlerausgabe> ]` gilt — allein die Größe, nie der Inhalt —, höchstens 60 Durchläufe im Abstand von einer Sekunde. Läuft die Grenze ab, nennt es sie, schickt wie sonst `SIGTERM`, gibt Fehlerausgabe und Exit-Code des Laufs aus und endet mit `7`. Das `wait` nach dem `SIGTERM` bleibt ohne Grenze. **Beide Wege gefahren:**
+
+| Weg | Lauf | Ergebnis |
+|---|---|---|
+| Start erkannt | `make homebrew-nachweis` (der Beleg oben) | die Zeile des Wartens, dann `SIGTERM` nach einer Sekunde, drei `level=INFO`, Exit `0`; Dauer 14,4 s statt 17,5 s mit `sleep 5` |
+| Grenze abgelaufen | Sonde: Kopie des gelieferten Skripts, in der die Schritte (a) bis (d) entfernt, die Grenze auf 2 Durchläufe gesetzt und der Lauf durch `bash -c 'trap "exit 0" TERM; sleep 30'` ersetzt ist — er schreibt keine Zeile und endet nach `SIGTERM` mit `0` | `homebrew-nachweis: die Grenze von 2 s ist abgelaufen, die Fehlerausgabe des Replay-Laufs ist leer geblieben`, dann `+ kill -TERM <Replay-Lauf>`, leere Fehlerausgabe, `--- Exit-Code des Replay-Laufs: 0`, `… (Exit-Code 7)`, `Skript endet mit Exit-Code 7`, Exit `7` — der Code des Laufs war `0`, das Skript endet dennoch mit `7`, genau wie Punkt 20 (3) es verlangt |
+
+Die Sonde ist ein einmaliger Prüflauf, keine Gegenprobe und kein Artefakt im Repo (Punkt 20 (7): dieses Ziel hat keinen Fall; die Entscheidung des Nutzers vom 2026-10-21 schließt eine Gegenprobe aus). Sie lag in `/tmp` des Dev-Containers und ist gelöscht.
+
+**F-2 (MEDIUM, behoben, Commit `74e19478`; Vertragstext des Architect in Punkt 20 (5)).** Der Kopf des Skripts sagt jetzt: Der Aufruf `--schritte` am Host gehört dem Betreiber, ein Agentenlauf fährt ihn nicht, sein Weg ist `make homebrew-nachweis` im Container — und ausdrücklich, dass das eine Regel an den Leser und kein Mechanismus ist: Der Wächter blockt ein Segment, dessen Kopf ein Paketmanager ist, liest den Inhalt einer Datei nicht und verhindert diesen Aufruf darum nicht. Damit sagt der Kopf keinen Schutz mehr zu, den der Wächter nicht leistet (`AGENTS.md` §3.11). Die Messung, die das zeigt, hat der Reviewer gefahren und der Architect in Punkt 20 (5) und §6 Randform 8 festgehalten; dieser Nachtrag wiederholt sie nicht.
 
 **F-4 (LOW, behoben, Commit `47b1e489`).** Der Kopf des Handbuchs steht auf `Version: 0.10`. Die Reihe `git log -L3,3:docs/user/benutzerhandbuch.md` zählt je Doku-Zuwachs eine Stufe (0.1 bis 0.9); eine Regel für diese Zeile führt das Repo nirgends, deshalb setzt `0.10` die Zählung in der Lesart fort, die hier überall gilt (Stellen werden numerisch verglichen — `SPEC-067` Punkt 19 (9) führt dafür den Fall `p19-tap-semver-numerisch`: `0.10.0` ist höher als `0.9.0`). `1.0` wäre eine Aussage über Vollständigkeit, die niemand getroffen hat. `Stand: 21.10.2026` steht bereits auf dem Tag dieses Slice. **§11 *Änderungshistorie* bleibt unberührt:** Ihre Zeilen sind die Release-Notizen je veröffentlichter Software-Version (`SPEC-067` Punkt 3 (5), Punkt 9, Punkt 18); dieser Slice liefert kein neues Verhalten des Binaries `0.1.1`, sondern beschreibt einen Bezugsweg, der mit dem Release entstand.
 
