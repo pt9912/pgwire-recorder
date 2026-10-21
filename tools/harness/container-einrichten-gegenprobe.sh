@@ -139,7 +139,9 @@ IDN='Die Testerin' IDM=testerin@example.org
 root=0; [ "$(id -u)" != 0 ] || root=1
 SEL='.*' fn= basis= sk= baum= gpk= nf=0 GRUEN=() ROOTWEG=()
 declare -A ROT=()
-rot() { ROT[${1:-$fn}]=1; }
+# GP_ENTDECKE nennt zusätzlich den Fall, in dem ein roter Name gesetzt wurde (die Namen p4-* setzt ex()
+# aus jedem Fall mit Exit 2 bis 4; ohne diese Zeile ist nicht zu sehen, welcher es war).
+rot() { ROT[${1:-$fn}]=1; [ -z "${GP_ENTDECKE-}" ] || echo "  rot ${1:-$fn} (im Fall $fn, Exit ${code-?})" >&2; }
 FN=() FC=()
 fall() { FN+=("$1"); FC+=("$2"); }
 sel() { [[ $1 =~ ^($SEL)$ ]]; }
