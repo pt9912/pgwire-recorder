@@ -111,3 +111,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-erster-release-vero
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-cancel-ohne-schluessel` (F-4, L-1) — eine Deklaration und ein Satz in §7 sagten mehr zu, als der Test prüfte (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-homebrew` (F-6 INFO; V-1 LOW) — Prosa der Wartungs-Doku über den echten Tap und über GitHub ohne Beleg im Klon; die Nacharbeit übersah sie, die Verifikation brachte sie zurück; behoben bei der Closure (Beleg `evidence/slice-v1-abschluss-homebrew.md`). Zähler 89.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-erster-release-homebrew-nachweis` (F-2 MEDIUM; F-V2, F-V3 LOW) — der Skript-Kopf sagte dem Wächter einen Schutz zu, den er nicht leistet; der Satz über der gekürzten Beleg-Zeile behauptete „genau der Teil“, während auch Parameter ohne Geheimnis wegfielen; `docs/maintainer/releasing.md` §7 schrieb dem Slice drei Belege zu, die er nicht trägt. Alle drei behoben (Beleg `evidence/slice-erster-release-homebrew-nachweis.md`). Zähler 90.
