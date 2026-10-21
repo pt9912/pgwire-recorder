@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# homebrew-nachweis — Nachweis der Installation aus dem Tap (Abnahmeszenario 11).
+# Vertrag: harness/vertraege/SPEC-067-release.md Punkt 20; was aus einem Nachweis an Zusage folgt und was
+# fuer jede Kombination ohne Nachweis Grenze bleibt, steht in spec/spezifikation.md (LH-FA-19.a).
+# Aufruf: bash tools/harness/homebrew-nachweis.sh --schritte
+# Unter Linux faehrt `make homebrew-nachweis` genau diesen Aufruf in einem Container des per Digest
+# gepinnten Image homebrew/brew (harness/mk/homebrew-nachweis.mk). `--schritte` AM HOST ist allein die
+# Handlung des Betreibers auf seinem eigenen Rechner und nie ein Agentenlauf: `brew` am Host ist ein
+# Paketmanager (AGENTS.md §3.1, Waechter .claude/hooks/pretooluse-command-guard.sh). Auf macOS laeuft
+# bash 3.2: ohne mapfile, ohne assoziative Arrays, ohne ${v^^}.
+# Die Schritte sind auf beiden Plattformen dieselben, damit die Belege vergleichbar sind: (a) brew tap,
+# (b) brew install, (c) pgwire-recorder version, (d) brew test, (e) der Replay-Lauf aus Punkt 20 (3).
+# `brew audit` gehoert nicht dazu (Punkt 20 (2): die Zeile `version` ist dort ein bekannter Befund und
+# sperrt die Installation nicht).
+# Das Skript gibt jeden Befehl vor seiner Ausfuehrung auf stdout aus; es wertet keine Ausgabe aus,
+# vergleicht keinen Text und legt keine Marke an. Es endet mit dem Exit-Code des ersten Schrittes, der
+# scheitert, sonst mit 0. Was aus der Ausgabe zaehlt, liest der Mensch: der Beleg steht in §7 des
+# Slice-Plans, der ihn fuehrt (Punkt 20 (6)).
+# Der Kopf nennt Datum, `uname -s` und `uname -m` — die Angaben, aus denen der Beleg je Kombination
+# aus Betriebssystem und Architektur besteht (Punkt 20 (6)); unter Linux nennt das Fragment dazu Tag
+# und Digest des Image.
+set -u
+
+tap='pt9912/pgwire-recorder'
+formel='pt9912/pgwire-recorder/pgwire-recorder'
+adresse='127.0.0.1:55432'
+
+tmp=''
+replay=''
+
+# aufraeumen — beendet einen laufenden Replay-Lauf und entfernt das Temp-Verzeichnis; mehrfach aufrufbar.
+aufraeumen() {
+  trap '' INT TERM
+  if [ -n "$replay" ]; then
+    kill -TERM "$replay" 2> /dev/null
+    wait "$replay" 2> /dev/null
+    replay=''
+  fi
+  if [ -n "$tmp" ]; then
+    rm -rf "$tmp"
+    tmp=''
+  fi
+}
+trap 'aufraeumen; exit 130' INT
+trap 'aufraeumen; exit 143' TERM
+trap 'aufraeumen' EXIT
+
+# schritt <Befehl>… — nennt den Befehl auf stdout und fuehrt ihn aus.
+schritt() {
+  echo "+ $*"
+  "$@"
+}
+
+if [ "$#" -ne 1 ] || [ "$1" != '--schritte' ]; then
+  echo "homebrew-nachweis: genau ein Argument verlangt, --schritte" >&2
+  exit 2
+fi
+
+schritt date -u '+%Y-%m-%dT%H:%M:%SZ' || exit $?
+schritt uname -s || exit $?
+schritt uname -m || exit $?
+
+schritt brew tap "$tap" || exit $?
+schritt brew install "$formel" || exit $?
+schritt pgwire-recorder version || exit $?
+schritt brew test pgwire-recorder || exit $?
+
+tmp="$(mktemp -d)" || exit $?
+aufzeichnung="$tmp/aufzeichnung.yaml"
+fehlerausgabe="$tmp/replay.stderr"
+cat > "$aufzeichnung" <<'YAML'
+format: pgwire-recorder
+version: 2
+sessions:
+  - id: 1
+    interactions:
+      - sequence: 1
+        request: {type: query, sql: "SELECT 1;"}
+        responses:
+          - {type: command_complete, tag: SELECT 1}
+          - {type: ready_for_query, tx_status: I}
+YAML
+
+echo "+ pgwire-recorder replay --listen $adresse --input $aufzeichnung (Fehlerausgabe in eine Datei)"
+pgwire-recorder replay --listen "$adresse" --input "$aufzeichnung" 2> "$fehlerausgabe" &
+replay=$!
+sleep 5
+echo "+ kill -TERM <Replay-Lauf>"
+kill -TERM "$replay" 2> /dev/null
+wait "$replay"
+ende=$?
+replay=''
+echo "--- Fehlerausgabe des Replay-Laufs ---"
+cat "$fehlerausgabe"
+echo "--- Exit-Code des Replay-Laufs: $ende"
+exit "$ende"
