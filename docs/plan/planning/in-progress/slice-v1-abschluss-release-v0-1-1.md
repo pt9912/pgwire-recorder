@@ -193,8 +193,8 @@ eingeschlossen; selbst nachgefahren mit `gh api …/attempts/<n>/jobs` für n = 
 Versuche 2 und 3. F-2 — siehe den Absatz darunter. F-3 — die Berichtigung der Token-Rechte steht als
 *Angabe der Koordination* mit Datum, daneben die eigene Messung `gh secret list` (Zeitstempel des
 Geheimnisses unverändert). F-4 — der Grund für den fehlenden Ersatzbeleg 1 steht bei Punkt 2 des
-Eintrags; vorher geprüft: `hooks/` des Bare-Repos leer, keine Marke `gegenproben-ablage`, kein
-Ablage-Verzeichnis. F-5 — Kopf von `releasing.md` auf Version 0.14 und Stand 2026-10-21. F-6 — der
+Eintrags; er nannte zuerst das falsche Repository und ist bei der Closure berichtigt (unten, F-V1).
+F-5 — Kopf von `releasing.md` auf Version 0.14 und Stand 2026-10-21. F-6 — der
 Tap-Commit ist jetzt mit `git ls-remote … refs/heads/main` belegt, der Form des Vertrags. F-7 — die
 Abweichung des Bezug-Commits (`docs/maintainer/` außerhalb der Positivliste) steht bei Punkt 11 des
 Eintrags.
@@ -231,7 +231,7 @@ eigenen Laufs, diese Zeile nimmt ihm nichts ab und ändert seinen Umfang nicht.
 - `docs/maintainer/releasing.md` §1 *Stand*: nachgezogen; der Satz „Es ist noch kein Tag gesetzt worden“ und die drei Sätze „hatte noch keinen Lauf“ sind weg, an ihrer Stelle steht der Zustand nach `v0.1.1`: Release, Image in beiden Registries und die Formel `0.1.1` im Tap.
 - Der Lauf des Tags war im Job `release` grün; ein Fehler im Skript oder Vertrag trat nicht auf, ein Folge-Tag `v0.1.2` ist nicht nötig.
 
-**Nicht belegt (Grenzen, die der Slice stehen lässt):** die Belege des Taps — Rechte des Tokens, Inhalt und Annahme der Formel, `brew tap` und `brew install` unter Linux und macOS —, alle Gegenstand von `slice-erster-release-homebrew-nachweis`; *welches* Recht der Betreiber zwischen den Versuchen änderte (Angabe, aus Repo und Lauf nicht auditierbar, `SPEC-067` Punkt 15); der Wiederanstoß eines roten **Laufs** (nur der eines roten **Jobs** ist belegt, dreimal); der Ersatzbeleg 1 aus `CO-001` (es gibt in diesem Arbeitsbaum keine Ablage, Grund im Eintrag bei Punkt 2); ein Lauf von `make gegenproben-host` am getaggten Hash (Carveout `CO-001`); die Mutationen der beiden gefahrenen Gegenproben; `darwin`, `windows` und `linux/arm64` als ausgeführte Plattformen.
+**Nicht belegt (Grenzen, die der Slice stehen lässt):** die Belege des Taps — Rechte des Tokens, Inhalt und Annahme der Formel, `brew tap` und `brew install` unter Linux und macOS —, alle Gegenstand von `slice-erster-release-homebrew-nachweis`; *welches* Recht der Betreiber zwischen den Versuchen änderte (Angabe, aus Repo und Lauf nicht auditierbar, `SPEC-067` Punkt 15); der Wiederanstoß eines roten **Laufs** (nur der eines roten **Jobs** ist belegt, dreimal); der Ersatzbeleg 1 aus `CO-001` (den Gegenproben-Container `pgr-gp` und damit seine Ablage gibt es nicht mehr, Grund im Eintrag bei Punkt 2); ein Lauf von `make gegenproben-host` am getaggten Hash (Carveout `CO-001`); die Mutationen der beiden gefahrenen Gegenproben; `darwin`, `windows` und `linux/arm64` als ausgeführte Plattformen.
 
 **Größenmarke** (§4, Metrik: Summe aus Einfügungen und Löschungen von `git diff --numstat 0256ddff..<letzter Commit> -- VERSION docs/user docs/maintainer README.md`), am Endstand: 227, unter 500 (gemessen am letzten Commit, der einen der vier Pfade berührt; spätere Commits dieses Slice ändern nur `docs/plan/planning/`). Die Basis `0256ddff` enthält Änderungen aus `slice-v1-abschluss-binary-namen` und `…-cancel-ohne-schluessel`, die nicht zu diesem Slice gehören.
 
