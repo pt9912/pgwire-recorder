@@ -172,9 +172,41 @@ Der Slice liefert keinen Code und keinen Vertrag (§1); die Zusagen sind die Pun
 | Punkt 3 nach `CO-001`: Dateien von `container-start` seit der letzten grünen Fahrt unverändert | `git diff --stat 35778a2f 3594b9f0 -- <fünf Dateien>` leer | ein Diff ungleich leer wäre die Grenze und der Halt; die letzte grüne Fahrt ist nur eine Angabe der Koordination (Eintrag von `welle-erster-release`), im Eintrag als Grenze genannt |
 | Punkte 5 und 6 (Trockenlauf, Scan) | **nicht erfüllt**: `origin` des Worktrees ist der lokale Austausch, `gh workflow run` wurde dem Lauf verweigert; die Koordination fährt ihn | Teilbeleg lokal nur für den Schritt `eingaben` (siehe oben) |
 
-**Halt an die Koordination:** Punkt 5 (Trockenlauf auf GitHub mit `impl-rel`) und damit Punkt 6 (Scan) sind nicht belegt; beides hat Außenwirkung auf GitHub. Der Tag wartet darauf.
+**Nachtrag nach dem Tag (2026-10-21).** Der Halt ist aufgelöst: Die Koordination fuhr den Trockenlauf (`39550948115`, `workflow_dispatch` auf `main` = `762c05dd`, success, 2 min 50 s) und setzte den Tag `v0.1.1` auf `3594b9f0`; der Lauf des Tags ist `39551891874`. Die Punkte 5, 6 und 8 bis 11 des Eintrags tragen seitdem ihre Belege; der Implementer hat die Zeilen des Logs mit `gh run view <Kennung> --log` selbst gelesen, nicht übernommen.
 
-**Größenmarke** (§4, Metrik: Summe aus Einfügungen und Löschungen von `git diff --numstat 0256ddff..<letzter Commit> -- VERSION docs/user docs/maintainer README.md`), vor dem Commit des Eintrags und dieses Abschnitts: 2 (`VERSION`) + 95 (`releasing.md`) + 29 (Handbuch) = 126, unter 500; die Basis `0256ddff` enthält Änderungen aus `slice-v1-abschluss-binary-namen` und `…-cancel-ohne-schluessel`, die nicht zu diesem Slice gehören.
+| Zusage | Beleg | Gegenbeispiel (rot gesehen) |
+|---|---|---|
+| Der Lauf des Tags stand auf dem Release-Commit | `gh run view 39551891874 --json headSha` gibt `3594b9f0578dd8c844e9a9d3e5bc6f147bcd3aaa`, Auslöser `push` von `refs/tags/v0.1.1` | nicht gefahren: der Hash ist eine Ablesung, kein Wächter |
+| Index-Digest je Registry gleich (Punkt 8) | `release: vergleichen: sha256:624c09… in ghcr.io und docker.io`; dazu vier eigene `docker pull` (`:0.1.1` und `:latest`, beide Registries, leeres `DOCKER_CONFIG`), alle vier melden `sha256:624c099b…9b15` | der Schritt `vergleichen` ist fail-closed (`SPEC-067` Punkt 7); seine Mutanten fährt `make release-gegenprobe`, hier nicht erneut |
+| Der GitHub-Release trägt genau sieben Anhänge mit den Namen ohne Version (Punkt 9) | `gh release view v0.1.1 --json assets` nennt die sechs `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, sonst nichts | `SHA256SUMS` des Release gegen die geladene Datei: `sha256sum -c` hätte eine Abweichung als `FAILED` gemeldet; gemeldet wurde `OK` |
+| Job `homebrew` rot, Grund in der Umgebung (Zeile unter Punkt 8) | `release: homebrew: tap-push: der Tap weist den Push ab (Exit 128)`, davor `Permission to pt9912/homebrew-pgwire-recorder.git denied to pt9912.` und `error: 403` | der Fehler träte nicht auf, wenn das Token Schreibrecht hätte; das ist genau die Umgebungs-Hälfte von `SPEC-067` Punkt 18 (a) — kein neuer Tag, keine Korrektur am Skript |
+| Handbuch §2: `sha256sum -c --ignore-missing SHA256SUMS` gibt `pgwire-recorder-linux-amd64: OK` | gelaufen gegen die veröffentlichte Datei, Exit 0 | ohne `--ignore-missing` endet derselbe Aufruf mit Exit 1 und `WARNING: 5 listed files could not be read` — der Satz des Handbuchs über „alle sechs Dateien“ ist damit belegt, nicht nur behauptet |
+| Handbuch §2: `./pgwire-recorder-linux-amd64 version` gibt `pgwire-recorder 0.1.1` | gelaufen, Ausgabe wörtlich | ein Binary mit anderer Version gäbe eine andere Zeile; das Binary von `make build` meldet `dev` (Satz im Kopf) |
+| Handbuch §2: beide Registries geben das Image ohne Anmeldung heraus | vier `docker pull` mit `DOCKER_CONFIG` auf ein leeres Verzeichnis, alle vier Exit 0 | mit Anmeldung liefe es ebenfalls; die Sonde ist genau das leere `DOCKER_CONFIG`, ohne das der Satz eine Annahme bliebe |
+| Handbuch §2: `latest` zeigt in beiden Registries auf denselben Digest und gibt dieselbe Ausgabe | `docker image inspect` für `:latest` beider Registries gibt `sha256:624c099b…9b15`; `docker run … :latest version` gibt beide Male `pgwire-recorder 0.1.1` | ein `latest`, das auf `0.1.0` stünde, gäbe `pgwire-recorder 0.1.0`; der Schritt `latest` lief laut Log für beide Registries |
+| Handbuch §2: gestartet ist allein `linux/amd64` | `uname -m` gibt `x86_64`, `docker image inspect --format '{{.Os}}/{{.Architecture}}'` gibt `linux/amd64` | kein Lauf für `linux/arm64`, `darwin`, `windows` — deshalb steht im Handbuch „gebaut, aber nicht ausgeführt“ |
+
+**Durchsicht nach Quantoren** (Schritt 17 des Commands; Merkmal der neuen Sätze: Namen ohne Version, ein Digest für beide Registries, `latest` auf demselben Digest). Treffer in `docs/user/benutzerhandbuch.md` und `README.md`:
+
+| Fundstelle | Satz | Entscheidung |
+|---|---|---|
+| Handbuch §2, Zeile 124 | „Ohne `--ignore-missing` verlangt `sha256sum` alle sechs Dateien“ | unverändert, mit Probe belegt (Zeile oben) |
+| Handbuch §2, Zeile 139 | „Beide Registries geben das Image ohne Anmeldung heraus“ | unverändert, mit Probe belegt (leeres `DOCKER_CONFIG`) |
+| Handbuch §2, Zeile 140 | „`latest` zeigt in beiden Registries auf denselben Digest und gibt dieselbe Ausgabe“ | enger gefasst gegenüber `v0.1.0` („zeigt auf dieselbe Version“) und mit Probe belegt |
+| Handbuch §3, Zeile 175 | „`make binaries` baut das Binary für jede der sechs Plattformen“ | unverändert mit Grund: Satz über den lokalen Bau, nicht über den Release; Gegenstand von `slice-v1-abschluss-binary-namen`, durch `make test-container` gedeckt |
+| `README.md` | „sechs Binaries ohne Version im Namen und `SHA256SUMS`“ | neu, durch `gh release view` belegt (Punkt 9) |
+
+**Risiko-Belege aus §6** (die Ausgänge trägt die Closure, nicht dieser Abschnitt):
+
+- `grep -rn 'pgwire-recorder_' docs/user README.md` am Endstand: kein Treffer (Exit 1).
+- `docs/maintainer/releasing.md` §1 *Stand*: nachgezogen; der Satz „Es ist noch kein Tag gesetzt worden“ und die drei Sätze „hatte noch keinen Lauf“ sind weg, an ihrer Stelle steht der Zustand nach `v0.1.1` samt rotem Job `homebrew` und leerem Tap.
+- Der Lauf des Tags war im Job `release` grün; ein Fehler im Skript oder Vertrag trat nicht auf, ein Folge-Tag `v0.1.2` ist nicht nötig.
+
+**Nicht belegt (Grenzen, die der Slice stehen lässt):** das Schreibrecht des Tap-Tokens (widerlegt), die Formel im Tap, der Wiederanstoß eines roten Laufs, ein Lauf von `make gegenproben-host` am getaggten Hash (Carveout `CO-001`), die Mutationen der beiden gefahrenen Gegenproben, `darwin`, `windows` und `linux/arm64` als ausgeführte Plattformen.
+
+**Größenmarke** (§4, Metrik: Summe aus Einfügungen und Löschungen von `git diff --numstat 0256ddff..<letzter Commit> -- VERSION docs/user docs/maintainer README.md`), am Endstand: 228, unter 500. Die Basis `0256ddff` enthält Änderungen aus `slice-v1-abschluss-binary-namen` und `…-cancel-ohne-schluessel`, die nicht zu diesem Slice gehören.
+
+**Läufe am Endstand:** `make gates` Exit 0 im ersten Versuch, 272 s, 2026-10-21, Last 7,3 bei 20 Kernen, kein `FAIL` im Log (der lastempfindliche Test `TestE2EPlayVergleichAbweichung` fiel nicht aus, keine Wiederholung) · `make docs-check` grün (1314 Dateien, 0 Befunde). Keine Gegenprobe am Endstand (Entscheidung des Nutzers vom 2026-10-21; die beiden kurzen Läufe stehen bei den Punkten 2 und 3 des Eintrags).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
