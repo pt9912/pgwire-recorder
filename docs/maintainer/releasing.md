@@ -280,7 +280,7 @@ mit Exit 2; im Trockenlauf ist eine fehlende Zeile ein Hinweis, eine leere Zelle
 
 Ein Release ist freigegeben, wenn jeder Punkt einen Beleg trägt. Der **Eintrag** eines Releases ist eine Kopie der Tabelle mit
 ausgefüllter Spalte *Beleg*: für den ersten Release steht er in der Closure von `welle-erster-release`
-(`welle-erster-release-results.md`), für spätere Releases ohne Welle in `docs/maintainer/freigaben/<Version>.md`. Ein Punkt ohne
+(`welle-erster-release-results.md`), für jeden späteren Release, mit oder ohne Welle, in `docs/maintainer/freigaben/<Version>.md`. Ein Punkt ohne
 Beleg ist nicht erfüllt; was ein Lauf nicht zeigt, steht als Grenze im Eintrag, nie als Behauptung. Das Freshness-Audit (§5) ist
 kein Punkt der Tabelle; ein durchgeführtes steht als eigener Absatz im Eintrag, ohne Punktnummer.
 
@@ -297,9 +297,13 @@ diesen Hash.
 | 6. Scan grün | die Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` aus dem Log des Trockenlaufs und des Laufs des Tags | |
 | 7. Ausdrückliches Ja des Nutzers zum Tag | Wortlaut, Datum | |
 | 8. Lauf des Tags | Lauf-Kennung, Index-Digest je Registry (gleich), Smoke aus beiden Registries, `latest` | |
+| darunter zu 8, getrennt: Job `homebrew` des Laufs | Lauf-Kennung; grün oder rot; bei grün der Hash des Commits im Tap (`git ls-remote` auf den Zweig `main` des Taps, mit Datum); bei rot das Stichwort der Meldung `release: homebrew: <Stichwort>:`; ein roter Job macht Punkt 8 nicht unerfüllt (Release und Registries stehen), die Zeile nennt ihn als Grenze, seine Behebung ist der Wiederanlauf oder der Nachtrag von Hand (§7, §11), kein neuer Tag; die Belege des Taps selbst (Rechte, Annahme durch Homebrew) gehören nicht in diese Zeile | |
 | 9. Anhänge am GitHub-Release | die sieben Dateien (sechs Binaries und `SHA256SUMS`) | |
 | 10. Beobachtungen des ersten Laufs (unten) | je Beobachtung Lauf-Kennung und Zeile im Log, oder die Grenze | |
 | 11. Bezug nach dem Tag (unten) | Befehl, Lauf und Ausgabe je Befehl im Handbuch | |
+
+Ein Punkt, den ein aktiver Carveout (`docs/plan/carveouts/`) ausnimmt, nennt im Beleg den Carveout, den Ersatz mit Befehl, Hash, Datum,
+Dauer und Ausgang und die Grenze, die der Ersatz lässt; „grün“ steht dort nie ohne Beleg.
 
 **Anti-Punkte** (was ein Release nicht tut): Ein Tag wird nicht verändert oder gelöscht. Kein Image geht ohne grünen Scan in eine
 Registry. Eine Vorabversion setzt kein `latest`. Es gibt keinen Tag ohne ausdrückliches Ja des Nutzers (Punkt 7). Kein Tag hängt an einem Freshness-Audit, weder an seiner Durchführung noch an seinem Ergebnis. Keine Datei kommt von Hand
@@ -380,3 +384,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.10 | 2026-10-19 | Freshness-Audit optional und kein Punkt der Freigabe-Checkliste mehr (§5); Checkliste mit elf Punkten neu nummeriert, Anti-Punkt zum Audit (§10) |
 | 0.11 | 2026-10-20 | Namen der Binaries ohne Version: `pgwire-recorder-<os>-<arch>` (§2, §3) |
 | 0.12 | 2026-10-20 | Formel im Tap: Job `homebrew` nach dem GitHub-Release, Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` als Vorbedingung (§4), Probe-Tap statt Probe-Tag (§3), Verfahren und Nachtrag von Hand (§7), Zeile der Fehlertabelle (§11) |
+| 0.13 | 2026-10-21 | Freigabe-Checkliste: Eintrag unter `freigaben/<Version>.md` für jeden späteren Release, Job `homebrew` als Zeile unter Punkt 8, Belege eines Punkts, den ein aktiver Carveout ausnimmt (§10) |
