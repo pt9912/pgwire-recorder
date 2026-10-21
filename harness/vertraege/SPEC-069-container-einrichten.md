@@ -32,7 +32,7 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
 einer Aufzählung gibt es einen Fall und eine Mutation, die nur ihn rot färbt (`AGENTS.md` §3.10); die
 Gegenprobe verlangt genau diese Menge roter Fälle (mehr und weniger machen sie rot).
 
-**Plattform.** Zugesagt und geprüft ist ein **Linux-Host** mit bash ≥ 4 und GNU-Werkzeugen, OpenSSH und
+**Plattform.** Zugesagt und geprüft ist ein **Linux-Host** mit bash ≥ 4.4 und GNU-Werkzeugen, OpenSSH und
 `git`, gegen einen Linux-Container des Gerüsts aus `SPEC-058`. macOS- und Windows-Hosts sind **nicht
 zugesagt** (Grenze, `AGENTS.md` §3.12 *Die Plattform gehört dazu*; die drei Betriebssysteme von
 [`LH-QA-03`](../../spec/lastenheft.md#lh-qa-03--portabilität) gelten dem Produkt, nicht diesem Werkzeug).
@@ -41,6 +41,18 @@ gemessen), der Transport der Identität über den Standardeingang (ein Zeilenend
 mit `CR`; deshalb lehnt Punkt 5 Steuerzeichen ab), die Form des Pfades des Host-Repos und die
 GNU-Optionen der Werkzeuge, die das Skript ruft. Das Ziel lehnt einen fremden Host nicht ab, damit ein
 Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht gemessen.
+
+**Warum 4.4** (Entscheidung des Architect, 2026-10-21): Das Werkzeug wartet auf seinen Kindprozess über `$!`
+nach einer Prozess-Substitution; dass `$!` sie benennt und `wait` sie annimmt, führt bash ab 4.4.
+**Akzeptiertes Negativ, mit Grund:** Unter bash 4.0 bis 4.3 endet der Lauf im Lesezug des Schrittes
+`zustand` mit einer Meldung von bash und einem Exit-Code, den Punkt 14 nicht belegt — also **vor** der
+ersten Änderung an Host und Container (Punkt 4) und sichtbar für den, der den Aufruf abgesetzt hat. Das Ziel
+prüft seine bash-Fassung **nicht selbst**: `BASH_VERSINFO` ist nicht setzbar, ein Fall bräuchte deshalb eine
+Ersatz-Variable wie `GP_BASH_VERSION` in
+[`SPEC-061`](SPEC-061-gegenproben-nach-einlieferung.md) und damit eine sechste Eingabe mit eigenen
+Randformen (Punkt 2) — in einer Gegenprobe ohne Nutzer-Eingaben trägt das, in einem Ziel nicht. Erscheint
+ein Host mit einer älteren Fassung, bekommt der Schritt `werkzeuge` die Prüfung mit Exit 3 und einen Fall,
+der die Fassung ersetzt.
 
 **Randform → Punkt.** Die Nummern der Randformen sind die des Slice-Plans
 `slice-harness-devcontainer-einrichten` §6.
@@ -85,16 +97,25 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
 
    | Variable | Vorgabe | gültig |
    |---|---|---|
-   | `PGR_DEV` | keine, Pflicht | absoluter Pfad (beginnt mit `/`), vorhanden und ein Verzeichnis (Lage und Form prüft `SPEC-058` Punkt 2; hier zählt, was darin liegt, Punkt 3) |
+   | `PGR_DEV` | keine, Pflicht | absoluter Pfad (beginnt mit `/`) **aus `A-Za-z0-9._+-` und `/`** — dieselbe Zeichenmenge wie [`SPEC-058`](SPEC-058-container-start.md) Punkt 2, hier erneut geprüft (Grund unter der Tabelle) —, vorhanden und ein Verzeichnis; die übrigen Teile der Form (Segment `.`, `..`, leer, `/` am Ende) prüft `SPEC-058` Punkt 2 beim Anlegen des Gerüsts, und der Basisname fällt hier mit dem Projektnamen aus Punkt 3 zusammen |
    | `PGR_SSH_PORT` | `2222` | ganze Zahl 1 bis 65535, Dezimalziffern, keine führende Null, kein Vorzeichen (wie `SPEC-058` Punkt 2) |
    | `PGR_REMOTE` | `container` | aus `A-Za-z0-9._-`, erstes Zeichen `A-Za-z0-9`, höchstens 64 Zeichen |
-   | `PGR_ZWEIG` | keine, Pflicht | von `git check-ref-format --branch` angenommen und nicht `main` (Grund: der Klon arbeitet nie auf `main`, Dokument §9) |
-   | `PGR_SSH_OPTS` | leer | zusätzliche Optionen für jeden `ssh`-Aufruf des Ziels, an Leerraum geteilt und als einzelne Argumente übergeben, nie von einer Shell ausgewertet; **gesetzt und leer ist gültig** und gleich nicht gesetzt (Grund: eine leere Optionsliste ist die Vorgabe); ein Zeilenumbruch oder ein anderes Steuerzeichen im Wert ist ungültig |
+   | `PGR_ZWEIG` | keine, Pflicht | von `git check-ref-format --branch` angenommen und nicht `main` (Grund: der Klon arbeitet nie auf `main`, Dokument §9); fehlt `git` am Host, bleibt **allein diese eine** Prüfung aus (Ausnahme, in Punkt 14 begründet), die übrigen Formen prüft `eingaben` auch dann |
+   | `PGR_SSH_OPTS` | leer | zusätzliche Optionen für jeden `ssh`-Aufruf des Ziels, an Leerraum geteilt und als einzelne Argumente übergeben, nie von einer Shell ausgewertet (**das gilt den `ssh`-Aufrufen dieses Ziels; im Push reist der Wert nach Punkt 7 in `GIT_SSH_COMMAND`, Grenze in Punkt 20 (7)**); **gesetzt und leer ist gültig** und gleich nicht gesetzt (Grund: eine leere Optionsliste ist die Vorgabe); ein Zeilenumbruch oder ein anderes Steuerzeichen im Wert ist ungültig |
+
+   **Warum `PGR_DEV` hier erneut geprüft wird** (Entscheidung des Architect, 2026-10-21): Der Wert kommt aus
+   der Umgebung **dieses** Aufrufs; dass `container-start` ihn je gesehen hat, ist nicht gesagt, und die
+   Eingabeprüfung eines anderen Ziels ist eine Aussage über einen Lauf, der nicht stattgefunden haben muss.
+   Der Pfad reist in Punkt 7 in `GIT_SSH_COMMAND`, und `git` gibt diese Zeichenkette an eine Shell
+   (Punkt 20 (7)); ein Zeichen außerhalb der Menge würde dort ausgewertet, und zwar im Schritt, der
+   schreibt. Die Menge ist die des Gebers und schließt damit keinen Pfad aus, unter dem ein Gerüst entstehen
+   konnte.
 
    Schritt `eingaben` endet bei einem Verstoß mit **Exit-Code 2**, ändert nichts und ruft kein Werkzeug auf.
    Er meldet **alle** Verstöße, je einen in einer Zeile, die die Variable nennt, in der Reihenfolge der
    Tabelle. Je Form ein Fall und eine Mutation, die nur ihre Prüfung entfallen lässt: `PGR_DEV` nicht
-   gesetzt, leer, relativ, fehlend, keine Datei-Art Verzeichnis; `PGR_SSH_PORT` leer, `abc`, `02222`,
+   gesetzt, leer, relativ, ein Zeichen außerhalb der Menge (`;`), ein Leerzeichen, fehlend, keine
+   Datei-Art Verzeichnis; `PGR_SSH_PORT` leer, `abc`, `02222`,
    `+22`, `0`, `65536`, Grenzen `1` und `65535` angenommen; `PGR_REMOTE` leer, mit `/`, mit Leerzeichen,
    erstes Zeichen `-`, 65 Zeichen; `PGR_ZWEIG` nicht gesetzt, leer, `main`, `a..b`, `-x`, `x y` und ein Name, der mit
    `refs/` beginnt (abgelehnt, auch wenn `git check-ref-format --branch` ihn annimmt: eigener Fall, Grund:
@@ -106,8 +127,22 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
 3. **Werkzeuge und Projektname.** Schritt `werkzeuge`: `ssh` und `git` müssen am Host im Pfad liegen; ein
    Verstoß endet mit **Exit-Code 3** und ändert nichts. Der Schritt meldet beide Verstöße, je einen in einer
    Zeile mit dem Namen des Werkzeugs, in der Reihenfolge `ssh`, `git`. Versionen prüft das Ziel nicht
-   (Punkt 20 (1)). Fälle `p3-*`: je Werkzeug fehlt, beide fehlen (Reihenfolge); Mutationen: das Werkzeug
-   wird nicht geprüft, Reihenfolge vertauscht.
+   (Punkt 20 (1)).
+
+   **Warum zwei Werkzeuge am Host:** Dieses Ziel ist kein Gate, steht nicht in `GATE_CHECKS` und richtet
+   einen Dev-Container **von außen** ein; es kann das nicht in einem Container tun. `ssh` als Voraussetzung
+   am Host ist die Entscheidung des Nutzers vom 2026-10-17 (Kopf dieser Kennung, *Stand*), `git` liegt am
+   Host, weil der Klon dort liegt. Dieselbe Lage trägt `container-start` mit `docker`, `u-boot`,
+   `devcontainer`, `node`, `ssh` und `ssh-keygen` ([`SPEC-058`](SPEC-058-container-start.md) Punkt 3,
+   [ADR-0045](../../docs/plan/adr/0045-container-start-als-werkzeug-im-repo.md)). Die Host-Werkzeuge je Ziel
+   stehen in dessen Vertrag und in der Zeile des Ziels in [`harness/README.md`](../README.md), nicht im
+   Briefing; dass `AGENTS.md` §3.1 sie nicht führt, ist bekannt und von diesem Vertrag nicht geändert.
+
+   Fälle `p3-*`: je Werkzeug fehlt, beide fehlen (Reihenfolge), `git` fehlt und
+   `PGR_ZWEIG` ist allein nach `check-ref-format` ungültig (`p3-fehlt-git-zweig-ungueltig`: Exit 3, die
+   Ausnahme aus Punkt 14); Mutationen: das Werkzeug wird nicht geprüft, Reihenfolge vertauscht, der
+   Vorbehalt `command -v git` in `eingaben` entfällt (dann meldet `eingaben` auch ohne `git` den
+   Zweignamen, und die drei Fälle mit fehlendem `git` werden rot).
 
    **Der Projektname** kommt aus `$PGR_DEV/u-boot.yaml`, aus der ersten Zeile der Form `    name: <Name>`
    (vier Leerzeichen, wie `SPEC-058` Punkt 5 sie verlangt). Er muss aus `a-z0-9-` bestehen, mit `a-z0-9`
@@ -305,7 +340,20 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
     5. Signal (130, 143).
 
     **Die Identität steht vor dem Container** (Randform 5 gegen Randform 4): Sie ist lokal und ohne
-    Container prüfbar, und der Aufrufer behebt sie ohne laufenden Container. **Signal und Fehler eines
+    Container prüfbar, und der Aufrufer behebt sie ohne laufenden Container.
+
+    **Eine Ausnahme von „Eingabe vor Werkzeug": die Prüfung, die das Werkzeug selbst ist** (Entscheidung
+    des Architect, 2026-10-21). Ist `PGR_ZWEIG` allein nach `git check-ref-format --branch` ungültig und
+    fehlt zugleich `git` am Host, bleibt diese eine Prüfung aus, und der Lauf endet im Schritt `werkzeuge`
+    mit **Exit 3** (`git fehlt im Pfad`), nicht mit Exit 2. **Grund:** Die Reihenfolge kann keine Prüfung
+    vorziehen, die das fehlende Werkzeug braucht; die Gegenrichtung — `eingaben` lehnt ohne `git` jeden
+    Zweignamen ab — meldete dem Aufrufer den Zweignamen, während sein Mangel das fehlende `git` ist, und
+    machte den Fall `p3-fehlt-git` mit gültigem Namen unerreichbar. **Die Ordnung selbst bleibt:** Jede
+    Prüfung aus Punkt 2, die ohne `git` auskommt — `PGR_DEV`, `PGR_SSH_PORT`, `PGR_REMOTE`, `PGR_SSH_OPTS`
+    und für `PGR_ZWEIG` die Formen nicht gesetzt, leer, `main`, führendes `-`, `refs/…` —, meldet auch ohne
+    `git` mit Exit 2 (Fall `p14-eingabe-vor-werkzeug`).
+
+    **Signal und Fehler eines
     Schrittes sind Ereignisse, keine Zustände:** Das erste beendet den Lauf (Punkt 15). Exit-Code 0 heißt
     „eingerichtet"; 1 und alle anderen sind nicht belegt. Fälle `p14-*`: je Nachbarpaar der Reihenfolge
     ein Fall, in dem beide Gründe zutreffen und der frühere gemeldet wird (Eingabe vor Werkzeug; Werkzeug
@@ -420,9 +468,16 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
        `git -C <Klon> rev-parse --abbrev-ref HEAD`; `git -C <Klon> config --local --get user.name` und
        `user.email` (gleich den Werten des Host-Repos); `git -C <Klon> config --get core.hooksPath`;
        `ls <Klon>/.harness/` oder die Meldung von `make traeger-fetch`.
-    5. Aufräumen und seine Ausgabe: `docker rm -fv pgr-ce-nachweis`, danach
-       `docker ps -a --filter name=pgr-ce-` und `docker volume ls` (kein Objekt des Präfixes bleibt),
-       `git remote remove pgr-ce-nachweis` im Host-Repo und `rm -rf` des Temp-Verzeichnisses.
+    5. **Aufräumen und seine Ausgabe, nur per Name und nur Objekte des Präfixes, nie `prune`** (Lesart von
+       `SPEC-058` Punkt 15 (d)): `docker rm -fv pgr-ce-nachweis` entfernt den Container und seine
+       **anonymen** Volumes; die zwei **benannten** Volumes des Gerüsts (`pgr-ce-nachweis-workspace-…`,
+       `pgr-ce-nachweis-docker-…`) und das Image-Paar (`vsc-pgr-ce-nachweis-…`, `…-uid`) überleben ihn und
+       werden danach mit `docker volume rm` und `docker rmi` per Name entfernt. Zuletzt
+       `docker ps -a --filter name=pgr-ce-`, `docker volume ls` und `docker images` (kein Container, kein
+       Volume und kein Image des Präfixes bleibt), `git remote remove pgr-ce-nachweis` im Host-Repo und
+       `rm -rf` des Temp-Verzeichnisses. Der Beleg zeigt **beide** Zustände: die Liste nach
+       `docker rm -fv` (die zwei Volumes und die zwei Images stehen noch) und die Liste nach dem Entfernen
+       per Name (keines bleibt).
 
     **Beleg** (Form wie [`SPEC-067`](SPEC-067-release.md) Punkt 20 (6)): eingefügter Text in §7 des
     Slice-Plans — Datum, `uname -s`/`uname -m`, die Versionen von `docker version --format
@@ -434,7 +489,7 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
     als nicht geprüft.
 
     **Akzeptiertes Negativ, mit Grund:** Bricht der Nachweis zwischen Schritt 1 und Schritt 5 ab, bleibt ein
-    Container des Präfixes `pgr-ce-` samt seinen Volumes stehen. Grund: Ohne Treiber fängt ihn keine Falle;
+    Container des Präfixes `pgr-ce-` samt seinen Volumes **und seinen Images** stehen. Grund: Ohne Treiber fängt ihn keine Falle;
     das Präfix macht ihn auffindbar, und Schritt 5 steht mit seiner Ausgabe im Beleg, sodass ein fehlendes
     Aufräumen im Beleg sichtbar ist. Der Nachweis läuft nie gegen den Container, in dem gearbeitet wird,
     und nie gleichzeitig mit dem Lauf eines anderen Slice auf demselben Daemon (Regel an den Aufrufer,
@@ -458,9 +513,25 @@ Nutzer es dort auf eigene Gefahr versuchen kann; was dort geschieht, ist nicht g
     Ziel setzt keine Einstellung und ändert keine Datei; ein unbekannter oder nach einem Neubau geänderter
     Hostschlüssel endet mit Exit 4 und der Ausgabe von `ssh` (`BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`).
     Wer eine eigene `known_hosts`-Datei braucht, gibt sie in `PGR_SSH_OPTS` (Punkt 2). (6) Gleichzeitige
-    Aufrufe mit demselben `PGR_DEV` (Punkt 13). (7) Eine Option in `PGR_SSH_OPTS`, die Leerraum enthält.
+    Aufrufe mit demselben `PGR_DEV` (Punkt 13). (7) Eine Option in `PGR_SSH_OPTS`, die Leerraum enthält, und eine, die ein
+    Shell-Metazeichen enthält: In den `ssh`-Aufrufen des Ziels reist der Wert als einzelne Argumente, die
+    keine Shell sieht (Punkt 2, Fall `p2-opts-keine-shell`); im Push reist er nach Punkt 7 in
+    `GIT_SSH_COMMAND`, und `git` gibt diese Zeichenkette an eine Shell — dort wird ein Metazeichen
+    ausgewertet. Was dabei geschieht, ist **nicht zugesagt und nicht gemessen** (Entscheidung des
+    Architect, 2026-10-21). **Grund:** Die beiden Formen — Argumentliste hier, Zeichenkette dort — gibt die
+    Schnittstelle von `ssh` und `git` vor, nicht dieses Ziel; der Wert stammt aus der Umgebung des
+    Aufrufers am eigenen Host, und eine Ablehnung von Metazeichen schlösse Formen aus, die `ssh` braucht
+    (etwa die eigene `known_hosts`-Datei aus (5)). `PGR_DEV` reist in derselben Zeichenkette, trägt aber eine
+    geprüfte Form (Punkt 2) und ist deshalb keine Grenze.
     (8) Eine Zeitgrenze für den Lauf insgesamt: Es gibt keine außer `ConnectTimeout=5` je `ssh`-Aufruf; ein
     `git push` oder ein `make traeger-fetch`, das hängt, hängt, und `Strg+C` bricht ab (Punkt 15).
     (9) Ob das Dokument `docs/developer/devcontainer.md` die Schritte richtig nennt, prüft kein Gate.
     (10) Dass der Klon nach dem Lauf einen grünen `make gates` fährt: gemessen von
-    `slice-harness-devcontainer-u-boot-0-10`, nicht von diesem Ziel.
+    `slice-harness-devcontainer-u-boot-0-10`, nicht von diesem Ziel. (11) Der Exit-Code, mit dem
+    `git push` eine gescheiterte Verbindung meldet (gemessen 128): Der Vertrag bindet ihn nicht. Zugesagt
+    und geprüft ist, was das **Ziel** tut — **Exit 5**, die Meldung
+    `einliefern: git push <Remote> endete mit Exit <Zahl>` in dieser Form, kein zweiter Versuch, nichts
+    erzwungen (Punkt 7, Fall `p7-fehler`). **Akzeptiertes Negativ, mit Grund** (Entscheidung des Architect,
+    2026-10-21): Die Zahl stammt von `git`; sie zu binden sagte das Verhalten eines fremden Werkzeugs über
+    seine Versionen hinweg zu, obwohl (1) dessen Version nicht prüft. Die Gegenprobe prüft deshalb die Form
+    der Zeile, nicht die Zahl.

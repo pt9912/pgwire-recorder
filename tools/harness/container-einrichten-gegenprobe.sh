@@ -5,7 +5,8 @@
 # und ohne echtes ssh (Punkt 17, ADR-0057). Je Fall eine Welt in einem Temp-Verzeichnis (mktemp -d): ein
 # Host-Repo mit einem Commit und lokaler Identität, $PGR_DEV mit u-boot.yaml und ssh/id_ed25519, das
 # Verzeichnis welt/workspaces/<Projektname>/ und ein Pfad, in dem ssh, make, docker, u-boot und devcontainer
-# Attrappen sind und git und rm das echte Werkzeug mit einem Protokoll davor. Die Attrappe von ssh führt den
+# Attrappen sind, `id` eine Attrappe ist und git und rm das echte Werkzeug mit einem Protokoll davor sind.
+# Die Attrappe von ssh führt den
 # übergebenen Befehl in einer lokalen Shell in der Welt aus und protokolliert Argumente, Umgebung und
 # Standardeingang; so laufen git init --bare, git clone, git push (über git-receive-pack), git config und
 # git switch als ECHTES git, und die Zusagen der Punkte 5 bis 11 sind an echtem git-Verhalten geprüft.
@@ -24,7 +25,7 @@
 # unveränderten Kopie und je Mutation; die Fälle p17-* geben einer Kopie damit einen einzigen billigen Fall); GP_ENTDECKE=1 nennt je
 # Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen;
 # GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab).
-# Braucht bash ≥ 4.4 (mit `wait -n`), git, make, sed, pgrep und die GNU-Werkzeuge von coreutils; als root
+# Braucht bash ≥ 4.4 (mit `wait -n`), git, make, sed und die GNU-Werkzeuge von coreutils; als root
 # entfällt der Fall mit Dateirechten (die Gegenprobe nennt ihn am Ende).
 # Ausgang: 0, wenn jeder Fall und jede Mutation wie erwartet endet und die Zeit unter der Obergrenze liegt,
 # sonst 1.
@@ -58,7 +59,7 @@ trap 'exit 143' TERM
 melde() { echo "$GPN: ROT — $*" >> "$arbeit/fehler"; }
 
 fehlt=0
-for t in git make sed pgrep; do command -v "$t" > /dev/null 2>&1 || { echo "$GPN: ROT — $t fehlt im Pfad (Voraussetzung)" >&2; fehlt=1; }; done
+for t in git make sed; do command -v "$t" > /dev/null 2>&1 || { echo "$GPN: ROT — $t fehlt im Pfad (Voraussetzung)" >&2; fehlt=1; }; done
 [ "$fehlt" = 0 ] || exit 1
 
 # Pfade der Welten: $sys trägt die echten Werkzeuge (ohne ssh und ohne make — die sind Attrappen in der Welt),
@@ -66,7 +67,7 @@ for t in git make sed pgrep; do command -v "$t" > /dev/null 2>&1 || { echo "$GPN
 sys=$arbeit/sys
 mkdir -p "$sys" "$arbeit/ohne-git" "$arbeit/ohne-make"
 for t in bash sh git git-receive-pack git-upload-pack make sed grep awk cat ls rm mkdir rmdir printf env find \
-  sort cksum head tail tr wc date sleep kill pgrep timeout seq cp mv ln chmod id true od dirname basename \
+  sort cksum head tail tr wc date sleep kill timeout seq cp mv ln chmod id true od dirname basename \
   mktemp cut; do
   p=$(command -v "$t") || continue
   ln -s "$p" "$sys/$t"
@@ -112,6 +113,7 @@ case $n in
     done
     [ -n "$host" ] && (( ${#cmd[@]} )) || { echo "ssh: Rechner oder Befehl fehlt im Aufruf" >&2; exit 255; }
     c=${cmd[*]}; c=${c//\/workspaces\//$AT_WELT/workspaces/}
+    [[ -n ${AT_SSH_LAUT-} && $c == ${AT_SSH_LAUT-} ]] && echo "SSH-WARNUNG" >&2
     [[ -n ${AT_SSH_WARTEN-} && $c == ${AT_SSH_WARTEN-} ]] && warten
     [[ -n ${AT_SSH_ROT-} && $c == ${AT_SSH_ROT-} ]] && { echo "${AT_SSH_MELDUNG-ssh: connect to host 127.0.0.1 port 2222: Connection refused}" >&2; exit "${AT_SSH_CODE-255}"; }
     cd "$AT_WELT" || exit 1
@@ -151,7 +153,7 @@ welt() {
   : > "$w/log"; echo hostschluessel > "$home/.ssh/known_hosts"
   printf 'schemaVersion: 1\nproject:\n    name: %s\n' "$pn" > "$dev/u-boot.yaml"
   echo schluessel > "$dev/ssh/id_ed25519"
-  for t in ssh make git rm docker u-boot devcontainer; do ln -s "$arbeit/attrappe" "$w/bin/$t"; done
+  for t in ssh make git rm docker u-boot devcontainer id; do ln -s "$arbeit/attrappe" "$w/bin/$t"; done
   git init -q --initial-branch=main "$repo"
   git -C "$repo" config user.name "$IDN"
   git -C "$repo" config user.email "$IDM"
@@ -262,7 +264,8 @@ fall p1-arbeitsbaum 'echo quelle > "$repo/datei.txt"; a=$(snapw "$repo" ! -path 
 fall p1-global-host 'a=$(snapw "$home" -maxdepth 1); gruen; [ "$a" = "$(snapw "$home" -maxdepth 1)" ] || rot'
 fall p1-global-aufruf 'gruen; nicht "config .*--(global|system)"'
 fall p1-pgr-dev 'a=$(snapw "$dev"); gruen; [ "$a" = "$(snapw "$dev")" ] || rot'
-NIE=('docker:^docker ' 'u-boot:^u-boot ' 'devcontainer:^devcontainer ' 'push-force:^git push .*--force'
+NIE=('docker:^docker ' 'u-boot:^u-boot ' 'devcontainer:^devcontainer ' 'push-force:^git push .*--force( |$)'
+  'push-force-with-lease:--force-with-lease'
   'push-mirror:^git push .*--mirror' 'push-delete:^git push .*--delete' 'reset:^git (-C [^ ]+ )?reset'
   'checkout-f:^git (-C [^ ]+ )?checkout .*-f' 'clean:^git (-C [^ ]+ )?clean' 'merge:^git (-C [^ ]+ )?merge'
   'pull:^git (-C [^ ]+ )?pull' 'rebase:^git (-C [^ ]+ )?rebase' 'remote-remove:^git remote remove'
@@ -273,6 +276,9 @@ for i in "${!NIE[@]}"; do fall "p1-nie-${NIE[i]%%:*}" "gruen; nicht '${NIE[i]#*:
 fall p2-dev-nicht-gesetzt 'nodev=1; lauf; ex 2 "PGR_DEV ist nicht gesetzt"; zeilen 1'
 fall p2-dev-leer 'ein PGR_DEV "ist leer" PGR_DEV='
 fall p2-dev-relativ 'ein PGR_DEV "ist nicht absolut" PGR_DEV=rel/pgr-ce-dev'
+fall p2-dev-metazeichen 'mkdir -p "$w/a;id/pgr-ce-dev"; ein PGR_DEV "Zeichen außerhalb" "PGR_DEV=$w/a;id/pgr-ce-dev"
+  nicht "^id"'
+fall p2-dev-leerzeichen 'mkdir -p "$w/a b/pgr-ce-dev"; ein PGR_DEV "Zeichen außerhalb" "PGR_DEV=$w/a b/pgr-ce-dev"'
 fall p2-dev-fehlt 'ein PGR_DEV "nirgends fehlt" PGR_DEV=$w/nirgends'
 fall p2-dev-datei 'ein PGR_DEV "ist kein Verzeichnis" PGR_DEV=$dev/u-boot.yaml'
 for p in leer: abc:abc 02222:02222 plus22:+22 null:0 ueber:65536; do
@@ -304,6 +310,10 @@ fall p2-opts-zeilenumbruch 'ein PGR_SSH_OPTS "Steuerzeichen" "PGR_SSH_OPTS=$(pri
 # vor `einliefern`, weil git die Zeichenkette GIT_SSH_COMMAND aus Punkt 7 notwendig an eine Shell gibt.
 fall p2-opts-keine-shell 'wbare master; lauf "PGR_SSH_OPTS=-oSendEnv=\$(docker)"; ex 4 "HEAD auf refs/heads/master"
   nicht "^docker"; log "ConnectTimeout=5 -oSendEnv=.[(]docker[)] -p 2222"'
+# Ein Muster im Wert bleibt ein Argument: keine Pfadnamen-Expansion (Punkt 2).
+# Der Lauf endet vor `einliefern`, weil git die Zeichenkette aus Punkt 7 an eine Shell gibt (Punkt 20 (7)).
+fall p2-opts-muster ': > "$repo/kh-a"; : > "$repo/kh-b"; wbare master; lauf "PGR_SSH_OPTS=-F kh-*"
+  ex 4 "HEAD auf refs/heads/master"; log "ConnectTimeout=5 -F kh-[*] -p 2222"'
 fall p2-vorgaben 'gruen; log "ssh .*-p 2222 vscode@127.0.0.1"; [ "$(git -C "$repo" remote get-url container)" = "ssh://vscode@127.0.0.1:2222$BP" ] || rot'
 fall p2-alle-gemeldet 'lauf PGR_DEV=rel PGR_SSH_PORT=0 PGR_REMOTE=-x PGR_ZWEIG=main "PGR_SSH_OPTS=$(printf -- "a\nb")"; ex 2; zeilen 5'
 fall p2-reihenfolge 'lauf PGR_DEV=rel PGR_SSH_PORT=0 PGR_REMOTE=-x PGR_ZWEIG=main "PGR_SSH_OPTS=$(printf -- "a\nb")"; ex 2
@@ -328,6 +338,7 @@ fall p3-name-anderer-einzug 'printf "project:\n  name: %s\n" "$pn" > "$dev/u-boo
 fall p4-stdout-nur-erfolg 'wklon; git -C "$kp" branch --no-track thema origin/main; gruen; [ "$(wc -l < "$w/out")" = 1 ] || rot'
 fall p4-werkzeug-stdout 'gruen AT_LAUT=hooks-install; grep -q WERKZEUG-STDOUT "$w/out" || rot'
 fall p4-werkzeug-stderr 'gruen AT_LAUT=hooks-install; grep -q WERKZEUG-STDERR "$w/err" || rot'
+fall p4-werkzeug-stderr-ssh 'gruen "AT_SSH_LAUT=*bare=fehlt*"; grep -qx SSH-WARNUNG "$w/err" || rot'
 fall p4-reihenfolge-der-schritte 'gruen
   [ "$(folge)" = "bare=fehlt init --bare push git clone config --local user.name hooks-install switch -c traeger-fetch " ] || rot'
 
@@ -439,6 +450,9 @@ fall p11-aus-origin-main 'wklon; git -C "$kp" switch -q -c main-alt; git -C "$kp
   [ "$(git -C "$kp" rev-parse thema)" = "$(git -C "$repo" rev-parse main)" ] || rot'
 fall p11-sonderzeichen 'zw="x\$(docker)y"; gruen; nicht "^docker"
   [ "$(git -C "$kp" rev-parse --abbrev-ref HEAD)" = "$zw" ] || rot'
+fall p11-main-unbewegt 'wklon; a=$(git -C "$kp" rev-parse main); git -C "$repo" commit -q --allow-empty -m zweit
+  gruen; [ "$(git -C "$kp" rev-parse main)" = "$a" ] || rot
+  [ "$(git -C "$kp" rev-parse origin/main)" != "$a" ] || rot'
 fall p11-fehler 'lauf "AT_SSH_ROT=*switch*"; ex 5 "zweig: der Zweig thema im Klon endete mit Exit 255"; nicht "traeger-fetch"'
 
 # Punkt 12: Träger des Harness, letzter Schritt.
@@ -481,6 +495,10 @@ for f in n q t; do
   fall "p16-makeflags-$f" "mt; mk MAKEFLAGS=$f; [ ! -s \"\$w/log\" ] || rot; ! grep -q eingerichtet \"\$w/out\" || rot"
 done
 fall p16-i 'mt; mk -i "AT_SSH_ROT=*bare=fehlt*"; ! grep -q eingerichtet "$w/out" || rot; grep -q "container-einrichten: zustand: " "$w/err" || rot'
+fall p16-makeflags-i 'mt; mk MAKEFLAGS=i "AT_SSH_ROT=*bare=fehlt*"; ! grep -q eingerichtet "$w/out" || rot
+  grep -q "container-einrichten: zustand: " "$w/err" || rot'
+fall p16-makeflags-k 'mt; mk MAKEFLAGS=k; [ "$code" = 0 ] || rot; grep -q eingerichtet "$w/out" || rot'
+fall p16-makeflags-j 'mt; mk MAKEFLAGS=j; [ "$code" = 0 ] || rot; grep -q eingerichtet "$w/out" || rot'
 fall p16-n-und-i 'mt; mk -n -i; [ ! -s "$w/log" ] || rot; ! grep -q eingerichtet "$w/out" || rot'
 fall p16-k 'mt; mk -k; [ "$code" = 0 ] || rot; grep -q eingerichtet "$w/out" || rot'
 fall p16-j 'mt; mk -j4; [ "$code" = 0 ] || rot; grep -q eingerichtet "$w/out" || rot'
@@ -638,6 +656,7 @@ mut m-p1-pgr-dev s "$A1" 's_hooks() {' 's_hooks() {
 NIEMUT=('docker:docker info' 'u-boot:u-boot --version' 'devcontainer:devcontainer up'
   'push-force:git push --force "$PGR_REMOTE" refs/heads/main' 'push-mirror:git push --mirror "$PGR_REMOTE"'
   'push-delete:git push --delete "$PGR_REMOTE" alt' 'reset:git reset --hard' 'checkout-f:git checkout -f'
+  'push-force-with-lease:git push --force-with-lease "$PGR_REMOTE" refs/heads/main'
   'clean:git clean -fd' 'merge:git merge --ff-only main' 'pull:git pull' 'rebase:git rebase main'
   'remote-remove:git remote remove alt' 'remote-set-url:git remote set-url "$PGR_REMOTE" "$url"'
   'branch-d:git branch -D alt' 'rm-rf:rm -rf "$PGR_DEV/nichts"')
@@ -652,6 +671,7 @@ done
 mut m-p2-dev-nicht-gesetzt s "$A2" 'if [ -z "${PGR_DEV+x}" ]; then meld "PGR_DEV ist nicht gesetzt"' 'if false; then meld "PGR_DEV ist nicht gesetzt"' p2-dev-nicht-gesetzt
 mut m-p2-dev-leer s "$A2" 'elif [ -z "$PGR_DEV" ]; then' 'elif false; then' p2-dev-leer
 mut m-p2-dev-relativ s "$A2" 'elif [[ $PGR_DEV != /* ]]; then' 'elif false; then' p2-dev-relativ
+mut m-p2-dev-zeichen s "$A2" 'elif [[ ! $PGR_DEV =~ ^/[A-Za-z0-9._+/-]*$ ]]; then' 'elif false; then' p2-dev-metazeichen p2-dev-leerzeichen
 mut m-p2-dev-fehlt s "$A2" 'elif [ ! -e "$PGR_DEV" ]; then' 'elif false; then' p2-dev-fehlt
 mut m-p2-dev-verzeichnis s "$A2" 'elif [ ! -d "$PGR_DEV" ]; then' 'elif false; then' p2-dev-datei
 mut m-p2-port-leer s "$A2" 'PGR_SSH_PORT=${PGR_SSH_PORT-2222}' 'PGR_SSH_PORT=${PGR_SSH_PORT:-2222}' p2-port-leer
@@ -668,17 +688,26 @@ mut m-p2-remote-slash s "$A2" '^[A-Za-z0-9][A-Za-z0-9._-]*$' '^[A-Za-z0-9][A-Za-
 mut m-p2-remote-leerzeichen s "$A2" '^[A-Za-z0-9][A-Za-z0-9._-]*$' '^[A-Za-z0-9][A-Za-z0-9._[:space:]-]*$' p2-remote-leerzeichen
 mut m-p2-remote-minus s "$A2" '^[A-Za-z0-9][A-Za-z0-9._-]*$' '^[A-Za-z0-9-][A-Za-z0-9._-]*$' p2-remote-minus p2-alle-gemeldet p2-reihenfolge
 mut m-p2-remote-laenge s "$A2" '(( ${#PGR_REMOTE} > 64 ))' '(( ${#PGR_REMOTE} > 65 ))' p2-remote-65
+mut m-p2-remote-laenge-63 s "$A2" '(( ${#PGR_REMOTE} > 64 ))' '(( ${#PGR_REMOTE} > 63 ))' p2-remote-64
 mut m-p2-zweig-nicht-gesetzt s "$A2" 'if [ -z "${PGR_ZWEIG+x}" ]; then meld "PGR_ZWEIG ist nicht gesetzt"' 'if false; then meld "PGR_ZWEIG ist nicht gesetzt"' p2-zweig-nicht-gesetzt
 mut m-p2-zweig-leer s "$A2" 'elif [ -z "$PGR_ZWEIG" ]; then' 'elif false; then' p2-zweig-leer
 mut m-p2-zweig-main s "$A2" 'elif [ "$PGR_ZWEIG" = main ]; then' 'elif false; then' p2-zweig-main p2-alle-gemeldet p2-reihenfolge
 mut m-p2-zweig-minus s "$A2" 'elif [[ $PGR_ZWEIG == -* ]]; then' 'elif false; then' p2-zweig-minus
 mut m-p2-zweig-refs s "$A2" 'elif [[ $PGR_ZWEIG == refs/* ]]; then' 'elif false; then' p2-zweig-refs
 mut m-p2-zweig-check-ref-format s "$A2" 'elif command -v git > /dev/null 2>&1 && ! git check-ref-format --branch "$PGR_ZWEIG" > /dev/null 2>&1; then' 'elif false; then' p2-zweig-punkte p2-zweig-leerzeichen
+# Punkt 14, Ausnahme: ohne `git` bleibt allein die Prüfung von check-ref-format aus (Entscheidung des
+# Architect, 2026-10-21); ohne den Vorbehalt meldet `eingaben` auch ohne `git` den Zweignamen.
+mut m-p2-zweig-ohne-git s "$A3" 'elif command -v git > /dev/null 2>&1 && ! git check-ref-format --branch "$PGR_ZWEIG" > /dev/null 2>&1; then' 'elif ! git check-ref-format --branch "$PGR_ZWEIG" > /dev/null 2>&1; then' p3-fehlt-git p3-fehlt-beide p3-fehlt-git-zweig-ungueltig
+mut m-p2-zweig-kurz s "$A2" 'elif [[ $PGR_ZWEIG == -* ]]; then' 'elif [[ $PGR_ZWEIG == -* || $PGR_ZWEIG = a ]]; then' p2-zweig-a
+mut m-p2-zweig-lang s "$A2" 'elif [[ $PGR_ZWEIG == refs/* ]]; then' 'elif [[ $PGR_ZWEIG == refs/* ]] || (( ${#PGR_ZWEIG} > 20 )); then' p2-zweig-kennung
 mut m-p2-opts-steuerzeichen s "$A2" "[[ \$PGR_SSH_OPTS != *[\$'\\001'-\$'\\010'\$'\\012'-\$'\\037\\177']* ]]" 'true' p2-opts-zeilenumbruch p2-alle-gemeldet p2-reihenfolge
 mut m-p2-opts-tabulator s "$A2" "\$'\\012'-\$'\\037\\177']* ]]" "\$'\\011'-\$'\\037\\177']* ]]" p2-opts-tabulator
 mut m-p2-opts-ein-argument s "$A2" '  sshopts=($PGR_SSH_OPTS)' '  sshopts=("$PGR_SSH_OPTS")' p2-opts-tabulator p2-opts-leer p2-opts-nicht-gesetzt
 mut m-p2-opts-shell s "$A2" '  sshopts=($PGR_SSH_OPTS)' '  eval "sshopts=($PGR_SSH_OPTS)"' p2-opts-keine-shell p4-nichts-geaendert
-mut m-p2-vorgabe-port s "$A2" 'PGR_SSH_PORT=${PGR_SSH_PORT-2222}' 'PGR_SSH_PORT=${PGR_SSH_PORT-2223}' p2-vorgaben p2-opts-nicht-gesetzt p2-opts-leer p2-opts-eine p2-opts-zwei p2-opts-tabulator p2-opts-keine-shell
+mut m-p2-opts-glob s "$A2" '  set -f
+  sshopts=($PGR_SSH_OPTS)
+  set +f' '  sshopts=($PGR_SSH_OPTS)' p2-opts-muster
+mut m-p2-vorgabe-port s "$A2" 'PGR_SSH_PORT=${PGR_SSH_PORT-2222}' 'PGR_SSH_PORT=${PGR_SSH_PORT-2223}' p2-vorgaben p2-opts-nicht-gesetzt p2-opts-leer p2-opts-eine p2-opts-zwei p2-opts-tabulator p2-opts-keine-shell p2-opts-muster
 mut m-p2-vorgabe-remote s "$A2" 'PGR_REMOTE=${PGR_REMOTE-container}' 'PGR_REMOTE=${PGR_REMOTE-behaelter}' p2-vorgaben
 mut m-p2-reihenfolge s "$A2" 'for v in PGR_DEV PGR_SSH_PORT PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS' 'for v in PGR_SSH_PORT PGR_DEV PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS' p2-reihenfolge
 mut m-p2-erster-verstoss s "$A2" '  (( bad == 0 )) || exit 2' '  (( bad == 0 )) || { (( bad > 1 )) && exit 2; exit 2; }' # äquivalent
@@ -698,8 +727,10 @@ mut m-p4-stdout s "$A1" 's_hooks() {' 's_hooks() {
   echo zwischenstand' p4-stdout-nur-erfolg
 mut m-p4-werkzeug-stdout s 'p4-.*' '  fern "cd $klonpfad && make hooks-install"' '  fern "cd $klonpfad && make hooks-install" > /dev/null' p4-werkzeug-stdout
 mut m-p4-werkzeug-stderr s 'p4-.*' '  fern "cd $klonpfad && make hooks-install"' '  fern "cd $klonpfad && make hooks-install" 2> /dev/null' p4-werkzeug-stderr
+mut m-p4-lesezug-stderr s 'p4-.*' '[ -z "$z" ] || printf' '[ -n "$z" ] || printf' p4-werkzeug-stderr-ssh
 mut m-p4-meldung-ohne-schritt s "$A3" 'echo "container-einrichten: $schritt: $*" >&2' 'echo "container-einrichten: $*" >&2' p4-meldung-form p3-fehlt-ssh p3-fehlt-git p3-fehlt-beide
 mut m-p4-schritte s 'p4-.*|p12-.*' 'for schritt in eingaben werkzeuge zustand bare einliefern klon identitaet hooks zweig traeger' 'for schritt in eingaben werkzeuge zustand bare einliefern klon identitaet hooks traeger zweig' p4-reihenfolge-der-schritte p12-stelle p12-fehler
+mut m-p14-eingaben-nach-werkzeuge s "$A3" 'for schritt in eingaben werkzeuge zustand' 'for schritt in werkzeuge eingaben zustand' p14-eingabe-vor-werkzeug
 # Punkt 5: Zustand
 mut m-p5-schluessel-vorhanden s "$A5" '  [ -e "$PGR_DEV/ssh/id_ed25519" ] || ende 4 "$PGR_DEV/ssh/id_ed25519 fehlt"' '  :' p5-schluessel-fehlt
 mut m-p5-schluessel-lesbar s "$A5" '  [ -r "$PGR_DEV/ssh/id_ed25519" ] ||' '  [ -e "$PGR_DEV/ssh/id_ed25519" ] ||' p5-schluessel-unlesbar
@@ -715,16 +746,20 @@ mut m-p5-ident-beide s "$A5" '  (( ${#f[@]} == 0 )) || ende 4 "die Identität de
 mut m-p5-ident-steuerzeichen s "$A5" '[\x20-\x7e]' '[\x09-\x0d\x20-\x7e]' p5-ident-tabulator p5-ident-zeilenumbruch p5-ident-cr
 mut m-p5-ident-tabulator s "$A5" '[\x20-\x7e]' '[\x09\x20-\x7e]' p5-ident-tabulator
 mut m-p5-ident-utf8 s "$A5" '|\xf4[\x80-\x8f][\x80-\xbf][\x80-\xbf])*$' '|[\x80-\xff])*$' p5-ident-nicht-utf8 p5-ident-mail-nicht-utf8
+mut m-p5-ident-nur-ascii s "$A5|p9-zeichen-(umlaut|cjk|emoji)" '[\xc2-\xdf][\x80-\xbf]|' '' p5-ident-utf8-gut p9-zeichen-umlaut
+mut m-p5-ident-nur-lokal s "$A5" 'iname=$(git config --get user.name 2> /dev/null)' 'iname=$(git config --local --get user.name 2> /dev/null)' p5-ident-global p4-nichts-geaendert
 mut m-p5-ident-mail-geprueft s "$A5" '  [[ $imail =~ $re ]] ||' '  true ||' p5-ident-mail-nicht-utf8
 mut m-p5-ident-wert-in-meldung s "$A5" 'ende 4 "user.name des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8 (der Wert steht nicht in dieser Meldung)"' 'ende 4 "user.name $iname des Host-Repos trägt ein Steuerzeichen oder kein gültiges UTF-8"' p5-ident-tabulator p5-ident-zeilenumbruch p5-ident-cr p5-ident-nicht-utf8 p4-meldung-form
 mut m-p5-remote-url s "$A5" '    [ "$ist" = "$url" ] ||' '    [ -n "$ist" ] ||' p5-remote-andere-url p14-remote-vor-lesezug p5-remote-nichts-gesetzt
+mut m-p5-remote-name-fest s "$A5|p7-.*" 'git remote add "$PGR_REMOTE" "$url"' 'git remote add container "$url"' p5-remote-anderer-name
+mut m-p7-url-ohne-port s "$A5|p7-.*|p2-vorgaben" 'url=ssh://vscode@127.0.0.1:$PGR_SSH_PORT/workspaces/$projekt/austausch.git' 'url=ssh://vscode@127.0.0.1/workspaces/$projekt/austausch.git' p2-vorgaben p5-remote-andere-url p5-remote-anderer-name p5-remote-gleich p7-remote-fehlt
 mut m-p5-remote-gesetzt s "$A5|p1-nie-remote-set-url" '  if ist=$(git remote get-url "$PGR_REMOTE" 2> /dev/null); then' '  if ist=$(git remote set-url "$PGR_REMOTE" "$url" 2> /dev/null); then' p5-remote-andere-url p5-remote-nichts-gesetzt p5-remote-gleich p14-remote-vor-lesezug p1-nie-remote-set-url p4-nichts-geaendert
 mut m-p5-lesezug-batchmode s "$A5" ' -o BatchMode=yes -o ConnectTimeout=5' ' -o ConnectTimeout=5' p5-lesezug-aufruf
 mut m-p5-lesezug-timeout s "$A5" ' -o ConnectTimeout=5' '' p5-lesezug-aufruf
 mut m-p5-lesezug-hostschluessel s "$A5" ' -o BatchMode=yes -o ConnectTimeout=5' ' -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=5' p5-lesezug-kein-hostschluessel p5-lesezug-aufruf
 mut m-p5-lesezug-zwei-aufrufe s "$A5" '  fern -a "$(lesebefehl)"' '  fern -a "$(lesebefehl)"; fern -a "$(lesebefehl)"' p5-lesezug-ein-aufruf p4-nichts-geaendert p4-reihenfolge-der-schritte
 mut m-p5-lesezug-schreibt s "$A5" "'if [ ! -e \"\$b\" ] && [ ! -L \"\$b\" ]; then echo bare=fehlt'" "': > \"\$b.spur\"; if [ ! -e \"\$b\" ] && [ ! -L \"\$b\" ]; then echo bare=fehlt'" p5-lesezug-schreibt-nichts p4-nichts-geaendert
-mut m-p5-nicht-erreichbar s "$A5" '  if [ "$kcode" != 0 ]; then' '  if false; then' p5-nicht-erreichbar p14-lesezug-vor-werkzeugen
+mut m-p5-nicht-erreichbar s "$A5" '  if [ "$kcode" != 0 ]; then' '  if false; then' p5-nicht-erreichbar p14-lesezug-vor-werkzeugen p4-meldung-form
 mut m-p5-meldung-ohne-ausgabe s "$A5" '(ssh: $s) — make container-start startet ihn' '— make container-start startet ihn' p5-nicht-erreichbar
 mut m-p5-fern-git s "$A5" '  for t in git make; do
     [ "${Z[wz-$t]-}" = ja ]' '  for t in make; do
@@ -757,6 +792,7 @@ mut m-p7-zweiter-versuch s 'p7-.*' '  [ "$kcode" = 0 ] && return 0' '  [ "$kcode
   [ "$kcode" = 0 ] && return 0' p7-abgewiesen
 mut m-p7-fehler s 'p7-.*' '  ende 5 "git push $PGR_REMOTE endete mit Exit $kcode"' '  :' p7-fehler
 mut m-p8-clone-immer s 'p8-.*|p13-.*' '  if [ "${Z[klon]}" = fehlt ]; then' '  if true; then' p8-besteht p8-fehler p13-zweiter-aufruf
+mut m-p8-clone-ziel s 'p8-.*|p13-.*' 'git clone $barepfad $klonpfad' 'git clone $barepfad $klonpfad-zwei' p8-fehlt p13-erfolg p13-umgebung p13-zweiter-aufruf
 mut m-p8-prune s 'p8-.*' ' fetch --prune origin' ' fetch origin' p8-besteht p8-fehler
 mut m-p8-pull s 'p8-.*' 'git -C $klonpfad fetch --prune origin' 'git -C $klonpfad pull' p8-besteht p8-fehler
 mut m-p8-fehler s 'p8-.*' '  [ "$kcode" = 0 ] || ende 5 "der Klon $klonpfad endete mit Exit $kcode"' '  :' p8-fehler
@@ -774,6 +810,9 @@ mut m-p10-verzeichnis s 'p10-.*' '  fern "cd $klonpfad && make hooks-install"' '
 mut m-p10-fehler s 'p10-.*' '  [ "$kcode" = 0 ] || ende 5 "make hooks-install im Klon endete mit Exit $kcode"' '  :' p10-fehler
 mut m-p11-quelle s 'p11-.*' 'switch -c "$z" origin/main' 'switch -c "$z" main' p11-aus-origin-main
 mut m-p11-immer-c s 'p11-.*' '  if (( zweigda )); then' '  if false; then' p11-besteht
+mut m-p11-nie-c s 'p11-.*' '  if (( zweigda )); then' '  if true; then' p11-fehlt p11-aus-origin-main p11-main-unbewegt p11-sonderzeichen
+mut m-p11-main-bewegt s 'p11-.*' '  [ "$kcode" = 0 ] || ende 5 "der Zweig $PGR_ZWEIG im Klon endete mit Exit $kcode"' '  [ "$kcode" = 0 ] || ende 5 "der Zweig $PGR_ZWEIG im Klon endete mit Exit $kcode"
+  fern "git -C $klonpfad branch -f main origin/main"' p11-main-unbewegt
 mut m-p11-force s 'p11-.*' 'git -C '"'"'"$klonpfad"'"'"' switch "$z"' 'git -C '"'"'"$klonpfad"'"'"' switch --force "$z"' p11-besteht
 mut m-p11-kein-switch s 'p11-.*|p12-.*' '  if (( zweigda )); then
     fern '"'"'IFS= read -r z; git -C '"'"'"$klonpfad"'"'"' switch "$z"'"'"'' '  if (( zweigda )); then
@@ -798,7 +837,7 @@ mut m-p15-rueckbau s "$A15" 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/
 mut m-p16-rezept-make m "$A16" '	@bash tools/harness/container-einrichten.sh' '	@$(MAKE) -f /dev/null -q; bash tools/harness/container-einrichten.sh' p16-n p16-q p16-t p16-makeflags-n p16-makeflags-q p16-makeflags-t p16-n-und-i
 mut m-p16-nicht-phony m "$A16|p17-phony" '.PHONY: container-einrichten' '.PHONY: container-einrichten-nicht' p16-phony p17-phony
 mut m-p16-voraussetzung m "$A16" 'container-einrichten: ##' 'container-einrichten: Makefile ##' # äquivalent am Ergebnis (§7: Sonde)
-mut m-p16-voraussetzung-fehlt m "$A16" 'container-einrichten: ##' 'container-einrichten: gibtsnicht ##' p16-phony p16-k p16-j p16-i
+mut m-p16-voraussetzung-fehlt m "$A16" 'container-einrichten: ##' 'container-einrichten: gibtsnicht ##' p16-phony p16-k p16-j p16-i p16-makeflags-i p16-makeflags-j p16-makeflags-k
 # Punkt 17: Listen und Zeitbudget
 mut m-p17-liste-fehlt g "$A17" 'GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe' '# keine Liste' p17-liste-container
 mut m-p17-liste-host g "$A17" 'GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe' 'GEGENPROBEN_HOST += container-einrichten-gegenprobe' p17-liste-container p17-nicht-host

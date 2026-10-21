@@ -6,12 +6,16 @@
 # Vertrag: harness/vertraege/SPEC-069-container-einrichten.md (Punkte 1 bis 20). KEIN GATE: das Ziel steht im
 # Abschnitt Werkzeuge von harness/README.md, und kein Hook und kein Stand glaubt sein Ergebnis.
 # Eingaben aus der Umgebung: PGR_DEV und PGR_ZWEIG (Pflicht), PGR_SSH_PORT, PGR_REMOTE, PGR_SSH_OPTS.
+# Voraussetzung am Host: bash ab 4.4 (`wait` auf eine Prozess-Substitution über `$!`, Punkt 19 und Kopf der
+# Kennung), `ssh` und `git` im Pfad (Punkt 3).
 # Exit-Codes: 0 eingerichtet · 2 eingaben · 3 werkzeuge am Host · 4 zustand · 5 Fehler eines Schrittes ·
 # 130 SIGINT · 143 SIGTERM.
 # GRENZEN (Punkt 20): keine Versionsprüfung; keine Zeitgrenze außer ConnectTimeout=5 je ssh-Aufruf; keine
 # Einstellung für den Hostschlüssel; gleichzeitige Aufrufe mit demselben PGR_DEV sind nicht zugesagt; eine
-# Option in PGR_SSH_OPTS, die Leerraum enthält, ist nicht zugesagt; ein PGR_DEV mit Leerraum im Pfad ist
-# nicht geprüft (die Form des Pfades prüft SPEC-058 Punkt 2).
+# Option in PGR_SSH_OPTS, die Leerraum oder ein Shell-Metazeichen enthält, ist im Push nicht zugesagt
+# (Punkt 20 (7)); der Exit-Code von `git push` bei gescheiterter Verbindung ist nicht gebunden
+# (Punkt 20 (11)). Der Zeichenvorrat von PGR_DEV ist dagegen geprüft (Punkt 2), weil der Pfad in Punkt 7 in
+# GIT_SSH_COMMAND reist.
 #
 # GEPRÜFT DURCH tools/harness/container-einrichten-gegenprobe.sh (Fälle p<Punkt>-*), ohne Container.
 set -uo pipefail
@@ -37,7 +41,8 @@ exec 4>&1
 kein=
 # kind [-a|-e] <Befehl…>: Kindprozess im Hintergrund, damit ein Signal sofort wirkt. Ohne Schalter erscheinen
 # beide Ströme unverändert dort, wo das Werkzeug sie schrieb (Punkt 4); -a hält beide in $kausg (der Lesezug
-# ist Eingabe des Ziels, Punkt 5), -e hält stderr in $kausg und schreibt es danach unverändert auf stderr.
+# ist Eingabe des Ziels, Punkt 5 — was darin nicht zu den Zeilen des Lesebefehls gehört, schreibt
+# zust_lesezug auf stderr), -e hält stderr in $kausg und schreibt es danach unverändert auf stderr.
 # $kein ist der Standardeingang (leer: nichts), $kcode der Exit-Code.
 kind() {
   local m=${1-} fd z
@@ -79,6 +84,7 @@ pruefe_PGR_DEV() {
   if [ -z "${PGR_DEV+x}" ]; then meld "PGR_DEV ist nicht gesetzt"
   elif [ -z "$PGR_DEV" ]; then meld "PGR_DEV ist leer"
   elif [[ $PGR_DEV != /* ]]; then meld "PGR_DEV $(q "$PGR_DEV") ist nicht absolut"
+  elif [[ ! $PGR_DEV =~ ^/[A-Za-z0-9._+/-]*$ ]]; then meld "PGR_DEV $(q "$PGR_DEV") trägt ein Zeichen außerhalb von A-Za-z0-9._+- und /"
   elif [ ! -e "$PGR_DEV" ]; then meld "PGR_DEV $(q "$PGR_DEV") fehlt"
   elif [ ! -d "$PGR_DEV" ]; then meld "PGR_DEV $(q "$PGR_DEV") ist kein Verzeichnis"
   fi
@@ -110,7 +116,11 @@ s_eingaben() {
   local v
   for v in PGR_DEV PGR_SSH_PORT PGR_REMOTE PGR_ZWEIG PGR_SSH_OPTS; do "pruefe_$v"; done
   (( bad == 0 )) || exit 2
+  # Punkt 2: an Leerraum geteilt und als einzelne Argumente übergeben; `set -f` hält die
+  # Pfadnamen-Expansion der Shell aus dem Wert heraus.
+  set -f
   sshopts=($PGR_SSH_OPTS)
+  set +f
 }
 
 # Punkt 3: werkzeuge am Host. Alle Verstöße des Schrittes werden gemeldet, in dieser Reihenfolge; Versionen
@@ -191,7 +201,12 @@ zust_lesezug() {
   zweige=$'\n'
   Z=()
   while IFS= read -r z; do
-    case $z in zweig=*) zweige+=${z#zweig=}$'\n' ;; *=*) Z[${z%%=*}]=${z#*=} ;; esac
+    case $z in
+      zweig=*) zweige+=${z#zweig=}$'\n' ;;
+      wz-git=* | wz-make=* | bare=* | klon=* | origin=* | status=*) Z[${z%%=*}]=${z#*=} ;;
+      # Punkt 4: Was das gerufene Werkzeug neben den Zeilen des Lesebefehls schrieb, erscheint auf stderr.
+      *) [ -z "$z" ] || printf '%s\n' "$z" >&2 ;;
+    esac
   done <<< "$kausg"
 }
 # Beide liegen im Image, und ein Eingriff in das Image ist nicht Gegenstand dieses Ziels.
