@@ -100,7 +100,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `AGENTS.md` | update | §6 Schritt 6 (der Satz aus `slice-harness-gegenproben-aus-gates` und `slice-harness-gegenproben-aus-gates-sammelziele` wird um die Auslöser ergänzt, falls dort kürzer) |
 | `docs/developer/devcontainer.md` | update | Abschnitt über den Gegenproben-Container, Zeile in §8, §13 für Ungeprüftes |
 | `harness/README.md` | update | Fahrstelle in der Zeile der Sammelziele |
-| `docs/plan/planning/next/slice-erster-release-freigabe.md`, `docs/plan/planning/open/slice-harness-devcontainer-einrichten.md`, `docs/plan/planning/done/slice-harness-devcontainer-einrichten-start.md` | update (Planner, im Commit des Schnitts) | Sendung der Checkliste und Bindung an den Abschnitt (§1, §6, §8 der Nehmer) |
+| `docs/plan/planning/next/slice-erster-release-freigabe.md`, `docs/plan/planning/in-progress/slice-harness-devcontainer-einrichten.md`, `docs/plan/planning/done/slice-harness-devcontainer-einrichten-start.md` | update (Planner, im Commit des Schnitts) | Sendung der Checkliste und Bindung an den Abschnitt (§1, §6, §8 der Nehmer) |
 
 ## 4. Trigger
 
