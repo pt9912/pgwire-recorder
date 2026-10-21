@@ -158,6 +158,24 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers (Vorbereitung, 2026-10-21, Zweig impl-rel)
+
+Der Slice liefert keinen Code und keinen Vertrag (§1); die Zusagen sind die Punkte der Checkliste. Der Hash des Tag-Kandidaten ist der Release-Commit `3594b9f0578dd8c844e9a9d3e5bc6f147bcd3aaa`; der Eintrag `docs/maintainer/freigaben/0.1.1.md` steht in einem späteren Commit (er kann den Hash seines eigenen Commits nicht nennen) und nennt die Belege je Punkt mit Befehl, Dauer und Last.
+
+| Zusage | Beleg | Gegenbeispiel (rot gesehen) |
+|---|---|---|
+| `VERSION` ist `0.1.1` im getaggten Commit (Punkt 4) | `git show 3594b9f0:VERSION` gibt `0.1.1` | `release.sh eingaben` mit `VERSION` `0.1.2` und Zeile `0.1.1` meldet `keine Zeile für 0.1.2` (Hinweis im Trockenlauf; im Lauf des Tags wäre es Exit 2 `tag-ungleich`, nur über die Gegenprobe belegt, nicht hier gefahren) |
+| Die Zeile `0.1.1` der Änderungshistorie steht im getaggten Commit mit nicht leerer dritter Zelle (Punkt 4, `releasing.md` §9) | Zeile 2174 des Handbuchs; `release.sh eingaben` im Trockenlauf-Modus gibt `release: hinweis: Änderungshistorie 0.1.1: …` und `eingaben: grün für v0.1.1` | dieselbe Probe mit entfernter Zeile gibt `die Änderungshistorie des Benutzerhandbuchs hat keine Zeile für 0.1.1` statt des Textes |
+| `make gates` grün am Hash (Punkt 1) | Exit 0, 287 s, Last 13,7 | nicht gefahren: kein Mutant (Gate des Bestands, §1) |
+| Punkt 2 nach `CO-001`: unveränderte Kopie von `release.yml` und `release.sh` grün | `GP_MUT='^ok$' make release-gegenprobe` Exit 0, 142 s, `grün (1 Läufe)` | nicht gefahren (Muster `^ok$` lässt nur die unveränderte Kopie laufen; Grenze steht im Eintrag) |
+| Punkt 2 nach `CO-001`: unveränderte Kopie von `binaries` und `test-container` grün | `GP_MUT='^kein-treffer$' make test-container-gegenprobe` Exit 0, 22 s | nicht gefahren, Grenze im Eintrag |
+| Punkt 3 nach `CO-001`: Dateien von `container-start` seit der letzten grünen Fahrt unverändert | `git diff --stat 35778a2f 3594b9f0 -- <fünf Dateien>` leer | ein Diff ungleich leer wäre die Grenze und der Halt; die letzte grüne Fahrt ist nur eine Angabe der Koordination (Eintrag von `welle-erster-release`), im Eintrag als Grenze genannt |
+| Punkte 5 und 6 (Trockenlauf, Scan) | **nicht erfüllt**: `origin` des Worktrees ist der lokale Austausch, `gh workflow run` wurde dem Lauf verweigert; die Koordination fährt ihn | Teilbeleg lokal nur für den Schritt `eingaben` (siehe oben) |
+
+**Halt an die Koordination:** Punkt 5 (Trockenlauf auf GitHub mit `impl-rel`) und damit Punkt 6 (Scan) sind nicht belegt; beides hat Außenwirkung auf GitHub. Der Tag wartet darauf.
+
+**Größenmarke** (§4, Metrik: Summe aus Einfügungen und Löschungen von `git diff --numstat 0256ddff..<letzter Commit> -- VERSION docs/user docs/maintainer README.md`), vor dem Commit des Eintrags und dieses Abschnitts: 2 (`VERSION`) + 95 (`releasing.md`) + 29 (Handbuch) = 126, unter 500; die Basis `0256ddff` enthält Änderungen aus `slice-v1-abschluss-binary-namen` und `…-cancel-ohne-schluessel`, die nicht zu diesem Slice gehören.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
