@@ -495,8 +495,10 @@ der die Fassung ersetzt.
     und nie gleichzeitig mit dem Lauf eines anderen Slice auf demselben Daemon (Regel an den Aufrufer,
     `SPEC-052` Punkt 8, `SPEC-058` Punkt 15).
 
-19. **Was die Plattform entscheidet.** Geprüft ist Linux (Host und Container), und die Gegenprobe läuft
-    unter Linux im Gegenproben-Container. Für macOS und Windows ist **keine** Zusage dieses Vertrags
+19. **Was die Plattform entscheidet.** Geprüft ist Linux (Host und Container) mit bash ≥ 4.4 am Host
+    (Kopf dieser Kennung, *Plattform*), und die Gegenprobe läuft unter Linux im Gegenproben-Container. Für
+    bash 4.0 bis 4.3 gilt das akzeptierte Negativ im Kopf (*Warum 4.4*), ohne Selbsttest des Ziels. Für
+    macOS und Windows ist **keine** Zusage dieses Vertrags
     geprüft; sie sind die **Grenze** (Kopf dieser Kennung). Je übriger Plattform die Entscheidung: Das Ziel
     lehnt sie nicht ab und wird dort nicht gemessen (Grund: kein solcher Host steht bereit, und das
     Gerüst aus `SPEC-058` ist dort ebenso nicht gemessen); ein Satz im Dokument
