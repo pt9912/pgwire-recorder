@@ -1,10 +1,10 @@
-# ADR-0055: Zwei Gegenproben haben eine Obergrenze für ihre Zeit und räumen je Mutation auf
+# ADR-0055: Jede Gegenprobe hat eine Obergrenze von zehn Minuten für den vollen Lauf und räumt je Mutation auf
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Datum:** 2026-10-20
+**Datum:** 2026-10-21
 
-**Autor:** Architect. Anlass ist der Hinweis des Nutzers vom 2026-10-20 (so vom Koordinator übermittelt): Dauert eine Gegenprobe drei Stunden, werden keine Gegenproben mehr gefahren. Die Obergrenzen und die Wahl der Mittel unten sind die Empfehlung des Architect; die Annahme dieser ADR durch den Nutzer steht aus.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-21 (wörtlich, vom Koordinator übermittelt): „die gegenproben werden zeitlich begrenzt. höchstens 10 minuten“. Anlass war sein Hinweis vom 2026-10-20: Dauert eine Gegenprobe drei Stunden, werden keine Gegenproben mehr gefahren. Die Wahl der Mittel unten ist die Empfehlung des Architect innerhalb dieser Entscheidung.
 
 **Bezug:** [ADR-0048](0048-gegenproben-verlassen-die-gate-kette.md), [ADR-0038](0038-gate-kette-voll-und-schnell.md), [ADR-0026](0026-build-und-test-im-multistage-dockerfile.md)
 
@@ -34,12 +34,13 @@ Daraus folgt: Jede Mutation fährt die ganze Gruppe ihres Skripts (bis 112 Fäll
 
 ## Entscheidung
 
-Wir empfehlen **Option B: eine harte Obergrenze für den vollen Lauf von zwei Gegenproben, Anzeige und Rot bei Überschreitung, Aufräumen je Mutation, keine Streichung einer Mutation.**
+Wir wählen **Option B: eine harte Obergrenze für den vollen Lauf jeder Gegenprobe, Anzeige und Rot bei Überschreitung, Aufräumen je Mutation, keine Streichung einer Mutation.**
 
-1. **Obergrenzen.** `release-gegenprobe` 600 s, `test-container-gegenprobe` 300 s, Wanduhr des vollen Laufs auf ruhigem Host. Das Skript misst sich selbst, nennt `Zeit`, Obergrenze und Last in einer Zeile und endet bei Überschreitung mit Exit 1. Die übrigen Gegenproben bekommen eine Obergrenze, wenn ein eigener Slice sie gemessen hat.
-2. **Aufräumen.** Der Ordner einer Mutation und der eines Falls entfallen, sobald sie fertig sind, rot wie grün. Die Spitze des Platzes liegt unter 100 MB.
-3. **Die Mutationen bleiben.** Jede ist die Mutation einer Zusage oder eines Elements (`AGENTS.md` §3.10); das Budget wird über die Kosten je Mutation erreicht, nicht über deren Zahl. Der Slice senkt die Prozess-Starts je Fall (Arbeit in der `bash` statt in Unterprozessen, Layouts und Attrappen einmal je Welt statt je Aufruf, ein Ordner je Fall statt einer Kopie mit `cp -a`) und erhöht höchstens die Zahl gleichzeitiger Läufe auf 8.
-4. **Reicht das nicht**, entscheidet der Nutzer zwischen zwei Lockerungen, jede mit eigener ADR: die Obergrenze erhöhen, oder je Mutation nur die Fälle prüfen, die sie berühren kann (Auswahl nach den benannten roten Fällen und ihren Nachbarn, wie `test-container-gegenprobe` es mit `nur` hält); letzteres prüft „genau die benannten Fälle rot“ nur noch unter der Auswahl.
+1. **Obergrenze.** Jede Gegenprobe der beiden Listen (`GEGENPROBEN_CONTAINER`, `GEGENPROBEN_HOST`, dazu `a-check-negativ`) braucht für den vollen Lauf höchstens **600 s** Wanduhr auf ruhigem Host (Entscheidung des Nutzers: zehn Minuten). Das Skript misst sich selbst, nennt `Zeit`, Obergrenze und Last in einer Zeile und endet bei Überschreitung mit Exit 1. Eine strengere Grenze für eine einzelne Gegenprobe gibt es nicht; für `test-container-gegenprobe` ist die Schätzung von 4 bis 5 Minuten nicht belegt, deshalb gilt auch für sie 600 s.
+2. **Aufnahme.** Die Grenze gilt für eine Gegenprobe ab ihrer Aufnahme: Ein Slice misst ihren vollen Lauf, führt die Fälle nach `SPEC-060` Punkt 16 ein und trägt sie in die Tabelle des Vertrags ein. Bis dahin steht sie dort im benannten Zustand „nicht gemessen“ mit der Adresse des Slice, der sie aufnimmt; das ist keine Ausnahme ohne Frist, denn die Tabelle nennt den Nehmer, und ohne Nehmer ist der Eintrag ein Befund des Verträge-Prüfers.
+3. **Aufräumen.** Der Ordner einer Mutation und der eines Falls entfallen, sobald sie fertig sind, rot wie grün. Die Spitze des Platzes liegt unter 100 MB.
+4. **Die Mutationen bleiben.** Jede ist die Mutation einer Zusage oder eines Elements (`AGENTS.md` §3.10); das Budget wird über die Kosten je Mutation erreicht, nicht über deren Zahl. Der Slice senkt die Prozess-Starts je Fall (Arbeit in der `bash` statt in Unterprozessen, Layouts und Attrappen einmal je Welt statt je Aufruf, ein Ordner je Fall statt einer Kopie mit `cp -a`) und erhöht höchstens die Zahl gleichzeitiger Läufe auf 8.
+5. **Reicht das nicht**, entscheidet der Nutzer zwischen zwei Lockerungen, jede mit eigener ADR: die Obergrenze erhöhen, oder je Mutation nur die Fälle prüfen, die sie berühren kann (Auswahl nach den benannten roten Fällen und ihren Nachbarn, wie `test-container-gegenprobe` es mit `nur` hält); letzteres prüft „genau die benannten Fälle rot“ nur noch unter der Auswahl.
 
 Die Regeln im Einzelnen (Randformen, Ausgabe, Reihenfolge der Gründe, Fälle) stehen in [`SPEC-060`](../../../harness/vertraege/SPEC-060-gegenproben.md) Punkt 16.
 
@@ -60,7 +61,7 @@ Die Regeln im Einzelnen (Randformen, Ausgabe, Reihenfolge der Gründe, Fälle) s
 - Negativ: Unter Last kann ein grüner Lauf wegen der Zeit rot enden; die Zeile nennt die Last, wer sie liest, fährt auf ruhigem Host neu.
 - Akzeptiertes Negativ: Der Vergleich `T > B` gegen `T >= B` ist nicht prüfbar (die Zeit ist nicht steuerbar, die Wirkung ist eine Sekunde).
 - Akzeptiertes Negativ: Die Zahlen gelten für Linux. Grund: Die Gegenproben laufen im Gegenproben-Container (`SPEC-060` Kopf, Plattform).
-- Übergang: Bis der Slice zu dieser ADR geliefert ist, fährt kein Implementer einen vollen Lauf der beiden Gegenproben; er fährt den engsten Fall mit `GP_MUT`, der Verifier den vollen Lauf einmal am Endstand. Das ist eine Anweisung der Rollen, kein Vertragstext; die Zeile für die Rollen steht im Slice-Plan.
+- Übergang: Bis eine Gegenprobe aufgenommen ist, fährt kein Implementer ihren vollen Lauf; er fährt den engsten Fall mit `GP_MUT`, der Verifier den vollen Lauf einmal am Endstand. Das ist eine Anweisung der Rollen, kein Vertragstext; die Zeile für die Rollen steht im Slice-Plan. Die Pflicht zum vollen Lauf aus `SPEC-060` Punkt 14 und der Freigabe-Checkliste (`SPEC-067` Punkt 17) ruht für eine nicht aufgenommene Gegenprobe nicht still, sondern über einen Carveout mit Trigger (`AGENTS.md` §3.6).
 - Folgepflicht: `tools/harness/release-gegenprobe.sh`, `tools/harness/container-gegenprobe.sh`; `harness/README.md` §Sensors (beide Zeilen nennen Obergrenze und Aufräumen erst mit der Lieferung); ein Slice für die übrigen Gegenproben (Kennung vom Planner). Lastenheft unverändert.
 
 ## Fitness Function (falls maschinell prüfbar)
@@ -69,7 +70,8 @@ Die Regeln im Einzelnen (Randformen, Ausgabe, Reihenfolge der Gründe, Fälle) s
 |---|---|---|
 | bash, git, Attrappen | Obergrenze, Ausgabe, Reihenfolge der Gründe, Arbeitsordner je Mutation entfernt (Fälle nach `SPEC-060` Punkt 16 (9)) | `make release-gegenprobe` |
 | bash, make, Attrappe von `docker` | dieselben Fälle für `test-container-gegenprobe` | `make test-container-gegenprobe` |
+| je Gegenprobe | dieselben Fälle, sobald sie aufgenommen ist | ihr eigenes Ziel |
 
 ## Re-Evaluierungs-Trigger
 
-Wenn ein voller Lauf auf ruhigem Host die Obergrenze trotz sinkender Kosten je Mutation erneut reißt; wenn eine dritte Gegenprobe mehr als zehn Minuten braucht; wenn der Nutzer einen Nachtlauf in der CI beschließt (dann ist die Obergrenze neu zu setzen).
+Wenn ein voller Lauf auf ruhigem Host die Obergrenze trotz sinkender Kosten je Mutation erneut reißt; wenn der Nutzer die zehn Minuten ändert; wenn der Nutzer einen Nachtlauf in der CI beschließt (dann ist die Obergrenze neu zu setzen).
