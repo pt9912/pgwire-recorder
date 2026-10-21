@@ -15,7 +15,7 @@ Entscheidung des Nutzers vom 2026-10-18; ändert er sie, ändert sich nur diese 
 Der Vertrag hat zwei Teile an einer Naht: **Teil 1** (Punkte 1 bis 3) legt Listen und Namensregel fest und
 wird von `make gates-schnell-gegenprobe` geprüft; **Teil 2** (Punkte 4 bis 12) legt die Sammelziele fest und
 wird von `make gegenproben-gegenprobe` geprüft, einer Gegenprobe mit Attrappen als Einzelziele, ohne Docker.
-Die Punkte 13 bis 15 gelten für beide Teile und haben keinen eigenen Fall, außer wo sie einen nennen. **Punkt 16** (Zeit und Platz einer Gegenprobe) gilt für einzelne Gegenproben, nicht für die Sammelziele; seine Fälle stehen in der Gegenprobe, die er nennt. Der
+Die Punkte 13 bis 15 gelten für beide Teile und haben keinen eigenen Fall, außer wo sie einen nennen. **Punkt 16** (Zeit und Platz einer Gegenprobe) gilt für einzelne Gegenproben, nicht für die Sammelziele; seine Fälle stehen in der Gegenprobe, die er nennt. **Punkt 17** (Start mit ignoriertem `SIGINT`) gilt für jede Gegenprobe mit einem Signalfall und für das Skript der Sammelziele und hat keinen Fall. Der
 Name jedes Falls trägt die Nummer des Punktes, den er prüft. Je Zusage und je Element einer Aufzählung
 gibt es einen Fall und eine Mutation, die nur ihn rot färbt (`AGENTS.md` §3.10); die Gegenprobe verlangt
 genau diese Menge roter Fälle je Mutation (mehr und weniger machen sie rot).
@@ -57,6 +57,7 @@ Plattform ihr eigener Vertrag nennt.
 | Z3 Aufrufarten (`GP_MUT`, `GP_FALL`, `GP_ENTDECKE`, `GP_PARALLEL`, `GP_BUDGET`, `make`), Reihenfolge der Gründe | 16 (3), (4), (7) |
 | Z4 Plattform und Umgebung der Fahrt (Last, Platz, root, Locale, Zeitzone) | 16 (6), (8) |
 | Z5 Ergebnisgleichheit nach einer Beschleunigung | 16 (9) |
+| Z6 Start mit ignoriertem `SIGINT`, Rezept für den Hintergrundstart, Plattform | 17 (für das Skript der Sammelziele auch 8) |
 
 **Teil 1: Listen und Namensregel.**
 
@@ -164,7 +165,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
    wartet, das dritte schreibt bei Beginn in das Protokoll; die Attrappe startet außerdem ein Hintergrundkind (`sleep 31`); geprüft werden Exit-Code, dass die Attrappe **und ihre Nachkommen** beendet sind, dass das
    dritte Ziel nicht begann und dass keine Zusammenfassung erscheint. Das Skript beendet das laufende Einzelziel samt seinen Nachkommen
    (Voraussetzung `pgrep`, Kopf). **Voraussetzung:** Das Skript wird mit nicht ignoriertem `SIGINT` gestartet; ein Aufrufer, der es mit
-   ignoriertem `SIGINT` startet, ist nicht zugesagt (akzeptiertes Negativ; Grund: eine ignorierte Disposition erbt jedes Kind, und die
+   ignoriertem `SIGINT` startet, ist nicht zugesagt (akzeptiertes Negativ, allgemein Punkt 17; Grund: eine ignorierte Disposition erbt jedes Kind, und die
    Gegenprobe setzt sie für ihren Hintergrundstart zurück). Mutationen: das nächste Ziel startet nach dem Signal; die Exit-Codes
    130 und 143 vertauscht; je Signal einer: `SIGINT` endet mit 143 (färbt die beiden Fälle mit `SIGINT`), `SIGTERM` endet mit 130 (die beiden mit `SIGTERM`);
    die Behandlung von `SIGINT` gestrichen (färbt `p8-sigint-skript`); die von `SIGTERM` gestrichen (färbt `p8-sigterm-skript`); das laufende Einzelziel bleibt am Leben (sichtbar nur im Fall mit dem Signal an das Skript);
@@ -274,3 +275,25 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     nach ihrem Ende entfernt (eine Kopie ohne `rm` färbt den Fall rot), je Fall entfernt, und nach Abbruch weg (Bestand). Die Mutation
     zur Nutzung von `>=` statt `>` bleibt grün (äquivalent in der Praxis; akzeptiertes Negativ: die Zeit ist nicht steuerbar, die Wirkung beträgt eine
     Sekunde).
+
+17. **Start mit ignoriertem `SIGINT` (Entscheidung des Architect vom 2026-10-21, nach F-V10 von `slice-harness-devcontainer-einrichten`; Regel an den Aufrufer, kein Fall).**
+    Der Punkt gilt für jede Gegenprobe der Listen `GEGENPROBEN_CONTAINER` und `GEGENPROBEN_HOST` einschließlich `a-check-negativ`, die in einem Fall
+    `SIGINT` an einen Prozess sendet, den sie selbst gestartet hat, und für das Skript der Sammelziele (Punkt 8). **Voraussetzung:** `SIGINT` ist beim
+    Start nicht ignoriert. **Nicht zugesagt** ist der Start mit ignoriertem `SIGINT` (ein Start mit `&` aus einer Shell ohne Jobsteuerung, `nohup`, ein
+    Aufrufer, der es ignoriert): Ergebnis, Meldung, Exit-Code und Dauer der Fälle mit `SIGINT` sind dann nicht zugesagt, und ein Rot dieser Fälle ist
+    kein Befund über den Code. Akzeptiertes Negativ; Grund: `bash` kann eine beim Start ignorierte Disposition weder fangen noch zurücksetzen (ein
+    `trap` auf `INT` bleibt ohne Wirkung, gemessen unten), und jeder Nachkomme erbt sie; ein Zurücksetzen oder Ablehnen am Start wäre je Gegenprobe Code
+    mit Fall und Mutation (`AGENTS.md` §3.10) für einen Aufruf, den die Fahrt der Sammelziele nicht erzeugt, denn der Hook setzt `SIGINT` und `SIGQUIT`
+    für den Lauf von `make gegenproben` zurück ([`SPEC-061`](SPEC-061-gegenproben-nach-einlieferung.md) Punkt 11, Fälle `p11-erbt-int` und
+    `p11-erbt-quit`). Eine Gegenprobe, die den Start mit ignoriertem `SIGINT` dennoch besteht (etwa durch `env --default-signal` an den Startstellen
+    ihrer Signalfälle), sagt es nicht zu, solange ihr Vertrag es nicht mit einem Fall nennt.
+    **Regel an den Aufrufer:** im Vordergrund starten, oder im Hintergrund mit zurückgesetzter Disposition: `setsid -f env --default-signal=INT,QUIT
+    <Befehl> > <Datei> 2>&1`, der Befehl ist `make <Ziel>` oder `bash tools/harness/<name>.sh` (`env --default-signal` braucht GNU coreutils ab 8.31,
+    wie [`SPEC-061`](SPEC-061-gegenproben-nach-einlieferung.md) Punkt 11). **Gemessen** am 2026-10-21 (bash 5.2.37, coreutils 9.7) mit einem Aufrufer,
+    der `SIGINT` mit `trap '' INT` ignoriert: Bei direktem Start, bei `setsid -f` allein und bei `nohup` bleibt `SIGINT` im Skript ignoriert (`trap -p INT`
+    zeigt `trap -- '' SIGINT`, die Maske `SigIgn` in `/proc/<pid>/status` trägt das Bit von `SIGINT`, `0x2`, und ein `kill -INT` an das Skript ändert
+    nichts); bei `setsid -f env --default-signal=INT,QUIT bash …` ist es nicht ignoriert, und der `trap` greift. `setsid -f` allein ist deshalb **kein**
+    Rezept. Wer den Verdacht hat, liest die Maske des gestarteten Prozesses. **Plattform** (`AGENTS.md` §3.12): geprüft ist Linux (Dev-Container und
+    Gegenproben-Container); macOS und Windows sind nicht zugesagt (Kopf dieser Kennung), das Rezept nennt eine Option von GNU coreutils, die dort nicht
+    gemessen ist. Kein Fall (Grund: Der Punkt sagt nichts zu, was ein Test prüfen müsste; die Messung steht hier, die Zusage des Hooks prüft
+    [`SPEC-061`](SPEC-061-gegenproben-nach-einlieferung.md)).

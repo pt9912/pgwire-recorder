@@ -78,6 +78,7 @@ der die Fassung ersetzt.
 | Aufrufarten des Treibers | 16 |
 | Plattform | Kopf dieser Kennung, 19 |
 | Zeit und Platz der Gegenprobe | 17, [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16 |
+| Start der Gegenprobe mit ignoriertem `SIGINT` | 17 (Start), 19, [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 17 |
 
 1. **Gegenstand und Ort.** Das Ziel `container-einrichten` ist im Repo (Fragment
    `harness/mk/container-einrichten.mk`, Skript `tools/harness/container-einrichten.sh`), `.PHONY`, kein
@@ -413,6 +414,10 @@ der die Fassung ersetzt.
       entfernt), und der Slice, der sie anlegt, trägt sie in der Tabelle dort als `aufgenommen` ein und
       nennt die gemessene Zeit. Die Obergrenze ist 600 s
       ([ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
+    - **Start:** Die Gegenprobe setzt `SIGINT` beim Start als nicht ignoriert voraus. Ein Start mit ignoriertem `SIGINT` (Hintergrundstart mit `&` oder
+      `nohup`, auch `setsid -f` allein) ist für ihre Fälle mit `SIGINT` nicht zugesagt. Aufruf im Vordergrund oder mit
+      `setsid -f env --default-signal=INT,QUIT`; Rezept, Messung und Grund stehen in
+      [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 17 (akzeptiertes Negativ, ohne Fall).
     - **Grün ohne vorherigen Lauf von `make gates`** ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 3, Regel
       an die Lieferung): Das belegt der Slice, der die Gegenprobe anlegt, durch **ihren eigenen** Lauf in
       einem frischen Gegenproben-Container — nicht durch eine Fahrt des Sammelziels (Entscheidung des
@@ -502,7 +507,8 @@ der die Fassung ersetzt.
     geprüft; sie sind die **Grenze** (Kopf dieser Kennung). Je übriger Plattform die Entscheidung: Das Ziel
     lehnt sie nicht ab und wird dort nicht gemessen (Grund: kein solcher Host steht bereit, und das
     Gerüst aus `SPEC-058` ist dort ebenso nicht gemessen); ein Satz im Dokument
-    `docs/developer/devcontainer.md` über eine dieser Zusagen nennt allein Linux (`AGENTS.md` §3.11).
+    `docs/developer/devcontainer.md` über eine dieser Zusagen nennt allein Linux (`AGENTS.md` §3.11). Der Abbruch (Punkt 15) ist allein unter Linux geprüft; der Start der Gegenprobe mit
+    ignoriertem `SIGINT` ist auf keiner Plattform zugesagt (Punkt 17, [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 17).
 
 20. **Grenzen.** (1) Versionen von `ssh` und `git` am Host und von `git` und `make` im Container: nicht
     geprüft, nur das Vorhandensein (Punkte 3 und 5); ein `git` im Container ohne `--initial-branch` endet
