@@ -137,7 +137,7 @@ BP=/workspaces/$pn/austausch.git
 KP=/workspaces/$pn/pgwire-recorder
 IDN='Die Testerin' IDM=testerin@example.org
 root=0; [ "$(id -u)" != 0 ] || root=1
-SEL='.*' fn= basis= sk= baum= gpk= nf=0 GRUEN=()
+SEL='.*' fn= basis= sk= baum= gpk= nf=0 GRUEN=() ROOTWEG=()
 declare -A ROT=()
 rot() { ROT[${1:-$fn}]=1; }
 FN=() FC=()
@@ -572,9 +572,16 @@ vorbereiten() {
 }
 # mut <Name> <Datei> <Auswahl der Fälle> <alt> <neu> [<roter Fall>…]
 mut() {
-  local name=$1 key=$2 s=$3 alt=$4 neu=$5
+  local name=$1 key=$2 s=$3 alt=$4 neu=$5 k k2=()
   shift 5
   [[ $name =~ ${GP_MUT:-.} ]] || return 0
+  # Als root entfällt der Fall mit Dateirechten (faelle überspringt ihn); eine Mutation, deren rote Menge
+  # dadurch leer würde, entfällt mit ihm und steht am Ende als übersprungen.
+  if (( root && $# )); then
+    for k; do [ "$k" = p5-schluessel-unlesbar ] || k2+=("$k"); done
+    (( ${#k2[@]} )) || { ROOTWEG+=("$name"); return 0; }
+    set -- "${k2[@]}"
+  fi
   (( $# )) || GRUEN+=("$name")
   wartejob
   (
@@ -871,4 +878,4 @@ fehler=0
 if [ -s "$arbeit/fehler" ]; then cat "$arbeit/fehler" >&2; fehler=1; fi
 abschluss
 [ "$fehler" = 0 ] || exit 1
-echo "$GPN: gruen — SPEC-069 Punkte 1 bis 20 (${#FN[@]} Fälle) und SPEC-060 Punkt 16 (9); je Mutation genau die benannten roten Fälle, ausgenommen die ohne roten Fall (äquivalent, §7 des Plans): ${GRUEN[*]-keine}$([ "$root" = 0 ] || echo '; als root entfällt p5-schluessel-unlesbar')"
+echo "$GPN: gruen — SPEC-069 Punkte 1 bis 20 (${#FN[@]} Fälle) und SPEC-060 Punkt 16 (9); je Mutation genau die benannten roten Fälle, ausgenommen die ohne roten Fall (äquivalent, §7 des Plans): ${GRUEN[*]-keine}$([ "$root" = 0 ] || echo "; als root entfällt der Fall p5-schluessel-unlesbar und mit ihm die Mutation ${ROOTWEG[*]-keine}")"
