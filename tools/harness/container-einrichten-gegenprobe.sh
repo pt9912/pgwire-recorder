@@ -171,10 +171,12 @@ welt() {
 # Verzeichnisses bleibt außen vor (git schreibt in .git, und der Vergleich gilt den Dateien), ebenso
 # `.git/index`: `git status --porcelain` im Lesebefehl schreibt ihn neu, wenn die Stat-Daten im selben
 # Sekundenfenster liegen (racily clean) — das ist eine Eigenschaft des gerufenen `git`, kein Zustand, den
-# Punkt 4 meint.
+# Punkt 4 meint. Ebenso außen vor bleibt jede Datei `*.lock`: `git` startet nach einem Commit seine
+# Wartung im Hintergrund (`.git/objects/maintenance.lock`) und entfernt die Sperre wieder; unter Last liegt
+# sie in der ersten Momentaufnahme und in der zweiten nicht mehr (gemessen am 2026-10-21).
 snap() { (cd "$w" 2> /dev/null && find . ! -path ./bin ! -path './bin/*' ! -path ./st ! -path './st/*' ! -path ./kind ! -path './kind/*' \
-  ! -path '*/.git/index' ! -name log ! -name 'k*' ! -name out ! -name err \( -type f -printf '%p %m %y %l %s %T@\n' -o -printf '%p %m %y %l\n' \) 2> /dev/null) | sort; }
-snapw() { local d=$1; shift; (cd "$d" && find . ! -path '*/.git/index' "$@" \( -type f -printf '%p %m %y %l %s %T@\n' -o -printf '%p %m %y %l\n' \) 2> /dev/null) | sort; }
+  ! -path '*/.git/index' ! -name '*.lock' ! -name log ! -name 'k*' ! -name out ! -name err \( -type f -printf '%p %m %y %l %s %T@\n' -o -printf '%p %m %y %l\n' \) 2> /dev/null) | sort; }
+snapw() { local d=$1; shift; (cd "$d" && find . ! -path '*/.git/index' ! -name '*.lock' "$@" \( -type f -printf '%p %m %y %l %s %T@\n' -o -printf '%p %m %y %l\n' \) 2> /dev/null) | sort; }
 lauf() {
   local b=(PATH="${pfad:-$w/bin:$sys}" HOME="$home" AT_LOG="$w/log" AT_STATE="$w/st" AT_WELT="$weltdir" AT_ECHT="$sys" \
     GIT_CONFIG_GLOBAL="$home/.gitconfig" GIT_CONFIG_SYSTEM="$home/gitsystem") cmd=("$BASH" "$sk")
