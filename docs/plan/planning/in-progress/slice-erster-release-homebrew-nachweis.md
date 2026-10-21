@@ -278,12 +278,13 @@ homebrew-nachweis: der Lauf endet mit Exit-Code 0
 | `make test-integration` allein | `b39beea7` | grün, Exit 0; `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` `PASS` in 19,85 s | 2 min 20 s |
 | `make gates` (erster Lauf) | `e81a303c` | grün, Exit 0 (alle 13 Einträge von `GATE_CHECKS`), `Serverfehler_ohne_Vorbild` `PASS` in 15,28 s | 4 min 42 s |
 | `make gates` (nach der ersten Nacharbeit) | `b39beea7` | **rot, Exit 2** — `test-integration`: `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` `FAIL` nach 30,02 s mit `DROP DATABASE IF EXISTS vgl_abw: timeout: context deadline exceeded`, Last 6,0 auf 20 Kernen; der Unterfall allein danach grün (Zeile darüber) — das ist `BEO-REPO/test-faellt-unter-cpu-last-aus`, **fünftes Auftreten**, kein Befund gegen diesen Slice | 4 min 2 s |
-| `make gates`, `make docs-check` (Endstand) | siehe Zeile unten | — | — |
-| `make docs-check` | `e81a303c`, `a9bd85f6` | grün, 1322 Dateien, 0 Befunde | je ~2 s |
+| `make gates` (Endstand) | `b0d59742` | **grün, Exit 0** (alle 13 Einträge von `GATE_CHECKS`); `Serverfehler_ohne_Vorbild` `PASS` in 25,45 s, Last 4,8 auf 20 Kernen | 4 min 32 s |
+| `make docs-check` (Endstand) | `b0d59742` | **grün**, 1323 Dateien, 0 Befunde | 2 s |
+| `make docs-check` (früher) | `e81a303c`, `a9bd85f6` | grün, 1322 Dateien, 0 Befunde | je ~2 s |
 
 Keine Gegenprobe gefahren: Dieses Ziel hat keine (Punkt 20 (7)), und für die unveränderten Gates sieht der Lauf keine Änderung (Entscheidung des Nutzers vom 2026-10-21).
 
-**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): am Stand `74e19478` Einfügungen 417, Löschungen 13, **Summe 430** (ohne die Zeilen dieses Nachtrags selbst — ein Plan kann die Messung seines eigenen Commits nicht enthalten; mit ihnen bleibt der Wert unter 500). Darin stecken 69 Zeilen Review-Report und 23 Zeilen Vertragstext des Architect (`SPEC-067`, `spec/spezifikation.md`); auf die Arbeit des Implementers entfallen 338 (Skript 129, Plan 139, Fragment 38, Handbuch 27, `README.md` 5). Das liegt unter der Meldeschwelle 700 und weit unter der Marke 900; die Schätzung des Architect (300 bis 500) trifft zu.
+**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): am Stand `b0d59742` Einfügungen 439, Löschungen 14, **Summe 453** (am Stand `74e19478`, vor dem Nachtrag in §7: 417 + 13 = 430; die Zeilen der Zeile, die diese Zahl einträgt, kann ein Plan nicht mitzählen — mit ihnen bleibt der Wert unter 500). Darin stecken 69 Zeilen Review-Report und 23 Zeilen Vertragstext des Architect (`SPEC-067`, `spec/spezifikation.md`); auf die Arbeit des Implementers entfallen 338 (Skript 129, Plan 139, Fragment 38, Handbuch 27, `README.md` 5). Das liegt unter der Meldeschwelle 700 und weit unter der Marke 900; die Schätzung des Architect (300 bis 500) trifft zu.
 
 #### Was der Implementer beim Schreiben entschieden hat (kein Vertragstext)
 
