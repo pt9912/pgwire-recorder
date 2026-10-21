@@ -87,4 +87,6 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-erster-release-veroe
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-erster-release-freigabe` (Runde 1 F-7 INFO; V-2 LOW, V-3 INFO; Runde 3 F-V1 LOW, F-V4 INFO) — „Frage an den Nutzer“ im Vertrag nach der Entscheidung, Handbuch-Teil in §1 und DoD, Platzhalter und veralteter Einleitungssatz in §6 und §7, eine Aussage zu äquivalenten Mutanten neben ihrem Gegenbeispiel, eine Beschreibung einer Mutation; behoben (Beleg `evidence/slice-erster-release-freigabe.md`). Zähler 74.
 
-Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-cancel-ohne-schluessel` (F-3, F-V4, L-3) — Ort, gemessene Größe und eine Randform im Plan folgten der Korrektur nicht (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`).
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-cancel-ohne-schluessel` (F-3, F-V4, L-3) — Ort, gemessene Größe und eine Randform im Plan folgten der Korrektur nicht (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`). Zähler 75.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-release-v0-1-1` (F-2 MEDIUM; F-V2, F-V4 LOW) — der Diff trug die Belege des Taps in den Eintrag, während §1 und §6 sie dem Nachweis zuwiesen, und zwei Zahlen in §7 standen hinter dem Stand (1314 statt 1315 Dateien, Klammersatz zur Größenmarke); behoben, die Tap-Aussagen durch Entfernen statt durch Weiten des Plans (Beleg `evidence/slice-v1-abschluss-release-v0-1-1.md`). Zähler 76.
