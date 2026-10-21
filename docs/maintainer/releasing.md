@@ -1,7 +1,7 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.12
-Stand: 2026-10-20
+Version: 0.14
+Stand: 2026-10-21
 
 ## 1. Zweck und Zielgruppe
 
@@ -24,10 +24,10 @@ setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit de
 `skopeo`, `gh`, den Scanner und den Smoke. Der jüngste veröffentlichte Tag ist `v0.1.1`: Sein
 GitHub-Release trägt die sechs Binaries `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, und das Image
 liegt in `ghcr.io` und `docker.io` unter den Tags `0.1.1` und `latest` mit demselben Index-Digest
-`sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); der Tap
-`pt9912/homebrew-pgwire-recorder` trägt `Formula/pgwire-recorder.rb` mit `version "0.1.1"`, deren vier
-Prüfsummen und URLs zu den Anhängen von `v0.1.1` passen. Was im echten Tap liegt, prüft kein Gate
-dieses Repos, und dass Homebrew die Formel annimmt, ist nicht belegt. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
+`sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); im Lauf des
+Tags `v0.1.1` endet er im vierten Versuch grün und meldet `Formel 0.1.1 im Tap abgelegt`. Was im
+echten Tap liegt und ob Homebrew es annimmt, prüft kein Gate dieses Repos und belegt erst
+`slice-erster-release-homebrew-nachweis`. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
 [`freigaben/0.1.1.md`](freigaben/0.1.1.md), für `v0.1.0` in der Closure von `welle-erster-release`.
 Was ein Slice erst liefert, nennt dieses Dokument mit seiner Kennung („liefert `slice-…`“), nicht als
 Zusage.

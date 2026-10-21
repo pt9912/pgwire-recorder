@@ -172,20 +172,48 @@ Der Slice liefert keinen Code und keinen Vertrag (§1); die Zusagen sind die Pun
 | Punkt 3 nach `CO-001`: Dateien von `container-start` seit der letzten grünen Fahrt unverändert | `git diff --stat 35778a2f 3594b9f0 -- <fünf Dateien>` leer | ein Diff ungleich leer wäre die Grenze und der Halt; die letzte grüne Fahrt ist nur eine Angabe der Koordination (Eintrag von `welle-erster-release`), im Eintrag als Grenze genannt |
 | Punkte 5 und 6 (Trockenlauf, Scan) | **nicht erfüllt**: `origin` des Worktrees ist der lokale Austausch, `gh workflow run` wurde dem Lauf verweigert; die Koordination fährt ihn | Teilbeleg lokal nur für den Schritt `eingaben` (siehe oben) |
 
-**Nachtrag nach dem Tag (2026-10-21).** Der Halt ist aufgelöst: Die Koordination fuhr den Trockenlauf (`39550948115`, `workflow_dispatch` auf `main` = `762c05dd`, success, 2 min 50 s) und setzte den Tag `v0.1.1` auf `3594b9f0`; der Lauf des Tags ist `39551891874`. Die Punkte 5, 6 und 8 bis 11 des Eintrags tragen seitdem ihre Belege; der Implementer hat die Zeilen des Logs mit `gh run view <Kennung> --log` selbst gelesen, nicht übernommen. Der Job `homebrew` lief nach der Berichtigung der Token-Rechte durch den Betreiber in derselben Ausführung ein zweites Mal und endete grün; die conclusion des Laufs ist `success`, und der Tap trägt die Formel.
+**Nachtrag nach dem Tag (2026-10-21).** Der Halt ist aufgelöst: Die Koordination fuhr den Trockenlauf (`39550948115`, `workflow_dispatch` auf `main` = `762c05dd`, success, 2 min 50 s) und setzte den Tag `v0.1.1` auf `3594b9f0`; der Lauf des Tags ist `39551891874`. Die Punkte 5, 6 und 8 bis 11 des Eintrags tragen seitdem ihre Belege; der Implementer hat die Zeilen des Logs mit `gh run view <Kennung> --log` selbst gelesen, nicht übernommen. Der Job `homebrew` lief in derselben Ausführung viermal: die Versuche 1 bis 3 rot mit `tap-push` (05:55:27Z, 06:10:21Z, 06:12:45Z), der vierte grün (06:14:14Z); die conclusion des Laufs ist seitdem `success`. Die Zeitstempel je Versuch hat der Implementer mit `gh api …/attempts/<n>/jobs` selbst gelesen.
 
 | Zusage | Beleg | Gegenbeispiel (rot gesehen) |
 |---|---|---|
 | Der Lauf des Tags stand auf dem Release-Commit | `gh run view 39551891874 --json headSha` gibt `3594b9f0578dd8c844e9a9d3e5bc6f147bcd3aaa`, Auslöser `push` von `refs/tags/v0.1.1` | nicht gefahren: der Hash ist eine Ablesung, kein Wächter |
 | Index-Digest je Registry gleich (Punkt 8) | `release: vergleichen: sha256:624c09… in ghcr.io und docker.io`; dazu vier eigene `docker pull` (`:0.1.1` und `:latest`, beide Registries, leeres `DOCKER_CONFIG`), alle vier melden `sha256:624c099b…9b15` | der Schritt `vergleichen` ist fail-closed (`SPEC-067` Punkt 7); seine Mutanten fährt `make release-gegenprobe`, hier nicht erneut |
 | Der GitHub-Release trägt genau sieben Anhänge mit den Namen ohne Version (Punkt 9) | `gh release view v0.1.1 --json assets` nennt die sechs `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, sonst nichts | `SHA256SUMS` des Release gegen die geladene Datei: `sha256sum -c` hätte eine Abweichung als `FAILED` gemeldet; gemeldet wurde `OK` |
-| Job `homebrew` grün, die Formel liegt im Tap (Zeile unter Punkt 8) | `release: homebrew: Formel 0.1.1 im Tap abgelegt` (06:14:20Z); Tap-Commit `6c4ac728…a7ac` vom 2026-10-21 06:14:17Z mit der Nachricht `pgwire-recorder 0.1.1` (`gh api …/commits`, selbst abgefragt); die Formel trägt `version "0.1.1"` | vor der Berichtigung der Token-Rechte endete derselbe Job rot mit `release: homebrew: tap-push: der Tap weist den Push ab (Exit 128)` (`Permission … denied`, `error: 403`) — das ist die rot gesehene Gegenprobe zur Zusage „der Job schreibt in den Tap“ und zugleich die Umgebungs-Hälfte von `SPEC-067` Punkt 18 (a): kein neuer Tag, keine Korrektur an Skript oder Vertrag |
-| Die vier Prüfsummen der Formel sind die des Release | sortierter Vergleich der vier `sha256`-Werte aus `Formula/pgwire-recorder.rb` mit den vier Zeilen für `darwin` und `linux` aus der geladenen Datei `SHA256SUMS`: `diff` leer | eine abweichende Summe hätte `diff` mit zwei Zeilen beantwortet; die Windows-Zeilen sind in der Formel nicht enthalten und bleiben im Vergleich außen vor |
+| Job `homebrew` grün, im vierten Versuch (Zeile unter Punkt 8) | `release: homebrew: Formel 0.1.1 im Tap abgelegt` (Versuch 4, 06:14:20Z); Tap-Commit `6c4ac72843996939b4295b01aeb7cbe9e759a7ac` als Spitze von `main`, gelesen mit `git ls-remote https://github.com/pt9912/homebrew-pgwire-recorder.git refs/heads/main` (die Form, die `SPEC-067` Punkt 17 (8) nennt) | die Versuche 1 bis 3 desselben Jobs sind rot mit `tap-push: der Tap weist den Push ab (Exit 128)` — das ist die rot gesehene Gegenprobe zur Zusage „der Job legt die Formel im Tap ab“, und sie zeigt zugleich, dass ein Wiederanlauf ohne Änderung an der Umgebung dieselbe Meldung ergibt (Versuch 2 nach der ersten Berichtigung) |
 | Handbuch §2: `sha256sum -c --ignore-missing SHA256SUMS` gibt `pgwire-recorder-linux-amd64: OK` | gelaufen gegen die veröffentlichte Datei, Exit 0 | ohne `--ignore-missing` endet derselbe Aufruf mit Exit 1 und `WARNING: 5 listed files could not be read` — der Satz des Handbuchs über „alle sechs Dateien“ ist damit belegt, nicht nur behauptet |
 | Handbuch §2: `./pgwire-recorder-linux-amd64 version` gibt `pgwire-recorder 0.1.1` | gelaufen, Ausgabe wörtlich | ein Binary mit anderer Version gäbe eine andere Zeile; das Binary von `make build` meldet `dev` (Satz im Kopf) |
 | Handbuch §2: beide Registries geben das Image ohne Anmeldung heraus | vier `docker pull` mit `DOCKER_CONFIG` auf ein leeres Verzeichnis, alle vier Exit 0 | mit Anmeldung liefe es ebenfalls; die Sonde ist genau das leere `DOCKER_CONFIG`, ohne das der Satz eine Annahme bliebe |
 | Handbuch §2: `latest` zeigt in beiden Registries auf denselben Digest und gibt dieselbe Ausgabe | `docker image inspect` für `:latest` beider Registries gibt `sha256:624c099b…9b15`; `docker run … :latest version` gibt beide Male `pgwire-recorder 0.1.1` | ein `latest`, das auf `0.1.0` stünde, gäbe `pgwire-recorder 0.1.0`; der Schritt `latest` lief laut Log für beide Registries |
 | Handbuch §2: gestartet ist allein `linux/amd64` | `uname -m` gibt `x86_64`, `docker image inspect --format '{{.Os}}/{{.Architecture}}'` gibt `linux/amd64` | kein Lauf für `linux/arm64`, `darwin`, `windows` — deshalb steht im Handbuch „gebaut, aber nicht ausgeführt“ |
+
+**Nacharbeit zum Review vom 2026-10-21** (`docs/reviews/2026-10-21-review-slice-v1-abschluss-release-v0-1-1.md`,
+1 HIGH, 4 MEDIUM, 2 LOW; F-8 und F-9 sind Vertragswortlaut und gehen an den Architect):
+F-1 — Eintrag und §7 nennen jetzt alle vier Versuche des Jobs mit Zeitstempeln, die drei roten
+eingeschlossen; selbst nachgefahren mit `gh api …/attempts/<n>/jobs` für n = 1 bis 4 und den Logs der
+Versuche 2 und 3. F-2 — siehe den Absatz darunter. F-3 — die Berichtigung der Token-Rechte steht als
+*Angabe der Koordination* mit Datum, daneben die eigene Messung `gh secret list` (Zeitstempel des
+Geheimnisses unverändert). F-4 — der Grund für den fehlenden Ersatzbeleg 1 steht bei Punkt 2 des
+Eintrags; vorher geprüft: `hooks/` des Bare-Repos leer, keine Marke `gegenproben-ablage`, kein
+Ablage-Verzeichnis. F-5 — Kopf von `releasing.md` auf Version 0.14 und Stand 2026-10-21. F-6 — der
+Tap-Commit ist jetzt mit `git ls-remote … refs/heads/main` belegt, der Form des Vertrags. F-7 — die
+Abweichung des Bezug-Commits (`docs/maintainer/` außerhalb der Positivliste) steht bei Punkt 11 des
+Eintrags.
+
+**Zu F-2 des Reviews (2026-10-21): die Tap-Belege bleiben beim Nehmer.** §1 und §6 Randform (e)
+weisen die Belege des Taps `slice-erster-release-homebrew-nachweis` zu, und dessen §1 nimmt sie an
+(„Wiederanlauf des Jobs, Nachtrag von Hand und alle Belege des Taps gehören diesem Slice“). Statt §1
+und §6 zu weiten, sind die überschießenden Aussagen aus dem Eintrag und aus `releasing.md` §1
+entfernt: Dort steht jetzt allein, was `SPEC-067` Punkt 17 (8) für diese Zeile verlangt —
+Lauf-Kennung, grün, Hash des Tap-Commits mit Datum — plus die Grenze, dass Rechte, Inhalt und
+Annahme der Formel dem Nachweis gehören. Der Plan ist damit nicht geändert, und keine Sendung
+wandert in einen anderen Slice (`AGENTS.md` §3.13, nichts einzutragen).
+
+**Messung des Implementers, die nicht Beleg dieses Slice ist** (Eingabe für
+`slice-erster-release-homebrew-nachweis`, dort §1): Die Formel `Formula/pgwire-recorder.rb` im Tap
+trug am 2026-10-21 `version "0.1.1"`, und ihre vier `sha256`-Werte waren zeichengleich mit den vier
+`darwin`- und `linux`-Zeilen der geladenen `SHA256SUMS` des Release (sortierter `diff` leer); ihre
+vier URLs zeigten auf die Anhänge von `v0.1.1`. Der Nachweis misst das gegen den Stand seines
+eigenen Laufs, diese Zeile nimmt ihm nichts ab und ändert seinen Umfang nicht.
 
 **Durchsicht nach Quantoren** (Schritt 17 des Commands; Merkmal der neuen Sätze: Namen ohne Version, ein Digest für beide Registries, `latest` auf demselben Digest). Treffer in `docs/user/benutzerhandbuch.md` und `README.md`:
 
@@ -203,11 +231,11 @@ Der Slice liefert keinen Code und keinen Vertrag (§1); die Zusagen sind die Pun
 - `docs/maintainer/releasing.md` §1 *Stand*: nachgezogen; der Satz „Es ist noch kein Tag gesetzt worden“ und die drei Sätze „hatte noch keinen Lauf“ sind weg, an ihrer Stelle steht der Zustand nach `v0.1.1`: Release, Image in beiden Registries und die Formel `0.1.1` im Tap.
 - Der Lauf des Tags war im Job `release` grün; ein Fehler im Skript oder Vertrag trat nicht auf, ein Folge-Tag `v0.1.2` ist nicht nötig.
 
-**Nicht belegt (Grenzen, die der Slice stehen lässt):** die Anwendung der Formel (`brew tap`, `brew install`) unter Linux und unter macOS und damit die Annahme durch Homebrew — Gegenstand von `slice-erster-release-homebrew-nachweis`; der Wiederanstoß eines roten **Laufs** (nur der eines roten **Jobs** ist belegt); ein Lauf von `make gegenproben-host` am getaggten Hash (Carveout `CO-001`); die Mutationen der beiden gefahrenen Gegenproben; `darwin`, `windows` und `linux/arm64` als ausgeführte Plattformen.
+**Nicht belegt (Grenzen, die der Slice stehen lässt):** die Belege des Taps — Rechte des Tokens, Inhalt und Annahme der Formel, `brew tap` und `brew install` unter Linux und macOS —, alle Gegenstand von `slice-erster-release-homebrew-nachweis`; *welches* Recht der Betreiber zwischen den Versuchen änderte (Angabe, aus Repo und Lauf nicht auditierbar, `SPEC-067` Punkt 15); der Wiederanstoß eines roten **Laufs** (nur der eines roten **Jobs** ist belegt, dreimal); der Ersatzbeleg 1 aus `CO-001` (es gibt in diesem Arbeitsbaum keine Ablage, Grund im Eintrag bei Punkt 2); ein Lauf von `make gegenproben-host` am getaggten Hash (Carveout `CO-001`); die Mutationen der beiden gefahrenen Gegenproben; `darwin`, `windows` und `linux/arm64` als ausgeführte Plattformen.
 
 **Größenmarke** (§4, Metrik: Summe aus Einfügungen und Löschungen von `git diff --numstat 0256ddff..<letzter Commit> -- VERSION docs/user docs/maintainer README.md`), am Endstand: 227, unter 500 (gemessen am letzten Commit, der einen der vier Pfade berührt; spätere Commits dieses Slice ändern nur `docs/plan/planning/`). Die Basis `0256ddff` enthält Änderungen aus `slice-v1-abschluss-binary-namen` und `…-cancel-ohne-schluessel`, die nicht zu diesem Slice gehören.
 
-**Läufe am Endstand:** `make gates` Exit 0 im ersten Versuch, 271 s, 2026-10-21, Last 11,6 bei 20 Kernen, kein `FAIL` im Log (der lastempfindliche Test `TestE2EPlayVergleichAbweichung` fiel nicht aus, keine Wiederholung) · `make docs-check` grün (1314 Dateien, 0 Befunde). Derselbe Stand ohne die Belege des Jobs `homebrew` war zuvor ebenso grün (272 s). Nach dem letzten Gate-Lauf ändert allein diese Zeile in `docs/plan/planning/` (inert nach `SPEC-052` Punkt 12). Keine Gegenprobe am Endstand (Entscheidung des Nutzers vom 2026-10-21; die beiden kurzen Läufe stehen bei den Punkten 2 und 3 des Eintrags).
+**Läufe am Endstand:** `make gates` Exit 0 im ersten Versuch, 265 s, 2026-10-21, Last 4,6 bei 20 Kernen, kein `FAIL` im Log (der lastempfindliche Test `TestE2EPlayVergleichAbweichung` fiel in keinem Lauf aus, keine Wiederholung) · `make docs-check` grün (1314 Dateien, 0 Befunde). Dieselbe Kette war auf den beiden Ständen davor ebenso grün (272 s vor den Belegen des Jobs `homebrew`, 271 s vor der Nacharbeit zum Review). Nach dem letzten Gate-Lauf ändert allein diese Zeile in `docs/plan/planning/` (inert nach `SPEC-052` Punkt 12). Keine Gegenprobe am Endstand (Entscheidung des Nutzers vom 2026-10-21; die beiden kurzen Läufe stehen bei den Punkten 2 und 3 des Eintrags).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
