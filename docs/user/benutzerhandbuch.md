@@ -1,6 +1,6 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.9  
+Version: 0.10  
 Software-Version: `0.1.1` (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.1`)  
 Stand: 21.10.2026  
 Autor: Projektteam pgwire-recorder  
