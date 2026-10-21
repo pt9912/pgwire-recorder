@@ -124,7 +124,7 @@ git diff --numstat --find-renames=10% <Basis>..HEAD -- tools harness \
   | awk '{a+=$1; b+=$2} END {print a+b+0}'
 ```
 
-Basis ist der Commit, der diese Datei nach `in-progress/` bewegt (sein Hash steht beim Übergang hier);
+Basis ist der Commit, der diese Datei nach `in-progress/` bewegt: **`28bb1f01`** (Planner, 2026-10-21; der Elternteil `96be282a` ergibt dieselbe Zahl, weil beide nur ausgeschlossene Pfade berühren);
 Vertrag und ADR (Commits des Architect vor dem Start) liegen vor der Basis und zählen nicht. Für diesen
 Plan sind alte und neue Fassung **gleichwertig**: Seine Pfade (`tools harness`) reichen
 nicht in den Planungsbaum und nicht in `docs/reviews`, und `--find-renames=10%` wirkt nur auf bewegte
