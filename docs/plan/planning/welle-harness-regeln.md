@@ -57,6 +57,8 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-harness-gegenprobe-matrix-p7-flanke | Eine Mutation der Gruppe `p7-sig` färbt nur Fälle ihrer Gruppe, oder die Voraussetzung dafür steht im Vertrag | kein Anspruch des Produkts |
 | slice-harness-commit-struktur-id | Commit-Träger lehnt Struktur-Kennungen ab | kein Anspruch des Produkts |
 
+`slice-harness-groessen-metrik` trägt `Welle: welle-harness-regeln` nach **Entscheidung des Nutzers vom 2026-10-21** (wörtlich, vom Koordinator übermittelt: „ok deine empfehlugnen“ auf eine Vorlage mit sechs Punkten, deren erster Welle und Stelle dieses Slice war); seine Stelle in der Reihenfolge — vor `slice-harness-schaetzung-planner-faktor` — ist mit derselben Entscheidung gesetzt und steht in §5. Bis dahin waren Welle und Stelle Empfehlung des Planners (`BEO-REPO/empfehlung-als-nutzerentscheidung-bezeichnet`).
+
 ## 5. Abhängigkeiten
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
@@ -69,7 +71,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 **Reihenfolge** (nach den Start-Triggern der Slices; WIP-Limit 1; die Welle ordnet nicht neu; Reihenfolge der drei Wellen strikt: diese, [welle-gegenproben-und-mutanten](welle-gegenproben-und-mutanten.md), [welle-lh-links](welle-lh-links.md), Entscheidung des Nutzers vom 2026-10-18):
 
 1. Die Reihe der fünf wellenlosen Slices hinter dem Release: `slice-harness-slice-mv-exakter-treffer`, `slice-harness-regeln-nach-v1-abschluss`, `slice-harness-regeln-spezifikation-satzabgleich`, `slice-harness-schaetzung-planner-faktor`, `slice-harness-gegenprobe-matrix-p7-flanke`.
-2. `slice-harness-groessen-metrik` steht **vor** `slice-harness-schaetzung-planner-faktor` (Empfehlung des Planners vom 2026-10-21, vom Nutzer nicht entschieden): Beide schreiben denselben Absatz `AGENTS.md` §3.14, und die DoD von `slice-harness-schaetzung-planner-faktor` verlangt einen Diff ohne Löschzeile in der Regel selbst, nimmt die Berichtigung also nicht an, solange sie nicht eingetragen ist (`AGENTS.md` §3.13, [ADR-0056](../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) *Folgepflicht*). Die Reihe aus Punkt 1 bleibt im Übrigen unverändert.
+2. `slice-harness-groessen-metrik` steht **vor** `slice-harness-schaetzung-planner-faktor` (Entscheidung des Nutzers vom 2026-10-21, §4): Beide schreiben denselben Absatz `AGENTS.md` §3.14, und die DoD von `slice-harness-schaetzung-planner-faktor` verlangt einen Diff ohne Löschzeile in der Regel selbst, nimmt die Berichtigung also nicht an, solange sie nicht eingetragen ist (`AGENTS.md` §3.13, [ADR-0056](../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) *Folgepflicht*). Die Reihe aus Punkt 1 bleibt im Übrigen unverändert.
 3. `slice-harness-commit-struktur-id` — erster der übrigen Harness-Slices.
 
 ## 6. Out-of-Scope für diese Welle
