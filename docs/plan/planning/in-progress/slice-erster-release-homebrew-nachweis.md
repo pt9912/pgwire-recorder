@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Nach dem ersten stabilen Release liegt die Formel im Tap `pt9912/homebrew-pgwire-recorder`, und die dokumentierten Befehle installieren das Werkzeug auf macOS und Linux.
+**Ziel:** Nach dem ersten stabilen Release liegt die Formel im Tap `pt9912/homebrew-pgwire-recorder`, und die dokumentierten Befehle installieren das Werkzeug. **Stand nach dem Lauf** (Implementer, 2026-10-21, §3.9): Belegt ist die Kombination **Linux/amd64** (Beleg in §7); macOS (`amd64` und `arm64`) und Linux auf `arm64` sind **Grenze** in `LH-FA-19.a` und im Handbuch — die Zusage gilt je Kombination einzeln (§6 Randform 9), und das Ziel behauptet seit dieser Nachführung keine Plattform, die kein Beleg trägt.
 
 **Übernommen aus `slice-erster-release-veroeffentlichung`** (dort §1, Abgrenzung): die Homebrew-Formel im Tap und ihr Nachweis; das sind Ziel und DoD-Punkt 1 oben.
 
@@ -134,6 +134,16 @@ dasteht.
 - Aus `slice-v1-abschluss-release-v0-1-1` (§6 Risiko (a), Ausgang *eingetreten*, bei dessen Closure am 2026-10-21 eingetragen, `AGENTS.md` §3.13): Die erste Außenwirkung des Jobs `homebrew` ist gelaufen und hat einen Teil der Annahmen widerlegt. **Gemessener Stand**, den dieser Slice nicht erneut annimmt, sondern gegen den Stand seines eigenen Laufs misst: Der Job lief im Lauf `39551891874` viermal — Versuche 1 bis 3 rot mit `release: homebrew: tap-push: der Tap weist den Push ab (Exit 128)` (`Permission … denied`, `error: 403`), Versuch 4 grün mit `release: homebrew: Formel 0.1.1 im Tap abgelegt`; die Spitze von `main` im Tap ist seither `6c4ac72843996939b4295b01aeb7cbe9e759a7ac` (2026-10-21 06:14:17Z). Das Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` wurde dabei nicht neu gesetzt (`gh secret list`, `updated_at` 2026-10-20T07:41:39Z); *welches* Recht der Betreiber zwischen den Versuchen änderte, zeigen weder Repo noch Lauf (Angabe der Koordination, `SPEC-067` Punkt 15). **Weiter unbelegt und damit Gegenstand dieses Slice:** die Annahme der Formel durch Homebrew, `brew tap` und `brew install` auf macOS und Linux, der Wortlaut von `gh release download` mit dem echten `gh` und das Schreibrecht des Geheimnisses ohne Eingriff des Betreibers — **Ausgang:** offen bis Closure.
 - Aus `slice-v1-abschluss-homebrew` (§6 dort), je mit Ausgang bei Closure dieses Slice: (a) das Schreibrecht des Tap-Tokens — das Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` (Fine-grained PAT nur für den Tap, Contents: Read and write, Entscheidung des Nutzers vom 2026-10-20) zeigt der Job `homebrew` des Laufs, der die erste Formel erzeugt; läuft die Formel stattdessen per Nachtrag mit dem eigenen Token des Nutzers, ist das Recht des Geheimnisses nicht belegt, und der Ausgang ist *weiter offen* (Register); (b) die Annahme der Formel durch Homebrew (Syntax, die Zeile `version`, Installation einer Datei ohne Archiv, `test do`) — eine Korrektur geht über die Vorlage und einen erneuten Nachtrag, ohne neuen Tag; (c) der Wortlaut von `gh release download` mit dem echten `gh` — **Ausgang:** offen bis Closure.
 - Aus `slice-v1-abschluss-homebrew` (Verifikation V-1, Closure dort): Ob „Re-run failed jobs“ bei GitHub nur den Job `homebrew` wiederholt, ohne das Image neu zu bauen, zeigt kein Test dieses Repos; `docs/maintainer/releasing.md` sagt es nicht mehr zu. Muss dieser Slice den Job wiederholen, nennt sein Beleg, was GitHub tat, und `releasing.md` §6 und §11 bekommen den Satz erst dann — **Ausgang:** offen bis Closure.
+
+**Stand der Randformen und der Risiken nach dem Lauf** (Implementer, 2026-10-21, §3.9; der Text der Randformen oben bleibt unverändert, hier steht allein, was der Lauf zeigte — die Ausgänge der Risiken setzt die Closure):
+
+- **Randform 3 (Pin):** umgesetzt als `homebrew/brew:4.6.20@sha256:b0072bfd…fdedfd`; der Digest ist am 2026-10-21 gegen die Registry aufgelöst und ist der des Index (`MediaType: application/vnd.oci.image.index.v1+json`, Manifeste `linux/amd64` und `linux/arm64`), Nachweis in §7. Kein Platzhalter.
+- **Randform 5 (Aufräumen):** nach dem Lauf kein Container (`docker ps -a` leer), kein Volume (`docker volume ls -q | wc -l` gibt `0`), nichts Neues im Arbeitsbaum (`git status --short` leer).
+- **Randform 10 (Beleg-Form):** Das Skript gibt `date -u`, `uname -s` und `uname -m` als erste Befehle aus, damit die Angaben des Belegs aus dem Lauf selbst stammen und auf beiden Plattformen dieselbe Form haben; Tag und Digest nennt die erste Zeile des Rezepts. Das ist die Umsetzung von Punkt 20 (6), keine Entscheidung einer Randform.
+- **Randform 11 (Replay-Lauf):** erfüllt — drei Zeilen `level=INFO`, keine `level=ERROR`, Exit-Code `0` nach `SIGTERM`. Die eine Zeile `level=WARN` (`PGR-W2001`, nie zugeordnete Session) folgt daraus, dass keine Anwendung verbindet; sie gehört nach Punkt 20 (3) nicht zur Zusage.
+- **Risiko `brew trust`:** im Lauf nicht eingetreten — Homebrew hat für den Drittanbieter-Tap keine Bestätigung verlangt (`brew tap` meldet `Tapped 1 formula`, `brew install` läuft ohne Rückfrage).
+- **Risiko Umgebung des Image:** im Lauf nicht eingetreten — `brew tap` klont mit dem im Image vorhandenen `git` als Benutzer `linuxbrew`, `brew install` legt die Datei ohne Archiv an (`4 files, 11.4MB`), `brew test` läuft ohne TTY. Kein Halt, keine Rückgabe an den Architect.
+- **Was dieser Lauf nicht berührt:** der Wortlaut von `gh release download` mit dem echten `gh` (das ist der Job `homebrew` auf dem Runner, den dieser Slice nicht erneut gefahren hat), das Schreibrecht des Geheimnisses ohne Eingriff des Betreibers und der Wiederanlauf eines Jobs (der Job war im vierten Versuch grün, ein Wiederanlauf war nicht nötig).
 
 ## 7. Closure-Notiz
 
@@ -250,6 +260,17 @@ homebrew-nachweis: Exit-Code 0 (Code des Skripts im Container, nicht der von mak
 | (3) Replay-Lauf startet: `level=INFO`, kein `level=ERROR`, Exit 0 nach `SIGTERM` | die vier Zeilen der Fehlerausgabe und `Exit-Code des Replay-Laufs: 0` | nicht gefahren — ausgeschlossen (Punkt 20 (7)); die Zusage ist die Ausgabe selbst, die ein Mensch liest |
 | (4) kein Gate | `make -pn` nach dem Lauf: `GATE_CHECKS` führt das Ziel nicht (13 Einträge, `homebrew-nachweis` nicht darunter), `GEGENPROBEN_CONTAINER` und `GEGENPROBEN_HOST` ebenso wenig; `grep -rln homebrew-nachweis --exclude-dir=.git .` nennt unter `harness/mk/`, `tools/` und `.claude/` allein das eigene Fragment und das eigene Skript — kein Hook, kein anderes Fragment | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
 | (5) Aufräumen: `--rm`, Temp-Verzeichnis entfällt, nichts im Arbeitsbaum | nach dem Lauf: `docker ps -a --filter ancestor=homebrew/brew` leer, `docker ps -a` ohne jeden Container, `docker volume ls -q \| wc -l` gibt `0`, `git status --short` leer (die beiden Dateien des Werkzeugs lagen da schon im Commit `a2fce55f`) | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
+
+#### Was der Implementer beim Schreiben entschieden hat (kein Vertragstext)
+
+Punkt 20 lässt diese vier offen; keine davon ist eine Randform im Sinne von `AGENTS.md` §3.12 (keine entscheidet über Eingaben, Formen oder Fehlerwege eines Vertrags), und keine ändert eine Zusage:
+
+1. **Wartezeit vor dem `SIGTERM`:** fest 5 Sekunden. Punkt 20 (3) sagt „wartet“ ohne Maß; ein Warten auf eine Zeile der Ausgabe wäre eine Auswertung und ist durch Punkt 20 (2) ausgeschlossen.
+2. **Ort des eingehängten Skripts im Container:** `/tmp/homebrew-nachweis.sh`, schreibgeschützt; das Temp-Verzeichnis der Schritte legt `mktemp -d` daneben.
+3. **Kopf der Ausgabe:** `date -u`, `uname -s`, `uname -m` als erste Befehle (§6, Stand der Randformen).
+4. **Kürzung im Beleg oben:** allein die zweite `Downloading`-Zeile, hinter dem Pfad; gekürzt sind Signatur und JWT der zeitlich begrenzten Adresse, die Kürzung steht im Text. Sonst ist die Ausgabe vollständig.
+
+**§3 (Plan) nach dem Diff:** Die Tabelle nennt jede Datei, die dieser Slice geändert hat — `tools/harness/homebrew-nachweis.sh` und `harness/mk/homebrew-nachweis.mk` (neu), `docs/user/benutzerhandbuch.md` und `README.md` (update); `harness/README.md`, `harness/vertraege/SPEC-067-release.md` und `spec/spezifikation.md` lagen schon und sind unberührt. Keine Zeile fehlt, keine ist gegenstandslos geworden.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
