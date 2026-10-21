@@ -273,20 +273,21 @@ git diff --numstat --find-renames=10% 28bb1f01..HEAD -- tools harness \
 
 | Datei | Zeilen |
 |---|---|
-| `tools/harness/container-einrichten-gegenprobe.sh` | 833 |
+| `tools/harness/container-einrichten-gegenprobe.sh` | 835 |
 | `tools/harness/container-einrichten.sh` | 303 |
 | `harness/mk/container-einrichten-gegenprobe.mk` | 12 |
 | `harness/mk/container-einrichten.mk` | 11 |
 | `harness/README.md` | 2 |
 | `harness/vertraege/SPEC-060-gegenproben.md` | 1 |
-| **Summe** | **1162** |
+| **Summe** | **1164** |
 
-**Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
+Gemessen am Endstand `19567b8c`; am Stand des vollen Gegenprobe-Laufs (`5c8a17d2`) dieselbe Summe, am Stand
+davor (`6c7f635d`) 1162. **Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
 2026-10-21 (§4, *Kein weiterer Schnitt*) ist das ein **Befund an den Planner** und keine Rückführung: Der
 Implementer meldet die Zahl und arbeitet weiter. Die Schätzung des Architect lautete 745 bis 1090 (§4); über
-ihrer oberen Hälfte liegen 72 Zeilen. Woran es liegt, in der Reihenfolge des Gewichts: (1) Die Gegenprobe
-trägt 833 statt der geschätzten 530 bis 770 Zeilen — 216 Fälle und 169 Mutationen statt „rund 65 Fälle und
-rund 120 Mutationen"; der Faktor gegen das Skript ist **2,7** (833 zu 303), also unter dem Faktor 3,2 des
+ihrer oberen Hälfte liegen 74 Zeilen. Woran es liegt, in der Reihenfolge des Gewichts: (1) Die Gegenprobe
+trägt 835 statt der geschätzten 530 bis 770 Zeilen — 216 Fälle und 161 Mutationen statt „rund 65 Fälle und
+rund 120 Mutationen"; der Faktor gegen das Skript ist **2,8** (835 zu 303), also unter dem Faktor 3,2 des
 nächsten Verwandten (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Die Zahl der Fälle wächst mit
 den Aufzählungen des Vertrags, nicht mit dem Umfang des Ziels: allein Punkt 1 verlangt 24 Fälle (zwei
 Aufzählungen), Punkt 9 verlangt 26 Zeichen-Fälle, Punkt 2 verlangt 36 Eingabe-Fälle, Punkt 14 zehn
@@ -296,7 +297,7 @@ Kommentar (Punkt-Verweise und Gründe).
 **Mutationsprotokoll (Zusage · Mutation · roter Fall).** Eine Zeile je Zusage oder Element einer Aufzählung;
 `GP_ENTDECKE=1` nennt je Mutation die roten Fälle, und `mut` verlangt genau diese Menge (mehr und weniger
 machen den Lauf rot). Die Tabelle der Mutationen in `tools/harness/container-einrichten-gegenprobe.sh`
-(Abschnitt *Tabelle der Mutationen*) führt die 169 Einzelzeilen mit Text und roter Menge; hier stehen sie
+(Abschnitt *Tabelle der Mutationen*) führt die 161 Einzelzeilen mit Text und roter Menge; hier stehen sie
 nach Zusage gebündelt.
 
 | Zusage (`SPEC-069`) | Mutation | roter Fall |
