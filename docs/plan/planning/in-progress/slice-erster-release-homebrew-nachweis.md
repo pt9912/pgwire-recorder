@@ -179,6 +179,78 @@ Nachweis in dieser Sektion liegt.
    Kommando `version` dennoch der Weg dieses Slice (dort §1, Klasse 2: das
    Kommando bleibt unverändert).
 
+### Belege des Implementers (2026-10-21, Zweig `impl-nachweis`, Worktree `wt-nachweis`, Dev-Container `pgr-dev2`)
+
+#### Nachweis Linux · x86_64 (Abnahmeszenario 11, Form nach `SPEC-067` Punkt 20 (6))
+
+- **Datum:** `2026-10-21T08:38:05Z` (Ausgabe von `date -u` im Container des Laufs).
+- **`uname -s`:** `Linux` · **`uname -m`:** `x86_64`. Der Docker-Server des Dev-Containers meldet `linux/amd64`; die Kombination des Belegs ist damit **Linux/amd64**.
+- **Image:** Tag `4.6.20`, Digest `sha256:b0072bfdebf5934ae24b93b44a1928a88057399b3283ffa0177bb86084fdedfd`. Der Digest ist am 2026-10-21 gegen die Registry aufgelöst worden (`docker buildx imagetools inspect homebrew/brew:4.6.20`: `MediaType: application/vnd.oci.image.index.v1+json`, Manifeste für `linux/amd64` und `linux/arm64`; `--raw | sha256sum` gibt denselben Wert) — also der Digest des **Index**, nicht eines Plattform-Manifests.
+- **Umgebung:** `HOMEBREW_NO_ANALYTICS=1`, `HOMEBREW_NO_AUTO_UPDATE=1`, `HOMEBREW_NO_ENV_HINTS=1`; keine weitere `HOMEBREW_*`-Variable. `docker run --rm` ohne `-t`, Standardeingang `/dev/null`, allein `tools/harness/homebrew-nachweis.sh` schreibgeschützt eingehängt.
+- **Befehl:** `make homebrew-nachweis` · **Dauer:** 19,3 s · **Exit-Code des Skripts:** `0`.
+- **Version aus (c):** `pgwire-recorder 0.1.1` · **Exit-Code des Replay-Laufs aus (3):** `0`.
+
+Ausgabe des Laufs, vollständig; allein die zweite Zeile `==> Downloading from https://release-assets.githubusercontent.com/…` ist hinter dem Pfad gekürzt (signierte Adresse mit Ablauf `2026-10-21T09:29:25Z`, Signatur und JWT), die Kürzung ist im Text markiert:
+
+```text
+homebrew-nachweis: Image homebrew/brew:4.6.20@sha256:b0072bfdebf5934ae24b93b44a1928a88057399b3283ffa0177bb86084fdedfd
++ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-10-21T08:38:05Z
++ uname -s
+Linux
++ uname -m
+x86_64
++ brew tap pt9912/pgwire-recorder
+==> Tapping pt9912/pgwire-recorder
+Cloning into '/home/linuxbrew/.linuxbrew/Homebrew/Library/Taps/pt9912/homebrew-pgwire-recorder'...
+Tapped 1 formula (13 files, 68.6KB).
++ brew install pt9912/pgwire-recorder/pgwire-recorder
+==> Fetching downloads for: pgwire-recorder
+==> Fetching pt9912/pgwire-recorder/pgwire-recorder
+==> Downloading https://github.com/pt9912/pgwire-recorder/releases/download/v0.1.1/pgwire-recorder-linux-amd64
+==> Downloading from https://release-assets.githubusercontent.com/github-production-release-asset/1403356322/e5be8986-543a-4a75-8c54-5946309ffb16?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-21T09%3A29%3A25Z&rscd=attachment%3B+filename%3Dpgwire-recorder-linux-amd64&… [gekürzt: Signatur und JWT der zeitlich begrenzten Adresse]
+==> Installing pgwire-recorder from pt9912/pgwire-recorder
+🍺  /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1: 4 files, 11.4MB, built in 3 seconds
+==> Running `brew cleanup pgwire-recorder`...
++ pgwire-recorder version
+pgwire-recorder 0.1.1
++ brew test pgwire-recorder
+Warning: test is a developer command, so Homebrew's
+developer mode has been automatically turned on.
+To turn developer mode off, run:
+  brew developer off
+
+✔︎ JSON API cask_tap_migrations.jws.json
+==> Testing pt9912/pgwire-recorder/pgwire-recorder
+==> /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1/bin/pgwire-recorder version
++ pgwire-recorder replay --listen 127.0.0.1:55432 --input /tmp/tmp.8UH4nT8PLq/aufzeichnung.yaml (Fehlerausgabe in eine Datei)
++ kill -TERM <Replay-Lauf>
+--- Fehlerausgabe des Replay-Laufs ---
+time=2026-10-21T08:38:18.457Z level=INFO msg="replay gestartet" listen=127.0.0.1:55432 input=/tmp/tmp.8UH4nT8PLq/aufzeichnung.yaml
+time=2026-10-21T08:38:23.455Z level=INFO msg="Herunterfahren begonnen" sessions=0
+time=2026-10-21T08:38:23.455Z level=WARN msg="1 aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung 1" code=PGR-W2001
+time=2026-10-21T08:38:23.455Z level=INFO msg="replay beendet"
+--- Exit-Code des Replay-Laufs: 0
+homebrew-nachweis: Exit-Code 0 (Code des Skripts im Container, nicht der von make)
+```
+
+**Was der Lauf zeigt, Schritt für Schritt.** (a) `brew tap pt9912/pgwire-recorder` ohne zweites Argument leitet die Adresse auf `pt9912/homebrew-pgwire-recorder` ab (Zeile `Cloning into '…/Taps/pt9912/homebrew-pgwire-recorder'`) und nimmt die eine Formel an (`Tapped 1 formula`) — eine Bestätigung wie `brew trust` hat Homebrew nicht verlangt. (b) `brew install` lädt das Binary des Tags `v0.1.1` vom GitHub-Release unter dem Namen ohne Version (`pgwire-recorder-linux-amd64`) und installiert es ohne Abbruch; Homebrew prüft die Summe der Formel beim Laden, eine Abweichung bräche den Schritt mit `SHA256 mismatch`. (c) `pgwire-recorder version` gibt `pgwire-recorder 0.1.1` — die Version der Formel im Tap. (d) `brew test pgwire-recorder` fährt den Block `test do` der Formel (`==> /home/linuxbrew/.linuxbrew/Cellar/pgwire-recorder/0.1.1/bin/pgwire-recorder version`) ohne Befund. (e) Der Replay-Lauf gegen die im Skript erzeugte Aufzeichnung schreibt drei Zeilen `level=INFO` und keine `level=ERROR`, endet nach `SIGTERM` mit Exit-Code `0`; die eine Zeile `level=WARN` (`PGR-W2001`, nie zugeordnete Session) ist erwartet, weil keine Anwendung verbindet — das gehört nach `SPEC-067` Punkt 20 (3) nicht zum Nachweis.
+
+**Was dieser Beleg nicht trägt.** Er gilt für **Linux/amd64** und für die Version `0.1.1`. `linux/arm64` ist nicht gefahren (kein Rechner, kein emulierter Lauf, §1 Abgrenzung); macOS ist nicht gefahren (die Angabe des Nutzers oben trägt keine Ausgaben und bleibt eine Angabe der Koordination). Diese drei Kombinationen stehen als **Grenze** in `LH-FA-19.a` und im Handbuch. `brew audit` gehört nicht zum Nachweis (§1 Abgrenzung). Ein Fehler im Skript selbst fiele nur dem Leser der Ausgabe auf (§6 Randform 13, akzeptiertes Negativ).
+
+#### Zusagen des Werkzeugs und ihre Gegenprobe
+
+`SPEC-067` Punkt 20 (7) schließt Fälle, Gegenprobe und Abdeckungs-Deklaration für dieses Ziel aus; `AGENTS.md` §3.10 greift damit nicht (§6 Randform 13). Was statt einer Gegenprobe belegt ist, steht hier:
+
+| Zusage (Punkt 20) | Beleg aus dem Lauf | Gegenbeispiel |
+|---|---|---|
+| (1) Pin ist Tag + Digest des Index, kein Platzhalter | Zeile 1 der Ausgabe nennt beide; `docker buildx imagetools inspect` nennt `MediaType: …image.index.v1+json` und beide Plattform-Manifeste | nicht gefahren — ausgeschlossen (Punkt 20 (7)); ein Platzhalter aus Nullen wäre an der Zeile erkennbar, ein Plattform-Digest am `MediaType` des `inspect` |
+| (2) Reihenfolge (a) bis (e), jeder Befehl vor seiner Ausführung auf stdout, kein `brew audit` | die Zeilen `+ …` in genau dieser Reihenfolge, keine Zeile `+ brew audit` | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
+| (2) Exit-Code: der des ersten scheiternden Schrittes, sonst 0 | letzte Zeile `Exit-Code 0`; über `make` sähe der Aufrufer bei einem roten Lauf nur die `2` von make, deshalb nennt das Rezept den Code des Skripts selbst (`BEO-REPO/vertrag-nennt-exit-code-des-skripts-nicht-von-make`) | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
+| (3) Replay-Lauf startet: `level=INFO`, kein `level=ERROR`, Exit 0 nach `SIGTERM` | die vier Zeilen der Fehlerausgabe und `Exit-Code des Replay-Laufs: 0` | nicht gefahren — ausgeschlossen (Punkt 20 (7)); die Zusage ist die Ausgabe selbst, die ein Mensch liest |
+| (4) kein Gate | `make -pn` nach dem Lauf: `GATE_CHECKS` führt das Ziel nicht (13 Einträge, `homebrew-nachweis` nicht darunter), `GEGENPROBEN_CONTAINER` und `GEGENPROBEN_HOST` ebenso wenig; `grep -rln homebrew-nachweis --exclude-dir=.git .` nennt unter `harness/mk/`, `tools/` und `.claude/` allein das eigene Fragment und das eigene Skript — kein Hook, kein anderes Fragment | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
+| (5) Aufräumen: `--rm`, Temp-Verzeichnis entfällt, nichts im Arbeitsbaum | nach dem Lauf: `docker ps -a --filter ancestor=homebrew/brew` leer, `docker ps -a` ohne jeden Container, `docker volume ls -q \| wc -l` gibt `0`, `git status --short` leer (die beiden Dateien des Werkzeugs lagen da schon im Commit `a2fce55f`) | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
