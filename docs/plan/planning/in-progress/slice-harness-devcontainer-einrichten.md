@@ -238,6 +238,334 @@ Der Slice liefert einen **neuen Vertrag** (Werkzeug mit Zusagen); §3.12 gilt. D
 
 *(wird bei der Closure geschrieben)*
 
+### Belege des Implementers
+
+**Arbeitsort.** Klon im Dev-Container `pgr-dev2` (ssh-Port 2223), eigener Worktree
+`/workspaces/pgr-dev2/wt-einr`, Zweig `impl-einrichten` aus `origin/main` (`f1a1993b`); Dateien über den
+Standardeingang des `ssh`-Befehls, Commits im Klon, `git push origin impl-einrichten` in das Bare-Repo, der
+Host holt mit `git fetch container`. Allein der **Nachweis** (`SPEC-069` Punkt 18) lief am Host (Docker,
+`u-boot`, `devcontainer`); `pgr-dev2` wurde dabei nie angefasst. Der Plan ist auf dem Stand von `main`;
+dieser Lauf ändert §1, §3, §4 und §6 (die Korrekturen nach `AGENTS.md` §3.9, je im Commit der Lieferung) und
+diesen Abschnitt.
+
+**Läufe.**
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make container-einrichten-gegenprobe`, voller Lauf in einem Zug | `5c8a17d2` | **grün**, 216 Fälle, **Zeit 159 s von höchstens 600 s, Last 4.75** (Last zum Start 3.82); je Mutation genau die benannten roten Fälle, drei Mutanten ohne roten Fall (unten) |
+| derselbe Lauf, Stand davor | `6c7f635d` | grün, 157 s, Last 5.58 |
+| `make docs-check` | `6c7f635d` | grün, 1340 Dateien, 0 Befunde, 2 s |
+| `make gates` im Klon | `5c8a17d2` | Start 14:07 UTC; Ergebnis und Dauer siehe Bericht des Implementers (der Lauf dauert rund 28 min, Dokument §8) |
+| Nachweis gegen einen echten Container (Punkt 18) | `6c7f635d` | **durchgelaufen**, Beleg unten; zwei Läufe davor brachen vor Schritt 2 ab (unten, *Zwei Läufe, die nicht durchliefen*) |
+
+**Zur Zusage von `SPEC-060` Punkt 3** (ohne vorherigen Lauf von `make gates` grün): Der volle Lauf fand in
+einem **frischen Worktree** statt, in dem `make gates` nie gelaufen war (allein `make docs-check`, das keine
+Datei anlegt, die die Gegenprobe liest); die Gegenprobe ruft Docker nicht und braucht kein Bau-Ergebnis. Was
+der Lauf **nicht** belegt: eine Fahrt in einem eigens dafür gestarteten Gegenproben-Container — ein solcher
+stand in diesem Lauf nicht bereit; der Dev-Container trägt dieselben Werkzeuge (bash, git, make, GNU-coreutils).
+
+**Größe** (Metrik §4, [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md), Basis `28bb1f01`):
+
+```
+git diff --numstat --find-renames=10% 28bb1f01..HEAD -- tools harness \
+  ':(exclude)docs/plan/planning' ':(exclude)docs/reviews' | awk '{a+=$1; b+=$2} END {print a+b+0}'
+```
+
+| Datei | Zeilen |
+|---|---|
+| `tools/harness/container-einrichten-gegenprobe.sh` | 833 |
+| `tools/harness/container-einrichten.sh` | 303 |
+| `harness/mk/container-einrichten-gegenprobe.mk` | 12 |
+| `harness/mk/container-einrichten.mk` | 11 |
+| `harness/README.md` | 2 |
+| `harness/vertraege/SPEC-060-gegenproben.md` | 1 |
+| **Summe** | **1162** |
+
+**Die Summe liegt über der Marke 900** (Meldeschwelle 700). Nach der Entscheidung des Nutzers vom
+2026-10-21 (§4, *Kein weiterer Schnitt*) ist das ein **Befund an den Planner** und keine Rückführung: Der
+Implementer meldet die Zahl und arbeitet weiter. Die Schätzung des Architect lautete 745 bis 1090 (§4); über
+ihrer oberen Hälfte liegen 72 Zeilen. Woran es liegt, in der Reihenfolge des Gewichts: (1) Die Gegenprobe
+trägt 833 statt der geschätzten 530 bis 770 Zeilen — 216 Fälle und 169 Mutationen statt „rund 65 Fälle und
+rund 120 Mutationen"; der Faktor gegen das Skript ist **2,7** (833 zu 303), also unter dem Faktor 3,2 des
+nächsten Verwandten (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Die Zahl der Fälle wächst mit
+den Aufzählungen des Vertrags, nicht mit dem Umfang des Ziels: allein Punkt 1 verlangt 24 Fälle (zwei
+Aufzählungen), Punkt 9 verlangt 26 Zeichen-Fälle, Punkt 2 verlangt 36 Eingabe-Fälle, Punkt 14 zehn
+Nachbarpaare. (3) Das Skript liegt mit 303 Zeilen über der Schätzung von 175 bis 255; 65 davon sind
+Kommentar (Punkt-Verweise und Gründe).
+
+**Mutationsprotokoll (Zusage · Mutation · roter Fall).** Eine Zeile je Zusage oder Element einer Aufzählung;
+`GP_ENTDECKE=1` nennt je Mutation die roten Fälle, und `mut` verlangt genau diese Menge (mehr und weniger
+machen den Lauf rot). Die Tabelle der Mutationen in `tools/harness/container-einrichten-gegenprobe.sh`
+(Abschnitt *Tabelle der Mutationen*) führt die 169 Einzelzeilen mit Text und roter Menge; hier stehen sie
+nach Zusage gebündelt.
+
+| Zusage (`SPEC-069`) | Mutation | roter Fall |
+|---|---|---|
+| Punkt 1: ändert nie `core.sshCommand` (schreibt und liest) | Schritt setzt sie; Schritt liest sie | `p1-sshcommand`, `p1-andere-einstellung`; `p1-sshcommand` |
+| Punkt 1: ändert nie eine andere Einstellung des Host-Repos außer dem Remote | Schritt setzt `gc.auto` | `p1-andere-einstellung` |
+| Punkt 1: ändert nie `~/.ssh`, nie eine `known_hosts`-Datei | Schritt legt `~/.ssh/config` an; Schritt schreibt in `known_hosts` | `p1-ssh-verzeichnis`; `p1-known-hosts`, `p1-ssh-verzeichnis` |
+| Punkt 1: ändert nie eine Datei im Arbeitsbaum des Host-Repos | Schritt legt `datei.txt` an | `p1-arbeitsbaum` |
+| Punkt 1: setzt nie `--global` oder `--system` am Host, nie im Container | Schritt setzt `--global` am Host; Schritt setzt `--global` im Container | `p1-global-host`, `p1-global-aufruf`; `p1-global-aufruf` |
+| Punkt 1: ändert nie `$PGR_DEV` samt Gerüst und Schlüsselpaar | Schritt legt `$PGR_DEV/spur` an | `p1-pgr-dev` |
+| Punkt 1: ruft nie auf — `docker`, `u-boot`, `devcontainer`, `git push --force`, `--mirror`, `--delete`, `git reset`, `git checkout -f`, `git clean`, `git merge`, `git pull`, `git rebase`, `git remote remove`, `git remote set-url`, `git branch -D`, `rm -rf` (16 Elemente) | je Element ein Schritt, der das Kommando ruft (`m-p1-nie-*`) | je Element `p1-nie-<Element>`; bei den drei Push-Formen dazu `p4-reihenfolge-der-schritte` |
+| Punkt 2: `PGR_DEV` Pflicht, nicht leer, absolut, vorhanden, Verzeichnis (5 Formen) | je Form die Prüfung entfällt | `p2-dev-nicht-gesetzt`, `-leer`, `-relativ`, `-fehlt`, `-datei` |
+| Punkt 2: `PGR_SSH_PORT` ganze Zahl 1 bis 65535, keine führende Null, kein Vorzeichen; Grenzen angenommen | je Prüfung entfällt; Grenze verschoben | `p2-port-leer`, `-abc`, `-plus22`, `-02222`, `-null`, `-ueber`, `p2-port-grenze-1`, `-grenze-65535` |
+| Punkt 2: `PGR_REMOTE` Zeichenmenge, erstes Zeichen, Länge 64, gesetzt und leer ungültig | je Form die Prüfung geweitet (`/`, Leerzeichen, führendes `-`, 65) bzw. `:-` statt `-` | `p2-remote-slash`, `-leerzeichen`, `-minus`, `-65`, `-leer` |
+| Punkt 2: `PGR_ZWEIG` Pflicht, nicht leer, nicht `main`, nicht `-…`, nicht `refs/…`, von `check-ref-format` angenommen | je Prüfung entfällt | `p2-zweig-nicht-gesetzt`, `-leer`, `-main`, `-minus`, `-refs`, `-punkte`+`-leerzeichen` |
+| Punkt 2: `PGR_SSH_OPTS` an Leerraum geteilt, einzelne Argumente, Tabulator zulässig, Zeilenumbruch ungültig, von keiner Shell ausgewertet | Prüfung der Steuerzeichen entfällt; Tabulator abgelehnt; ein Argument statt mehrerer; `eval` auf den Wert | `p2-opts-zeilenumbruch`+`p2-alle-gemeldet`+`p2-reihenfolge`; `p2-opts-tabulator`; `p2-opts-leer`+`-nicht-gesetzt`+`-tabulator`; `p2-opts-keine-shell`+`p4-nichts-geaendert` |
+| Punkt 2: Vorgaben `2222` und `container` | je Vorgabe eine andere | `p2-vorgaben` (+ die `p2-opts-*`-Fälle beim Port) |
+| Punkt 2: alle Verstöße, je einer in einer Zeile, in der Reihenfolge der Tabelle | nach dem ersten Verstoß abbrechen; Reihenfolge der Prüfungen vertauscht | `p2-alle-gemeldet`+`p2-reihenfolge`; `p2-reihenfolge` |
+| Punkt 3: `ssh` und `git` am Host, Reihenfolge der Meldungen | je Werkzeug die Prüfung entfällt; Reihenfolge vertauscht | `p3-fehlt-ssh`+`p3-fehlt-beide`+`p14-werkzeug-vor-geruest`; `p3-fehlt-git`+`p3-fehlt-beide`+`p3-fehlt-git-zweig-ungueltig`; `p3-fehlt-beide` |
+| Punkt 3: Projektname aus `u-boot.yaml` (erste Zeile, vier Leerzeichen Einzug), Zeichenmenge, gleich dem Basisnamen; Datei oder Zeile fehlt heißt „kein Gerüst" | Name aus dem Basisnamen gebildet; Einzug nicht geprüft; Zeichenmenge geweitet; Vergleich entfällt; zweite Zeile gewinnt; Prüfung der Datei entfällt | `p3-name-zeile-fehlt`+`-gross`+`-unterstrich`+`-ungleich-basis`+`-anderer-einzug`; `p3-name-anderer-einzug`; `p3-name-gross`+`-unterstrich`; `p3-name-ungleich-basis`; `p3-name-zwei-zeilen`; `p3-name-datei-fehlt`+`p4-meldung-form` |
+| Punkt 4: stdout trägt vom Ziel nur die Schlussmeldung | ein `echo` in einem Schritt | `p4-stdout-nur-erfolg` |
+| Punkt 4: die Ausgabe eines gerufenen Werkzeugs erscheint unverändert auf ihrem Strom, je Strom | stdout umgeleitet; stderr umgeleitet | `p4-werkzeug-stdout`; `p4-werkzeug-stderr` |
+| Punkt 4: jede Fehlermeldung nennt den Schritt | Meldung ohne Schritt | `p4-meldung-form`+`p3-fehlt-ssh`+`p3-fehlt-git`+`p3-fehlt-beide` |
+| Punkt 4: Reihenfolge der zehn Schritte | `traeger` vor `zweig` | `p4-reihenfolge-der-schritte`+`p12-stelle`+`p12-fehler` |
+| Punkt 5 (1): Gerüst — Schlüssel vorhanden, Schlüssel lesbar (zwei Elemente) | je Prüfung entfällt | `p5-schluessel-fehlt`; `p5-schluessel-unlesbar` (entfällt als root) |
+| Punkt 5 (2): Host-Repo, `refs/heads/main`; detached HEAD und anderer Zweig sind kein Grund | Prüfung des Repos entfällt; Prüfung von `main` entfällt; `HEAD` statt `refs/heads/main`; Prüfung auf den ausgecheckten Zweig ergänzt | `p5-kein-repo`; `p5-kein-main`+`p14-repo-vor-identitaet`; `p5-kein-main`+`p14-repo-vor-identitaet`; `p5-detached`+`p5-anderer-zweig` |
+| Punkt 5 (3): Identität — Name fehlt, E-Mail fehlt, beide in einer Zeile, leer, nur Leerraum, Steuerzeichen (Tabulator, Zeilenumbruch, CR), kein UTF-8, Meldung ohne den Wert | je Prüfung entfällt bzw. wird geweitet; nur der erste Mangel gemeldet; Leerraum nicht getrimmt; Wert in die Meldung gehängt | `p5-ident-name-fehlt`…`-leerraum`; `p5-ident-mail-fehlt`; `p5-ident-beide-fehlen`; `p5-ident-tabulator`+`-zeilenumbruch`+`-cr`; `p5-ident-nicht-utf8`+`-mail-nicht-utf8`; die vier Steuerzeichen-Fälle + `p4-meldung-form` |
+| Punkt 5 (4): Remote fehlt oder hat genau die URL; nichts wird gesetzt | Vergleich der URL entfällt; `set-url` statt `get-url` | `p5-remote-andere-url`+`p5-remote-nichts-gesetzt`+`p14-remote-vor-lesezug`; dazu `p5-remote-gleich`+`p1-nie-remote-set-url`+`p4-nichts-geaendert` |
+| Punkt 5 (5): **ein** `ssh`-Aufruf, Form des Aufrufs, `BatchMode`, `ConnectTimeout`, keine Hostschlüssel-Option, Lesebefehl schreibt nichts, Meldung nennt Adresse, Port und die letzte Ausgabe | zweiter Lesezug; `BatchMode` entfernt; `ConnectTimeout` entfernt; `StrictHostKeyChecking` ergänzt; Lesebefehl schreibt eine Datei; Prüfung des Exit-Codes entfällt; Meldung ohne die Ausgabe von `ssh` | `p5-lesezug-ein-aufruf`+`p4-nichts-geaendert`+`p4-reihenfolge-der-schritte`; `p5-lesezug-aufruf`; `p5-lesezug-aufruf`; `p5-lesezug-kein-hostschluessel`+`p5-lesezug-aufruf`; `p5-lesezug-schreibt-nichts`+`p4-nichts-geaendert`; `p5-nicht-erreichbar`+`p14-lesezug-vor-werkzeugen`; `p5-nicht-erreichbar` |
+| Punkt 5 (6): `git` und `make` im Container, je Werkzeug | je Werkzeug die Prüfung entfällt | `p5-fern-git-fehlt`; `p5-fern-make-fehlt`+`p14-werkzeuge-vor-bare` |
+| Punkt 5 (7) und (8): Bare-Repo mit anderem `HEAD`, kein Bare-Repo; Klon schmutzig, anderer `origin`, kein Git-Repo | je Prüfung entfällt | `p5-bare-master`+`p5-lesezug-schreibt-nichts`+`p14-bare-vor-klon`; `p5-bare-fremd`; `p5-klon-schmutzig`+`-unversioniert`+`p14-klon-vor-schritt`; `p5-klon-anderer-origin`; `p5-klon-fremd` |
+| Punkt 6: `git init --bare --initial-branch=main` nur bei fehlendem Bare-Repo, Fehler endet mit 5 | `--initial-branch` entfällt; `init` läuft immer; Fehler überlesen | `p6-fehlt`; `p6-vorhanden`+`p13-zweiter-aufruf`; `p6-fehler` |
+| Punkt 7: Remote nur anlegen, wenn es fehlt; Refspec wörtlich; kein `--force`; `GIT_SSH_COMMAND` in der Umgebung und nicht in der Konfiguration; Abweisung erkannt; kein zweiter Versuch; Fehler endet mit 5 | Bedingung invertiert; `--force` ergänzt; Refspec `main`; `core.sshCommand` gesetzt; Abweisung nie erkannt; Abweisung immer; zweiter Versuch; Fehler überlesen | `p7-remote-fehlt` und die übrigen `p7-*`+`p13-*`; `p7-push-aufruf`+`p7-abgewiesen`+`p1-nie-push-force`; `p7-push-aufruf`+`p7-fehler`; `p7-git-ssh-command`+`-opts`+`p1-sshcommand`+`p1-andere-einstellung`; `p7-abgewiesen`; `p7-fehler`; `p7-abgewiesen`; `p7-fehler` |
+| Punkt 8: `clone` nur bei fehlendem Klon, sonst allein `fetch --prune origin`, Fehler endet mit 5 | `clone` läuft immer; `--prune` entfällt; `pull` statt `fetch`; Fehler überlesen | `p8-besteht`+`p8-fehler`+`p13-zweiter-aufruf`; `p8-besteht`+`p8-fehler`; `p8-besteht`+`p8-fehler`; `p8-fehler` |
+| Punkt 9: Identität nur `--local`; Wert nie als Argument, nie in einer Shell-Zeichenkette; `IFS= read -r`; Reihenfolge der zwei Zeilen; 26 Zeichen kommen byteweise gleich an | `--global`; `--system`; Wert aus dem Skript; Wert als Argument; `eval` auf den Wert; `read` ohne `-r`; `read` ohne `IFS=`; Werte vertauscht | `p9-lokal`+`p4-reihenfolge-der-schritte`+alle 26 Zeichen-Fälle (je Mutation); `p9-kein-argument`+`p9-lokal`+13 Zeichen-Fälle; 13 Zeichen-Fälle; `p9-zeichen-backslash`; `p9-zeichen-leerraum-am-rand`; `p9-lokal`+`p9-reihenfolge`+26 Zeichen-Fälle |
+| Punkt 10: `make hooks-install` im Klon, bei jedem Aufruf; Fehler endet mit 5 | anderes Ziel; anderes Verzeichnis; Fehler überlesen | `p10-aufruf`+`p10-zweiter-aufruf`+`p13-zweiter-aufruf`+`p10-fehler`; `p10-aufruf`+`p10-zweiter-aufruf`; `p10-fehler` |
+| Punkt 11: `switch -c <Zweig> origin/main`, sonst `switch <Zweig>`; kein `--force`, kein `checkout -f`; Quelle immer `origin/main`; der Name reist über den Standardeingang | Quelle `main`; `-c` auch beim vorhandenen Zweig; `--force` ergänzt; `checkout -f`; Name als Argument; Fehler überlesen | `p11-aus-origin-main`; `p11-besteht`; `p11-besteht`; `p11-besteht`; `p11-sonderzeichen`; `p11-fehler` |
+| Punkt 12: `make traeger-fetch` als letzter Schritt, Fehler endet mit 5 und ohne Schlussmeldung | anderes Ziel; Fehler überlesen; Schritt vor `zweig` | `p12-aufruf`+`p12-stelle`+`p12-fehler`; `p12-fehler`; `p4-reihenfolge-der-schritte`+`p12-stelle`+`p12-fehler` |
+| Punkt 13: Schlussmeldung mit Klon-Pfad und Zweig, Exit 0 beim ersten wie beim zweiten Aufruf | Meldung ohne Pfad und Zweig | `p13-erfolg`+`p13-zweiter-aufruf`+`p13-umgebung` |
+| Punkt 13: die drei Zugangs-Variablen verlassen die eigene Umgebung, je Variable | je Variable das `unset` entfällt | `p13-umgebung` |
+| Punkt 14: Reihenfolge der Gründe, je Nachbarpaar | je Paar die beiden Prüfungen vertauscht bzw. eine entfernt | `p14-eingabe-vor-werkzeug` … `p14-klon-vor-schritt` (zehn Fälle, je Paar genannt) |
+| Punkt 15: `SIGINT` und `SIGTERM` beenden Kind und Lauf, Meldung mit Schritt, 130 und 143, kein Rückbau | Falle entfällt (je Signal); Exit 1 statt 130/143; Kind wird nicht beendet; ohne Meldung; Rückbau ergänzt | `p15-sigint`+`-sigint-zweig`+`-kein-rueckbau`+`-wiederholung`; `p15-sigterm`+`-sigterm-traeger`; dieselben je Signal; alle sechs `p15-*`; alle sechs; `p15-kein-rueckbau` |
+| Punkt 16: Rezept ohne `$(MAKE)`, Ziel `.PHONY` ohne Voraussetzungen | Rezept mit `$(MAKE)`; `.PHONY` umbenannt; Voraussetzung, die fehlt | `p16-n`+`-q`+`-t`+`-makeflags-*`+`-n-und-i`; `p16-phony`+`p17-phony`; `p16-phony`+`p16-i`+`p16-k`+`p16-j` |
+| Punkt 17: Gegenprobe in `GEGENPROBEN_CONTAINER`, nicht in `GEGENPROBEN_HOST`, nicht in `GATE_CHECKS`, nicht in der Ausnahmeliste, `.PHONY` | Liste entfernt; in die Host-Liste; an `GATE_CHECKS` (Ziel und Gegenprobe); in die Ausnahmeliste (in `gates-schnell.mk`, weil ein `+=` eines früher eingebundenen Fragments vom `:=` dort verworfen wird) | `p17-liste-container`; `p17-liste-container`+`p17-nicht-host`; `p17-kein-gate`; `p17-keine-ausnahme` |
+| `SPEC-060` Punkt 16 (9): Obergrenze, Zeile mit Zeit und Last, `GP_BUDGET`, Reihenfolge der Gründe, Aufräumen je Fall und je Mutation | Prüfung der Obergrenze entfällt; `0` prüft doch; Zeile entfällt; Vorgabe auch mit `GP_MUT`; Last als `0`; Lesen der Last invertiert; `GP_BUDGET` lax geprüft; Prüfung erst nach den Fällen; Falle für `INT` entfällt; EXIT-Falle räumt nicht; `rm` je Mutation entfällt; `rm` je Fall entfällt | `p17-budget-ueber`+`-gruende`; `p17-budget-null`; `p17-budget-unter`+`-null`+`-last-fehlt`+`-gruende`; `p17-budget-vorgabe-nur-ohne-mut`; `p17-budget-unter`+`-null`+`-vorgabe-nur-ohne-mut`; dieselben drei; `p17-budget-ungueltig-leer`+`-minus`+`-bruch`; die vier `-ungueltig-*`; `p17-budget-sigint`; `p17-budget-sigint`+`-sigterm`; `p17-ordner-mutation`; `p17-ordner-fall` |
+
+**Drei Mutanten ohne roten Fall — äquivalent, je mit Invariante, Ort und Sonde** (`AGENTS.md` §3.10):
+
+1. `m-p2-erster-verstoss` — `(( bad == 0 )) || exit 2` wird zu `(( bad == 0 )) || { (( bad > 1 )) && exit 2; exit 2; }`.
+   *Invariante:* Beide Zweige enden mit `exit 2`, und nichts dazwischen wirkt nach außen.
+   *Ort:* der Text des Mutanten selbst (beide Pfade enden in `exit 2`; `(( bad > 1 ))` hat keine Wirkung außer
+   dem Rückgabewert). *Sonde:* Der volle Lauf fährt alle 36 Eingabe-Fälle; jede Abweichung im Exit-Code oder
+   in der Zahl der Zeilen wäre an `p2-alle-gemeldet`, `p2-reihenfolge` und jedem `p2-*`-Fall sichtbar — alle
+   bleiben grün, auch der Fall mit **fünf** Verstößen.
+2. `m-p16-voraussetzung` — `container-einrichten: ##` wird zu `container-einrichten: Makefile ##`.
+   *Invariante:* Eine Voraussetzung, die eine vorhandene Datei ohne eigene Regel ist, ist immer aktuell und
+   ändert weder Rezept noch Reihenfolge noch Exit-Code des Ziels. *Ort:* `make` selbst (ein vorhandenes Ziel
+   ohne Regel gilt als aktuell). *Sonde:* dieselbe Stelle mit einer Voraussetzung, die **nicht** existiert
+   (`m-p16-voraussetzung-fehlt`, `container-einrichten: gibtsnicht ##`): gemessen rot in `p16-phony`,
+   `p16-i`, `p16-k` und `p16-j` — die Fälle trennen Original und Mutant also, sobald die Invariante
+   („vorhanden, ohne Regel") nicht gilt.
+3. `m-p17-signal-term` — `trap 'exit 143' TERM` der Gegenprobe wird zu `:`.
+   *Invariante:* Ein nicht gefangenes `SIGTERM` beendet die `bash` dieses Skripts mit Exit 143, führt dabei
+   die EXIT-Falle aus (der Arbeitsordner entfällt) und erreicht `abschluss` nicht (keine Zeile `Zeit …`).
+   *Ort:* `bash` selbst (Vorgabe-Behandlung von `SIGTERM`), nicht das Skript — für `SIGINT` gilt das
+   **nicht**: die Vorgabe beendet dort nur das wartende Kind, das Skript läuft weiter.
+   *Sonde* (Lauf im Dev-Container, je eine Kopie der Gegenprobe mit einer Warteschleife, Signal an die
+   Kopie):
+
+   | Kopie | Signal | Exit | Zeile `Zeit …` | Arbeitsordner |
+   |---|---|---|---|---|
+   | unverändert | `SIGINT` | 130 | nein | weg |
+   | unverändert | `SIGTERM` | 143 | nein | weg |
+   | Falle für `INT` entfällt | `SIGINT` | **0** | **ja** | weg |
+   | Falle für `TERM` entfällt | `SIGTERM` | 143 | nein | weg |
+   | Falle für `INT` entfällt | `SIGTERM` | 143 | nein | weg |
+   | Falle für `TERM` entfällt | `SIGINT` | 130 | nein | weg |
+
+   Die dritte Zeile ist der rote Fall von `m-p17-signal-int` (`p17-budget-sigint`); die vierte zeigt, dass
+   die Falle für `TERM` am Ergebnis nichts ändert. Entfällt die EXIT-Falle, bleibt der Ordner stehen — das
+   fängt `m-p17-ordner-ende` (`p17-budget-sigint`, `p17-budget-sigterm`).
+
+**Nachweis gegen einen laufenden Container** (`SPEC-069` Punkt 18; Form wie
+[`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md) Punkt 20 (6); am Host, Präfix `pgr-ce-`,
+Port 2253, nie gegen `pgr-dev2`, kein anderer Lauf auf demselben Daemon):
+
+```text
+### Umgebung
+Datum (UTC): 2026-10-21 13:57
+uname -s: Linux
+uname -m: x86_64
+docker: 29.9.2
+u-boot: u-boot version 0.13.0
+devcontainer: 0.80.2
+git: git version 2.43.0
+Port: 2253, PGR_DEV: /tmp/pgr-ce-nachweis.XIg9Fw/pgr-ce-nachweis
+
+### Vorbereitung (Klon des Host-Repos, Zweig des Slice)
+git clone: Exit 0
+git fetch: Exit 0
+git checkout: Exit 0
+Identitaet des Klons: pt9912 / 66826472+pt9912@users.noreply.github.com
+HEAD: 6c7f635d slice-harness-devcontainer-einrichten: Gegenprobe container-einrichten-gegenprobe ohne Container
+refs/heads/main: 606a60f7
+
+### Schritt 1: make container-start
+Initialized u-boot project "pgr-ce-nachweis".
+
+Created:
+[gekürzt: 152 Zeilen Ausgabe von `u-boot generate devcontainer` und `devcontainer up` (Bau des Images) — Ausgabe des Gebers `SPEC-058`, keine Aussage dieses Ziels; kein Geheimnis darin]
+[2026-10-21T13:57:54.585Z] Start: Run: docker run --sig-proxy=false -a STDOUT -a STDERR -p 127.0.0.1:2253:2222 --mount source=pgr-ce-nachweis-workspace-0vaqmrlv9mu7d9tju7037lv8pkmodgioac84vr9vicc55af1b4te,target=/workspaces/pgr-ce-nachweis,type=volume --mount source=pgr-ce-nachweis-docker-0vaqmrlv9mu7d9tju7037lv8pkmodgioac84vr9vicc55af1b4te,target=/var/lib/docker,type=volume --mount type=bind,source=/tmp/pgr-ce-nachweis.XIg9Fw/pgr-ce-nachweis/ssh/id_ed25519.pub,target=/home/vscode/.ssh/authorized_keys,readonly -l devcontainer.local_folder=/tmp/pgr-ce-nachweis.XIg9Fw/pgr-ce-nachweis -l devcontainer.config_file=/tmp/pgr-ce-nachweis.XIg9Fw/pgr-ce-nachweis/.devcontainer/devcontainer.json --privileged --cap-add=NET_ADMIN --name=pgr-ce-nachweis --cpus=2 --memory=2g --entrypoint /bin/sh vsc-pgr-ce-nachweis-68e8a303c582202f497fa7524d9d16c2b55e23c52cfb277bf9cf47c07a51052b-uid -c echo Container started
+[2026-10-21T13:57:54.978Z] Container started
+[2026-10-21T13:57:55.164Z] Running the postStartCommand from devcontainer.json...
+
+{"outcome":"success","containerId":"7f94f3bacb864ce4046c0f1226b9a74e726907718f9da7b437f4d5b415410d96","remoteUser":"vscode","remoteWorkspaceFolder":"/workspaces/pgr-ce-nachweis"}
+container-start: bereit pgr-ce-nachweis 127.0.0.1:2253
+Exit: 0
+
+
+### Schritt 2: erster Aufruf von make container-einrichten
+PGR_SSH_OPTS: -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/pgr-ce-nachweis.XIg9Fw/known_hosts   (Punkt 20 (5): das Ziel setzt keine Einstellung fuer den Hostschluessel)
+Initialized empty Git repository in /workspaces/pgr-ce-nachweis/austausch.git/
+To ssh://127.0.0.1:2253/workspaces/pgr-ce-nachweis/austausch.git
+ * [new branch]        main -> main
+Cloning into '/workspaces/pgr-ce-nachweis/pgwire-recorder'...
+done.
+hooks-install: core.hooksPath=.githooks — .githooks/commit-msg laeuft ab dem naechsten Commit (Umgehung: git commit --no-verify).
+branch 'impl-einrichten' set up to track 'origin/main'.
+Switched to a new branch 'impl-einrichten'
+Unable to find image 'curlimages/curl@sha256:463eaf6072688fe96ac64fa623fe73e1dbe25d8ad6c34404a669ad3ce1f104b6' locally
+docker.io/curlimages/curl@sha256:463eaf6072688fe96ac64fa623fe73e1dbe25d8ad6c34404a669ad3ce1f104b6: Pulling from curlimages/curl
+bd9ddc54bea9: Pulling fs layer
+9824c27679d3: Pulling fs layer
+e4200f789582: Pulling fs layer
+bd9ddc54bea9: Download complete
+9824c27679d3: Download complete
+9824c27679d3: Pull complete
+e4200f789582: Download complete
+bd9ddc54bea9: Pull complete
+e4200f789582: Pull complete
+Digest: sha256:463eaf6072688fe96ac64fa623fe73e1dbe25d8ad6c34404a669ad3ce1f104b6
+Status: Downloaded newer image for curlimages/curl@sha256:463eaf6072688fe96ac64fa623fe73e1dbe25d8ad6c34404a669ad3ce1f104b6
+traeger-fetch: Traeger abgelegt (/workspaces/pgr-ce-nachweis/pgwire-recorder/.harness/state/bin/ai-harness-init) — ai-harness-init-linux-amd64 aus Release v0.2.6, Digest verifiziert.
+container-einrichten: eingerichtet /workspaces/pgr-ce-nachweis/pgwire-recorder impl-einrichten
+Exit: 0
+
+### Schritt 3: zweiter Aufruf, derselbe Aufruf
+Everything up-to-date
+hooks-install: core.hooksPath=.githooks — .githooks/commit-msg laeuft ab dem naechsten Commit (Umgehung: git commit --no-verify).
+Your branch is up to date with 'origin/main'.
+Already on 'impl-einrichten'
+traeger-fetch: Traeger abgelegt (/workspaces/pgr-ce-nachweis/pgwire-recorder/.harness/state/bin/ai-harness-init) — ai-harness-init-linux-amd64 aus Release v0.2.6, Digest verifiziert.
+container-einrichten: eingerichtet /workspaces/pgr-ce-nachweis/pgwire-recorder impl-einrichten
+Exit: 0
+
+### Schritt 4: Ablesen im Container
+$ git -C /workspaces/pgr-ce-nachweis/austausch.git symbolic-ref HEAD
+refs/heads/main
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder remote get-url origin
+/workspaces/pgr-ce-nachweis/austausch.git
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder rev-parse --abbrev-ref HEAD
+impl-einrichten
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder config --local --get user.name
+pt9912
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder config --local --get user.email
+66826472+pt9912@users.noreply.github.com
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder config --get core.hooksPath
+.githooks
+  Exit: 0
+$ ls /workspaces/pgr-ce-nachweis/pgwire-recorder/.harness/ 2> /dev/null || echo '(kein .harness)'
+baseline
+skills
+state
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder status --porcelain | head -3
+  Exit: 0
+$ git -C /workspaces/pgr-ce-nachweis/pgwire-recorder log --oneline -1
+606a60f7 slice-harness-container-start-u-boot-0-13: Slice in open/ angelegt (gemessene Umgebung von SPEC-058 auf u-boot 0.13.0, Lauf der Gruppe Docker am Host; Konflikt mit ADR-0055 in 1 und 6); Sendung in slice-harness-gegenproben-grenze-rest 1 und 6 mit Nachzaehlung in dessen 8; Drift-Log der Roadmap
+  Exit: 0
+Identitaet des Host-Repos (Klon): pt9912 / 66826472+pt9912@users.noreply.github.com
+Remote im Klon des Hosts: ssh://vscode@127.0.0.1:2253/workspaces/pgr-ce-nachweis/austausch.git
+
+### Schritt 5: Aufraeumen
+$ docker rm -fv pgr-ce-nachweis
+pgr-ce-nachweis
+  Exit: 0
+$ docker ps -a --filter name=pgr-ce-
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker volume ls | grep pgr-ce-  (benannte Volumes ueberleben docker rm -fv)
+local     pgr-ce-nachweis-docker-0vaqmrlv9mu7d9tju7037lv8pkmodgioac84vr9vicc55af1b4te
+local     pgr-ce-nachweis-workspace-0vaqmrlv9mu7d9tju7037lv8pkmodgioac84vr9vicc55af1b4te
+$ docker volume ls -q | grep pgr-ce- | xargs -r docker volume rm
+pgr-ce-nachweis-docker-0vaqmrlv9mu7d9tju7037lv8pkmodgioac84vr9vicc55af1b4te
+pgr-ce-nachweis-workspace-0vaqmrlv9mu7d9tju7037lv8pkmodgioac84vr9vicc55af1b4te
+$ docker images | grep vsc-pgr-ce-
+vsc-pgr-ce-nachweis-68e8a303c582202f497fa7524d9d16c2b55e23c52cfb277bf9cf47c07a51052b-uid:latest
+vsc-pgr-ce-nachweis-68e8a303c582202f497fa7524d9d16c2b55e23c52cfb277bf9cf47c07a51052b:latest
+$ docker images ... | xargs -r docker rmi
+  Exit: 0
+$ docker ps -a --filter name=pgr-ce- ; docker volume ls -q | grep pgr-ce- ; docker images | grep pgr-ce-   (nach dem Entfernen)
+(kein Volume des Praefixes)
+(kein Image des Praefixes)
+git remote remove: Exit 0
+rm -rf /tmp/pgr-ce-nachweis.XIg9Fw: Exit 0
+### Ende
+```
+
+**Zwei Läufe, die nicht durchliefen — und was sie belegen** (dieselben fünf Schritte, Ports 2251 und 2252):
+
+1. Der Klon des Host-Repos trug keine Identität (`git clone` kopiert die lokale Konfiguration nicht), und der
+   erste Aufruf endete mit der Meldung `container-einrichten: zustand: die Identität des Host-Repos fehlt:
+   user.name user.email` (über `make` Exit 2, des Skripts 4) — Randform 5 am echten Container.
+2. Mit Identität, aber ohne eigene `known_hosts`-Datei endete der Aufruf mit
+   `container-einrichten: zustand: der Container antwortet nicht auf vscode@127.0.0.1, Port 2252 (ssh: Host
+   key verification failed.) — make container-start startet ihn` — Randform 9 und Punkt 20 (5) am echten
+   Container: Das Ziel setzt keine Einstellung für den Hostschlüssel. Der dritte Lauf gibt sie in
+   `PGR_SSH_OPTS` (`-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=…`), wie Punkt 20 (5) es
+   vorsieht.
+
+**Vier Beobachtungen zum Vertrag — Hinweise an den Architect, keine Randform-Rückgabe** (jede Zeile ist eine
+Lücke im *Text*, nicht im entschiedenen Verhalten; der Implementer hat nichts davon selbst entschieden):
+
+1. **Punkt 18, Schritt 5 räumt nicht vollständig.** `docker rm -fv` entfernt die **anonymen** Volumes; das
+   Gerüst aus `SPEC-058` legt zwei **benannte** an (`pgr-ce-nachweis-workspace-…`,
+   `pgr-ce-nachweis-docker-…`) und ein Image-Paar (`vsc-pgr-ce-nachweis-…`, `…-uid`). Nach den drei
+   Kommandos des Punktes bleiben sie stehen, und die Zusage „kein Objekt des Präfixes bleibt" ist nicht
+   erfüllt. Der Beleg oben entfernt sie **per Name** (`docker volume rm`, `docker rmi`) und zeigt beide
+   Zustände; `container-start-gegenprobe` hält es mit ihrem Präfix `pgr-cs-` ebenso (`SPEC-058` Punkt 15).
+   Vorschlag: Punkt 18 Schritt 5 nennt die beiden Kommandos.
+2. **Punkt 2 gegen Punkt 4 beim Wort „Werkzeug".** Punkt 2 sagt, `eingaben` „ruft kein Werkzeug auf";
+   dieselbe Tabelle verlangt für `PGR_ZWEIG` `git check-ref-format --branch`. Punkt 4 löst es auf (bis
+   einschließlich `zustand` sind die lesenden `git`-Kommandos einschließlich `check-ref-format` erlaubt). Das
+   Skript ruft in `eingaben` nur dieses eine Kommando und kein `ssh` und kein `make`; die Gegenprobe prüft
+   genau das (`p4-nichts-geaendert`: höchstens ein `ssh`-Aufruf, von `git` nur die lesenden Kommandos).
+   Folge im Verhalten, die der Vertrag so nicht ausschreibt: Fehlt `git` am Host, bleibt die Prüfung von
+   `check-ref-format` aus, und ein ungültiger Zweigname endet erst im Schritt `werkzeuge` mit Exit 3
+   (Fall `p3-fehlt-git-zweig-ungueltig`) — sonst wäre `p3-fehlt-git` nicht erreichbar.
+3. **`PGR_SSH_OPTS` im Push.** Für die eigenen `ssh`-Aufrufe reisen die Optionen als einzelne Argumente,
+   die keine Shell sieht (Punkt 2, Fall `p2-opts-keine-shell`). `GIT_SSH_COMMAND` ist nach Punkt 7 eine
+   **Zeichenkette**, und `git` gibt sie an `sh -c`: eine Option mit Shell-Metazeichen wird dort ausgewertet.
+   Das folgt aus den beiden wörtlich festgelegten Formen; Punkt 20 nennt als Grenze nur eine Option mit
+   Leerraum. Vorschlag: Punkt 20 (7) nennt auch Metazeichen.
+4. **Der Exit-Code von `git push` bei einer gescheiterten Verbindung** ist nicht Gegenstand des Vertrags
+   (gemessen 128, nicht 1); die Gegenprobe prüft deshalb die **Form** der Zeile
+   (`einliefern: git push <Remote> endete mit Exit <Zahl>`), nicht die Zahl.
+
+**Zwei Zusagen, die der Lauf nicht belegt** (`SPEC-069` Punkt 17, akzeptiertes Negativ): dass ein echtes
+`ssh` die Argumente so annimmt, dass der Befehl im Container läuft, und dass `make hooks-install` und
+`make traeger-fetch` im Klon gelingen. Beides belegt der Nachweis oben (Schritt 2: `hooks-install:
+core.hooksPath=.githooks`, `traeger-fetch: Traeger abgelegt … Digest verifiziert`, Schritt 4:
+`ls …/.harness/` nennt `baseline skills state`).
+
+**Für die Closure vorgemerkt** (Beobachtungen dieses Laufs, keine Register-Einträge — die schreibt der
+Planner): (1) Die Größe liegt mit 1162 über der Marke 900, der Faktor Gegenprobe zu Skript bei 2,7
+(`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). (2) Ein Kind-Lauf der Gegenprobe mit 42 Fällen fiel
+unter Last (Last 10) in `p17-ordner-fall` und `p17-budget-*` aus; seit `GP_NUR` je Mutation fährt die Kopie
+einen Fall (`BEO-REPO/test-faellt-unter-cpu-last-aus`, `BEO-REPO/lastabhaengige-zaehlung`). (3) Eine
+Attrappe von `ssh` ohne Rechner und Befehl hing am Standardeingang, den `git` offen hält — seit dem Lauf
+endet sie wie `ssh` mit 255; ein Fall endet zusätzlich nach zwei Minuten (`timeout`). (4) Der Pfad der Welt
+trug den Namen der Mutation, und eine Prüfung fand ihren Text im Pfad statt in der Meldung (falsches Grün);
+die Welten heißen jetzt neutral. (5) `u-boot` am Host steht auf 0.13.0, `SPEC-058` nennt 0.10.0 als
+gemessene Umgebung; für dieses Ziel ohne Belang (Punkt 20 (3)), der Nehmer ist
+`slice-harness-container-start-u-boot-0-13`.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Berührt ist die Default-Sub-Area `REPO` (`harness/conventions.md` §Modus-Deklaration pro Sub-Area), die einzige deklarierte; sie ist so grob wie das Repo, trägt aber eine einheitliche Greenfield-Deklaration, daher keine Ausdifferenzierung nötig.
