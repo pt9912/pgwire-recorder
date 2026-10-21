@@ -20,7 +20,8 @@
 # Zeitbudget (SPEC-060 Punkt 16, ADR-0055): höchstens 600 s für den vollen Lauf; die Zeile am Ende nennt Zeit,
 # Obergrenze und Last, eine Überschreitung ist rot.
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn
-# das Muster `ok` trifft); GP_NUR=<Muster> wählt die Fälle der unveränderten Kopie; GP_ENTDECKE=1 nennt je
+# das Muster `ok` trifft); GP_NUR=<Muster> wählt die Fälle (der
+# unveränderten Kopie und je Mutation; die Fälle p17-* geben einer Kopie damit einen einzigen billigen Fall); GP_ENTDECKE=1 nennt je
 # Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen;
 # GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab).
 # Braucht bash ≥ 4.4 (mit `wait -n`), git, make, sed, pgrep und die GNU-Werkzeuge von coreutils; als root
@@ -233,7 +234,7 @@ gp_kind() {
   cp "$gpk" "$w/kgp.sh"
   (( ${#s[@]} == 0 )) || sed -i "${s[@]}" "$w/kgp.sh"
   (cd "$w" && env -i PATH="$sys" HOME="$w" TMPDIR="$kw" GP_KIND=1 GP_PARALLEL=1 GP_QUELLE="$baum" GP_MUT="$m" \
-    "$@" "$BASH" "$w/kgp.sh" > "$w/kout" 2> "$w/kerr"); kcode=$?
+    GP_NUR=p2-vorgaben "$@" "$BASH" "$w/kgp.sh" > "$w/kout" 2> "$w/kerr"); kcode=$?
 }
 # gp_sig <Signal> <Code>: eine Kopie dieser Gegenprobe mit einer Warteschleife, die das Signal annimmt.
 gp_sig() {
@@ -242,7 +243,7 @@ gp_sig() {
   cp "$gpk" "$w/kgp.sh"
   sed -i 's|^fehlt=0$|for _i in $(seq 400); do sleep 0.05; done; fehlt=0|' "$w/kgp.sh"
   ( cd "$w" && exec env -i PATH="$sys" HOME="$w" TMPDIR="$kw" GP_KIND=1 GP_QUELLE="$baum" GP_MUT='^m-p2-vorgabe-remote$' \
-    "$BASH" "$w/kgp.sh" > "$w/kout" 2> "$w/kerr" ) & p=$!
+    GP_NUR=p2-vorgaben "$BASH" "$w/kgp.sh" > "$w/kout" 2> "$w/kerr" ) & p=$!
   for i in $(seq 100); do [ -n "$(ls -A "$kw" 2> /dev/null)" ] && break; sleep 0.05; done
   kill -"$1" "$p" 2> /dev/null
   wait "$p"; kcode=$?
@@ -489,9 +490,9 @@ fall p17-liste-container 'mt; [[ " $(dbank GEGENPROBEN_CONTAINER) " == *" contai
 fall p17-nicht-host 'mt; [[ " $(dbank GEGENPROBEN_HOST) " != *" container-einrichten-gegenprobe "* ]] || rot'
 fall p17-kein-gate 'mt; a=" $(dbank GATE_CHECKS) "; [[ $a != *" container-einrichten "* && $a != *" container-einrichten-gegenprobe "* ]] || rot'
 fall p17-keine-ausnahme 'mt; [[ " $(dbank GATE_SCHNELL_AUSNAHME) " != *" container-einrichten-gegenprobe "* ]] || rot'
-fall p17-phony 'mt; a=$(make -C "$w/t" -pq help 2> /dev/null | grep "^\.PHONY:" | tr "\n" " ")
-  [[ $a == *" container-einrichten "* || $a == *" container-einrichten"* ]] || rot
-  [[ $a == *container-einrichten-gegenprobe* ]] || rot'
+fall p17-phony 'mt; a=" $(make -C "$w/t" -pq help 2> /dev/null | sed -n "s/^\.PHONY://p" | tr "\n" " ") "
+  [[ $a == *" container-einrichten "* ]] || rot
+  [[ $a == *" container-einrichten-gegenprobe "* ]] || rot'
 fall p17-budget-ueber 'gp_kind "^m-p2-vorgabe-remote$" "s|^fehlt=0$|sleep 2; fehlt=0|" -- GP_BUDGET=1
   { [ "$kcode" = 1 ] && grep -qE "^$GPN: ROT — Zeitbudget: [0-9]+ s über 1 s$" "$w/kerr"; } || rot'
 fall p17-budget-unter 'gp_kind "^m-p2-vorgabe-remote$" -- GP_BUDGET=3600
@@ -571,7 +572,7 @@ mut() {
       rm -rf -- "$basis"; exit 0
     fi
     printf '%s%s' "${c/"$alt"/"$neu"}" "$nach" > "$f"
-    SEL=$s
+    SEL=${GP_NUR:-$s}
     ist=$(faelle | sort | tr '\n' ' ')
     soll=$(for k; do echo "$k"; done | sort -u | tr '\n' ' ')
     [ -z "${GP_ENTDECKE-}" ] || echo "$name => ${ist:-nichts}" >&2
@@ -691,7 +692,7 @@ mut m-p3-name-einzug s "$A3" "[[ \$z == '    name: '* ]]" "[[ \$z == *'name: '* 
 mut m-p3-name-zeichen s "$A3" '[[ $projekt =~ ^[a-z0-9][a-z0-9-]*$ ]]' '[[ $projekt =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]' p3-name-gross p3-name-unterstrich
 mut m-p3-name-vergleich s "$A3" '  [ "$projekt" = "$b" ] ||' '  [ -n "$projekt" ] ||' p3-name-ungleich-basis
 mut m-p3-name-zweite-zeile s "$A3" '; break; }; done < "$y"' '; }; done < "$y"' p3-name-zwei-zeilen
-mut m-p3-datei-fehlt s "$A3" '  [ -f "$y" ] ||' '  [ -e "$y" ] || [ -f "$y" ] ||' # äquivalent
+mut m-p3-datei-fehlt s "$A3" '  [ -f "$y" ] || ende 4 "$y fehlt — kein Gerüst; make container-start legt es an"' '  :' p3-name-datei-fehlt p4-meldung-form
 # Punkt 4: Ströme und Reihenfolge der Schritte
 mut m-p4-stdout s "$A1" 's_hooks() {' 's_hooks() {
   echo zwischenstand' p4-stdout-nur-erfolg
@@ -787,16 +788,17 @@ for v in CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY GIT_TOKEN; do
 done
 # Punkt 15: Abbruch
 mut m-p15-int s "$A15" "trap 'abbruch 130' INT" ':' p15-sigint p15-sigint-zweig p15-kein-rueckbau p15-wiederholung
-mut m-p15-term s "$A15" "trap 'abbruch 143' TERM" ':' p15-sigterm
+mut m-p15-term s "$A15" "trap 'abbruch 143' TERM" ':' p15-sigterm p15-sigterm-traeger
 mut m-p15-exit-int s "$A15" "trap 'abbruch 130' INT" "trap 'abbruch 1' INT" p15-sigint p15-sigint-zweig p15-kein-rueckbau p15-wiederholung
-mut m-p15-exit-term s "$A15" "trap 'abbruch 143' TERM" "trap 'abbruch 1' TERM" p15-sigterm
-mut m-p15-kind-lebt s "$A15" 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null;' 'abbruch() {' p15-sigint p15-sigterm p15-sigint-zweig p15-kein-rueckbau p15-wiederholung
-mut m-p15-ohne-meldung s "$A15" 'ende "$1" abgebrochen' 'exit "$1"' p15-sigint p15-sigterm p15-sigint-zweig p15-kein-rueckbau p15-wiederholung
-mut m-p15-rueckbau s "$A15" 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null;' 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null; rm -rf "$HOME/.ssh";' p15-kein-rueckbau p15-sigint-zweig
+mut m-p15-exit-term s "$A15" "trap 'abbruch 143' TERM" "trap 'abbruch 1' TERM" p15-sigterm p15-sigterm-traeger
+mut m-p15-kind-lebt s "$A15" 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null;' 'abbruch() {' p15-sigint p15-sigterm p15-sigterm-traeger p15-sigint-zweig p15-kein-rueckbau p15-wiederholung
+mut m-p15-ohne-meldung s "$A15" 'ende "$1" abgebrochen' 'exit "$1"' p15-sigint p15-sigterm p15-sigterm-traeger p15-sigint-zweig p15-kein-rueckbau p15-wiederholung
+mut m-p15-rueckbau s "$A15" 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null;' 'abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null; rm -rf "$HOME/.ssh";' p15-kein-rueckbau
 # Punkt 16: Aufrufarten des Treibers (Fragment)
 mut m-p16-rezept-make m "$A16" '	@bash tools/harness/container-einrichten.sh' '	@$(MAKE) -f /dev/null -q; bash tools/harness/container-einrichten.sh' p16-n p16-q p16-t p16-makeflags-n p16-makeflags-q p16-makeflags-t p16-n-und-i
-mut m-p16-nicht-phony m "$A16" '.PHONY: container-einrichten' '.PHONY: container-einrichten-nicht' p16-phony p17-phony
-mut m-p16-voraussetzung m "$A16" 'container-einrichten: ##' 'container-einrichten: Makefile ##' # äquivalent am Ergebnis
+mut m-p16-nicht-phony m "$A16|p17-phony" '.PHONY: container-einrichten' '.PHONY: container-einrichten-nicht' p16-phony p17-phony
+mut m-p16-voraussetzung m "$A16" 'container-einrichten: ##' 'container-einrichten: Makefile ##' # äquivalent am Ergebnis (§7: Sonde)
+mut m-p16-voraussetzung-fehlt m "$A16" 'container-einrichten: ##' 'container-einrichten: gibtsnicht ##' p16-phony p16-k p16-j p16-i
 # Punkt 17: Listen und Zeitbudget
 mut m-p17-liste-fehlt g "$A17" 'GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe' '# keine Liste' p17-liste-container
 mut m-p17-liste-host g "$A17" 'GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe' 'GEGENPROBEN_HOST += container-einrichten-gegenprobe' p17-liste-container p17-nicht-host
