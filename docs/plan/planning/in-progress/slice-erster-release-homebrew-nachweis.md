@@ -261,6 +261,18 @@ homebrew-nachweis: Exit-Code 0 (Code des Skripts im Container, nicht der von mak
 | (4) kein Gate | `make -pn` nach dem Lauf: `GATE_CHECKS` führt das Ziel nicht (13 Einträge, `homebrew-nachweis` nicht darunter), `GEGENPROBEN_CONTAINER` und `GEGENPROBEN_HOST` ebenso wenig; `grep -rln homebrew-nachweis --exclude-dir=.git .` nennt unter `harness/mk/`, `tools/` und `.claude/` allein das eigene Fragment und das eigene Skript — kein Hook, kein anderes Fragment | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
 | (5) Aufräumen: `--rm`, Temp-Verzeichnis entfällt, nichts im Arbeitsbaum | nach dem Lauf: `docker ps -a --filter ancestor=homebrew/brew` leer, `docker ps -a` ohne jeden Container, `docker volume ls -q \| wc -l` gibt `0`, `git status --short` leer (die beiden Dateien des Werkzeugs lagen da schon im Commit `a2fce55f`) | nicht gefahren — ausgeschlossen (Punkt 20 (7)) |
 
+#### Läufe des Implementers (Zweig `impl-nachweis`, Dev-Container `pgr-dev2`, 2026-10-21)
+
+| Lauf | Ergebnis | Dauer |
+|---|---|---|
+| `make homebrew-nachweis` | grün, Exit-Code des Skripts `0` (Beleg oben) | 19,3 s |
+| `make docs-check` | grün, 1322 Dateien, 0 Befunde | 1,7 s |
+| `make gates` | grün, Exit 0 (alle 13 Einträge von `GATE_CHECKS`); `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` `PASS` in 15,28 s, Last beim Start 6,8 auf 20 Kernen (`BEO-REPO/test-faellt-unter-cpu-last-aus` nicht aufgetreten) | 4 min 42 s |
+
+Gefahren am Stand `e81a303c` (Werkzeug, Beleg, Handbuch und `README.md`); danach kam allein dieser Plan hinzu — kein Pfad außerhalb von `docs/plan/planning/`. Keine Gegenprobe gefahren: Dieses Ziel hat keine (Punkt 20 (7)), und für die unveränderten Gates sieht der Lauf keine Änderung (Entscheidung des Nutzers vom 2026-10-21).
+
+**Größenmarke** (§4, Metrik `git diff --numstat f8bc8380..<letzter Commit> -- tools harness spec docs README.md`): Einfügungen 245, Löschungen 2, **Summe 247** — unter der Meldeschwelle 700 und weit unter der Marke 900. Die Schätzung des Architect (300 bis 500) liegt darüber, weil Vertragstext und `harness/README.md`-Zeile schon vor dem ersten Code-Commit lagen und damit nicht in diese Messung fallen.
+
 #### Was der Implementer beim Schreiben entschieden hat (kein Vertragstext)
 
 Punkt 20 lässt diese vier offen; keine davon ist eine Randform im Sinne von `AGENTS.md` §3.12 (keine entscheidet über Eingaben, Formen oder Fehlerwege eines Vertrags), und keine ändert eine Zusage:
