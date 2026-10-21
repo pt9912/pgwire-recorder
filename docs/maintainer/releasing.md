@@ -24,11 +24,10 @@ setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit de
 `skopeo`, `gh`, den Scanner und den Smoke. Der jüngste veröffentlichte Tag ist `v0.1.1`: Sein
 GitHub-Release trägt die sechs Binaries `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, und das Image
 liegt in `ghcr.io` und `docker.io` unter den Tags `0.1.1` und `latest` mit demselben Index-Digest
-`sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); im Lauf
-des Tags `v0.1.1` endet er rot, weil der Tap den Push abweist (`Permission to
-pt9912/homebrew-pgwire-recorder.git denied`, HTTP 403): Das Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` hat
-dort kein Schreibrecht, der Tap ist leer und trägt keine Formel. Was im echten Tap liegt, prüft kein
-Gate dieses Repos. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
+`sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); der Tap
+`pt9912/homebrew-pgwire-recorder` trägt `Formula/pgwire-recorder.rb` mit `version "0.1.1"`, deren vier
+Prüfsummen und URLs zu den Anhängen von `v0.1.1` passen. Was im echten Tap liegt, prüft kein Gate
+dieses Repos, und dass Homebrew die Formel annimmt, ist nicht belegt. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
 [`freigaben/0.1.1.md`](freigaben/0.1.1.md), für `v0.1.0` in der Closure von `welle-erster-release`.
 Was ein Slice erst liefert, nennt dieses Dokument mit seiner Kennung („liefert `slice-…`“), nicht als
 Zusage.
@@ -392,4 +391,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.11 | 2026-10-20 | Namen der Binaries ohne Version: `pgwire-recorder-<os>-<arch>` (§2, §3) |
 | 0.12 | 2026-10-20 | Formel im Tap: Job `homebrew` nach dem GitHub-Release, Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` als Vorbedingung (§4), Probe-Tap statt Probe-Tag (§3), Verfahren und Nachtrag von Hand (§7), Zeile der Fehlertabelle (§11) |
 | 0.13 | 2026-10-21 | Freigabe-Checkliste: Eintrag unter `freigaben/<Version>.md` für jeden späteren Release, Job `homebrew` als Zeile unter Punkt 8, Belege eines Punkts, den ein aktiver Carveout ausnimmt (§10) |
-| 0.14 | 2026-10-21 | Stand: der veröffentlichte Tag `v0.1.1` mit Binaries ohne Version im Namen, Image in beiden Registries, roter Job `homebrew` und leerer Tap (§1) |
+| 0.14 | 2026-10-21 | Stand: der veröffentlichte Tag `v0.1.1` mit Binaries ohne Version im Namen, Image in beiden Registries und die Formel `0.1.1` im Tap (§1) |
