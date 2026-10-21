@@ -82,9 +82,10 @@ Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 
-- Die Version 0.1.0 liegt als GitHub-Release (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.1.0>)
-  mit sechs Binaries und `SHA256SUMS` und als Image `ghcr.io/pt9912/pgwire-recorder:0.1.0` und
-  `docker.io/pt9912/pgwire-recorder:0.1.0` vor; das Benutzerhandbuch beschreibt Bezug und Prüfung.
+- Die Version 0.1.1 liegt als GitHub-Release (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.1.1>)
+  mit sechs Binaries ohne Version im Namen und `SHA256SUMS` und als Image
+  `ghcr.io/pt9912/pgwire-recorder:0.1.1` und `docker.io/pt9912/pgwire-recorder:0.1.1` vor;
+  das Benutzerhandbuch beschreibt Bezug und Prüfung.
 - `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make binaries` baut
   die Binaries für Linux, macOS und Windows, je `amd64` und `arm64`, mit `SHA256SUMS` nach
   `dist/`; `make gates` führt die Gates aus, `make help` zeigt alle Targets. Das Image für
