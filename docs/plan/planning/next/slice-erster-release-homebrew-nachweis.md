@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-067` (Punkt 19 (7), Nachtrag)
+**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-067` (Punkt 19 (7), Nachtrag; Punkt 20, Nachweis)
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -37,9 +37,15 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Bindung aus `slice-v1-abschluss-binary-namen`** (`AGENTS.md` §3.13): Der Slice setzt einen veröffentlichten stabilen Tag voraus, dessen Binaries `pgwire-recorder-<os>-<arch>` heißen. Einen solchen Tag bereitete `slice-v1-abschluss-release-v0-1-1` vor (Welle `welle-v1-nachtrag`, Reihenfolge 4: `VERSION`, Eintrag der Freigabe, Bezug im Handbuch); gesetzt hat ihn die Koordination (Claude) am 2026-10-21 nach dem Ja des Nutzers vom selben Tag („bitte auch den tag fahren“), nicht der Nutzer und nicht ein Implementer-Lauf (`SPEC-067` Punkt 18). **Bindung aus `slice-v1-abschluss-release-v0-1-1`** (`AGENTS.md` §3.13): Der Eintrag der Freigabe nennt das Ergebnis des Jobs `homebrew` (Lauf-Kennung, grün oder rot); Wiederanlauf des Jobs, Nachtrag von Hand und alle Belege des Taps gehören diesem Slice. Die Abschnitte „Binary vom GitHub-Release“ und „Container-Image aus der Registry“ in §2 *Installation* des Handbuchs und die Zeile zur Version in `README.md` schreibt `slice-v1-abschluss-release-v0-1-1`; dieser Slice ergänzt nur den Abschnitt zu Homebrew und die Plattform-Zeile (dieselbe Datei, andere Abschnitte, der Nachweis folgt dem Release-Slice).
 
+**Entschieden vom Architect am 2026-10-21 (Randformen vor dem Code, `AGENTS.md` §3.12):** Der Nachweis unter Linux läuft als Werkzeug `make homebrew-nachweis` in einem Container des per Digest gepinnten Image `homebrew/brew`; die Schritte (`brew tap`, `brew install`, `pgwire-recorder version`, `brew test`, Start eines Replay-Laufs) liegen in `tools/harness/homebrew-nachweis.sh` und sind auf beiden Plattformen dieselben. Der Nachweis unter macOS ist die Handlung des Nutzers an seinem Rechner mit demselben Skript (`--schritte`). Was ein Beleg ist, was eine Angabe ohne Ausgabe wert ist, was „ein Replay-Lauf startet“ verlangt und welche Kombination aus Betriebssystem und Architektur zugesagt oder Grenze ist, steht als Vertragstext in `SPEC-067` Punkt 20 (`harness/vertraege/`) und in `LH-FA-19.a`; beides liegt vor dem ersten Code-Commit dieses Slice.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Das Erzeugen der Formel — `slice-v1-abschluss-homebrew`; hier wird das fertige Verfahren mit dem echten Release angewandt.
+- Ein Gate oder eine Gegenprobe für `make homebrew-nachweis` — Schicht-Abgrenzung zur Gate-Kette: Das Ziel ruft Netz und den echten Tap, es urteilt nicht, und eine Gegenprobe mit Attrappen beliefe genau die Stelle, die der Nachweis belegen soll (`SPEC-067` Punkt 20 (4) und (7), Punkt 15).
+- Eine Zeile in der Freigabe-Checkliste (`SPEC-067` Punkt 17) — es wäre ein anderer Vorgang; die Belege des Taps gehören dem Nachweis, nicht der Zeile des Jobs `homebrew` (Punkt 17 (8)).
+- `brew audit` — Bestand bleibt bewusst stehen: Die Zeile `version` der Formel ist dort ein bekannter Befund (`SPEC-067` Punkt 19 (4)) und sperrt die Installation nicht.
+- Die Kombinationen aus Betriebssystem und Architektur, für die kein Rechner bereitsteht — sie stehen als Grenze in `LH-FA-19.a`; ein emulierter Lauf trüge die Zusage nicht, und die Grenze ist entschieden, nicht offen (`AGENTS.md` §3.12, Plattform).
 
 ## 2. Definition of Done
 
@@ -48,7 +54,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Der Tap trägt die Formel des ersten stabilen Tags mit dem Schema ohne Version (`v0.1.1`, `slice-v1-abschluss-release-v0-1-1`; Commit im Tap als Beleg; erzeugt vom Job `homebrew` des Tag-Laufs, bei Fehler per Wiederanlauf oder Nachtrag von Hand nach `SPEC-067` Punkt 19 (7)), und Abnahmeszenario 11 ist auf macOS und Linux nachgewiesen: Installation mit den dokumentierten Befehlen, `pgwire-recorder version` meldet die installierte Version, ein Replay-Lauf startet. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert die Befehle des Homebrew-Abschnitts in §2 *Installation* des Handbuchs, belegt mit der Installation aus dem echten Tap auf macOS und Linux, und die Plattform-Zeile in §1 *Voraussetzungen* (macOS).
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Der Tap trägt die Formel des ersten stabilen Tags mit dem Schema ohne Version (`v0.1.1`, `slice-v1-abschluss-release-v0-1-1`; Commit im Tap als Beleg; erzeugt vom Job `homebrew` des Tag-Laufs, bei Fehler per Wiederanlauf oder Nachtrag von Hand nach `SPEC-067` Punkt 19 (7)), und Abnahmeszenario 11 ist je Kombination aus Betriebssystem und Architektur belegt oder begrenzt (Form, Ablage und Grenze im Punkt darunter): belegt heißt Installation mit den dokumentierten Befehlen, `pgwire-recorder version` meldet die installierte Version, ein Replay-Lauf startet. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert die Befehle des Homebrew-Abschnitts in §2 *Installation* des Handbuchs, belegt mit der Installation aus dem echten Tap je Kombination, die er nennt, und die Plattform-Zeile in §1 *Voraussetzungen* (macOS).
+- [ ] `SPEC-067` Punkt 20: `make homebrew-nachweis` liegt (Fragment unter `harness/mk/`, Skript unter `tools/harness/`, Zeile in der Werkzeug-Tabelle von `harness/README.md`), der Pin ist ein gegen die Registry aufgelöster Digest mit dem Tag als Kommentar, und ein Lauf gegen den echten Tap steht mit seiner Ausgabe in §7. Je Kombination aus Betriebssystem und Architektur liegt entweder der Beleg nach `SPEC-067` Punkt 20 (6) in §7 oder die Grenze in `LH-FA-19.a` und im Handbuch (`AGENTS.md` §3.11, §3.12).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -69,6 +76,11 @@ Aussagen-Berührung steht hier gar nicht.
 | Tap `pt9912/homebrew-pgwire-recorder` | neu (extern) | Formel des ersten stabilen Tags mit dem neuen Schema, durch den Job `homebrew` (Wiederanlauf oder Nachtrag von Hand bei Fehler) |
 | `docs/user/benutzerhandbuch.md` | update | Befehle gegen die echte Installation prüfen |
 | `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
+| `harness/vertraege/SPEC-067-release.md` | update (liegt) | Punkt 20: Werkzeug, Netz, Pin, Aufräumen, kein Gate, Beleg-Form, Replay-Lauf (Architect, vor dem Code) |
+| `spec/spezifikation.md` (`LH-FA-19.a`) | update (liegt) | Zusage je Kombination, Grenze für die übrigen, was ein Nachweis ist (Architect, vor dem Code) |
+| `tools/harness/homebrew-nachweis.sh` | neu | die Schritte des Nachweises, auf beiden Plattformen dieselben (`SPEC-067` Punkt 20 (2), (3)) |
+| `harness/mk/homebrew-nachweis.mk` | neu | Ziel `homebrew-nachweis` mit `HOMEBREW_IMAGE ?=` (Digest-Pin), weder in `GATE_CHECKS` noch in einer Gegenproben-Liste |
+| `harness/README.md` | update (liegt) | Zeile in der Tabelle der Werkzeuge (kein Gate) |
 
 ## 4. Trigger
 
@@ -81,6 +93,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - `in-progress` → `next`: der Nachweis braucht eine zweite Plattform-Umgebung, die nicht bereitsteht — zurück zur Zerlegung.
 - `in-progress` → `open`: Der Tap lässt sich nicht beschreiben (Zugang) — extern klären.
+- `in-progress` → `next`: **zu groß, über 900** in der Metrik unten — zurück zur Zerlegung.
+
+**Metrik der Marke** (`AGENTS.md` §3.14, Architect 2026-10-21): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness spec docs README.md`, Tests eingeschlossen. **Schätzung des Architect in dieser Metrik:** Skript `homebrew-nachweis.sh` 150 bis 260, Fragment 10 bis 20, Vertragstext in `SPEC-067` Punkt 20 und `LH-FA-19.a` (mit diesem Commit geliefert) rund 35, Zeile in `harness/README.md` 1, Handbuch-Abschnitt und `README.md` 40 bis 70, Plan 60 bis 110 — zusammen **rund 300 bis 500**. Der Faktor für Test- und Gegenprobe-Code entfällt: Das Ziel hat keine Gegenprobe und keinen Fall (`SPEC-067` Punkt 20 (7)). **Meldeschwelle 700, Marke 900** (über 900 greift die Rückführung oben); der Bericht des Implementers nennt die Messung in dieser Metrik.
 
 ## 5. Closure-Trigger
 
@@ -97,7 +112,24 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+**Randformen des Vertrags, entschieden vor dem Code** (`AGENTS.md` §3.12; Architect, 2026-10-21; der Vertragstext liegt in `SPEC-067` Punkt 20 (`harness/vertraege/`) und in `LH-FA-19.a`, beides vor dem ersten Code-Commit dieses Slice). Je Randform die Stelle, die sie entscheidet:
+
+1. **Netz.** Der Lauf braucht Netz (Tap, Anhänge des GitHub-Release, Homebrew im Image), anders als jedes Gate dieser Kette; genau die Erreichbarkeit ist der Gegenstand des Nachweises — Punkt 20 (4).
+2. **Kein Gate.** Das Ziel steht nicht in `GATE_CHECKS` und in keiner Gegenproben-Liste, kein Hook und kein Stand liest sein Ergebnis; es steht in der Tabelle der Werkzeuge in `harness/README.md` — Punkt 20 (4), (7).
+3. **Pin.** Image `homebrew/brew:<Tag>@sha256:<64 Hexziffern>`, `HOMEBREW_IMAGE ?=` im Fragment, Tag als Kommentar (eine Version wie `4.6.20`, nicht `latest`, `main` oder `master`; Digest des Index, nicht eines Plattform-Manifests); der Implementer löst den Digest vor dem Einsetzen gegen die Registry auf und nennt Tag, Digest und Datum im Beleg; ein Platzhalter aus Nullen ist ungültig — Punkt 20 (1).
+4. **Fehlendes Netz, nicht erreichbarer Tap.** Exit-Code des gescheiterten Schrittes, kein Überspringen, kein Grün ohne Lauf, kein Rückfall auf eine lokale Formel; der Nachweis gilt dann als nicht erbracht — Punkt 20 (4).
+5. **Aufräumen.** `docker run --rm` (Container samt anonymen Volumes), Temp-Verzeichnis der Schritte entfällt bei Ende, `SIGINT` und `SIGTERM`, der Replay-Lauf wird dabei beendet; nichts im Arbeitsbaum — Punkt 20 (1), (5).
+6. **Aufrufarten des Treibers.** `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` haben keinen Fall, weil kein Hook und kein Stand das Ergebnis liest (Grund wie `SPEC-067` Punkt 13) — Punkt 20 (5).
+7. **Keine Interaktion.** `docker run` ohne `-t`, Standardeingang `/dev/null`, `HOMEBREW_NO_ANALYTICS`, `HOMEBREW_NO_AUTO_UPDATE`, `HOMEBREW_NO_ENV_HINTS` gesetzt; weitere `HOMEBREW_*`-Variablen nur, wenn keine eine Summe, eine Adresse oder den Tap ersetzt, und im Beleg genannt — Punkt 20 (1).
+8. **Ausführungsort des Skripts.** `make homebrew-nachweis` unter Linux mit Docker; `--schritte` am Host ist allein die Handlung des Betreibers (macOS: bash 3.2, deshalb ohne `mapfile`, ohne assoziative Arrays, ohne `${v^^}`) und nie ein Agentenlauf (`AGENTS.md` §3.1, Wächter `pretooluse-command-guard.sh`) — Punkt 20 (5).
+9. **Plattform der Zusage** (`AGENTS.md` §3.12, Plattform; `LH-QA-03`). Die Zusage gilt je Kombination aus Betriebssystem und Architektur einzeln: zugesagt ist, was mit seinen Ausgaben belegt ist; jede übrige der vier Kombinationen (macOS und Linux, je `amd64` und `arm64`) ist eine **Grenze** in `LH-FA-19.a`, und das Handbuch nennt nur die geprüften (`AGENTS.md` §3.11). Windows bleibt außerhalb (`SPEC-042`). Die Grenze ist damit entschieden, nicht offen — sie wird kein Risiko mit Ausgang *weiter offen* (`BEO-REPO/verhalten-nur-unter-linux-geprueft`).
+10. **Beleg-Form und Ablage.** Je Kombination: Datum, `uname -s`, `uname -m`, unter Linux Tag und Digest des Image, die Befehle (a) bis (e) mit ihren Ausgaben, die Version und der Exit-Code des Replay-Laufs; Ablage in §7 dieses Plans (Form wie `SPEC-067` Punkt 18). Eine Angabe ohne diese Ausgaben — auch die des Nutzers — ist eine Angabe der Koordination, kein Beleg: zitiert mit Datum und Wortlaut, die Kombination gilt als nicht geprüft — Punkt 20 (6).
+11. **Was „ein Replay-Lauf startet“ verlangt.** `pgwire-recorder replay --listen 127.0.0.1:55432 --input <Datei>` mit der Aufzeichnung aus Punkt 20 (3): eine Zeile `level=INFO`, keine Zeile `level=ERROR`, Exit-Code 0 nach `SIGTERM` bzw. `Strg+C`; keine Verbindung einer Anwendung, kein Server. Auf beiden Plattformen dieselbe Form — `LH-FA-19.a` und Punkt 20 (3).
+12. **Version des Nachweises.** Der Tap trägt die höchste stabile Version; der Beleg nennt die Version, die er installiert hat, und gilt für sie — Punkt 20 (6), Punkt 19 (5).
+13. **Kein Fall, keine Gegenprobe, keine Abdeckungs-Deklaration.** Das Ziel urteilt nicht und sagt nichts zu, was ein Gate oder Hook glaubt; `AGENTS.md` §3.10 greift deshalb nicht, und eine Gegenprobe mit Attrappen beliefe genau die Stelle, die der Nachweis belegen soll — Punkt 20 (7). **Akzeptiertes Negativ, mit Grund:** Ein Fehler im Skript selbst (ein Schritt, der versehentlich nicht läuft) fiele nur dem Leser der Ausgabe auf; getragen wird das vom Review, der jede Zeile des Handbuchs gegen den Beleg in §7 prüft.
+
 - Das Verhalten von Homebrew gegenüber Drittanbieter-Taps (`brew trust`) ist erst mit dem echten Tap belegbar — **Ausgang:** offen bis Closure.
+- Ob `brew install` einer Formel ohne Archiv im Image `homebrew/brew` als dessen Benutzer gelingt (Rechte, vorhandenes `git`, Verhalten ohne TTY), zeigt erst der Lauf. Scheitert ein Schritt an der Umgebung des Image und nicht an der Formel, hält der Implementer an und gibt Meldung und Schritt dem Architect zurück (Vertragstext, kein Code: `SPEC-067` Punkt 20 (1) oder (2)) — **Ausgang:** offen bis Closure.
 - Aus `slice-v1-abschluss-release-v0-1-1` (Bindung, §1): Ergebnis des Jobs `homebrew` im Lauf des Tags — grün: der Commit im Tap ist der Beleg des ersten Liefer-Punkts; rot: Wiederanlauf nur dieses Jobs oder Nachtrag von Hand, kein neuer Tag (`SPEC-067` Punkt 19 (7)); die Handbuch-Abschnitte zu Binary und Image schreibt der Release-Slice — **Ausgang:** offen bis Closure.
 - Aus `slice-v1-abschluss-release-v0-1-1` (§6 Risiko (a), Ausgang *eingetreten*, bei dessen Closure am 2026-10-21 eingetragen, `AGENTS.md` §3.13): Die erste Außenwirkung des Jobs `homebrew` ist gelaufen und hat einen Teil der Annahmen widerlegt. **Gemessener Stand**, den dieser Slice nicht erneut annimmt, sondern gegen den Stand seines eigenen Laufs misst: Der Job lief im Lauf `39551891874` viermal — Versuche 1 bis 3 rot mit `release: homebrew: tap-push: der Tap weist den Push ab (Exit 128)` (`Permission … denied`, `error: 403`), Versuch 4 grün mit `release: homebrew: Formel 0.1.1 im Tap abgelegt`; die Spitze von `main` im Tap ist seither `6c4ac72843996939b4295b01aeb7cbe9e759a7ac` (2026-10-21 06:14:17Z). Das Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` wurde dabei nicht neu gesetzt (`gh secret list`, `updated_at` 2026-10-20T07:41:39Z); *welches* Recht der Betreiber zwischen den Versuchen änderte, zeigen weder Repo noch Lauf (Angabe der Koordination, `SPEC-067` Punkt 15). **Weiter unbelegt und damit Gegenstand dieses Slice:** die Annahme der Formel durch Homebrew, `brew tap` und `brew install` auf macOS und Linux, der Wortlaut von `gh release download` mit dem echten `gh` und das Schreibrecht des Geheimnisses ohne Eingriff des Betreibers — **Ausgang:** offen bis Closure.
 - Aus `slice-v1-abschluss-homebrew` (§6 dort), je mit Ausgang bei Closure dieses Slice: (a) das Schreibrecht des Tap-Tokens — das Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` (Fine-grained PAT nur für den Tap, Contents: Read and write, Entscheidung des Nutzers vom 2026-10-20) zeigt der Job `homebrew` des Laufs, der die erste Formel erzeugt; läuft die Formel stattdessen per Nachtrag mit dem eigenen Token des Nutzers, ist das Recht des Geheimnisses nicht belegt, und der Ausgang ist *weiter offen* (Register); (b) die Annahme der Formel durch Homebrew (Syntax, die Zeile `version`, Installation einer Datei ohne Archiv, `test do`) — eine Korrektur geht über die Vorlage und einen erneuten Nachtrag, ohne neuen Tag; (c) der Wortlaut von `gh release download` mit dem echten `gh` — **Ausgang:** offen bis Closure.
@@ -118,6 +150,34 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Angaben der Koordination — kein Beleg (vor dem Start eingetragen, Planner, 2026-10-21)
+
+Eingaben für den Implementer, keine Belege: Keine der beiden Angaben trägt die
+Ausgaben, die `SPEC-067` Punkt 20 (6) für einen Nachweis verlangt (Datum,
+`uname -s`, `uname -m`, die Befehle (a) bis (e) mit ihren Ausgaben, Version und
+Exit-Code). Beide stehen hier mit Datum und Wortlaut, wie Randform 10 in §6 es
+vorschreibt; die betroffene Kombination gilt als **nicht geprüft**, bis ein
+Nachweis in dieser Sektion liegt.
+
+1. **macOS, Architektur unbekannt (Nutzer, 2026-10-21).** Der Nutzer sagte der
+   Koordination: „ich habe auf macos eben den test erfolgreich abgeschlossen
+   (brew install und running)“. Mehr ist nicht erfragt und nicht bekannt: weder
+   die Architektur (`uname -m`) noch die Ausgabe von `pgwire-recorder version`
+   noch ein Replay-Start nach `SPEC-067` Punkt 20 (3). Die Angabe sagt damit,
+   dass ein Nachweis auf macOS aussichtsreich ist — sie ersetzt ihn nicht. Beide
+   macOS-Kombinationen stehen bis zu einem Nachweis mit Ausgaben als Grenze in
+   `LH-FA-19.a` und im Handbuch (`AGENTS.md` §3.11, §3.12).
+2. **Keine Option `--version` (Nutzer, 2026-10-21).** Der Nutzer beobachtete,
+   dass das Binary keine Option `--version` kennt. Das ist der Ist-Zustand und
+   kein Befund gegen diesen Slice: Der Nachweis ruft `pgwire-recorder version`
+   als Kommando (`SPEC-067` Punkt 20 (2) (c)), nicht als Option, und Handbuch
+   wie Beleg nennen das Kommando. Den Gegenstand der Beobachtung führt
+   `slice-version-option` in seinem §1; dieser Slice weist ihm nichts zu, hängt
+   nicht von ihm ab und ändert die Stellen nicht, die er dort nennt. Liegt
+   `slice-version-option` beim Nachweis-Lauf schon in `done/`, bleibt das
+   Kommando `version` dennoch der Weg dieses Slice (dort §1, Klasse 2: das
+   Kommando bleibt unverändert).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -140,4 +200,8 @@ Nachgezählt am 2026-10-20 mit der Sendung aus `slice-v1-abschluss-homebrew` (Wi
 
 Nachgezählt am 2026-10-21 mit dem Risiko-Ausgang aus `slice-v1-abschluss-release-v0-1-1` (Planner, Closure des Gebers, `AGENTS.md` §3.13): Eingetragen sind der gemessene Stand des Jobs `homebrew` und die Liste dessen, was weiter unbelegt ist — beides steht in §6 und gehört zum ersten Liefer-Punkt (Formel im echten Tap) und zum zweiten (Abnahmeszenario 11); es kommt kein Liefer-Punkt und keine Datei hinzu, und die Berichtigung in §1 und §4 (den Tag setzte die Koordination, nicht der Nutzer) ändert nur die Beschreibung des Trägers. **Liefer-Punkte bleiben 2, Schichten zwei** (Tap mit Formel, Nutzer-Doku); der Slice liegt unter der Grenze.
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+Nachgezählt am 2026-10-21 vom Architect mit der Entscheidung der Randformen (`AGENTS.md` §3.13): **Liefer-Punkte 3** — (1) die Formel des stabilen Tags im echten Tap; (2) das Werkzeug `make homebrew-nachweis` (Fragment, Skript, Zeile in `harness/README.md`) mit seinem Lauf unter Linux; (3) Abnahmeszenario 11 je Kombination belegt oder begrenzt, mit dem Homebrew-Abschnitt in §2 *Installation* und der Zeile in `README.md`. **Schichten 2** — Harness-Werkzeug (`tools/harness/`, `harness/mk/`, `harness/README.md`) und Nutzer-Doku (`docs/user/benutzerhandbuch.md`, `README.md`); nach der Teilung von `slice-harness-d-check-v0-85` §8 zählen Verträge (`harness/vertraege/`, `spec/`) und Planung nicht. **Korrektur der früheren Zählungen dieses Plans** (sie führten „Tap mit Formel“ als Schicht, zuletzt die Zählung darüber): Der Tap ist ein fremdes Repository, das der Job `homebrew` schreibt; dieser Slice ändert dort nichts, er belegt — eine Schicht ist eine berührte Schicht dieses Repos. Damit liegt der Slice unter beiden Grenzen, und der Handbuch-Teil bleibt hier: ein Doku-Folge-Slice `slice-erster-release-homebrew-nachweis-doku` (`AGENTS.md` §3.11, §3.13) ist nicht nötig.
+
+Nachgezählt am 2026-10-21 beim Nachziehen des Plans auf den Stand des Architect und beim Claim (Planner, `AGENTS.md` §3.13): Eingetragen sind die beiden Angaben der Koordination in §7 (macOS-Lauf des Nutzers, fehlende Option `--version`) — sie sind Eingaben für den Implementer, kein Liefer-Punkt und keine Datei; dazu die Nachführung von DoD-Punkt 1 auf die Lesart je Kombination (`LH-FA-19.a`, `SPEC-067` Punkt 20 (6)), die den Punkt nicht vergrößert, sondern seine Zusage an den Vertragstext bindet. **Liefer-Punkte bleiben 3, Schichten bleiben 2** (Harness-Werkzeug, Nutzer-Doku); der Slice liegt unter beiden Grenzen.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (`harness/conventions.md` deklariert eine Sub-Area für das gesamte Repo, Modus Greenfield).
