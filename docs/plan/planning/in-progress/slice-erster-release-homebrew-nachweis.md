@@ -190,7 +190,7 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trug am 2026-10-03 nur seine `README.md` — keine Treffer. Seitdem ist es gewachsen; die Sichtung ist vor dem Start neu zu fahren (Planner, 2026-10-21).
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trug am 2026-10-03 nur seine `README.md` — keine Treffer. Seitdem ist es auf 117 Einträge gewachsen (Stand 2026-10-21); die Sichtung gegen diesen Bestand steht aus und ist Planner-Arbeit vor dem ersten Code-Commit dieses Slice, nicht Arbeit des Implementers. Bis sie vorliegt, trägt das Kriterium Evidenz-/Diskrepanz-Risiko in diesem Abschnitt keinen Zählerstand.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Tap mit Formel, Dokumentation). Nachgezählt am 2026-10-20 mit der Sendung aus `slice-v1-abschluss-homebrew` (Architect, `AGENTS.md` §3.13): **Liefer-Punkte: 2** (1: Formel im echten Tap; 2: Abnahmeszenario 11 mit Handbuch- und README-Teil); Schichten bleiben zwei (der Tap als Ergebnis des Jobs oder einer Handlung des Betreibers, Dokumentation). Nachgezählt am 2026-10-20 mit der Bindung aus `slice-v1-abschluss-binary-namen`: Der Nachtrag für `v0.1.0` entfällt, die Formel entsteht durch den Job; **Liefer-Punkte bleiben 2, Schichten zwei**; der Slice liegt unter der Grenze.
 
