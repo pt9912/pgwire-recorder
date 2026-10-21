@@ -20,6 +20,7 @@ Eine Datei je Kennung, `SPEC-<NNN>-<kurztitel>.md`; die Überschrift der Datei n
 und den Titel. Die Reihe der Kennungen zählt über beide Orte fortlaufend: Die nächste freie Nummer
 ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/`, plus eins. Ausgenommen ist
 eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsbaums in den Gegenproben) ist noch nicht vergeben.
+Frei sind außerdem die Lücken `SPEC-065` und `SPEC-066`; drei Pläne in `open/` nennen sie (CI-Nachtläufe, Freshness).
 
 ## Verträge
 
@@ -43,6 +44,7 @@ eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsb
 | `SPEC-064` | `ci-range`, `ci-gegenprobe`; Text von `ci.yml` | [`SPEC-064-ci.md`](SPEC-064-ci.md) |
 | `SPEC-067` | `release.yml`, `release.sh`, `release-gegenprobe`; Datei `VERSION` | [`SPEC-067-release.md`](SPEC-067-release.md) |
 | `SPEC-068` | `archiv-bezug`, `archiv-bezug-gegenprobe` | [`SPEC-068-archiv-bezug.md`](SPEC-068-archiv-bezug.md) |
+| `SPEC-069` | `container-einrichten`, `container-einrichten-gegenprobe` | [`SPEC-069-container-einrichten.md`](SPEC-069-container-einrichten.md) |
 
 ## Historie
 
@@ -79,4 +81,5 @@ eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsb
 | 2026-10-19 | Veröffentlichung bei einem Tag: wörtlicher Text von `release.yml`, Trockenlauf statt Probe-Tag, Eingaben (SemVer, `VERSION`, Notes, Geheimnisse), Binaries, Image als Manifestliste mit Prüfung der Summe je Plattform, Push-Reihenfolge ohne Überschreiben, Vergleich der Index-Digests aus den rohen Bytes, `latest`, GitHub-Release, Zugangsdaten, Fehlertabelle, Grenzen (`SPEC-067`; [ADR-0051](../../docs/plan/adr/0051-veroeffentlichung-auf-github-actions.md)); Smoke als Skript mit Image-Referenz (`SPEC-055` Punkt 7) |
 | 2026-10-19 | Anforderungen im Stub archivierter Slices: Lauf-Menge, Eingaben und Reihenfolge der Gründe, Prüfung aller Stubs vor dem ersten Schreiben, Kopf des Volltexts und gelesene Kennungen, Zeile und Ordnung, vorhandene Zeile und Idempotenz, Stelle der Zeile, Zeilenende, Aufrufarten von `make`, kein Modus „prüfen“, Grenzen (`SPEC-068`) |
 | 2026-10-19 | Veröffentlichung: Scan des Images vor dem Push mit Trivy (Pin, Aufruf, Auswertung, Fail-closed, Marke `scan.ok`, keine Ausnahmen, [ADR-0052](../../docs/plan/adr/0052-scan-des-images-vor-dem-push.md)), Freshness-Audit und Freigabe-Checkliste (Form des Belegs, Anti-Punkte, Incident-Klausel), der erste Tag (Belege, „rot“ nach dem Tag, Bezug im Handbuch) (`SPEC-067` Punkte 16 bis 18) |
+| 2026-10-21 | Harness-Werkzeuge: Einrichtung im laufenden Dev-Container mit Eingaben, Werkzeugen und Projektname aus `u-boot.yaml`, einem Lesezug für den Zustand, Bare-Repo, Remote und Einlieferung, Klon, Identität des Klons nur `--local` über den Standardeingang, Commit-Träger, Zweig aus `origin/main`, Träger als letzter Schritt, Reihenfolge der Gründe und Exit-Codes, Abbruch, Aufrufarten des Treibers, Gegenprobe mit Attrappen ohne Container (Zeitbudget nach `SPEC-060` Punkt 16), Nachweis gegen einen laufenden Container als Handlung, Plattform und Grenzen (`SPEC-069`; Empfehlung bis zur Annahme von [ADR-0057](../../docs/plan/adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md)) |
 | 2026-10-19 | Veröffentlichung: Das Freshness-Audit ist optional und kein Punkt der Freigabe-Checkliste (elf statt zwölf Punkte); die Tabelle als Form seines Belegs gilt nur, wenn es durchgeführt wird; ein Ergebnis sperrt den Tag nie (Entscheidung des Nutzers vom 2026-10-19; `SPEC-067` Punkte 17 und 18) |
