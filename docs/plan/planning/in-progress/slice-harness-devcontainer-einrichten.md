@@ -14,7 +14,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 **Bezug:** [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität) nur insoweit, als die Host-Voraussetzungen des Repos berührt sind (neu: `ssh`, Entscheidung des Nutzers, §1); kein Anspruch des Produkts.
 Vorgänger: `slice-harness-devcontainer-austausch-repo` und `slice-harness-devcontainer-doku` (beide `done/`); der Slice automatisiert deren Ablauf. `slice-harness-devcontainer-u-boot-0-10` (`done/`; Gerüst auf `u-boot` v0.10.0, `make gates` im Container grün, 1701 s). Die unmittelbaren Vorgänger sind `slice-harness-devcontainer-einrichten-geruest` (legt das Gerüst an) und `slice-harness-devcontainer-einrichten-start` (startet den Container); dieser Slice setzt den laufenden Container voraus, §1 und §4. Folge-Slices: `slice-harness-devcontainer-einrichten-doku` (Dokument §6 und §9; der Doku-Slice direkt hinter diesem, `AGENTS.md` §3.11) und `slice-harness-devcontainer-einrichten-zugang` (Zugang von Claude Code; beide kein Teil dieses Slice, §1). Entscheidung: [ADR-0057](../../adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) (Accepted 2026-10-21, Entscheidung des Nutzers), dazu [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) (Obergrenze 600 s je Gegenprobe, Accepted 2026-10-21). §4 rechnet in der berichtigten Größen-Metrik: [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) (Ausschluss von `docs/plan/planning` und `docs/reviews`, `--find-renames=10%`, Basis ist der Commit des Übergangs nach `in-progress/`), Status `Proposed`; `slice-harness-groessen-metrik` trägt sie nach der Annahme in `AGENTS.md` §3.14 ein, bis dahin gilt sie aus der ADR.
 
-**Berührte Spec-Stellen:** [`SPEC-069`](../../../../harness/vertraege/SPEC-069-container-einrichten.md) (neuer Vertrag des Werkzeugs; vom Architect am 2026-10-21 geschrieben, jede Randform aus §6 ist dort entschieden); gebunden an [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) (Punkte 2 und 11, Zusagen der Geber, §1); Host-Voraussetzungen: [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität); `SPEC-060` Punkte 2, 3 und 16 (die Liste, an der die Gegenprobe hängt, und die Tabelle in Punkt 16, die sie als `aufgenommen` führt).
+**Berührte Spec-Stellen:** [`SPEC-069`](../../../../harness/vertraege/SPEC-069-container-einrichten.md) (neuer Vertrag des Werkzeugs; vom Architect am 2026-10-21 geschrieben, jede Randform aus §6 ist dort entschieden); gebunden an [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) (Punkte 2 und 11, Zusagen der Geber, §1); Host-Voraussetzungen: [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität); `SPEC-060` Punkte 2, 3, 8, 16 und 17 (die Liste, an der die Gegenprobe hängt; die Tabelle in Punkt 16, die sie als `aufgenommen` führt; Punkt 17, der Start mit ignoriertem `SIGINT`, und sein Verweis in Punkt 8 — beide vom Architect am 2026-10-21 nach F-V10 eingetragen).
 
 **Verantwortlich:** pt9912 (Zweig impl-einrichten)
 
@@ -92,9 +92,9 @@ Gates und Closure:
 | `harness/mk/container-einrichten.mk` | neu | Ziel `container-einrichten` (kein Gate), Gegenprobe hängt an einer der beiden Listen |
 | `tools/harness/container-einrichten.sh` | neu | Ablauf aus §1 (Prüfen, Einrichtung, Zweig); Eingaben aus der Umgebung (`PGR_DEV`, `PGR_SSH_PORT`, Remote-Name), Fehlermeldungen mit Schritt; keine Zugangsvariable (Bindung, §1) |
 | `tools/harness/container-einrichten-gegenprobe.sh`, `harness/mk/container-einrichten-gegenprobe.mk` | neu | Gegenprobe mit Attrappen von `ssh` und `make` und echtem `git`, ohne Container, ohne Docker, ohne Netz; Fälle und Mutationen nach `SPEC-069` Punkt 17, dazu die Fälle von `SPEC-060` Punkt 16 (9); `GEGENPROBEN_CONTAINER` |
-| `harness/vertraege/SPEC-060-gegenproben.md` | update | Die Tabelle in Punkt 16 nimmt die Zeile der neuen Gegenprobe als `aufgenommen` auf (sie trägt die Fälle von Punkt 16 (9)); kein anderer Punkt ändert sich |
+| `harness/vertraege/SPEC-060-gegenproben.md` | update | Die Tabelle in Punkt 16 nimmt die Zeile der neuen Gegenprobe als `aufgenommen` auf (sie trägt die Fälle von Punkt 16 (9)); dazu, vom Architect am 2026-10-21 nach F-V10 eingetragen und nicht vom Implementer, der neue **Punkt 17** (Start mit ignoriertem `SIGINT`) mit der Zeile Z6 der Randform-Tabelle und dem Verweis in Punkt 8; kein anderer Punkt ändert sich |
 | `harness/mk/gates-schnell.mk` | entfällt | Die Ausnahmeliste der schnellen Kette nennt keine Gegenprobe mehr (`SPEC-060` Punkt 2) |
-| `harness/README.md` | update | Abschnitt *Werkzeuge* von §Sensors: beide Zeilen (Ziel und Gegenprobe, je „kein Gate"), hinter `container-start` und `container-start-gegenprobe` — der Ort, an dem dieses Repo die Gegenprobe eines Werkzeugs führt |
+| `harness/README.md` | update | Abschnitt *Werkzeuge* von §Sensors: beide Zeilen (Ziel und Gegenprobe, je „kein Gate"), hinter `container-start` und `container-start-gegenprobe` — der Ort, an dem dieses Repo die Gegenprobe eines Werkzeugs führt; dazu im Vorspann von §Sensors ein Satz, der auf `SPEC-060` Punkt 17 zeigt (Start mit ignoriertem `SIGINT`, Entscheidung des Architect zu F-V10) |
 
 - Das Skript trennt Prüfen und Handeln: erst alle Vorbedingungen am Host (Identität, `ssh` vorhanden, Schlüssel lesbar, Container per `ssh` erreichbar), dann die Schritte im Container. Die Reihenfolge der Gründe legt der Architect fest (Randform 14).
 - Die Form des Transports der Identität ist entschieden: Standardeingang des `ssh`-Aufrufs, je ein Wert in einer Zeile, Lesen mit `IFS= read -r`, Steuerzeichen und Nicht-UTF-8 abgelehnt (`SPEC-069` Punkte 5 (3) und 9). Der Implementer setzt sie um und entscheidet keine Quoting-Form selbst; `printf %q` aus dem Dokument §6 ist damit abgelöst.
@@ -2023,8 +2023,9 @@ Gegenproben-Container, und die Tabelle in `SPEC-060` stand schon auf `aufgenomme
 
 Auftrag des Koordinators nach dem Verifikationsbericht `2026-10-21-verifikation-slice-harness-devcontainer-einrichten`
 (F-V1 bis F-V12), Zeitbudget **eine Stunde** (Entscheidung des Nutzers vom 2026-10-21). Kein neuer Slice, keine
-Neuplanung: §1, §3 und §6 bleiben, weil nichts darin genannte sich ändert; der Kopf nennt jetzt `SPEC-060`
-Punkt 16 (F-V8). Arbeitsort: Klon des Zweigs `impl-einrichten` im Scratchpad am Host (Bearbeiten, Commits,
+Neuplanung: §1 bleibt; der Kopf nennt jetzt `SPEC-060` Punkt 16 (F-V8) und, nach der Entscheidung des Architect
+zu F-V10, auch die Punkte 8 und 17; §3 (Zeilen `SPEC-060` und `harness/README.md`) und §6 (Randform 33 und
+Plattform-Zeile) sind zu F-V10 nachgezogen (Nachtrag unten und N-2 der Nachverifikation). Arbeitsort: Klon des Zweigs `impl-einrichten` im Scratchpad am Host (Bearbeiten, Commits,
 Push in das Bare-Repo `austausch.git` von `pgr-dev2`, ohne Hook), die engen Läufe der Gegenprobe dort (bash
 5.2.21), `make gates` im Worktree `wt-einr` von `pgr-dev2` (bash 5.2.37), der Nachweis am Host.
 
@@ -2098,6 +2099,75 @@ weiter als sein Test, und der Mutant hieß äquivalent, weil das Ergebnis gleich
 (`BEO-REPO/gruener-mutant-faelschlich-aequivalent`, `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`).
 (3) Die Aufzählung „Port abweichend“ im Vertrag hatte für ein Element (der Port der URL) keinen Fall
 (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`).
+
+### Nacharbeit nach der Nachverifikation
+
+Auftrag des Koordinators nach `2026-10-21-nachverifikation-slice-harness-devcontainer-einrichten` (Stand `a8fa0f43`,
+HIGH N-1, LOW N-2 und N-3, INFO N-4), Zeitbudget 30 Minuten; Basis `0c633c40`. Arbeitsort wie oben.
+
+| Befund | Behandlung |
+|---|---|
+| **N-1 (HIGH)** `m-p7-remote-add` färbt `p7-url-port` mit | Erwartung ergänzt (Zeile der Mutation im Skript); alle Mutationen, deren Filter einen der drei neuen Fälle wählt, mechanisch bestimmt und eng gefahren (unten). |
+| N-2 (LOW) Plan folgt dem Endstand nicht | Kopf nennt `SPEC-060` Punkte 2, 3, 8, 16 und 17; §3 nennt in den Zeilen `SPEC-060` und `harness/README.md` Punkt 17, Z6 und den Satz im Vorspann; der Satz „§1, §3 und §6 bleiben“ am Kopf von *Nacharbeit nach der Verifikation* ist berichtigt (§1 bleibt, §3 und §6 sind nachgezogen). |
+| N-3 (LOW) `make gates` und Größe nur für `7f2dd9ed` | Ergebnis des Koordinators nachgetragen (unten); die Größe ist nach dieser Nacharbeit neu gemessen. |
+| N-4 (INFO) `awk` fehlt in der Voraussetzungsliste | Die Liste stand an drei Stellen: Kopf des Skripts, Kommentar des Fragments `harness/mk/container-einrichten-gegenprobe.mk` und die Zeile der Gegenprobe in `harness/README.md`; alle drei nennen jetzt `awk`, `grep` und `find` (das Skript ruft sie außerhalb von coreutils; der Kopf nennt dazu `diff` mit `GP_ENTDECKE=1`). `SPEC-069` führt die Liste **nicht** (`grep -w` nach `sed`, `awk`, `grep`, `find` im Vertrag: keine Fundstelle); der Vertrag ist unverändert, es gibt nichts an den Architect zurückzugeben. Dass das Skript beim Start allein `git`, `make` und `sed` prüft, bleibt: eine Prüfung von `awk` wäre Code mit Fall und Mutation (`AGENTS.md` §3.10) und gehört nicht in diese Nacharbeit. |
+
+**Warum `p7-url-port` die Mutation `m-p7-remote-add` sieht (N-1).** `m-p7-remote-add` kehrt die Bedingung des
+`git remote add` um: ohne Remote `container` wird keines angelegt, und der Push an `container` scheitert (Exit 5).
+`p7-url-port` ist wie `p7-remote-fehlt`, `p7-push-aufruf` und die übrigen Fälle der Gruppe `p7-.*` ein
+`gruen`-Fall (verlangt den Erfolg des ganzen Laufs) und liest zudem `git remote get-url container`; beides schlägt
+ohne das angelegte Remote fehl. Der Fall liegt in der Auswahl `p7-.*|p13-.*` der Mutation, also gehört er in ihre
+rote Menge. Mein erster Lauf nach F-V2 fuhr nur die acht Mutationen, die ich selbst angefasst hatte, und sah das nicht
+(`AGENTS.md` §3.10: ein neuer Fall färbt jede Mutation, deren Filter ihn wählt).
+
+**Die Gruppe der drei neuen Fälle, mechanisch bestimmt.** Eine Kopie der Gegenprobe, deren `mut` für jede Zeile der
+Tabelle prüft, ob ihre Auswahl (`$3`, mit den eingesetzten `A1` bis `A17`) einen der drei Namen `p7-url-port`,
+`p16-keine-voraussetzung` und `p5-ident-mail-nicht-utf8` fasst (`[[ $fall =~ ^($auswahl)$ ]]`), statt die Mutation zu fahren:
+**58 Paare, 55 verschiedene Mutationen** — `p7-url-port` in 11 (jede Auswahl, die `p7-.*` enthält, auch `$A5|p7-.*` und
+`$A5|p7-.*|p2-vorgaben|p2-port-.*`), `p16-keine-voraussetzung` in 4 (`A16`), `p5-ident-mail-nicht-utf8` in 43 (jede Auswahl, die `A5` enthält,
+auch `$A5|p9-zeichen-(umlaut|cjk|emoji)`); drei Mutationen wählen zwei der Fälle (`m-p5-remote-name-fest`,
+`m-p7-url-ohne-port`, `m-p7-url-port-fest`). Gefahren mit `GP_MUT='^(<die 55 Namen, durch | getrennt>)$' GP_ENTDECKE=1 bash
+tools/harness/container-einrichten-gegenprobe.sh`, im Vordergrund (Start ohne ignoriertes `SIGINT`, `SPEC-060` Punkt 17),
+**jede Mutation mit genau ihrer erwarteten roten Menge**:
+
+`m-p16-nicht-phony`, `m-p16-rezept-make`, `m-p16-voraussetzung`, `m-p16-voraussetzung-fehlt`, `m-p5-ausgecheckter-zweig`, `m-p5-bare-fremd`, `m-p5-bare-head`, `m-p5-fern-git`, `m-p5-fern-make`, `m-p5-geruest-nach-repo`, `m-p5-ident-beide`, `m-p5-identitaet-nach-remote`, `m-p5-ident-leerraum`, `m-p5-ident-mail`, `m-p5-ident-mail-geprueft`, `m-p5-ident-name`, `m-p5-ident-nur-ascii`, `m-p5-ident-nur-lokal`, `m-p5-ident-steuerzeichen`, `m-p5-ident-tabulator`, `m-p5-ident-utf8`, `m-p5-ident-wert-in-meldung`, `m-p5-ident-wert-in-meldung-mail`, `m-p5-klon-fremd`, `m-p5-klon-origin`, `m-p5-klon-schmutzig`, `m-p5-klon-vor-bare`, `m-p5-lesezug-batchmode`, `m-p5-lesezug-hostschluessel`, `m-p5-lesezug-schreibt`, `m-p5-lesezug-timeout`, `m-p5-lesezug-zwei-aufrufe`, `m-p5-main`, `m-p5-main-als-head`, `m-p5-meldung-ohne-ausgabe`, `m-p5-nicht-erreichbar`, `m-p5-remote-gesetzt`, `m-p5-remote-nach-lesezug`, `m-p5-remote-name-fest`, `m-p5-remote-url`, `m-p5-repo`, `m-p5-repo-nach-identitaet`, `m-p5-schluessel-lesbar`, `m-p5-schluessel-vorhanden`, `m-p5-werkzeuge-vor-lesezug`, `m-p7-abgewiesen-immer`, `m-p7-abgewiesen-nicht-erkannt`, `m-p7-fehler`, `m-p7-force`, `m-p7-refspec`, `m-p7-remote-add`, `m-p7-sshcommand-konfiguration`, `m-p7-url-ohne-port`, `m-p7-url-port-fest`, `m-p7-zweiter-versuch`
+
+
+Von den 55 färben die neuen Fälle genau diese acht: `p7-url-port` rot in `m-p7-remote-add` (jetzt in der Erwartung),
+`m-p7-url-ohne-port` und `m-p7-url-port-fest` (beide vorhanden und genannt); `p16-keine-voraussetzung` rot in
+`m-p16-voraussetzung` und `m-p16-voraussetzung-fehlt`; `p5-ident-mail-nicht-utf8` rot in `m-p5-ident-mail-geprueft`,
+`m-p5-ident-utf8` und `m-p5-ident-wert-in-meldung-mail`. In den übrigen 47 bleiben sie grün, wie die Erwartungen es
+verlangen.
+
+**Läufe dieser Nacharbeit** (alle eng, im Vordergrund, kein voller Lauf der Gegenprobe, kein `make gates`):
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `GP_MUT='^m-p7-remote-add$' GP_ENTDECKE=1` (Befund bestätigt, vor der Änderung) | `0c633c40` | Exit 1, 1 s, Last 29.85: rot sind alle bisher erwarteten Fälle **und** `p7-url-port` |
+| die 55 Mutationen der Gruppe | `0c633c40` mit der geänderten Erwartung (vor den Kommentaren zu N-4) | Exit 0, 49 s, 55 Zeilen `=>`, Last 21.66 zum Start, 16.36 am Ende |
+| dieselben 55 | Endstand dieser Nacharbeit (nach den Kommentaren zu N-4) | Exit 0, 49 s, Last 4.85 zum Start, 5.94 am Ende; die Ausgabe der 55 Zeilen ist die des ersten Laufs, Zeile für Zeile |
+| `GP_MUT='^ok$' GP_NUR='p7-.*\|p16-.*\|p5-.*'` (unveränderte Kopie, die Gruppen der drei Fälle) | Endstand | Exit 0, 5 s, Last 5.34 |
+| `bash -n tools/harness/container-einrichten-gegenprobe.sh` | Endstand | ohne Befund |
+| `make docs-check`, `make kopf-check` | Endstand | `d-check: 1340 Datei(en) geprüft, 0 Befund(e)`, Exit 0; `kopf-check` Exit 0 |
+
+**Der volle Lauf des Verifiers und `make gates` stammen aus der Zeit vor dieser Behebung.** Nachverifikation am
+Stand `a8fa0f43`: voller Lauf der Gegenprobe **rot**, Exit 2, 200 s, Last 3.04 zum Start (genau die Abweichung N-1);
+`make gates` des Koordinators am selben Stand: **Exit 0, 7 min 55 s** (Host, 2026-10-21 17:51 bis 17:59 UTC, Protokoll
+`gates-int-endstand.log` im Scratchpad des Koordinators), ein Lauf auf diesem Stand. Ein Lauf auf einem älteren Stand bleibt
+ein Lauf auf diesem Stand: Diese Nacharbeit ändert eine Zeile der Gegenprobe (die Erwartung von `m-p7-remote-add`) und
+Kommentare in `tools`, `harness/mk` und `harness/README.md`, ohne ein Verhalten des Ziels `container-einrichten` zu ändern;
+der Stand ändert sich dennoch, und `make gates` am neuen Endstand sowie der volle Lauf der Gegenprobe sind der Nachweis dafür
+(beide fährt der Koordinator bzw. der Verifier, nicht dieser Lauf).
+
+**Größe nach [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) am Endstand dieser Nacharbeit:** **1407** (Einfügungen 1387, Löschungen 20), unverändert gegen den Nachtrag
+zu F-V10: Die Änderungen dieser Nacharbeit ersetzen Zeilen, die dieser Slice schon eingefügt hat (Erwartung, drei
+Kommentare), und fügen keine hinzu. Messung wie oben: `git diff --numstat --find-renames=10% 28bb1f01 -- tools harness
+':(exclude)docs/plan/planning' ':(exclude)docs/reviews'`, Arbeitsbaum.
+
+**Für die Closure vorgemerkt (Beobachtung dieser Nacharbeit):** Die enge Auswahl nach einer Änderung an einer Gegenprobe ist
+die **Gruppe des neuen Falls** — jede Mutation, deren Filter ihn wählt —, nicht die Liste der eigenen Änderungen; der Fall
+wanderte in die Erwartung einer fremden Mutation, und erst der volle Lauf des Verifiers sah es
+(`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`, Form: *die Erwartung einer anderen Mutation*).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

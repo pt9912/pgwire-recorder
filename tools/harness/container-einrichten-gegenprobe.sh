@@ -30,8 +30,8 @@
 # unveränderten Kopie und je Mutation; die Fälle p17-* geben einer Kopie damit einen einzigen billigen Fall); GP_ENTDECKE=1 nennt je
 # Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen;
 # GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab).
-# Braucht bash ≥ 4.4 (mit `wait -n`), git, make, sed und die GNU-Werkzeuge von coreutils; als root
-# entfällt der Fall mit Dateirechten (die Gegenprobe nennt ihn am Ende).
+# Braucht bash ≥ 4.4 (mit `wait -n`), git, make, sed, awk, grep, find und die GNU-Werkzeuge von coreutils
+# (dazu diff mit GP_ENTDECKE=1); als root entfällt der Fall mit Dateirechten (die Gegenprobe nennt ihn am Ende).
 # Ausgang: 0, wenn jeder Fall und jede Mutation wie erwartet endet und die Zeit unter der Obergrenze liegt,
 # sonst 1.
 set -uo pipefail
@@ -828,7 +828,7 @@ mut m-p5-werkzeuge-vor-lesezug s "$A5" '  zust_werkzeuge_fern; zust_bare' '  zus
 mut m-p6-initial-branch s 'p6-.*|p8-.*' ' --initial-branch=main' '' p6-fehlt
 mut m-p6-immer s 'p6-.*|p13-.*' '  [ "${Z[bare]}" = fehlt ] || return 0' '  :' p6-vorhanden p13-zweiter-aufruf
 mut m-p6-fehler s 'p6-.*' '  [ "$kcode" = 0 ] || ende 5 "git init --bare $barepfad endete mit Exit $kcode"' '  :' p6-fehler
-mut m-p7-remote-add s 'p7-.*|p13-.*' '  (( rneu == 0 )) || git remote add' '  (( rneu == 1 )) || git remote add' p7-remote-fehlt p7-push-aufruf p7-push-angekommen p7-git-ssh-command p7-git-ssh-command-opts p7-abgewiesen p13-erfolg p13-zweiter-aufruf p13-umgebung
+mut m-p7-remote-add s 'p7-.*|p13-.*' '  (( rneu == 0 )) || git remote add' '  (( rneu == 1 )) || git remote add' p7-remote-fehlt p7-push-aufruf p7-push-angekommen p7-git-ssh-command p7-git-ssh-command-opts p7-abgewiesen p7-url-port p13-erfolg p13-zweiter-aufruf p13-umgebung
 mut m-p7-force s 'p7-.*|p1-nie-push-force' '  kind -e env "GIT_SSH_COMMAND=$gsc" git push "$PGR_REMOTE"' '  kind -e env "GIT_SSH_COMMAND=$gsc" git push --force "$PGR_REMOTE"' p7-push-aufruf p7-abgewiesen p1-nie-push-force
 mut m-p7-refspec s 'p7-.*' ' refs/heads/main:refs/heads/main' ' main' p7-push-aufruf
 mut m-p7-sshcommand-konfiguration s 'p7-.*|p1-.*' '  kind -e env "GIT_SSH_COMMAND=$gsc" git push' '  git config --local core.sshCommand "$gsc"; kind -e git push' p7-git-ssh-command p7-git-ssh-command-opts p1-sshcommand p1-andere-einstellung

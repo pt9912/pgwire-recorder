@@ -2,7 +2,7 @@
 # ADR-0055; Vertrag harness/vertraege/SPEC-069-container-einrichten.md Punkt 17). KEIN GATE: sie steht in
 # GEGENPROBEN_CONTAINER (SPEC-060 Punkte 2 und 3 — sie ruft weder u-boot noch devcontainer), nicht in
 # GATE_CHECKS und nicht in GATE_SCHNELL_AUSNAHME. Sie faehrt ohne Container, ohne Docker und ohne Netz und
-# braucht bash, git, make, sed und die GNU-Werkzeuge von coreutils. Obergrenze des vollen Laufs:
+# braucht bash, git, make, sed, awk, grep, find und die GNU-Werkzeuge von coreutils. Obergrenze des vollen Laufs:
 # 600 s (SPEC-060 Punkt 16, ADR-0055).
 .PHONY: container-einrichten-gegenprobe
 
