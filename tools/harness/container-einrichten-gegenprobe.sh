@@ -89,8 +89,10 @@ spiegel() {
   local f
   for f in "$AT_WELT"/workspaces/*/pgwire-recorder/.git/config; do
     [ -f "$f" ] || continue
-    if [ "$1" = welt ]; then sed -i "s|= /workspaces/|= $AT_WELT/workspaces/|" "$f"
-    else sed -i "s|= $AT_WELT/workspaces/|= /workspaces/|" "$f"; fi
+    # Nur schreiben, wenn der Pfad wirklich die andere Form trägt: ein `sed -i` mit gleichem Inhalt
+    # ändert die Änderungszeit, und die Momentaufnahme der Welt (snap) sieht sie.
+    if [ "$1" = welt ]; then grep -q "= /workspaces/" "$f" && sed -i "s|= /workspaces/|= $AT_WELT/workspaces/|" "$f"
+    else grep -q "= $AT_WELT/workspaces/" "$f" && sed -i "s|= $AT_WELT/workspaces/|= /workspaces/|" "$f"; fi
   done
   return 0
 }
@@ -162,9 +164,17 @@ welt() {
   git -C "$repo" commit -q --allow-empty -m erst
   zw=thema cwd=$repo pfad= nodev= nozw= lauf_cmd=()
 }
+# snap und snapw vergleichen Pfad, Rechte, Art, Link-Ziel, Größe und Änderungszeit (Nanosekunden) — alles
+# aus EINEM find-Aufruf ohne weiteren Prozess je Datei. Ein `-exec cksum {} +` davor starb unter Last
+# gelegentlich an einem fehlgeschlagenen fork, und die fehlende Zeile färbte p4-nichts-geaendert rot
+# (lastabhängiger Fehlbefund, BEO-REPO/test-faellt-unter-cpu-last-aus). Die Änderungszeit eines
+# Verzeichnisses bleibt außen vor (git schreibt in .git, und der Vergleich gilt den Dateien), ebenso
+# `.git/index`: `git status --porcelain` im Lesebefehl schreibt ihn neu, wenn die Stat-Daten im selben
+# Sekundenfenster liegen (racily clean) — das ist eine Eigenschaft des gerufenen `git`, kein Zustand, den
+# Punkt 4 meint.
 snap() { (cd "$w" 2> /dev/null && find . ! -path ./bin ! -path './bin/*' ! -path ./st ! -path './st/*' ! -path ./kind ! -path './kind/*' \
-  ! -name log ! -name 'k*' ! -name out ! -name err -printf '%p %m %y %l\n' -type f -exec cksum {} + 2> /dev/null) | sort; }
-snapw() { local d=$1; shift; (cd "$d" && find . "$@" -printf '%p %m %y %l\n' -type f -exec cksum {} + 2> /dev/null) | sort; }
+  ! -path '*/.git/index' ! -name log ! -name 'k*' ! -name out ! -name err \( -type f -printf '%p %m %y %l %s %T@\n' -o -printf '%p %m %y %l\n' \) 2> /dev/null) | sort; }
+snapw() { local d=$1; shift; (cd "$d" && find . ! -path '*/.git/index' "$@" \( -type f -printf '%p %m %y %l %s %T@\n' -o -printf '%p %m %y %l\n' \) 2> /dev/null) | sort; }
 lauf() {
   local b=(PATH="${pfad:-$w/bin:$sys}" HOME="$home" AT_LOG="$w/log" AT_STATE="$w/st" AT_WELT="$weltdir" AT_ECHT="$sys" \
     GIT_CONFIG_GLOBAL="$home/.gitconfig" GIT_CONFIG_SYSTEM="$home/gitsystem") cmd=("$BASH" "$sk")

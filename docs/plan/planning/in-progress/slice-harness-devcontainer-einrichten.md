@@ -646,15 +646,30 @@ Mutation verlangt `mut` genau diese Menge.
 | Punkt 16: je `MAKEFLAGS` aus der Umgebung mit demselben Flag | `m-p16-rezept-make` (Rezept mit `$(MAKE)`) und `m-p16-voraussetzung-fehlt` | `p16-makeflags-n/-q/-t` bzw. `p16-makeflags-i/-k/-j` |
 | `SPEC-060` Punkt 16 (8): als root entfällt der Fall mit Dateirechten und **mit ihm seine Mutation** | eine Kopie ohne das Überspringen in `mut` meldet `rot sind [nichts]` (gemessen am 2026-10-21 im Lauf als root, vor dem Fix) | `m-p5-schluessel-lesbar` (die Mutation selbst, nicht ein Fall) |
 
-**Zwei Läufe unter Last, die rot endeten, und einer, der grün endete.** Die Fahrt nach `SPEC-060` Punkt 16 (8)
-(als root, `en_US.utf8`) lief dreimal: mit acht bzw. sechs Rechenlasten daneben endete sie rot mit **je einem
-zusätzlichen** `p4-nichts-geaendert` — beim ersten Lauf unter `m-p2-alle-gemeldet`, beim zweiten unter
-`m-p5-ident-steuerzeichen` und `m-p5-ident-utf8`; dieselben Mutationen einzeln und ohne Last sind grün, und
-der dritte Lauf (drei Rechenlasten, Last 8.25 zum Start) war grün. Die Abweichung ist damit lastabhängig und
-nicht an eine Mutation gebunden (`BEO-REPO/test-faellt-unter-cpu-last-aus`, `BEO-REPO/lastabhaengige-zaehlung`);
-welcher Fall den Namen setzte, ist in den roten Läufen nicht festgehalten — seit diesem Lauf nennt
-`GP_ENTDECKE=1` den Fall, in dem ein roter Name gesetzt wurde. **Offen für die Verifikation:** ob ein voller
-Lauf unter Last reproduzierbar rot wird; die Obergrenze gilt für diese Fahrt nicht (Punkt 16 (8)).
+**Die Läufe unter Last haben drei Fehler der Gegenprobe gefunden — alle drei behoben.** Die Fahrt nach
+`SPEC-060` Punkt 16 (8) endete zweimal rot mit **je einem zusätzlichen** `p4-nichts-geaendert` (beim ersten
+Lauf unter `m-p2-alle-gemeldet`, beim zweiten unter `m-p5-ident-steuerzeichen` und `m-p5-ident-utf8`), und
+ein voller Lauf im Gegenproben-Container bei Last 4.86 ebenso; dieselben Mutationen einzeln waren grün.
+Gesucht und gefunden mit der Diagnose, die derselbe Lauf eingeführt hat (`GP_ENTDECKE=1` nennt seither den
+Fall, in dem ein roter Name gesetzt wurde) und einem Vergleich der zwei Momentaufnahmen:
+
+1. **Die Momentaufnahme der Welt verlor unter Last Zeilen.** `snap` lief als
+   `find … -printf … -exec cksum {} +` mit unterdrückter Fehlerausgabe; schlug unter Last ein `fork` für
+   `cksum` fehl, fehlte die Zeile, und der Vergleich meldete eine Änderung, die es nicht gab. `snap` und
+   `snapw` vergleichen jetzt Pfad, Rechte, Art, Link-Ziel, Größe und Änderungszeit (Nanosekunden) aus
+   **einem** `find`-Aufruf ohne weiteren Prozess je Datei — robuster und schärfer als vorher, weil nun jeder
+   Schreibzugriff auffällt, auch einer mit gleichem Inhalt (`BEO-REPO/test-faellt-unter-cpu-last-aus`).
+2. **Die Attrappe von `ssh` schrieb ohne Not.** Sie setzte den Pfad in der Konfiguration des Klons nach
+   jedem Befehl mit `sed -i` zurück, auch wenn er schon die Form des Containers trug — gleicher Inhalt, neue
+   Änderungszeit. Sie schreibt jetzt nur, wenn der Pfad die andere Form trägt.
+3. **`git status --porcelain` im Lesebefehl schreibt `.git/index` neu**, wenn die Stat-Daten im selben
+   Sekundenfenster liegen (*racily clean*). Das ist eine Eigenschaft des gerufenen `git`, kein Zustand, den
+   Punkt 4 meint; `.git/index` bleibt in der Momentaufnahme außen vor, mit Grund im Kopf der Funktion.
+
+Nach den drei Korrekturen sind der volle Lauf im Dev-Container (174 s, Last 4.12) und die beiden Läufe im
+Gegenproben-Container grün (Läufe-Tabelle oben). **Offen für die Verifikation:** ob ein voller Lauf unter
+schwerer Last reproduzierbar grün bleibt — die drei Ursachen sind benannt und behoben, die Obergrenze gilt
+für die Fahrt nach Punkt 16 (8) ohnehin nicht.
 
 **Für die Closure vorgemerkt (Beobachtungen dieses Laufs, keine Register-Einträge — die schreibt der
 Planner): (1) Die Größe liegt mit 1326 über der Marke 900, der Faktor Gegenprobe zu Skript bei 2,8
