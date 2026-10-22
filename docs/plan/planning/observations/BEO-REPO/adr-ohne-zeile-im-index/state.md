@@ -45,6 +45,4 @@ mit Vertrag und Gegenprobe oder eine Regel einer neueren Fassung von d-check, di
 Abschnitt adressiert. Ein Slice dafür ist **nicht** angelegt: Das ist Entscheidung des Nutzers,
 und ein `geplant` mit einer Kennung, die es nicht gibt, wäre keine Adresse (`AGENTS.md` §3.13).
 
-`slice-harness-groessen-metrik` trägt die Zeile für
-[ADR-0056](../../../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) in beide Tabellen
-des Index und vermerkt bei seiner Closure Gegenbeleg oder Beleg (dessen §6 und DoD).
+Die Zeile für [ADR-0056](../../../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) steht seit dem Proposed-Commit `85454f8e` in beiden Tabellen des Index; der Architect hat Status und Datum am 2026-10-22 gesetzt (`71255295`). `slice-harness-groessen-metrik` trägt dazu nichts mehr (sein §6: Risiko entfallen); ein Gegenbeleg aus dem Slice entfällt, der Zähler bleibt 0.

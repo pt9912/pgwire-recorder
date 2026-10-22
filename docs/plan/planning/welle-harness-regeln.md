@@ -52,7 +52,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-harness-slice-mv-exakter-treffer | `slice-mv` findet die Quelle am exakten Namen, und eine Gegenprobe hält es | kein Anspruch des Produkts |
 | slice-harness-regeln-nach-v1-abschluss | Regeln aus dem Verbindungsende-Block (Abdeckungstabellen zählen nicht als Schicht, Wortlaut-Suche und Arbeitsbaum vor E2E-Mutanten, offene Fragen zu §3.10) | kein Anspruch des Produkts; Register-Einträge in deren Bezug |
 | slice-harness-regeln-spezifikation-satzabgleich | Der Architect gleicht vor dem Code die Sätze einer Spezifikationsstelle ab | kein Anspruch des Produkts; `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` |
-| slice-harness-groessen-metrik | `AGENTS.md` §3.14 trägt den berichtigten Befehl der Größen-Metrik, und [ADR-0056](../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) wird angenommen | kein Anspruch des Produkts; `BEO-REPO/groessenprobe-ohne-messbaren-stand` |
+| slice-harness-groessen-metrik | `AGENTS.md` §3.14 trägt den berichtigten Befehl der Größen-Metrik | kein Anspruch des Produkts; `BEO-REPO/groessenprobe-ohne-messbaren-stand` |
 | slice-harness-schaetzung-planner-faktor | Der Planner schätzt in der Metrik von §3.14, mit benanntem Faktor, und nennt die Meldeschwelle | kein Anspruch des Produkts; Register-Einträge in deren Bezug |
 | slice-harness-gegenprobe-matrix-p7-flanke | Eine Mutation der Gruppe `p7-sig` färbt nur Fälle ihrer Gruppe, oder die Voraussetzung dafür steht im Vertrag | kein Anspruch des Produkts |
 | slice-harness-commit-struktur-id | Commit-Träger lehnt Struktur-Kennungen ab | kein Anspruch des Produkts |
