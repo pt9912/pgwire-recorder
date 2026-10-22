@@ -185,6 +185,77 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`). Der Beleg der Regel (DoD, Rechnung an den Plänen vom 2026-10-15), die Bestätigung des Wortlauts durch den Nutzer (Datum, Fundstelle), die Größe in der Metrik von §4 (Basis, letzter Commit, Summe) und das Ergebnis der Schätzung dieses Plans gegen die Messung (erste Anwendung der Regel) stehen hier.
 
+### Belege des Implementers
+
+Zweig `impl-planner-faktor` im Worktree `/Development/pgwire-recorder-pf`, entstanden aus `23608d2e`; Basis der Metrik `af85443b1b01bdf028933ce645998dabd422e1fd` ist Vorfahr des Zweigs (`git merge-base --is-ancestor af85443b HEAD` Exit 0, `git log --merges af85443b..HEAD` leer). Liefer-Commit `0a561e74` (`AGENTS.md`, `.claude/commands/plan-welle.md`, §3 dieses Plans). Die Proben unten sind Skripte im Scratchpad der Sitzung (nicht im Repo); jede steht mit ihrem Befehl da und lässt sich nachfahren. „Rot“ heißt: der Wert weicht vom Soll ab.
+
+**Bestätigung und Treue zum Entwurf.** Substanz: Entscheidung des Nutzers vom 2026-10-22 (Fundstelle §1, Auswahl wörtlich je Frage „70 % der Marke (Entwurf)“, „Mitte der Spanne (Entwurf)“, „Architect-Satz angleichen“, „5 (Entwurf)“); der Wortlaut ist Entwurf des Planners, der Nutzer sieht ihn im Diff vor dem Push. Gemessen (Leerraum normalisiert, `cmp` bzw. Wortvergleich gegen §3): Der Absatz des Planners (16 Zeilen) ist gleich dem Entwurf; der Satz des Architect (eine Zeile ausgetauscht), der Satz im Command und die Herkunftszeile (V-2) sind gleich dem Entwurf; das Paar ist gleich bis auf **zwei Stellen** (Wortvergleich: `„mit`/`Verhältnis` wird `mit`/`„Verhältnis`, und `82` wird `82,5`), beide in §3 unter *Angleichung beim Schreiben* begründet; Sinn und Zahlen der vier Entscheidungen bleiben. Die Ergänzung der Begründung am Ende der Regel hatte der Entwurf nur benannt; ihren Wortlaut (3 Zeilen, ohne Löschzeile) hat der Implementer geschrieben und in §3 festgehalten. Die vier Entscheidungen im Text von `AGENTS.md` §3.14: (1) „Liegt die Mitte der Schätzung über 70 % der Marke, schneidet der Planner vor dem Anspruch“ und „Entscheidet der Nutzer, ohne weiteren Schnitt zu beginnen, steht die Entscheidung mit Datum im Plan“; (2) dieselbe Stelle („Mitte der Schätzung“), die Zählung nach der Obergrenze (Entscheidung vom 2026-10-16) als eigener letzter Satz; (3) „Gegenprobe-Code mit dem Faktor des Planners (folgender Absatz).“; (4) „der Faktor mindestens 5 (`slice-v1-abschluss-protokollrand` maß rund 8)“ bei einer Tabelle von Randformen und einer Mutation je Element, der Faktor „mit seinem Beleg“. Beleg für „maß rund 8“: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests/state.md` („Der Faktor Tests zu Produktcode lag bei Tabellen mit Mutations-Nacharbeit bei rund 8 statt 4 bis 5.“).
+
+**Größe (Metrik aus §4, eigener Lauf).** Befehl aus dem Zaun von `AGENTS.md` §3.14, `<Basis>` und `<Pfade des Plans>` ersetzt:
+
+```
+git diff --numstat --find-renames=10% af85443b1b01bdf028933ce645998dabd422e1fd..HEAD -- AGENTS.md .claude \
+  ':(exclude)docs/plan/planning' ':(exclude)docs/reviews' \
+  | awk '{a+=$1; b+=$2} END {print a+b+0}'
+```
+
+Ergebnis am Liefer-Commit `0a561e74`: **40** (`33 1 AGENTS.md`, `5 1 .claude/commands/plan-welle.md`); am Commit, der diesen Abschnitt trägt, derselbe Wert (er berührt nur den Planungsbaum). Marke 120 und Meldeschwelle 100 nicht erreicht. Die Schätzung 33 bis 60 trägt (40 liegt in der Spanne und, ohne die Reserve, in der Spanne der Zeichenzahlen 33 bis 44); die Obergrenze ist nicht überschritten, ein Auftreten von `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` liegt nicht vor. Aufschlüsselung der 40 Zeilen: Absatz des Planners 16 und eine Leerzeile, Satz des Architect 2 (eine Zeile aus, eine ein), Herkunftszeile 1, Paar mit Begründung 9 und zwei Leerzeilen, Ergänzung der Begründung 3, Command 6 (5 ein, 1 aus).
+
+**DoD-Zeilen mit Befehl** (am Liefer-Commit):
+
+| DoD-Zeile | Befehl | Ergebnis |
+|---|---|---|
+| keine Löschzeile in der Regel außer den zwei Zeilen des Satzes des Architect | `git diff -U0 af85443b..HEAD -- AGENTS.md \| grep -E '^-' \| grep -vE '^---'` | genau eine Zeile: `-Gegenprobe-Code mit rund dem Doppelten des Produktcodes.` (die erste Zeile des Satzes bleibt, die Erlaubnis von zwei Zeilen ist nicht ausgeschöpft) |
+| „Doppelte“ in `AGENTS.md` leer | `grep -c 'Doppelte' AGENTS.md` (trifft auch „Doppelten“) | 0 |
+| Herkunftszeile auf einer Zeile, ohne Löschzeile | `grep -cxF 'Die Zahlen: Closure von `slice-erster-release-homebrew-nachweis`, Basis `2c56dabb`, bis `fd140c11`.' AGENTS.md` | 1; die Zeile steht hinter der letzten Zeile des Richtig des Gebers, `git diff` zeigt sie als reine Einfügung |
+| Absatz des Planners hinter dem Satz des Architect, Paar hinter dem Paar des Gebers, Begründung am Ende | Zeilennummern von `Der Architect gibt`, `Der Planner schätzt`, `**Falsch:** §4 nennt „Summe`, `Die Zahlen: Closure`, `**Falsch:** §4 nennt Marke 1000`, `**Begründung:** Eine Marke ohne Metrik`, `Der Absatz des Planners geht zusätzlich` (`grep -n -F`) | streng aufsteigend (Probe P5) |
+| kein Satz dieses Wortlauts nennt den alten Befehl | `git diff -U0 af85443b..HEAD -- AGENTS.md .claude \| grep -E '^\+' \| grep -vE '^\+\+\+' \| grep -ciE 'numstat\|git diff'` | 0 |
+| keine dritte Datei | `git diff --name-status -M af85443b..HEAD` | `M AGENTS.md`, `M .claude/commands/plan-welle.md`, dazu unter `docs/plan/planning/` der Verweis im Stub von `slice-harness-coverage` (Commit `23608d2e`, vor der Arbeit) und diese Plandatei |
+| Bindung: `grep` nach der Kennung des Gebers | `awk '/^### 3.14/{f=1} /^## 4\. /{f=0} f' AGENTS.md \| grep -n 'slice-harness-groessen-metrik'`; `grep -c 'slice-harness-groessen-metrik'` auf diesen Plan | in `AGENTS.md` §3.14 eine Zeile (Retirement-Check im Paar des Gebers); im Plan 21 Zeilen vor diesem Abschnitt (Kopf, §1, DoD, §3, §4, §6, §8), mit ihm 23 |
+| Command: ein Satz, Zeiger auf §3.14, in Schritt 6 | `git diff -U0 af85443b..HEAD -- .claude/commands/plan-welle.md` | ein Hunk, 1 Zeile aus (der Umbruch von Zeile 76), 5 ein; die Stelle (Schritt 6, nach dem Satz zu Randformen) war vorhanden, kein Ausweichen |
+| `make docs-check` | `make docs-check` | Exit 0, `d-check: 1381 Datei(en) geprüft, 0 Befund(e)`, nach jedem Commit gefahren |
+
+**Proben je Zusage der Regel** (Zusage · Mutation an einer Kopie von `AGENTS.md` bzw. `plan-welle.md` im Scratchpad, der Hauptbaum bleibt unberührt · Ergebnis; Skript `probe.sh` mit den Proben P1 bis P7, `probe-welle.sh` mit W1 bis W3; am Stand `0a561e74` alle grün, `probe.sh` Exit 0):
+
+| Zusage | Mutation | Ergebnis |
+|---|---|---|
+| P1: genau die zwei Zeilen des Satzes des Architect dürfen gelöscht werden (hier eine) | eine weitere Zeile des Gebers gelöscht (die Zeile `Closure-Notiz, Move und Verweis-Nachzug …`) | P1 2 statt 1, rot |
+| P2 und P7: „Doppelte“ entfällt, der Satz zeigt auf den Faktor des Planners | altes `rund dem Doppelten des Produktcodes.` zurückgeschrieben | P2 1 statt 0, P7 0 statt 1, P1 0 statt 1, rot |
+| P3: die Herkunftszeile steht auf einer Zeile | nach `Basis` umgebrochen | P3 0 statt 1, rot |
+| P4: Absatz gleich Entwurf, Schwelle | `über 70 %` zu `über 75 %` | P4 abweichend, rot |
+| P4: Absatz gleich Entwurf, Mindestwert | `mindestens 5` zu `mindestens 4` | P4 abweichend, rot |
+| P4: Absatz gleich Entwurf, Zählung nach der Obergrenze | `Obergrenze der Schätzspanne` zu `Mitte der Schätzspanne` | P4 abweichend, rot |
+| P4: Absatz gleich Entwurf, Entscheidung nach der Meldung beim Planner | `trägt der Planner seine` zu `trägt der Implementer seine` | P4 abweichend, rot |
+| P5: Reihenfolge der Absätze | Herkunftszeile ans Ende der Regel gesetzt (P3 bleibt grün) | P5 falsch, rot, nur P5 |
+| P6: kein alter Befehl in den neuen Zeilen | Zeile mit `git diff --numstat <Basis>..<letzter Commit>` hinter dem Absatz | P6 1 statt 0, rot |
+| W1: der Satz im Command gleich Entwurf (Schwelle) | `über 70 %` zu `über 75 %` | W1 abweichend, rot |
+| W1: Zeiger auf §3.14 und Anker | `(`AGENTS.md` §3.14, seit slice-harness-schaetzung-planner-faktor)` gestrichen | W1 abweichend, rot |
+| W2/W3: ein Satz, ein Hunk | Satz ein zweites Mal am Ende von Schritt 6 | W2 2 statt 1, W3 `1 6 2` statt `1 5 1`, rot |
+
+Ein Test der Regel selbst gibt es nicht (§3, §1: Prosa, kein Sensor); die Proben prüfen, dass der Text den Entwurf und die DoD hält, nicht dass ein Planner sie befolgt (das zeigt das Register).
+
+**Beleg der Regel (DoD), Rechnung an den Plänen** (Fundstellen: ungeteilter Plan im Commit `99eebb97` vom 2026-10-12, dort §4 „über 1000 Zeilen“, „Schätzung des Planners 650 bis 1000, … Verhältnis Test zu Code etwa 3 zu 1“; Prüfung des Architect vom 2026-10-15 und die beiden Teile im Archiv der Welle: `unzip -p docs/plan/planning/done/welle-v1-abschluss/archiv.zip docs/plan/planning/done/welle-v1-abschluss/slice-v1-abschluss-verbindungsende-format.md` (und `…-format-schreiber.md`), je §4 und §8). Mitte = (untere + obere Grenze) / 2, Linie 70 % der Marke (1000: 700, 700: 490):
+
+| Plan | Spanne | Mitte | Marke | Anteil | Regel |
+|---|---|---|---|---|---|
+| ungeteilt, Planner (Anlegen) | 650 bis 1000 | 825 | 1000 | 82,5 % | schneiden |
+| ungeteilt, Architect (Prüfung vor dem Code) | 850 bis 1250 | 1050 | 1000 | 105 % | schneiden |
+| Teil `slice-v1-abschluss-verbindungsende-format` | 550 bis 750 | 650 | 1000 | 65 % | stehen lassen |
+| Teil `slice-v1-abschluss-verbindungsende-format-schreiber` | 300 bis 500 | 400 | 700 | 57,1 % | stehen lassen |
+| derselbe Teil nach der Prüfung vor dem Code | 340 bis 500 | 420 | 700 | 60 % | stehen lassen |
+
+Das deckt sich mit der DoD (Mitten 825, 650 und 400; 82 %, 65 % und 57 %: die DoD rundet 82,5 ab, der Text im Paar nennt 82,5). Mit der Obergrenze statt der Mitte lägen beide Teile bei 75 % und 71,4 %, also über der Linie: Die Wahl der Mitte (Entscheidung 2) trägt das Ergebnis, wie §6 sagt. Nebenrechnung des Implementers, kein Teil der DoD: Mit dem Produktcode des Architect (etwa 180 Zeilen, `slice-v1-abschluss-verbindungsende-format` §8) und dem Mindestwert 5 für Tests (Tabelle von Randformen, Mutation je Element, Zählung im selben Plan) wäre der ungeteilte Plan beim Anlegen bei etwa 180 · 6 = 1080 gerechnet worden, über der Marke, ohne dass die Prüfung des Architect nötig gewesen wäre.
+
+**Herkunft der Beispielzahlen (V-2, Sendung des Gebers).** Der Befehl aus `AGENTS.md` §3.14 über die Spanne `2c56dabb..fd140c11` mit den Pfaden des Paars (`tools harness spec docs README.md`, `<Basis>..HEAD` durch die Spanne ersetzt) ergibt **244**; mit dem alten Befehl (ohne Ausschlüsse und ohne `--find-renames`) 1148 (`464 0` und `0 207` für die Plandatei unter `done/` und `next/`); `2c56dabb` ist der Claim-Commit von `slice-erster-release-homebrew-nachweis`, `fd140c11` der Verweis-Nachzug nach dem Move nach `done/` (beide `git log --oneline -1`). Die Zeile im Richtig nennt genau diese Spanne.
+
+**Gates.** `make docs-check` (engster Sensor) Exit 0 nach jedem Commit. `make gates` ist von diesem Lauf nicht gefahren (Anweisung der Koordination: Der Slice ändert nur Prosa in `AGENTS.md` und einem Command, Gates und Gegenproben hat er nicht; die Koordination fährt `make gates` einmal am Endstand in `main` nach der Zusammenführung). Offenes für Verifier und Closure: `make gates` am Endstand (Nachweis des Stop-Hooks); der Implementer hat ihn nicht geschrieben.
+
+**Gemessene Hinweise an Review und Planner** (kein Eingriff in §1, §2, §4, §8 und nicht in einen Satz, den der Plan als Entscheidung des Nutzers führt):
+
+- §6 *Randformen der Regel* nennt als Entscheidungsort „der Wortlaut in `AGENTS.md` §3.14“. Vier der acht Randformen stehen nur dort, nicht im Wortlaut: *Kein gemessener Vorgänger* (der Wortlaut sagt „keine Messung“, nicht „rechnet mit dem Mindestwert“), *Plan ohne Tests* (der Faktor entfällt, steht so im Plan), *Bestehende Pläne* (nicht rückwirkend) und *Schätzung des Architect höher als die des Planners* (gilt für den Anspruch; liegt ihre Mitte über 70 %, schneidet der Planner). Der Implementer hat den Wortlaut nicht erweitert (Entwurf und Auswahl des Nutzers gelten) und §6 nicht umgeschrieben; ob ein Satz in `AGENTS.md` hinzukommt oder §6 den Ort enger nennt, entscheidet der Planner.
+- Die Überschrift von §3.14 trägt weiter nur `seit slice-harness-gate-kette-stop-hook-liste`; der Anker `seit slice-harness-schaetzung-planner-faktor` steht im Retirement-Check des Paars und der Ergänzung am Ende der Regel (wie bei `slice-harness-groessen-metrik`); die Closure entscheidet, ob die Überschrift ihn trägt.
+- Der Wortlaut sagt zu, der Planner nenne den Faktor „in §4“ und die Meldeschwelle „in §4“; kein Sensor prüft es (§1, §6: weiter offen mit `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar`).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
