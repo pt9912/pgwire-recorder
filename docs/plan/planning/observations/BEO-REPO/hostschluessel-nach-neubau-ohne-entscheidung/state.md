@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** geplant — Kennung: `slice-harness-devcontainer-einrichten-doku` (2026-10-22, Entscheidung des Nutzers, „ja“)
+
+Ausgang zugewiesen: Entscheidung des Nutzers vom 2026-10-22, **Variante A** (Wortlaut „ja“ auf die Vorlage mit den Empfehlungen des Koordinators, so übermittelt): **Keine Einstellung in den Werkzeugen; `PGR_SSH_OPTS` mit einer eigenen `known_hosts`-Datei ist der dokumentierte Weg.** Der Zielort, der Satz im Dokument (`docs/developer/devcontainer.md` §5, dazu §13), entsteht erst in `slice-harness-devcontainer-einrichten-doku`; deshalb `geplant` und nicht `verkörpert`, der Anker wäre `seit slice-harness-devcontainer-einrichten-doku`. Die Annahme ist geprüft und der Plan angepasst: Der Satz liegt in §5 des Dokuments, das dessen §1 ausschloss (Klasse 1, `-start`, `done/`); der Ausschluss ist für genau diesen einen Satz enger gefasst, und der Satz liegt in der Schicht des Slice (Wartungs-Doku). Zählung in dessen §8: 1 Liefer-Punkt, 1 Schicht, Schätzung 75 bis 130 gegen Marke 250. Die Entscheidung empfiehlt `StrictHostKeyChecking=accept-new` nicht; das Dokument nennt es als das, was der Nachweis fuhr.
 
 Zweites Auftreten: `slice-harness-devcontainer-u-boot-0-10` (Beleg `evidence/slice-harness-devcontainer-u-boot-0-10.md`). Das Gerüst auf `u-boot` 0.10.0 ändert den Hostschlüssel bei jedem Neubau des Images, auch bei einer Änderung von `egress.allow`; Neustart und neuer Container tun es nicht. Zähler 2, unter der Schwelle, `offen`; der Nehmer `slice-harness-devcontainer-einrichten` trägt den Befund in Randform 9.
 

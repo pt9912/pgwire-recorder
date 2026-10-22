@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** geplant — Kennung: `slice-harness-regeln-implementer-uebergabe` (2026-10-22, Entscheidung des Nutzers, „ja“)
+
+Ausgang zugewiesen: Der Nutzer hat am 2026-10-22 („ja“, so vom Koordinator übermittelt) auf die Vorlage mit den Empfehlungen des Koordinators geantwortet; `slice-harness-regeln-implementer-uebergabe` (`open/`) nimmt die Regel als dritten Liefer-Punkt an: Der Implementer ändert im Plan §7 und was `AGENTS.md` §3.9 nachzieht (§1, §3, §6, den Kopf, betroffene Folge-Slices), nicht §2, §4, §5, §8 und keinen Satz, der eine Entscheidung des Nutzers trägt; Bedarf geht im Bericht an den Planner. Die Regel steht in `.claude/commands/implement-slice.md` (Schritt 18). Die Annahme ist geprüft (sein §1 schließt sie nicht aus), die Zählung steht in dessen §8: 3 Liefer-Punkte, 2 Schichten, Schätzung 34 bis 67 gegen Marke 100. Der Wortlaut ist Entwurf des Planners, der Nutzer bestätigt ihn vor dem Commit. Der Sensor aus dem Vorschlag oben (Diff gegen `main`) bleibt ausgeschlossen: Er müsste die Menge aus `AGENTS.md` §3.9 zulassen, nicht „nur §7“, und kommt erst nach einem Auftreten trotz der Regel. Der Eintrag wird `verkörpert`, wenn der Slice schließt und die Regel steht.
 
 Erstes Auftreten: `slice-harness-devcontainer-einrichten-start` (Beleg `evidence/slice-harness-devcontainer-einrichten-start.md`); unter der Schwelle, `offen`. Ohne Regel und ohne Sensor.
 
