@@ -50,16 +50,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1 — die Option** ([`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), `LH-FA-01.a`): Das gebaute Binary beantwortet jede Form, die die Spezifikation als Versions-Angabe festlegt (`--version`, `-v`, als einziges Argument), mit der dort festgelegten Ausgabe und dem dort festgelegten Exit-Code; jede andere Form bleibt, was sie heute ist. Ein Test je Zusage der Spezifikationsstelle, bei einer Aufzählung (Formen, andere Schreibweisen, Beispiele mit weiterem Argument) ein Fall je Element, **ohne Mutation** (`AGENTS.md` §3.10: eine Option ohne Wirkung auf den Record-/Replay-Pfad). `TestParseVersion` und seine Abdeckungs-Deklaration beschreiben danach das neue Verhalten, und `make abdeckung-check` ist grün.
-- [ ] **Liefer-Punkt 2 — Doku im Ist-Zustand** ([`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung)): Hilfetext (die globale Hilfe nennt beide Formen; die Hilfe je Kommando bleibt, `LH-FA-01.a` *Version*) und `docs/user/benutzerhandbuch.md` (der Absatz, der heute „Eine Option `--version` gibt es nicht“ sagt, und jede Stelle, die der neuen Ausgabe oder dem Satz zu `stdout` widerspräche) nennen die Option so, wie das gebaute Binary sie zeigt — jeder Satz mit einem Lauf gegen das Binary belegt, keine Chronik, kein Zielstand, im Handbuch kein Verweis auf Spezifikation, ADR, Slice oder Welle (`AGENTS.md` §3.11). `grep -rn -- '--version' docs/user README.md` am Endstand findet keine Stelle mehr, die die Option verneint.
-- [ ] `make gates` grün; die betroffenen Gegenproben nach `harness/README.md` §Sensors gefahren, falls ein Gate oder ein Vertrag berührt ist (hier nicht erwartet, §3).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] **Liefer-Punkt 1 — die Option** ([`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), `LH-FA-01.a`): Das gebaute Binary beantwortet jede Form, die die Spezifikation als Versions-Angabe festlegt (`--version`, `-v`, als einziges Argument), mit der dort festgelegten Ausgabe und dem dort festgelegten Exit-Code; jede andere Form bleibt, was sie heute ist. Ein Test je Zusage der Spezifikationsstelle, bei einer Aufzählung (Formen, andere Schreibweisen, Beispiele mit weiterem Argument) ein Fall je Element, **ohne Mutation** (`AGENTS.md` §3.10: eine Option ohne Wirkung auf den Record-/Replay-Pfad). `TestParseVersion` und seine Abdeckungs-Deklaration beschreiben danach das neue Verhalten, und `make abdeckung-check` ist grün.
+- [x] **Liefer-Punkt 2 — Doku im Ist-Zustand** ([`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung)): Hilfetext (die globale Hilfe nennt beide Formen; die Hilfe je Kommando bleibt, `LH-FA-01.a` *Version*) und `docs/user/benutzerhandbuch.md` (der Absatz, der heute „Eine Option `--version` gibt es nicht“ sagt, und jede Stelle, die der neuen Ausgabe oder dem Satz zu `stdout` widerspräche) nennen die Option so, wie das gebaute Binary sie zeigt — jeder Satz mit einem Lauf gegen das Binary belegt, keine Chronik, kein Zielstand, im Handbuch kein Verweis auf Spezifikation, ADR, Slice oder Welle (`AGENTS.md` §3.11). `grep -rn -- '--version' docs/user README.md` am Endstand findet keine Stelle mehr, die die Option verneint.
+- [ ] **Offen, folgt** (Koordinator, Hauptbaum nach dem Merge): `make gates` grün; die betroffenen Gegenproben nach `harness/README.md` §Sensors gefahren, falls ein Gate oder ein Vertrag berührt ist (hier nicht erwartet, §3).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -142,8 +142,6 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
-
 ### Belege des Implementers
 
 Worktree `/Development/pgwire-recorder-vo`, Zweig `impl-version-option`, Basis der Metrik `49da54b6993287b9d1902b30aacef66e8afc4703`. Beginn laut `date`: Do 22. Okt 19:38:49 CEST 2026. Code- und Doku-Endstand `5804f486`; danach ändert nur dieser Abschnitt den Zweig. Eine Randform-Rückgabe an den Architect war nicht nötig: `LH-FA-01.a` *Version* und §6 waren vollständig. Keine Mutations-Tabelle: Die Option wirkt nicht auf `record`, `replay` und `play` (`AGENTS.md` §3.10), je Zusage steht ein Test.
@@ -207,9 +205,24 @@ Durchsicht des Handbuchs nach der Allgemeinregel (Quantoren über Argument, Opti
 
 **Abweichungen vom Plan**
 
-- §3 nannte für den Beleg „E2E-Fall oder `bootstrap_test.go`“; geliefert sind beide. Der Bootstrap-Code ändert sich nicht, die Datei zählt nicht als Schicht (`AGENTS.md` §3.13, Verdrahtung ohne Logik); Schichten bleiben zwei.
-- Das Handbuch ändert drei Stellen statt des einen Absatzes: den Satz zu `stdout` in *Log-Ausgaben* (er hätte der Versions-Angabe widersprochen), einen Satz in *Konfigurationsdatei* und den Kopf (Version des Dokuments 0.11, Stand 22.10.2026). Software-Version und Gültigkeitsbereich im Kopf nennen weiter `0.1.1`; das Release 0.1.1 hat die Option nicht, der Kopf zieht beim nächsten Release nach.
+- Keine inhaltliche Abweichung von §3 und §6: §3 führt `bootstrap_test.go`, den E2E-Test und die drei Handbuchstellen (Satz zu `stdout`, Satz in *Konfigurationsdatei*, Kopf) seit `5804f486`; die frühere Fassung dieses Punktes beschrieb den Planstand davor (berichtigt nach Review F-1 und Verifikation V-1). Der Bootstrap-Code ändert sich nicht und zählt nicht als Schicht (`AGENTS.md` §3.13); Schichten bleiben zwei.
+- Der Handbuch-Kopf nennt Dokument-Version 0.11, Software-Version und Gültigkeitsbereich weiter `0.1.1`; das Release 0.1.1 kennt die Option nicht, der Kopf zieht beim nächsten Tag nach (Review F-2, Verifikation V-3).
 - `TestParseKeineVersionsAngabe` führt zwei Fälle mehr als die Spezifikation nennt (`--version=`, `-v=` mit leerem Wert).
+
+### Closure (Planner, 2026-10-22)
+
+Stand: Zweig `impl-version-option`, Commit `4d9b41f4` (Verifikation), Basis der Metrik `49da54b6993287b9d1902b30aacef66e8afc4703`. Belege des Implementers oben.
+
+- **Was hat funktioniert:** Beide Liefer-Punkte geliefert; die zwei Fragen an den Nutzer (A, B) und die Festlegung des Architect lagen vor dem Code, keine Randform-Rückgabe. **Größe:** 273 Zeilen (Pfade `internal/adapters/driving/cli test docs/user`, Basis `49da54b6`) gegen Marke 1500, nicht erreicht.
+- **Review** (`17047e7c`, [Report](../../../reviews/2026-10-22-review-slice-version-option.md)): 0 HIGH, 0 MEDIUM, 1 LOW (F-1: §7 *Abweichungen* beschrieb einen früheren Planstand, berichtigt), 3 INFO (F-2 Handbuch-Kopf, F-3 Überdeckung, F-4 zwei Fälle mehr).
+- **Verifikation** (`4d9b41f4`, [Report](../../../reviews/2026-10-22-verifikation-slice-version-option.md)): beide Liefer-Punkte erfüllt, fünf Mutationen, vier aus dem richtigen Grund rot; 0 HIGH, 0 MEDIUM, 1 LOW (V-1 = F-1), 2 INFO (V-2, V-3).
+- **`make gates` am Endstand: offen, folgt** (Koordinator, Hauptbaum nach dem Merge).
+- **Ausgänge der Risiken:** (1) `-v` belegt: *entfallen* als offene Frage, Entscheidung des Nutzers vom 2026-10-22 (A und B); nach B gilt `-v` nur als einziges Argument, `record -v` ist eine unbekannte Option mit Fehlermeldung; der Rest (`pgwire-recorder -v` gibt die Version) ist beabsichtigt. (2) Verneinung an mehreren Stellen: *entfallen*, `grep` am Endstand in §7 oben, keine Zeile verneint die Option.
+- **Steering-Loop-Eintrag:** Benannte Lücke (kein neuer Slice): Kein Gate bindet einen Handbuchsatz an seine E2E-Probe; die Zuordnung steht nur als Tabelle in §7, und eine falsche Zeile (Verifikation Lauf e) färbt kein Gate rot (V-2). Das ist die gelebte Praxis nach `AGENTS.md` §3.11 und fällt unter `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`; kein `liegt in`, nicht verkörpert.
+- **Handbuch-Kopf:** Software-Version und Gültigkeitsbereich nennen `0.1.1`, das die Option nicht kennt; sie ziehen beim nächsten Tag nach (F-2, V-3).
+- **Beobachtungs-Register:** keine Datei und kein Zähler gesetzt (Auftrag des Koordinators); F-1/V-1 gehört zur Klasse `BEO-REPO/plan-folgt-korrektur-nicht`, V-2 zu `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, beide nur hier vermerkt.
+- **Folge-Slices:** keine.
+- **Drei Paarungen:** (a) *Anker:* nicht ausgelöst, kein `liegt in`. (b) *Folge-Slice:* der Slice weist keinem Slice etwas zu und nimmt keine Sendung an; `slice-version-option-doku` (vorgemerkter Schnitt) wurde nicht gebraucht. (c) *Register:* die zitierten Einträge `BEO-REPO/plan-folgt-korrektur-nicht` und `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` existieren mit `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
