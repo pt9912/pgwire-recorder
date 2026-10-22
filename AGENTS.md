@@ -518,14 +518,14 @@ Gegenprobe-Code mit rund dem Doppelten des Produktcodes.
 
 **Falsch:** §4 nennt „Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit>`“ über `tools harness spec docs README.md`; am
-Endstand ergibt dieselbe Arbeit 1148, weil die Plandatei nach der Closure zweimal im Diff steht
-(`464 0` unter `done/`, `0 207` unter `next/`) und Review- und Verifikationsbericht mit 179 Zeilen
-mitzählen.
-**Richtig:** Derselbe Stand ergibt mit dem Befehl oben 244, und die Zahl steht über Review,
-Verifikation, Nacharbeit, Closure und Move still.
+Endstand ergibt dieselbe Arbeit 1148, vor allem weil die Plandatei nach der Closure zweimal im
+Diff steht (`464 0` unter `done/`, `0 207` unter `next/`) und Review- und Verifikationsbericht mit
+179 Zeilen mitzählen.
+**Richtig:** Derselbe Stand ergibt mit dem Befehl oben 244; Review-Bericht, Verifikationsbericht,
+Closure-Notiz, Move und Verweis-Nachzug ändern die Zahl nicht, nur Arbeit in einem gezählten Pfad.
 
-**Begründung:** `BEO-REPO/groessenprobe-ohne-messbaren-stand`; Retirement-Check: Ist die Beobachtung
-seit slice-harness-groessen-metrik wieder aufgetreten?
+**Begründung:** `BEO-REPO/groessenprobe-ohne-messbaren-stand`. Entfernen oder Lockern setzt den
+Retirement-Check voraus: Ist die Beobachtung seit slice-harness-groessen-metrik wieder aufgetreten?
 
 **Begründung:** Eine Marke ohne Metrik lässt die Probe an der Lesart hängen
 (`BEO-REPO/groessenprobe-ohne-messbaren-stand`), und eine Schätzung ohne den Faktor der Tests liegt
