@@ -30,7 +30,7 @@ trägt eine `SPEC-<NNN>` — siehe §2 bis §7.
 
 **Eingabe:** Aufruf des Programms `pgwire-recorder` mit Kommando und Optionen.
 **Ausgabe:** Ausführung des Kommandos; Hilfetext bei `--help` beziehungsweise
-`-h`.
+`-h`; die Programmversion bei `--version` beziehungsweise `-v`.
 
 v1 stellt mindestens folgende Kommandos bereit:
 
@@ -70,8 +70,25 @@ ist ein gewöhnliches Argument; `record`, `replay` und `play` nehmen keines an
 Wert (`--input --`), ist das `PGR-E2001` (Option ohne Wert). Der Wert `--` geht
 nur mit `=` (`--input=--`). Kein Fehlertext nennt die Hilfe-Anforderung des
 Parsers; eine Hilfe-Angabe ergibt immer die Hilfe, nie einen Fehler.
-`version` liest weder Umgebungsvariablen noch Konfigurationsdatei; eine Option
-`--version` gibt es nicht (`PGR-E2001`).
+
+**Version.** Das Kommando `version` gibt auf `stdout` genau eine Zeile aus,
+`pgwire-recorder <Version>` (ein Leerzeichen, Zeilenende `\n`), schreibt nichts auf
+`stderr` und endet mit Exit-Code `0`; es liest weder Umgebungsvariablen noch
+Konfigurationsdatei. Eine *Versions-Angabe* ist das einzige Argument, wenn es genau
+`--version` oder `-v` lautet. Sie gibt dieselbe Zeile aus wie `version`, schreibt
+nichts auf `stderr`, endet mit Exit-Code `0` und liest weder Umgebungsvariablen noch
+Konfigurationsdatei. Die Liste der zwei Formen ist abgeschlossen: Andere
+Schreibweisen (`-version`, `--v`, `-V`, `--Version`) und ein Argument mit `=`
+(`--version=x`, `-v=x`) sind keine Versions-Angabe, anders als bei der Hilfe-Angabe,
+und als einziges Argument ein unbekanntes Kommando (`PGR-E2001`). Mit einem weiteren
+Argument ist `--version` oder `-v` keine Versions-Angabe, vor oder nach dem weiteren
+Argument: `--version record`, `-v record`, `record --version`, `record -v`,
+`version --version` und `-- --version` sind `PGR-E2001`, wie jedes unbekannte
+Kommando, jede unbekannte Option und jedes unerwartete Argument. Steht neben
+`--version` oder `-v` eine Hilfe-Angabe, gilt *Hilfe vor Prüfung*: `--version --help`
+gibt die globale Hilfe aus, Exit-Code `0`. Die globale Hilfe nennt die
+Versions-Angabe; die Hilfe je Kommando bleibt, wie sie ist. *Grenze:* Das Zeilenende
+`\n` ist nur unter Linux geprüft; für macOS und Windows gibt es keinen eigenen Test.
 
 **Fehlermodi:** ungültige CLI-Verwendung → Exit-Code `2` (`SPEC-014`).
 
@@ -1119,8 +1136,9 @@ fehl, ist er `3` und hat Vorrang vor der gemerkten Klasse. Beendet der Prozess n
 
 Logs werden nach `stderr` geschrieben (`SPEC-006`); Nutzdaten beziehungsweise
 maschinenlesbare Ausgaben auf `stdout` werden dadurch nicht verunreinigt. Auf
-`stdout` stehen nur die Hilfe (LH-FA-01.a), die Ausgabe von `version` und die von
-`config show` (LH-FA-17.a); sie schreiben nichts auf `stderr`.
+`stdout` stehen nur die Hilfe (LH-FA-01.a), die Ausgabe von `version`, auch als
+Versions-Angabe (LH-FA-01.a), und die von `config show` (LH-FA-17.a); sie schreiben
+nichts auf `stderr`.
 
 **Log-Level.** Es gibt genau die Stufen `error`, `warn`, `info` und `debug`;
 Standard ist `info` (`SPEC-005`). Eine Stufe zeigt ihre Zeilen und die aller
@@ -3561,3 +3579,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-20 | Protokollrand, `CancelRequest`: „Rest“ eindeutig als die gesendeten Bytes nach dem Kopf gefasst; bei Länge 9 bis 15 ist die `ErrorResponse` nur zugesagt, wenn genau Länge minus 8 Bytes gesendet werden, mit mehr ist sie nicht zugesagt (Grenze ohne Zusage, kein Test) (`LH-FA-05.e`) |
 | 2026-10-21 | Homebrew: ein Nachweis nach Abnahmeszenario 11 gilt je Kombination aus Betriebssystem und Architektur einzeln, mit Installation, `pgwire-recorder version` und einem startenden `replay`-Lauf als Schritten; jede Kombination ohne Ausgaben ist Grenze (`LH-FA-19.a`) |
 | 2026-10-21 | Homebrew-Nachweis, Fehlerausgabe des `replay`-Laufs: die Warnung über die nie zugeordnete Session (`PGR-W2001`) ist in diesem Szenario erwartet; welche Zeilen zulässig sind und welche den Nachweis nicht erbracht sein lassen, legt `SPEC-067` Punkt 20 (3) fest (`LH-FA-19.a`) |
+| 2026-10-22 | Versions-Angabe: `--version` und `-v` als einziges Argument geben dieselbe Zeile aus wie `version`; mit weiteren Argumenten, anderer Schreibweise oder `=` sind sie `PGR-E2001`; der Satz, eine Option `--version` gebe es nicht, entfällt; die Zeile von `version` ist festgelegt (`LH-FA-01.a`, `LH-FA-14.a`) |
