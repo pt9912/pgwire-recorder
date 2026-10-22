@@ -73,7 +73,8 @@ die Antwort und wird notiert.
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
    dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice eine neue Wire-, Datei- oder
    Formatgrenze oder den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/`, nennt §6
-   deren Randformen** (bei Option und Hilfetext den Verweis auf die Geschwister-Regel; `AGENTS.md`
+   deren Randformen** (bei Option und Hilfetext ohne Wirkung auf den Record-/Replay-Pfad den Verweis auf die
+   Geschwister-Regel; `AGENTS.md`
    §3.12, seit slice-harness-randformen-vor-code); entschieden werden sie vor dem Code, mit dem
    Architect. Trage die Marke von `AGENTS.md` §3.14 in §4 ein; geschnitten wird nach Liefer-Punkten
    und Schichten, nicht nach einer Schätzung in Zeilen.

@@ -25,7 +25,10 @@ Entscheidung stillschweigend zu widersprechen. Das wäre Drift, kein pragmatisch
 
 **Zu jeder Zusage gehört das rot gesehene Gegenbeispiel.** Ein grüner Gate-Lauf belegt, dass nichts
 *bricht* — nicht, dass ein Wächter greift. Pro Zusage also: welche Änderung am geprüften Code
-müsste diesen Test rot machen, und wurde sie einmal gesehen? Keine Antwort ist ein Befund.
+müsste diesen Test rot machen, und wurde sie einmal gesehen? Keine Antwort ist ein Befund. Der Umfang
+folgt dem Geltungsbereich von `AGENTS.md` §3.10: Wire-, Datei- und Formatgrenzen, das Verhalten von
+`record`, `replay` und `play` und der Vertrag eines Gates; für eine Option oder einen Hilfetext ohne
+Wirkung auf diesen Pfad genügt ein Test je Zusage.
 
 **Die Belege stehen in §7, der Bericht verweist dorthin** (seit slice-harness-blackbox-kern).
 Was die DoD „im Bericht“ verlangt — Mutationstabelle, Befundzeilen vorher und nachher, Läufe —,

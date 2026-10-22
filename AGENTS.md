@@ -208,15 +208,19 @@ nennt, was schon geliefert ist.
 Code nicht folgt, erzeugt in jeder Runde dieselben Findings
 (`BEO-REPO/plan-folgt-korrektur-nicht`).
 
-### 3.10 Jede Zusage eines neuen Vertrags fängt eine Mutation (seit welle-extended-query)
+### 3.10 Jede neue oder geänderte Zusage an einer Wire-, Datei- oder Formatgrenze und im Vertrag eines Gates fängt eine Mutation (seit welle-extended-query)
 
-Wer am Record-/Replay-Pfad (Nachrichten und Bytes zwischen Client, Aufzeichnung und Server), an
-einem Format der Aufzeichnung oder am Protokollrand eine Zusage der Spezifikation neu liefert oder
-ändert, schreibt zu jeder dieser Zusagen einen Test, der rot wird, wenn der Code die Zusage bricht,
-und fährt diese Mutation vor der Übergabe selbst. Der Bericht nennt je Zusage: Zusage · Mutation ·
-roter Test. Für eine Option oder einen Hilfetext der Kommandozeile, für Testdaten, Kommentare und
-Doku genügt ein Test je Zusage der Spezifikation, ohne Mutation (§3.11). Für den Vertrag eines Gates
-oder Werkzeugs unter `harness/vertraege/` gilt die Regel ohne diese Einschränkung.
+Wer an einer Wire-, Datei- oder Formatgrenze (eine Nachrichtenfolge am Protokollrand, ein
+Aufzeichnungsformat, eine Datei, die ein Leser einliest) eine Zusage der Spezifikation neu liefert
+oder ändert, schreibt zu jeder dieser Zusagen einen Test, der rot wird, wenn der Code die Zusage
+bricht, und fährt diese Mutation vor der Übergabe selbst. Der Bericht nennt je Zusage: Zusage ·
+Mutation · roter Test. Das Verhalten von `record`, `replay` und `play` (Record-/Replay-Pfad) liegt
+im Geltungsbereich, auch wenn eine Option es ändert (zum Beispiel `--allow-recorded-errors`,
+`--compare-responses`). Für eine Option oder einen Hilfetext der Kommandozeile ohne Wirkung auf
+diesen Pfad (zum Beispiel `--version`, ein Hilfetext), für Testdaten, Kommentare und Doku genügt ein
+Test je Zusage der Spezifikation, ohne Mutation (§3.11). Für den Vertrag eines Gates oder Werkzeugs
+unter `harness/vertraege/` gilt die Regel unbeschränkt: Jede Zusage eines neuen Vertrags, auch jede
+Option darin, bekommt ihren Test mit Mutation, und das „je Element“ unten gilt für seine Sätze.
 
 **Falsch:** Die Tests decken den Gutfall; dass eine Mutation grün bleibt, findet erst
 das Review.
@@ -226,8 +230,8 @@ das Review.
 geprüft ist (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`).
 
 **Aufzählung und Ortsangabe zählen je Element** (seit slice-harness-gate-kette-stop-hook-liste,
-Entscheidung des Nutzers vom 2026-10-13): Je Element einer Aufzählung in einer Zusage der Spezifikation und je
-Schritt einer Ortsangabe darin (zum Beispiel „steht vor allen Prüfungen“) ein Fall und eine Mutation,
+Entscheidung des Nutzers vom 2026-10-13): Je Element einer Aufzählung in einer Zusage der Spezifikation (`spec/spezifikation.md` und
+`harness/vertraege/`) und je Schritt einer Ortsangabe darin (zum Beispiel „steht vor allen Prüfungen“) ein Fall und eine Mutation,
 die nur ihn bricht.
 
 **Falsch:** Die Zusage nennt „Zeilenumbruch, Leerzeichen, Tabulator und Nicht-UTF-8“ im Pfad und
@@ -305,7 +309,7 @@ findet eine weitere Form, die grün bleibt.
 **Begründung:** Eine Zusage ohne Prüfung liest jeder Lauf als geprüft
 (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`).
 
-### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
+### 3.12 Randformen einer neuen Wire-, Datei- oder Formatgrenze und eines Gate-Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
 
 Ein Slice, der eine neue Wire-, Datei- oder Formatgrenze liefert (eine Nachrichtenfolge am
 Protokollrand, ein Aufzeichnungsformat, eine Datei, die ein Leser einliest), nennt in §6 des
@@ -322,11 +326,14 @@ sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rück
 Randform, die erst ein Commit mit Code, Tests oder Gates in §6 einträgt, ist nicht genannt
 (seit slice-harness-blackbox-kern).
 
-Bei einer Option oder einem Hilfetext der Kommandozeile nennt §6 die Spezifikationsstelle der
+Das Verhalten von `record`, `replay` und `play` (Record-/Replay-Pfad) liegt im Geltungsbereich, auch
+wenn eine Option es ändert (zum Beispiel `--allow-recorded-errors`, `--compare-responses`): §6 nennt
+deren Randformen wie oben. Bei einer Option oder einem Hilfetext der Kommandozeile ohne Wirkung auf
+diesen Pfad (zum Beispiel `--version`, ein Hilfetext) nennt §6 die Spezifikationsstelle der
 Geschwister-Option, deren Regeln die neue übernimmt (zum Beispiel die Hilfe-Angabe in `LH-FA-01.a`),
 und was von ihr abweicht; was der Verweis deckt, ist entschieden, eine Abweichung ist eine Randform
-wie oben. Für den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/` gilt die Regel ohne
-diese Einschränkung.
+wie oben. Für den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/` gilt die Regel
+unbeschränkt: Jeder neue Vertrag, auch jede Option darin, nennt seine Randformen in §6.
 
 **Aufruf-Voraussetzung gehört dazu** (seit slice-v1-abschluss-zeitangaben-aufzeichnen): Sagt ein Vertrag eine Ordnung
 oder Eindeutigkeit der Werte zu, die er über mehrere Aufrufe einer Session liefert (nicht absteigend, fortlaufend), nennt §6
@@ -477,7 +484,10 @@ Entscheidung des Nutzers vom 2026-10-13. Die Metrik ist am 2026-10-21 nach
 [ADR-0056](docs/plan/adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) berichtigt
 (Entscheidung des Nutzers vom selben Tag). Jede Rückführungs-Marke in §4 eines Plans („zu groß, über
 N Zeilen mit Tests“) nennt ihre Metrik. **Die Marke ist 1500 Zeilen** (Entscheidung des Nutzers vom
-2026-10-22); eine andere Zahl nennt §4 mit ihrem Grund. Gemessen wird mit
+2026-10-22); eine andere Zahl nennt §4 mit ihrem Grund. Diese Entscheidung und der Wegfall der
+Meldeschwelle ändern Punkt 6 der ADR oben („Pfade, Marke und Meldeschwelle“) und lösen deren
+Re-Evaluierungs-Trigger „Nutzer ändert Marke oder Meldeschwelle“ aus; ein Folge-ADR entsteht nicht,
+die ADR bleibt angenommen, und für Punkt 6 gilt dieser Text. Gemessen wird mit
 
 ```
 git diff --numstat --find-renames=10% <Basis>..HEAD -- <Pfade des Plans> \
@@ -520,11 +530,11 @@ Die Zahlen: Closure von `slice-erster-release-homebrew-nachweis`, Basis `2c56dab
 **Falsch:** §4 nennt Marke 700 und die Schätzung 376 bis 844 mit dem Faktor 10; die Mitte liegt bei
 87 % der Marke, der Planner schneidet vor dem Anspruch in zwei Hälften mit je eigener Schätzung,
 Marke und Meldeschwelle (`slice-v1-abschluss-verbindungsende-replay-extended`), und die acht Slices
-zum Verbindungsende des Servers werden fünfzehn.
+zum Verbindungsende des Servers werden sechzehn.
 **Richtig:** §4 nennt „Marke 1500“ und die Pfade; der Slice wird nach Liefer-Punkten und Schichten
 geschnitten und an der Marke gemessen, wenn der Diff sie erreicht.
 
-**Begründung:** Reviews von 560 bis 941 Zeilen dauerten 5 bis 23 Minuten, und jeder Schnitt kostete
+**Begründung:** Reviews eines Diffs von 560 bis 941 Zeilen dauerten 5 bis 23 Minuten, und jeder Schnitt kostete
 einen Plan von rund 300 Zeilen, einen Review, eine Verifikation und einen vollen Gate-Lauf (Messung
 in `slice-harness-regeln-rueckbau` §1). Die Schätzung in Zeilen bediente nur den Schnitt und lag in
 19 Slices unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`); die Liefer-Punkte
@@ -532,23 +542,30 @@ und die Schichten schneiden, wo die Baseline es verlangt.
 
 ### 3.15 Eine eigene harte Regel, die in über der Hälfte der Slices auftritt, wird Sensor oder fällt (seit slice-harness-regeln-rueckbau)
 
-Entscheidung des Nutzers vom 2026-10-22. Gilt für §3.8 bis §3.14 und für jede weitere eigene
-Regel dieser Liste, deren Begründung auf eine Klasse des Beobachtungs-Registers zeigt
-(`BEO-REPO/<slug>`). Für jede Klasse dieser Art, zu der eine Closure eine Datei unter `evidence/`
-anlegt, rechnet der Planner dabei die Rate: die Zahl der zehn zuletzt geschlossenen Slices, zu
-denen die Klasse eine Datei unter `evidence/` führt, geteilt durch zehn; gezählt wird ab dem Slice
-hinter `slice-harness-regeln-rueckbau`. Liegt die Rate über 0,5, legt der Planner dem Nutzer vor,
-die Regel zu streichen oder durch einen Sensor zu ersetzen (ein Gate prüft sie); er nennt die
-kleinere Lösung zuerst. Bis zur Entscheidung gilt die Regel.
+Entscheidung des Nutzers vom 2026-10-22. Gilt für jede eigene Regel dieser Liste, deren Begründung
+auf eine Klasse des Beobachtungs-Registers zeigt (`BEO-REPO/<slug>`). Der Planner rechnet die Rate
+im Lese-Schritt der Closure (ohne Welle bei der Slice-Closure, `implement-slice` Schritt 25; mit
+Welle bei der Welle-Closure, `close-welle` Schritt 3) für jede Klasse einer solchen Regel, zu der
+seit der letzten Rechnung eine Datei unter `evidence/` dazukam. Die Rate ist die Zahl der zehn zuletzt
+geschlossenen Slices, zu denen die Klasse eine Datei unter `evidence/` führt (der Dateiname ist die
+Kennung des Slice), geteilt durch zehn; die Reihenfolge der Schließung gibt `git log` der Moves nach
+`done/`, und gezählt werden nur Slices ab dem Slice hinter `slice-harness-regeln-rueckbau`. Sind
+weniger als zehn davon geschlossen, entsteht keine Rate und kein Vorschlag. Liegt die Rate über 0,5,
+legt der Planner dem Nutzer vor, die Regel zu streichen oder durch einen Sensor zu ersetzen (ein Gate
+prüft sie); er nennt die kleinere Lösung zuerst. Bis zur Entscheidung gilt die Regel, und kein Slice
+fügt ihr einen Absatz hinzu.
 
 Wer eine dieser Regeln entfernt oder lockert, nennt im Plan des Slice den Zähler und die Rate ihrer
-Klasse; das ist die Konsultation der Herkunft, die der Retirement-Check der Baseline verlangt
-(`grundlagen-traceability.md` §Sensor 2). Dass die Beobachtung wieder aufgetreten ist, sperrt das
-Lockern nicht.
+Klasse und die Dateien unter `evidence/`, die seit dem Anker der Regel (`seit …`) dazukamen; das ist
+die Konsultation der Herkunft, die der Retirement-Check der Baseline verlangt (ist die Beobachtung
+seither wieder aufgetreten?, `grundlagen-traceability.md` §Sensor 2). Dass die Beobachtung wieder
+aufgetreten ist, sperrt das Lockern nicht.
 
 **Falsch:** Eine Klasse steht in acht von zehn Slices im Register, und der nächste Slice fügt der
 Regel einen Absatz hinzu, weil das Review sie wieder fand
-(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: 59 von 73 Produkt-Slices).
+(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: 59 von 73 Slices am Produkt, das sind die
+geschlossenen ohne die Namen `slice-harness-*`, `slice-lint-bestand-*` und `slice-lastenheft-*`, Stand
+2026-10-22).
 **Richtig:** Der Planner legt die Rate vor, und der Nutzer entscheidet über Sensor oder Streichen,
 bevor ein weiterer Absatz entsteht.
 

@@ -24,8 +24,8 @@ die er prüft*.
 
 Jeder Anker HIGH/MEDIUM/LOW hat eine *konkrete* Liste — nicht generisch. INFO ist
 bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal). Ein Verstoß gegen `AGENTS.md` §3.10, §3.12
-oder §3.13 gilt als HIGH oder MEDIUM nur mit Failure-Szenario, sonst als LOW (letzter Eintrag
-unter LOW).
+oder §3.13 gilt als HIGH oder MEDIUM nur mit Failure-Szenario, sonst als LOW (der Eintrag zu
+§3.10, §3.12 und §3.13 unter LOW).
 
 **HIGH** — eines der folgenden:
 - ADR-Verstoß (Layer, Tool, Hard Rule)
@@ -41,13 +41,14 @@ unter LOW).
   abwesenden Text („früher stand hier …") oder bricht mitten im Satz ab, weil
   eine Teilersetzung den Rest stehen ließ. Kein Gate fängt das (siehe
   Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt); HIGH nur mit
-  Failure-Szenario, sonst LOW
+  Failure-Szenario (ein Lauf liest die Zusage als geprüft und handelt danach), sonst LOW
 - **Zustandsfeld trägt Chronik** — eine `Stand`-/`Status`-Zelle (Roadmap,
   Beobachtungs-Register, Meilenstein) erzählt, wie der Zustand entstand, statt
   Zustand und Beleg als Anker zu nennen; oder ein Drift-Log protokolliert
   Schließungen und erreichte Meilensteine. Kein Gate fängt das (siehe
   Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt,
-  *Dieselbe Regel für Zustandsfelder*); HIGH nur mit Failure-Szenario, sonst LOW
+  *Dieselbe Regel für Zustandsfelder*); HIGH nur mit Failure-Szenario (ein Lauf liest die Chronik als
+  Zustand und handelt danach), sonst LOW
 - **Spec-Stratum nennt Artefakt unterhalb oder außerhalb** — Lastenheft,
   Spezifikation oder Architektur nennen eine ADR, einen Slice, eine Welle, einen
   Commit oder (Lastenheft) die darunterliegenden Spec-Dateien; die Sicht trägt
@@ -62,8 +63,10 @@ unter LOW).
 
 **MEDIUM** — eines der folgenden:
 - unklare Fehlerbehandlung am Rand des Spec-Bereichs
-- fehlende Negativtests bei neuem öffentlichem Vertrag
-- Wiederholung eines Musters, das schon zweimal LOW war
+- fehlende Negativtests bei neuem öffentlichem Vertrag; MEDIUM nur mit Failure-Szenario (eine Zusage
+  des Vertrags bricht, ohne dass ein Test rot wird), sonst LOW
+- Wiederholung eines Musters, das schon zweimal LOW war; MEDIUM nur mit Failure-Szenario des
+  Musters, sonst LOW
 - **Randform im Code-Commit** — eine Randform erscheint im selben Commit wie eine
   Änderung an Code, Tests oder Gates neu in §6 des Slice-Plans, oder §6 weist sie dem
   Review statt dem Architect zu; MEDIUM nur mit Failure-Szenario, sonst LOW (Szenario: der Code
@@ -74,8 +77,8 @@ unter LOW).
   Klasse 1), und §1 oder DoD des Nehmers führt die Sendung nicht mit der Kennung des
   Gebers, ein Punkt unter *Ausdrücklich NICHT* trifft sie, oder der Nehmer liegt in
   `done/`. Jede solche Adresse wird gegen §1 und DoD des Nehmers gelesen; MEDIUM nur mit
-  Failure-Szenario, sonst LOW (Szenario: die Sendung erreicht ihren Nehmer nicht, weil ein
-  Ausschluss sie trifft oder der Nehmer in `done/` liegt), gegen `AGENTS.md` §3.13
+  Failure-Szenario, sonst LOW (Szenario: die Sendung erreicht ihren Nehmer nicht, weil er sie nicht
+  führt, ein Ausschluss sie trifft oder er in `done/` liegt), gegen `AGENTS.md` §3.13
   (seit slice-lint-bestand-kern-driven)
 - **Äquivalenter Mutant ohne Invariante, Ort oder Sonde** — §7 führt einen grünen Mutanten als
   äquivalent, und Invariante, der Ort, der sie erzwingt, oder die Sonde mit Lauf fehlt; der Reviewer

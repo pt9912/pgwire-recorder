@@ -118,7 +118,8 @@ emittierten Durchsetzungsschicht):
     seit slice-harness-randformen-vor-code).
 13. Die kleinste sinnvolle Änderung gegen die DoD planen. Erst planen, dann coden. Triffst du
     hier oder beim Implementieren auf eine Randform, die §6 nicht nennt (bei einer Option oder einem
-    Hilfetext: die der Verweis auf die Geschwister-Regel nicht deckt), gilt dieselbe
+    Hilfetext ohne Wirkung auf den Record-/Replay-Pfad: die der Verweis auf die Geschwister-Regel nicht
+    deckt), gilt dieselbe
     Rückgabe (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code).
 
 ## Implementieren und gaten (Modul 9, Schritte 5–6)
@@ -136,8 +137,8 @@ ist eine Lifecycle-Rücksprungkante (11).
 entscheidest du weder im Code noch in der Spezifikation noch in §6. Du hältst an und gibst sie im Bericht als Liste
 *Randform · Frage* an den **Architect** zurück; er entscheidet sie oder legt sie dem Nutzer vor.
 Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
-Bei einer Option oder einem Hilfetext deckt der Verweis auf die Geschwister-Regel in §6 die Randform
-(`AGENTS.md` §3.12).
+Bei einer Option oder einem Hilfetext ohne Wirkung auf den Record-/Replay-Pfad deckt der Verweis auf
+die Geschwister-Regel in §6 die Randform (`AGENTS.md` §3.12).
 **Kein Code-Commit trägt eine neue Randform in §6** (seit slice-harness-blackbox-kern): Ein
 Commit, der Code, Tests oder Gates ändert, fügt §6 des Slice-Plans keine Randform hinzu. Stößt
 du beim Umsetzen auf eine Randform, die §6 nicht entscheidet, committest du keinen Code dazu,
@@ -212,14 +213,16 @@ slice-harness-randform-stelle-und-lesart, `BEO-REPO/randform-im-code-entschieden
     Test rot machen, und wurde sie einmal gesehen?* Wo die Antwort dauerhaft interessant
     ist, gehört sie in den Mutations-Sensor deines Repos (falls vorhanden); wo sie einmalig ist, in
     §7 des Slice-Plans (Schritt 18). **Keine Antwort ist ein Befund**, kein Formfehler — die Klasse „Zusage greift
-    weiter als Abdeckung" ist in der Praxis teuer erkauft.
-    **Am Record-/Replay-Pfad, an einem Format und am Protokollrand gilt das für jede Zusage der
-    Spezifikation, nicht nur für Wächter** (`AGENTS.md` §3.10, Geltungsbereich, seit
-    welle-extended-query; für den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/` ohne
-    Einschränkung): je Zusage ein Test, der die Mutation fängt, und die Mutation fährst du selbst,
-    bevor du übergibst — in §7 je Zeile Zusage · Mutation · roter Test. Für eine Option oder einen
-    Hilfetext genügt ein Test je Zusage. Der Geltungsbereich gilt für die Absätze dahinter, die eine
-    Mutation je Zusage verlangen.
+    weiter als Abdeckung" ist in der Praxis teuer erkauft. Der Umfang folgt dem Geltungsbereich von
+    `AGENTS.md` §3.10 (unten).
+    **An einer Wire-, Datei- oder Formatgrenze und am Verhalten von `record`, `replay` und `play`
+    (auch einer Option, die es ändert) gilt das für jede Zusage der Spezifikation, nicht nur für
+    Wächter** (`AGENTS.md` §3.10, Geltungsbereich, seit welle-extended-query; für den Vertrag eines
+    Gates oder Werkzeugs unter `harness/vertraege/` unbeschränkt): je Zusage ein Test, der die
+    Mutation fängt, und die Mutation fährst du selbst, bevor du übergibst — in §7 je Zeile
+    Zusage · Mutation · roter Test. Für eine Option oder einen Hilfetext ohne Wirkung auf diesen Pfad
+    genügt ein Test je Zusage. Der Geltungsbereich gilt für die Absätze dahinter, die eine Mutation
+    je Zusage verlangen.
     **Ein Handbuchsatz über ein Gegenüber nennt dessen Version** (seit
     slice-v1-abschluss-anmeldung-doku, Entscheidung des Nutzers vom 2026-10-14): Verhalten eines
     Servers, Clients, Treibers oder einer Bibliothek steht im Handbuch nur mit der Version, gegen

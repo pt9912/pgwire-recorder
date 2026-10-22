@@ -26,7 +26,8 @@ Werkzeugs** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code):
 Du prüfst die Liste in §6 des Plans vor dem Code und entscheidest jede Randform, die dort oder
 in einer Rückgabe des Implementers steht, an dem Ort, den §3.12 nennt — oder legst sie dem
 Nutzer vor. Fehlt in §6 eine, die der Vertrag hat, meldest du sie dem Planner. Bei einer Option
-oder einem Hilfetext prüfst du, dass der Verweis in §6 die Randform deckt.
+oder einem Hilfetext ohne Wirkung auf den Record-/Replay-Pfad prüfst du, dass der Verweis in §6 die
+Randform deckt.
 Zur Liste gehört die Stelle jeder Nachricht, die eine Folge beendet oder ersetzt, und die Reihenfolge
 mehrerer Ablehnungsgründe (`AGENTS.md` §3.12, seit slice-harness-randform-stelle-und-lesart).
 Zur Liste gehört die Plattform: Grenze oder Zusage je Plattform von `LH-QA-03`, vor dem Code
