@@ -210,7 +210,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
 14. **Pflicht zum Fahren (Entscheidung des Nutzers vom 2026-10-18).** Regel an den Aufrufer, kein Fall (Grund: ein Gate, das sie erzwänge, wäre das
     Gate, das diese Entscheidung verlässt): Wer ein Gate, eine Gegenprobe oder einen Vertrag eines Gates ändert, fährt die betroffene Gegenprobe;
     am Ende jeder Welle und vor dem Release laufen `make gegenproben` im Gegenproben-Container und `make gegenproben-host` am Host. Welche
-    Rolle wann fährt und wo das Ergebnis liegt, sagen die Anweisungen der Rollen, nicht dieser Vertrag. Der Stop-Hook verlangt keinen Stand der
+    Rolle wann fährt und wo das Ergebnis liegt, sagen die Anweisungen der Rollen, nicht dieser Vertrag. Für eine Gegenprobe im Zustand `nicht gemessen` (Punkt 16) ist der engste Fall mit `GP_MUT=<Muster>` die Fahrt (Entscheidung des Nutzers vom 2026-10-22, Wortlaut „ok“). Der Stop-Hook verlangt keinen Stand der
     Gegenproben, und `make gates` grün sagt nichts über sie (akzeptiertes Negativ; Grund: ein Stand der Gegenproben brächte die Laufzeit zurück,
     die die Entscheidung streicht; die Folge einer nicht gefahrenen Gegenprobe ist ein unbemerkter Bruch des geprüften Werkzeugs bis zur
     nächsten Fahrt, `BEO-REPO/gegenprobe-nicht-in-kette-regression-unbemerkt`).
