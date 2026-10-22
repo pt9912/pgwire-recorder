@@ -10,15 +10,16 @@ import (
 	"testing"
 )
 
-// Die Aufzeichnung ist von Hand geschrieben (Version 2, ohne PostgreSQL) und
-// gehört genau einem Test.
+// Die Aufzeichnungen sind von Hand geschrieben (Version 2, ohne PostgreSQL).
+// ende-extended-sync.yaml ist die Eingabe von TestE2EReplayEndeExtendedSync und
+// das Vorbild des Vergleichs in TestE2ERecordEndeExtendedSync;
+// ende-extended-flush.yaml ist die Eingabe von TestE2EReplayEndeExtendedFlush und
+// das Vorbild des Vergleichs in TestE2ERecordEndeExtendedFlush. Beide Dateien
+// sind je einmal eingebettet.
 //
 //go:embed testdata/ende-extended-sync.yaml
 var endeExtendedSyncYAML []byte
 
-// Die Aufzeichnung der Gruppe mit Ende, die mit Flush schließt, ist ebenso von
-// Hand geschrieben und gehört genau einem Test.
-//
 //go:embed testdata/ende-extended-flush.yaml
 var endeExtendedFlushYAML []byte
 
@@ -29,33 +30,46 @@ func rohNachricht(typ byte, rumpf ...byte) []byte {
 	return m
 }
 
+// sendeParse sendet Parse (unbenanntes Statement, sql, keine Parametertypen).
+func sendeParse(t *testing.T, c net.Conn, sql string) {
+	t.Helper()
+	schreibe(t, c, rohNachricht('P', append([]byte("\x00"+sql+"\x00"), 0, 0)...))
+}
+
 // parseSync sendet Parse (unbenanntes Statement, sql, keine Parametertypen) und
 // danach abschluss, Sync (S) oder Flush (H).
 func parseSync(t *testing.T, c net.Conn, sql string, abschluss byte) {
 	t.Helper()
-	schreibe(t, c, rohNachricht('P', append([]byte("\x00"+sql+"\x00"), 0, 0)...))
+	sendeParse(t, c, sql)
 	schreibe(t, c, rohNachricht(abschluss))
+}
+
+// parseBindExecuteSync sendet die Gruppe Parse (unbenanntes Statement, sql), Bind
+// (unbenanntes Portal und Statement, ohne Parameter, Ergebnis im Textformat),
+// Execute (unbenanntes Portal, alle Zeilen) und Sync, jede Nachricht für sich.
+func parseBindExecuteSync(t *testing.T, c net.Conn, sql string) {
+	t.Helper()
+	sendeParse(t, c, sql)
+	schreibe(t, c, rohNachricht('B', 0, 0, 0, 0, 0, 0, 0, 0))
+	schreibe(t, c, rohNachricht('E', 0, 0, 0, 0, 0))
+	schreibe(t, c, rohNachricht('S'))
 }
 
 // Abdeckung: LH-FA-25/Happy, LH-FA-18/Boundary, LH-FA-03/Boundary — replay mit
 // einer handgeschriebenen Extended-Aufzeichnung: Der Client erhält für die
-// Gruppe mit Ende, die mit Sync schließt, die Nachricht vor dem Ende und die
-// aufgezeichnete Fehlerantwort (FATAL), danach das Ende der Verbindung, ohne
-// ReadyForQuery, und der Recorder meldet nichts; die Interaktion mit Sync und die
-// Gruppe mit Flush davor werden bis ReadyForQuery bzw. ParseComplete gelesen
-// (ihren Inhalt prüfen die Tests des Service); die nächste Verbindung erhält die
-// nächste Session; mit --fail-on-unconsumed ist der Exit-Code 0.
+// Gruppe mit Ende, die mit Sync schließt (Parse, Bind, Execute, Sync), die
+// Bestätigungen von Parse und Bind, die Datenzeile und die aufgezeichnete
+// Fehlerantwort (FATAL), danach das Ende der Verbindung, ohne ReadyForQuery, und
+// der Recorder meldet nichts; die Interaktion mit Sync und die Gruppe mit Flush
+// davor werden bis ReadyForQuery bzw. ParseComplete gelesen (ihren Inhalt prüfen
+// die Tests des Service); die nächste Verbindung erhält die nächste Session; mit
+// --fail-on-unconsumed ist der Exit-Code 0.
 func TestE2EReplayEndeExtendedSync(t *testing.T) {
 	rep := startProzess(t, "replay", "--input", endeDatei(t, endeExtendedSyncYAML), "--fail-on-unconsumed")
 	c, r := rohVerbindung(t, rep.listen)
-	parseSync(t, c, "SELECT 1", 'S')
-	bisTyp(t, r, 'Z')
-	parseSync(t, c, "SELECT 2", 'H')
-	bisTyp(t, r, '1')
-	parseSync(t, c, "SELECT 3", 'S')
-	ns := bisVerbindungsende(t, r)
-	if typen(ns) != "1E" || !bytes.Contains(ns[1].rumpf, []byte("SFATAL\x00")) || !bytes.Contains(ns[1].rumpf, []byte("C57P01\x00")) {
-		t.Fatalf("erwartet die Bestätigung, die aufgezeichnete Fehlerantwort FATAL 57P01 und das Ende, erhalten %q %q", typen(ns), ns)
+	ns := endeSyncAblauf(t, c, r)
+	if typen(ns) != "12DE" || !bytes.Contains(ns[3].rumpf, []byte("SFATAL\x00")) || !bytes.Contains(ns[3].rumpf, []byte("C57P01\x00")) {
+		t.Fatalf("erwartet die Bestätigungen, die Datenzeile, die aufgezeichnete Fehlerantwort FATAL 57P01 und das Ende, erhalten %q %q", typen(ns), ns)
 	}
 
 	c2, r2 := rohVerbindung(t, rep.listen)

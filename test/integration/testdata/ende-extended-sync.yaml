@@ -21,10 +21,14 @@ sessions:
             server:
               - {type: parse_complete}
           - client:
-              - {type: parse, statement: "", sql: "SELECT 3", param_types: []}
+              - {type: parse, statement: "", sql: "SELECT pg_terminate_backend(pg_backend_pid())", param_types: []}
+              - {type: bind, portal: "", statement: "", param_formats: [], params: [], result_formats: []}
+              - {type: execute, portal: "", max_rows: 0}
               - {type: sync}
             server:
               - {type: parse_complete}
+              - {type: bind_complete}
+              - {type: data_row, values: [{text: t}]}
               - {type: error_response, notice: {V: FATAL, S: FATAL, C: 57P01, M: terminating connection due to administrator command}}
               - {type: connection_closed}
   - id: 2
