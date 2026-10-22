@@ -209,7 +209,7 @@ Das Paar Falsch/Richtig, nachgemessen an `fd140c11`: Fehlform 1148, Befehl 244; 
 
 **Risiken aus §6, gemessen.** Zweig ohne fremde Arbeit: `git merge-base --is-ancestor 09d26b0e HEAD` ergibt Exit 0, `git log --merges 09d26b0e..HEAD` ist leer; der Zweig entstand aus `6a6d524e`. Keine Datei wandert aus einem ausgeschlossenen Pfad in einen genannten: `git diff --name-status -M 09d26b0e..HEAD` nennt nur `M AGENTS.md` und `M` dieser Plandatei, keine Umbenennung.
 
-**Gates.** `make docs-check` (engster Sensor, vor dem Liefer-Commit): Exit 0, `d-check: 1378 Datei(en) geprüft, 0 Befund(e)`. `make gates` am Endstand: siehe Bericht des Laufs (wird nach dem Lauf ergänzt).
+**Gates.** `make docs-check` (engster Sensor, vor dem Liefer-Commit): Exit 0, `d-check: 1378 Datei(en) geprüft, 0 Befund(e)`. `make gates` im Worktree am Stand `5e6f0d3a` (Liefer-Commit `dc85c511` plus dieser §7): Exit 0, 457 s, Nachweis `.harness/state/gates-passed.dateiliste` geschrieben; darin `d-check: 1378 Datei(en) geprüft, 0 Befund(e)`, `a-check` 0 Befunde, `baseline-verify: v6.18.0 OK`, `lint` `0 issues.`, `workflows-check` ohne Befund, `test-container` und `test-postgres-versionen` grün. Der Slice hat keine Gegenprobe (§1), keine wurde gefahren. Der Commit, der diese Zeile einträgt, liegt unter `docs/plan/planning` (Positivliste des Stop-Hooks) und ändert weder die Metrik (43) noch eine Datei außerhalb des Planungsbaums.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
