@@ -161,6 +161,56 @@ Der Slice liefert **keinen neuen Vertrag**: kein Werkzeug, kein Gate, keine Zusa
 
 *(wird bei der Closure geschrieben)*
 
+### Belege des Implementers
+
+Zweig `impl-groessen-metrik` im Worktree `/Development/pgwire-recorder-gm`, entstanden aus `6a6d524e`; Liefer-Commit `dc85c511` (nur `AGENTS.md`). Die Läufe stehen am committeten Stand; jede Probe unten ist der Befehl aus `AGENTS.md` §3.14 mit der genannten Abwandlung über die genannte Spanne und die genannten Pfade und lässt sich so nachfahren; die Probe mit `git ls-files` und die im Temp-Repo nennen ihr Vorgehen in der Zeile.
+
+**Bestätigung und Auslegungen.** Der Wortlaut aus §3 ist vom Nutzer am **2026-10-21 bestätigt** (Fundstelle: §1 dieses Plans und die Geschichte-Zeile von [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md); wörtlich vom Koordinator übermittelt: „ok deine empfehlugnen“ auf eine Vorlage mit sechs Punkten). Er steht ohne Abweichung in `AGENTS.md` §3.14: Befehl, Basis, Messpunkt, Pfade, Rang-Zeiger und Paar Wort für Wort; geändert ist nur die Auszeichnung des Paars an die Form der übrigen Regeln dieser Datei (`**Falsch:**`, `**Richtig:**`, `**Begründung:**` am Zeilenanfang statt Kursiv und „Dazu ein Paar“), kein Wort. Die zwei Auslegungen der Koordination vom 2026-10-22 aus §3 (**keine Entscheidung des Nutzers**, der Nutzer kann widersprechen) sind umgesetzt wie dort geschrieben: (a) „Entscheidung des Nutzers vom 2026-10-13.“ bleibt erster Satz, danach der Satz zur Berichtigung nach [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) mit dem Pfad ab dem Wurzelverzeichnis; (b) das bisherige Paar ist durch das Paar des Entwurfs ersetzt. Der Satz des Architect („Der Architect gibt Schätzungen in dieser Metrik an …“) steht als eigener Absatz hinter dem Absatz der Metrik, Wort für Wort und mit gleichem Zeilenumbruch; die Begründung am Ende der Regel ist unberührt. Reihenfolge in §3.14: (1) Absatz der Metrik, (2) Satz des Architect, (4) Paar des Gebers mit eigener Begründung und Retirement-Check `seit slice-harness-groessen-metrik`, (6) Begründung der Regel; die Plätze (3) und (5) gehören dem Nehmer.
+
+**Größe (Metrik aus §4, eigener Lauf, am committeten Stand).** Befehl wörtlich aus dem Zaun von `AGENTS.md` §3.14 gezogen, `<Basis>` und `<Pfade des Plans>` ersetzt:
+
+```
+git diff --numstat --find-renames=10% 09d26b0e1ec38cbe146f419b1fb260cbcdde04e7..HEAD -- AGENTS.md \
+  ':(exclude)docs/plan/planning' ':(exclude)docs/reviews' \
+  | awk '{a+=$1; b+=$2} END {print a+b+0}'
+```
+
+Ergebnis an `dc85c511`: **43** (`33 10 AGENTS.md`). Die folgenden Commits dieses Zweigs liegen unter `docs/plan/planning` und ändern die Zahl nicht. Marke 200 und Meldeschwelle 140 nicht erreicht; die Schätzung 45 bis 80 wird nicht überschritten (43 liegt zwei Zeilen unter ihrer Untergrenze). Der Befehl steht in `AGENTS.md` einmal (`grep -c -- '--find-renames=10%' AGENTS.md` ergibt 1).
+
+**Proben des Befehls** (Zusage der Regel · Mutation · Ergebnis; „rot“ heißt hier: die Zahl weicht von der des Befehls ab; Spanne der Closure von `slice-erster-release-homebrew-nachweis`, `2c56dabb..fd140c11`, Pfade `tools harness spec docs README.md`, der Befehl ergibt 244):
+
+| Zusage | Mutation | Ergebnis |
+|---|---|---|
+| Plan, Closure-Notiz, Roadmap, Welle-Plan und Register zählen nicht (Ausschluss `docs/plan/planning`) | Ausschluss weggelassen | 599 statt 244, rot |
+| Review- und Verifikationsbericht zählen nicht (Ausschluss `docs/reviews`) | Ausschluss weggelassen | 423 statt 244 (+179), rot |
+| beide Ausschlüsse stehen in jedem Fall im Befehl, auch bei weiter Pfadangabe (`docs`, `.`) | `git ls-files -- docs` und `-- .` je mit und ohne die zwei Ausschlüsse: Dateien unter `docs/plan/planning` oder `docs/reviews` in der Auswahl | mit Ausschlüssen 0, ohne 1272, rot; je eine Datei der Klassen Plan, Roadmap, Welle-Plan, Register, geschlossener Plan, Review, Verifikation ist nicht in der Auswahl |
+| gezählt bleiben Entscheidungen, `docs/plan/adr/` | zusätzlicher Ausschluss `docs/plan/adr`, Spanne `2e9c474e^..2e9c474e`, Pfad `docs` | 0 statt 8, rot |
+| gezählt bleiben Entscheidungen, `docs/plan/carveouts/` | zusätzlicher Ausschluss, Spanne `e84f68cc^..e84f68cc` | 0 statt 43, rot |
+| gezählt bleibt die Nutzer-Doku `docs/user/` | zusätzlicher Ausschluss, Spanne `47b1e489^..47b1e489` | 0 statt 2, rot |
+| gezählt bleibt die Wartungs-Doku `docs/developer/` | zusätzlicher Ausschluss, Spanne `a7b3525e^..a7b3525e` | 0 statt 2, rot |
+| gezählt bleibt die Wartungs-Doku `docs/maintainer/` | zusätzlicher Ausschluss, Spanne `cd88df3e^..cd88df3e` | 0 statt 21, rot |
+| Basis ist der Commit des Übergangs; was davor liegt, zählt nicht | Basis `71255295^` (vor den Commits des Architect) statt `09d26b0e`, Pfade `AGENTS.md docs/plan/adr` | 58 statt 43 (+15: `71255295`, `2e9c474e`), rot |
+| Messpunkt ist der committete Stand; was noch nicht committet ist, zählt nicht | Befehl ohne `..HEAD` (Arbeitsbaum) bei drei angehängten, nicht committeten Zeilen in `AGENTS.md` (danach mit `git checkout -- AGENTS.md` zurückgesetzt) | Befehl 43 unverändert, Mutant 46, rot |
+| `--find-renames=10%`: eine bewegte Datei zählt mit ihrer Bearbeitung, unabhängig von der Konfiguration des Lesers | Pin weggelassen; Spanne `420f955f^..420f955f`, Pfad `.harness/baseline`, Konfiguration des Lesers `-c diff.renames=false` | Befehl 188 (mit und ohne Konfiguration), Mutant 17978, rot |
+| `--find-renames=10%` senkt die Klippe unter die Vorgabe von `git` (50 %) | Pin weggelassen; Temp-Repo, 100-Zeilen-Datei bewegt, 30 % der Zeilen bleiben | Befehl 140, Mutant 200 (ebenso `--no-renames`), rot |
+| `--find-renames=10%` auf der Spanne der Closure | Pin weggelassen | 244, **grün**: die einzige bewegte Datei liegt unter `docs/plan/planning`, nichts ist zu paaren; der Mutant ist nicht äquivalent, die zwei Sonden darüber färben ihn rot |
+| die Spanne der Closure liefert über alle sechs Stände 223 bis 244 statt 907 bis 1148 (Closure-Kriterium 2 aus §5; `ba84090c`, `3d74dd13`, `cd88df3e`, `4bed49bd`, `d950b370`, `fd140c11`) | Fehlform (alter Befehl ohne Ausschlüsse und Pin) an denselben sechs Ständen | neu 223, 223, 244, 244, 244, 244; alt 907, 1017, 1053, 1148, 1148, 1148; deckt sich mit [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) |
+
+Das Paar Falsch/Richtig, nachgemessen an `fd140c11`: Fehlform 1148, Befehl 244; `464 0` unter `done/` und `0 207` unter `next/` für die Plandatei; Review- und Verifikationsbericht 69 und 110, zusammen 179. Aufschlüsselung der Differenz: 1148 = 244 + 179 (Reports) + 677 (Planungsbaum ohne Register, davon 671 die Plandatei) + 48 (Register).
+
+**Gemessene Hinweise an Review und Planner (kein Eingriff in den bestätigten Wortlaut).**
+
+- Der Satz „die Zahl steht über Review, Verifikation, Nacharbeit, Closure und Move still“ im Paar (Wortlaut des Entwurfs, vom Nutzer bestätigt) ist über die Nacharbeit ungenau: an `cd88df3e` (Berichtigungen der Verifikation, Wartungs-Doku `docs/maintainer/`) steigt die Zahl von 223 auf 244 (+21, echte Arbeit in einem gezählten Pfad); still steht sie über den Verifikationsbericht (223 an `3d74dd13`), die Closure-Notiz, den Move und den Verweis-Nachzug (244 an `4bed49bd`, `d950b370`, `fd140c11`). [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) nennt dieselbe Spanne richtig („223 bis 244“). Der Implementer committet den bestätigten Wortlaut unverändert (§1: eine Abweichung ist eine neue Vorlage); eine engere Fassung („Review-Bericht, Verifikationsbericht, Closure und Move; nur die Nacharbeit wächst, 223 auf 244“) schlägt er dem Planner vor (`AGENTS.md` §3.11).
+- Der Satz „weil die Plandatei … zweimal im Diff steht … und … 179 Zeilen mitzählen“ im Falsch nennt zwei von vier Posten der Differenz (671 und 179 von 904); die anderen sind die Planungsdateien ohne die Plandatei (6) und das Register (48). Der Satz ist nicht falsch, er sagt „weil“ für die zwei größten.
+- Pläne in `open/` und `next/` tragen die alte Zeile (`<letzter Commit des Slice>`); nach [ADR-0056](../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) Punkt 7 und §1 bleibt der Bestand stehen, der Implementer hat keinen angefasst.
+- `docs/plan/planning/observations/BEO-REPO/groessenprobe-ohne-messbaren-stand/state.md` nennt als Zielort die Formel in der Fassung vor der Berichtigung; das Register schreibt die Closure.
+
+**Prüfung der Bindung.** `grep -n slice-harness-groessen-metrik docs/plan/planning/next/slice-harness-schaetzung-planner-faktor.md` findet 14 Zeilen: Kopf (Bezug, Autor), §1 (Bindung), DoD (zwei Punkte), §3 (Tabelle, Entwurf, Ergebnisliste, Reihenfolge), §4 (Start, Größe, Rückführungen), §6 (Anker des Wortlauts) und §8 (Nachzählung). Der Nehmer liegt in `next/` und trägt die Bindung in §1 und in der DoD; seine Nachzählung in §8 nennt die Kennung. Der umgesetzte Wortlaut ändert nichts an dem, was die Bindung nennt: Der Absatz des Planners steht hinter dem Satz des Architect (jetzt ein eigener Absatz), das Paar des Nehmers hinter dem Paar des Gebers (hinter dessen Begründung, vor der Begründung der Regel), kein Satz des Berichtigten nennt den alten Befehl als gültig (das Falsch-Beispiel zitiert ihn als Fehlform). Der Nehmer bleibt unverändert; kein Commit dieses Slice berührt ihn, und seine Zählung (Liefer-Punkte 2, Schichten 2) ist von der Umsetzung nicht berührt.
+
+**Risiken aus §6, gemessen.** Zweig ohne fremde Arbeit: `git merge-base --is-ancestor 09d26b0e HEAD` ergibt Exit 0, `git log --merges 09d26b0e..HEAD` ist leer; der Zweig entstand aus `6a6d524e`. Keine Datei wandert aus einem ausgeschlossenen Pfad in einen genannten: `git diff --name-status -M 09d26b0e..HEAD` nennt nur `M AGENTS.md` und `M` dieser Plandatei, keine Umbenennung.
+
+**Gates.** `make docs-check` (engster Sensor, vor dem Liefer-Commit): Exit 0, `d-check: 1378 Datei(en) geprüft, 0 Befund(e)`. `make gates` am Endstand: siehe Bericht des Laufs (wird nach dem Lauf ergänzt).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
