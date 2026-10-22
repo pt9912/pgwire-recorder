@@ -17,7 +17,7 @@
 # (Punkt 20 (11)). Der Zeichenvorrat von PGR_DEV ist dagegen geprüft (Punkt 2), weil der Pfad in Punkt 7 in
 # GIT_SSH_COMMAND reist.
 #
-# GEPRÜFT DURCH tools/harness/container-einrichten-gegenprobe.sh (Fälle p<Punkt>-*), ohne Container.
+# GEPRÜFT DURCH tools/dev/harness/container-einrichten-gegenprobe.sh (Fälle p<Punkt>-*), ohne Container.
 set -uo pipefail
 export LC_ALL=C
 # Punkt 13: Kein Kindprozess (ssh, git, make im Container) erbt einen Zugang von Claude Code.

@@ -6,6 +6,6 @@
 .PHONY: ci-gegenprobe
 
 ci-gegenprobe: ## Gegenprobe der CI: Text von ci.yml (SPEC-064 Punkt 1), Range von ci-range.sh (Punkte 6 bis 9), Abbruch (Punkt 18)
-	@bash tools/harness/ci-gegenprobe.sh
+	@bash tools/dev/harness/ci-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += ci-gegenprobe

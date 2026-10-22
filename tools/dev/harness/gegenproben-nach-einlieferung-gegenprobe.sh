@@ -14,8 +14,8 @@
 # Gleichzeitigkeit zweier Aufrufe mit gleichem Namen (Punkte 14, 16) haben keinen Fall.
 set -uo pipefail
 
-hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-skript="$hier/gegenproben-nach-einlieferung.sh"
+gp_wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+skript="$gp_wurzel/tools/harness/gegenproben-nach-einlieferung.sh"
 bv="${GP_BASH_VERSION:-$BASH_VERSION}"; bv_major="${bv%%.*}"; bv_rest="${bv#*.}"; bv_minor="${bv_rest%%.*}"
 if ! { [ "$bv_major" -gt 5 ] || { [ "$bv_major" -eq 5 ] && [ "$bv_minor" -ge 1 ]; }; }; then echo "gegenproben-nach-einlieferung-gegenprobe: bash >= 5.1 nötig (hier $bv)" >&2; exit 2; fi
 if [ "$(id -u)" -eq 0 ]; then echo "gegenproben-nach-einlieferung-gegenprobe: nicht als root (Fälle p13-ablage-weg und p13-mktemp)" >&2; exit 2; fi

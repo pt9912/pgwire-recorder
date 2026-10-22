@@ -5,7 +5,7 @@
 # zu lesen ist: harness/sensors/meldungskatalog-check.md.
 # Aufruf: meldungskatalog-check.sh [<wurzel>] (ohne Wurzel das aktuelle Verzeichnis)
 #
-# GEPRÜFT DURCH tools/harness/meldungskatalog-check-gegenprobe.sh, Fälle nach Punkt (nr<n>-*):
+# GEPRÜFT DURCH tools/dev/harness/meldungskatalog-check-gegenprobe.sh, Fälle nach Punkt (nr<n>-*):
 #   (1) Quellen, (2) Form, (3) doppelt, (4) Mengen (nr4a bis nr4d), (5) Rückfall je Klasse,
 #   (6) Code außerhalb der Code-Tabelle, (8) Sperren und ihre Reihenfolge (auch nicht lesbar und Symlink im Baum), (9) Ausgabe und Ausgang,
 #   (10) Aufrufarten, (11) Anschluss ohne Stufung

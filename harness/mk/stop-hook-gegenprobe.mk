@@ -8,6 +8,6 @@
 .PHONY: stop-hook-gegenprobe
 
 stop-hook-gegenprobe: ## Gegenprobe des Stop-Hooks und der Dateiliste: Fälle je Punkt von SPEC-052, je Mutant rot
-	@bash tools/harness/stop-hook-gegenprobe.sh
+	@bash tools/dev/harness/stop-hook-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += stop-hook-gegenprobe

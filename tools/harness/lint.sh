@@ -7,7 +7,7 @@
 # Aufruf: in der Wurzel des Moduls, im Image von golangci-lint (bash, find, grep,
 # awk, sort, mktemp).
 #
-# GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh (Fälle je Punkt von SPEC-049; was
+# GEPRÜFT DURCH tools/dev/harness/lint-gegenprobe.sh (Fälle je Punkt von SPEC-049; was
 # offen ist, nennt ihr Kopf):
 #   (1) Gegenstand — p1-*
 #   (2) Werkzeug und Umgebung — kein eigener Fall; offen im Kopf der Gegenprobe

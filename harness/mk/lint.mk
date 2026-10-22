@@ -7,7 +7,7 @@
 # Arbeitsbaums und prueft je Fall Ausgang und Zeile; sie laeuft auf dem Host mit
 # bash, make, docker, grep, sed, awk und coreutils. Was sie nicht prueft, nennt ihr
 # Kopf unter OFFEN.
-# GEPRUEFT DURCH tools/harness/lint-gegenprobe.sh: p10-gate-checks, p10-gegenprobe-liste, p10-gates-rot,
+# GEPRUEFT DURCH tools/dev/harness/lint-gegenprobe.sh: p10-gate-checks, p10-gegenprobe-liste, p10-gates-rot,
 # p10-gegenprobe-scharf.
 .PHONY: lint lint-gegenprobe
 
@@ -15,7 +15,7 @@ lint: ## Go-Code nach .golangci.yml und eigenen Pruefungen pruefen (Gate; Stufe 
 	$(DOCKER_BUILD) --target lint .
 
 lint-gegenprobe: ## Gegenprobe des Lint-Gates: Mutanten je Punkt von SPEC-049 in Kopien des Arbeitsbaums
-	@DOCKER_BUILD='$(DOCKER_BUILD)' bash tools/harness/lint-gegenprobe.sh
+	@DOCKER_BUILD='$(DOCKER_BUILD)' bash tools/dev/harness/lint-gegenprobe.sh
 
 GATE_CHECKS += lint
 GEGENPROBEN_CONTAINER += lint-gegenprobe

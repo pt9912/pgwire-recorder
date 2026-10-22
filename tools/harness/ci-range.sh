@@ -5,7 +5,7 @@
 # aufgelösten SHAs; Hinweise und Fehler stehen mit dem Präfix `ci-range:` auf stderr. Exit 0: nicht leere Range; 1: leere Range;
 # 2: Eingabe, Klon oder Auflösung nicht möglich. Bei Exit ungleich 0 bleibt stdout leer. Läuft im Klon des Aufrufers (Arbeitsverzeichnis).
 # Braucht bash und git; eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-064.
-# GEPRÜFT DURCH tools/harness/ci-gegenprobe.sh (Fälle p6-* bis p9-*, je Zusage eine Mutation dieser Datei).
+# GEPRÜFT DURCH tools/dev/harness/ci-gegenprobe.sh (Fälle p6-* bis p9-*, je Zusage eine Mutation dieser Datei).
 set -uo pipefail
 export LC_ALL=C
 

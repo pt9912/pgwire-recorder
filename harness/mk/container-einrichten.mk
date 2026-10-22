@@ -4,7 +4,7 @@
 # Ziel .PHONY ohne Voraussetzungen: unter -n, -q und -t laeuft nichts (SPEC-069 Punkt 16).
 # Es braucht ssh und git am Host (SPEC-069 Punkt 3) und einen laufenden Dev-Container, den
 # `make container-start` liefert (SPEC-058 Punkte 2 und 11).
-# GEPRUEFT DURCH tools/harness/container-einrichten-gegenprobe.sh.
+# GEPRUEFT DURCH tools/dev/harness/container-einrichten-gegenprobe.sh.
 .PHONY: container-einrichten
 
 container-einrichten: ## Bare-Repo, main, Klon, Identitaet, Commit-Traeger und Zweig im laufenden Dev-Container einrichten — KEIN Gate

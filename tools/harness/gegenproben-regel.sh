@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gegenproben-regel — Namens- und Zuordnungsregel der Gegenproben (harness/vertraege/SPEC-060-gegenproben.md,
-# Punkt 2). Kein Make-Ziel und kein Gate: tools/harness/gates-schnell-gegenprobe.sh lädt die Datei und ruft
+# Punkt 2). Kein Make-Ziel und kein Gate: tools/dev/harness/gates-schnell-gegenprobe.sh lädt die Datei und ruft
 # `namensregel` für den Arbeitsbaum und für jede Kopie.
 # namensregel <wurzel>: Die Funktion fragt `make` im Verzeichnis <wurzel> und schreibt je Verletzung den Namen
 # des Falls, einen je Zeile, und nichts, wenn die Regel gilt. Die Listen liest sie ausgewertet (ein Eintrag darf
@@ -12,7 +12,7 @@
 #   p2-v3-<k>  es steht in keiner Liste
 #   p2-v4-<k>  es steht zweimal in derselben Liste
 #   p2-v6-container, p2-v6-host  ein Eintrag der Liste hat kein Ziel mit Rezept
-# GEPRÜFT DURCH tools/harness/gates-schnell-gegenprobe.sh: die Fälle p2-* und je Fall eine Mutation dieser Datei.
+# GEPRÜFT DURCH tools/dev/harness/gates-schnell-gegenprobe.sh: die Fälle p2-* und je Fall eine Mutation dieser Datei.
 
 # gp_make <wurzel> <make-argument>… — make in <wurzel>, ohne Umgebung von make, in der Sprache C.
 gp_make() {

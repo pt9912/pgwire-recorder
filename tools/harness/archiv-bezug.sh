@@ -3,7 +3,7 @@
 # (Vertrag: harness/vertraege/SPEC-068-archiv-bezug.md, Punkte 1 bis 12). Werkzeug, kein Gate; es committet nichts.
 # Aufruf: archiv-bezug.sh <wurzel> [<welle-id>]  (ohne <welle-id> alle Verzeichnisse done/<welle-id>/ mit einer Datei slice-*.md)
 # Exit 0: fertig (bei leerer Menge mit der Zeile `archiv-bezug: keine Stubs` auf stdout); 1: mindestens ein Befund (Punkt 3), nichts geschrieben; 2: Eingabe, Werkzeug oder Schreibfehler (Punkte 2 und 3).
-# GEPRÜFT DURCH tools/harness/archiv-bezug-gegenprobe.sh, Fälle nach Punkt (p<n>-*).
+# GEPRÜFT DURCH tools/dev/harness/archiv-bezug-gegenprobe.sh, Fälle nach Punkt (p<n>-*).
 export LC_ALL=C
 
 wurzel="${1-}"

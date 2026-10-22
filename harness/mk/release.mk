@@ -7,6 +7,6 @@
 .PHONY: release-gegenprobe
 
 release-gegenprobe: ## Gegenprobe der Veroeffentlichung: Text von release.yml (SPEC-067 Punkt 1), Schritte von release.sh (Punkte 2 bis 11), Abbruch (Punkt 13)
-	@bash tools/harness/release-gegenprobe.sh
+	@bash tools/dev/harness/release-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += release-gegenprobe

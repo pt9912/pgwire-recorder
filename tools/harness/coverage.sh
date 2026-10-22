@@ -4,7 +4,7 @@
 # Aufruf: sh tools/harness/coverage.sh <Profil> <Schwelle>
 # Vertrag: harness/vertraege/SPEC-056-testabdeckung-schwelle.md (Punkt 3 bis 7);
 # Entscheidung ADR-0044. Läuft mit der POSIX-Shell und dem awk des Images der Stufe.
-# GEPRÜFT DURCH tools/harness/coverage-gegenprobe.sh.
+# GEPRÜFT DURCH tools/dev/harness/coverage-gegenprobe.sh.
 #
 # Ausgang 0: Gesamtwert nicht unter der Schwelle. Ausgang 1: darunter, oder eine Eingabe
 # hat nicht die Form des Vertrags (Punkt 6); die Meldung auf stderr nennt die Form.

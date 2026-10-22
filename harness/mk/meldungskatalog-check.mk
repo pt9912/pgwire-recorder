@@ -13,7 +13,7 @@ meldungskatalog-check: ## Codes aus fehler.go, SPEC-034 und Benutzerhandbuch geg
 	@bash tools/harness/meldungskatalog-check.sh
 
 meldungskatalog-check-gegenprobe: ## Gegenprobe des Abgleichs: Fehlformen je Punkt von SPEC-054
-	@bash tools/harness/meldungskatalog-check-gegenprobe.sh
+	@bash tools/dev/harness/meldungskatalog-check-gegenprobe.sh
 
 GATE_CHECKS += meldungskatalog-check
 GEGENPROBEN_CONTAINER += meldungskatalog-check-gegenprobe

@@ -6,6 +6,6 @@
 .PHONY: gegenproben-nach-einlieferung-gegenprobe
 
 gegenproben-nach-einlieferung-gegenprobe: ## Gegenprobe des Hooks für die Einlieferung: Fälle und Mutationen je Punkt 1 bis 13 von SPEC-061 (KEIN Gate)
-	@bash tools/harness/gegenproben-nach-einlieferung-gegenprobe.sh
+	@bash tools/dev/harness/gegenproben-nach-einlieferung-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += gegenproben-nach-einlieferung-gegenprobe

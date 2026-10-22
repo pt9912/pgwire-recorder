@@ -32,7 +32,7 @@ export LC_ALL=C
 shopt -u patsub_replacement 2> /dev/null || true
 
 GP_SELF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOURCE[0]}")
-quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../.." && pwd -P)}
+quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../../.." && pwd -P)}
 arbeit=$(mktemp -d -t pgr-cs-XXXXXX)
 bg=
 PSDS=() DKC=() DKV=() DKI=() GRUEN=()
@@ -553,9 +553,9 @@ cases() {
   done
 
   # Punkt 16: Host-Ziel, kein Gate (Temp-Baum mit Makefile und Fragmenten)
-  c p16-keine-kette && { mkdir -p "$w/t/harness/mk" "$w/t/tools/harness"; cp "$root/Makefile" "$w/t/"
+  c p16-keine-kette && { mkdir -p "$w/t/harness/mk" "$w/t/tools/dev/harness"; cp "$root/Makefile" "$w/t/"
     cp "$root"/harness/mk/{container-start,container-start-gegenprobe,gates-schnell}.mk "$w/t/harness/mk/"
-    printf 'exit 1\n' > "$w/t/tools/harness/container-start-gegenprobe.sh"
+    printf 'exit 1\n' > "$w/t/tools/dev/harness/container-start-gegenprobe.sh"
     v=$(make -C "$w/t" -pq help 2> /dev/null || true)
     for t in GATE_CHECKS GATE_SCHNELL_AUSNAHME; do
       ! printf '%s\n' "$v" | awk -v z="$t" '$1 == z && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == "container-start-gegenprobe") f = 1 } END { exit !f }' || rot "p16-$t"
@@ -768,7 +768,7 @@ mut p15-voraussetzung-ohne-devcontainer p 'for t in make node ssh-keygen u-boot 
 mut p15-voraussetzung-ohne-ssh p 'for t in make node ssh-keygen u-boot docker devcontainer ssh; do' 'for t in make node ssh-keygen u-boot docker devcontainer; do' 'p15-voraussetzung-.*' p15-voraussetzung-ssh
 # Punkt 16
 mut p16-gate-checks g '.PHONY: container-start-gegenprobe' $'GATE_CHECKS += container-start-gegenprobe\n.PHONY: container-start-gegenprobe' 'p16-.*' p16-GATE_CHECKS
-mut p16-scharf g $'\t@bash tools/harness/container-start-gegenprobe.sh' $'\t-@bash tools/harness/container-start-gegenprobe.sh' 'p16-.*' p16-scharf
+mut p16-scharf g $'\t@bash tools/dev/harness/container-start-gegenprobe.sh' $'\t-@bash tools/dev/harness/container-start-gegenprobe.sh' 'p16-.*' p16-scharf
 mut p16-ausnahme k 'GATE_SCHNELL_AUSNAHME := test-container ' 'GATE_SCHNELL_AUSNAHME := container-start-gegenprobe test-container ' 'p16-.*' p16-GATE_SCHNELL_AUSNAHME
 mut p16-ziel-gate m '.PHONY: container-start' $'GATE_CHECKS += container-start\n.PHONY: container-start' 'p16-.*' p16-ziel-kein-gate
 # Punkt 9 bis 12 (Gruppe Attrappen)

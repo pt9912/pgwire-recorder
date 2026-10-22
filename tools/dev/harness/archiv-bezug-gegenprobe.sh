@@ -10,7 +10,7 @@
 set -uo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "$hier/../.." && pwd)"
+repo="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 raeume_auf() { chmod -R u+rwX "${arbeit:?}" 2> /dev/null; rm -rf "${arbeit:?}"; }
 trap raeume_auf EXIT

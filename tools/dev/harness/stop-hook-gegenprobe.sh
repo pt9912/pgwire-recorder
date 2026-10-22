@@ -50,7 +50,7 @@
 set -euo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-wurzel="$(cd "$hier/../.." && pwd)"
+wurzel="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "${arbeit:?}"' EXIT
 fehler=0
@@ -1190,14 +1190,14 @@ anschluss() {
 }
 anschluss_exit() {
   local code=0
-  printf 'exit 1\n' > "$1/tools/harness/stop-hook-gegenprobe.sh"
+  printf 'exit 1\n' > "$1/tools/dev/harness/stop-hook-gegenprobe.sh"
   env -u MAKELEVEL -u MFLAGS -u MAKEFLAGS make -s --no-print-directory -C "$1" stop-hook-gegenprobe > /dev/null 2>&1 || code=$?
   [ "$code" -ne 0 ] || echo anschluss-exit
 }
 fixture_anschluss() {
   mname="$1"
   w="$arbeit/$1"
-  mkdir -p "$w/harness/mk" "$w/tools/harness"
+  mkdir -p "$w/harness/mk" "$w/tools/dev/harness"
   cp "$wurzel/Makefile" "$w/Makefile"
   cp "$wurzel/harness/mk/enforce.mk" "$wurzel/harness/mk/stop-hook-gegenprobe.mk" "$w/harness/mk/"
 }
@@ -1208,7 +1208,7 @@ fixture_anschluss m-ohne-anschluss
 sedmut harness/mk/stop-hook-gegenprobe.mk '/^GEGENPROBEN_CONTAINER += stop-hook-gegenprobe$/d'
 [ -n "$(anschluss "$w")" ] || melde "Mutant 'm-ohne-anschluss' färbt 'anschluss-liste' nicht rot"
 fixture_anschluss m-exit-ignoriert
-sedmut harness/mk/stop-hook-gegenprobe.mk 's|^\t@bash tools/harness/stop-hook-gegenprobe.sh|\t-@bash tools/harness/stop-hook-gegenprobe.sh|'
+sedmut harness/mk/stop-hook-gegenprobe.mk 's|^\t@bash tools/dev/harness/stop-hook-gegenprobe.sh|\t-@bash tools/dev/harness/stop-hook-gegenprobe.sh|'
 [ -n "$(anschluss_exit "$w")" ] || melde "Mutant 'm-exit-ignoriert' färbt 'anschluss-exit' nicht rot"
 
 if [ "$fehler" -ne 0 ]; then

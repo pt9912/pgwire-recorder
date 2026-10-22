@@ -5,6 +5,6 @@
 .PHONY: archiv-bezug-gegenprobe
 
 archiv-bezug-gegenprobe: ## Gegenprobe von archiv-bezug: Faelle und Mutationen je Punkt 1 bis 12 von SPEC-068
-	@bash tools/harness/archiv-bezug-gegenprobe.sh
+	@bash tools/dev/harness/archiv-bezug-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += archiv-bezug-gegenprobe

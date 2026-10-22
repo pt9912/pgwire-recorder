@@ -7,7 +7,7 @@
 # entscheidet an MAKEFLAGS (Punkt 10). Der Arbeitsbaum bleibt unberührt (Punkt 11).
 # Wo die Einzelziele laufen, sagt die Dokumentation (Punkt 14); `gegenproben-host` braucht u-boot, devcontainer, node,
 # ssh-keygen und Docker am Host.
-# GEPRÜFT DURCH tools/harness/gegenproben-gegenprobe.sh (harness/mk/gegenproben-gegenprobe.mk).
+# GEPRÜFT DURCH tools/dev/harness/gegenproben-gegenprobe.sh (harness/mk/gegenproben-gegenprobe.mk).
 .PHONY: gegenproben gegenproben-host
 
 gegenproben: ## Fährt die Gegenproben der Liste für den Dev-Container nacheinander, alle auch nach einem roten (KEIN Gate)

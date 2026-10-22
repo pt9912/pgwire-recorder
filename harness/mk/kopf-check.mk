@@ -13,7 +13,7 @@ kopf-check: ## Kopf der lebenden Slice-Plaene gegen die Kennungen aus §1 und §
 	@bash tools/harness/kopf-check.sh
 
 kopf-check-gegenprobe: ## Gegenprobe des Kopf-Sensors: Fehlformen je Nummer von ADR-0032
-	@bash tools/harness/kopf-check-gegenprobe.sh
+	@bash tools/dev/harness/kopf-check-gegenprobe.sh
 
 GATE_CHECKS += kopf-check
 GEGENPROBEN_CONTAINER += kopf-check-gegenprobe

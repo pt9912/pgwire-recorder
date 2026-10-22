@@ -7,6 +7,6 @@
 .PHONY: container-einrichten-gegenprobe
 
 container-einrichten-gegenprobe: ## Gegenprobe von container-einrichten: Faelle und Mutationen zu den Punkten 1 bis 17 von SPEC-069 — KEIN Gate
-	@bash tools/harness/container-einrichten-gegenprobe.sh
+	@bash tools/dev/harness/container-einrichten-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += container-einrichten-gegenprobe

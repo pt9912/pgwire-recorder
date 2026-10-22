@@ -9,7 +9,7 @@
 # (schwachstelle, scan-gescheitert, pruefmenge, datenbank, plattform); der Schritt homebrew `release: homebrew: <Stichwort>: …` bei Exit 1 (summen-laden, summen, vorlage, tap-klon, tap-zweig, tap-pfad, tap-formel, tap-push); ein Hinweis beginnt mit `release: hinweis: `.
 # Das Skript gibt keinen Wert eines Geheimnisses aus (Punkt 10): kein `set -x`, kein `env`.
 # Braucht bash, git, make, sha256sum, awk, cmp, grep, sed, tar, sort (GNU, mit -V), pgrep, mktemp, docker mit buildx (image) und Zugriff auf das Image des Scanners (scan), jq und date (GNU, scan), skopeo (veroeffentlichen, vergleichen, latest), gh (github-release, homebrew) und GNU sort mit -V (latest, homebrew); eine Version prüft das Skript nicht, zugesagt ist die Plattform von SPEC-067.
-# GEPRÜFT DURCH tools/harness/release-gegenprobe.sh (Fälle p2-* bis p19-*, je Zusage eine Mutation dieser Datei).
+# GEPRÜFT DURCH tools/dev/harness/release-gegenprobe.sh (Fälle p2-* bis p19-*, je Zusage eine Mutation dieser Datei).
 set -uo pipefail
 export LC_ALL=C
 

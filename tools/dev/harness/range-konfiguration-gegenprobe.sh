@@ -21,7 +21,7 @@
 set -uo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "$hier/../.." && pwd)"
+repo="$(cd "$hier/../../.." && pwd)"
 cfg0="$repo/.d-check.yml"
 DOCKER="${DOCKER:-docker}"
 arbeit="$(mktemp -d)"
@@ -291,14 +291,14 @@ mut18() {
   [[ $name =~ ${GP_MUT:-.} ]] || return 0
   wartejob
   (
-    run="$arbeit/$name"; m="$run/baum"; mkdir -p "$m/tools/harness" "$m/harness/mk"
+    run="$arbeit/$name"; m="$run/baum"; mkdir -p "$m/tools/harness" "$m/tools/dev/harness" "$m/harness/mk"
     for f in .d-check.yml d-check.mk harness/mk/doc-gate.mk tools/harness/history-range-guard.sh; do cp "$repo/$f" "$m/$f"; done
     inhalt="$(cat "$selbst"; printf x)"; inhalt="${inhalt%x}"
     if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
     neu="${inhalt/"$alt"/"$4"}"
     if [[ ${inhalt#*"$alt"} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
-    printf '%s' "$neu" > "$m/tools/harness/range-konfiguration-gegenprobe.sh"
-    skript18="$m/tools/harness/range-konfiguration-gegenprobe.sh"; cfg="$cfg0"
+    printf '%s' "$neu" > "$m/tools/dev/harness/range-konfiguration-gegenprobe.sh"
+    skript18="$m/tools/dev/harness/range-konfiguration-gegenprobe.sh"; cfg="$cfg0"
     ist="$(faelle p18 | LC_ALL=C sort -u | tr '\n' ' ')"
     erwartet="$(printf '%s\n' $rote | LC_ALL=C sort -u | tr '\n' ' ')"
     if [ -n "${GP_ENTDECKE-}" ]; then echo "$name => ${ist:-nichts}" >&2; fi

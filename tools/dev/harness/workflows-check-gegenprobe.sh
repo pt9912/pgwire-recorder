@@ -16,8 +16,8 @@
 set -uo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "$hier/../.." && pwd)"
-skript0="$hier/workflows-check.sh"
+repo="$(cd "$hier/../../.." && pwd)"
+skript0="$repo/tools/harness/workflows-check.sh"
 fragment0="$repo/harness/mk/workflows.mk"
 DOCKER="${DOCKER:-docker}"
 arbeit="$(mktemp -d)"

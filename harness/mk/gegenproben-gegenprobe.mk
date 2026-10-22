@@ -6,6 +6,6 @@
 .PHONY: gegenproben-gegenprobe
 
 gegenproben-gegenprobe: ## Gegenprobe der Sammelziele: Fälle und Mutationen je Punkt 4 bis 12 von SPEC-060 (KEIN Gate)
-	@bash tools/harness/gegenproben-gegenprobe.sh
+	@bash tools/dev/harness/gegenproben-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += gegenproben-gegenprobe

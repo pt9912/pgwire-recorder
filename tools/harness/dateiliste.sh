@@ -8,7 +8,7 @@
 # (`readlink -z`, `sort -z`), wie das Repo GNU `make` voraussetzt. Fehlt sie, bricht der Lauf ab
 # (SPEC-052 Punkt 20).
 #
-# GEPRÜFT DURCH tools/harness/stop-hook-gegenprobe.sh.
+# GEPRÜFT DURCH tools/dev/harness/stop-hook-gegenprobe.sh.
 
 # Pfad des Nachweises des vollen Laufs: die Dateiliste, neben gates-passed.diffsha.
 DATEILISTE_STAND=".harness/state/gates-passed.dateiliste"

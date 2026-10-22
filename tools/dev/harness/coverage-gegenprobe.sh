@@ -66,7 +66,7 @@
 set -euo pipefail
 export LC_ALL=C
 
-wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 docker_echt="${DOCKER:-docker}"
 praefix="pgr-cgp-$$"
 parallel=2

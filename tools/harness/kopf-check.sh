@@ -5,7 +5,7 @@
 # zu lesen ist: harness/sensors/kopf-check.md.
 # Aufruf: kopf-check.sh [<wurzel>] (ohne Wurzel das aktuelle Verzeichnis)
 #
-# GEPRÜFT DURCH tools/harness/kopf-check-gegenprobe.sh:
+# GEPRÜFT DURCH tools/dev/harness/kopf-check-gegenprobe.sh:
 #   (1) Gegenstand — nr1-*
 #   (2) Kennungen — nr2-*, vollstaendig
 #   (3) Bereich — nr3-*, neg-bereich-absatzgrenze, neg-bereich-regel-absatz

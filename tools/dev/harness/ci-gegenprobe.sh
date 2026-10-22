@@ -21,7 +21,7 @@
 set -uo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "$hier/../.." && pwd)"
+repo="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 selbst="$hier/$(basename "${BASH_SOURCE[0]}")"
 raeume_auf() { chmod -R u+rwX "${arbeit:?}" 2> /dev/null; rm -rf "${arbeit:?}"; }
@@ -515,14 +515,14 @@ mut18() {
   [[ $name =~ ${GP_MUT:-.} ]] || return 0
   wartejob
   (
-    run="$arbeit/$name"; m="$run/baum"; mkdir -p "$m/tools/harness" "$m/.github/workflows"
+    run="$arbeit/$name"; m="$run/baum"; mkdir -p "$m/tools/harness" "$m/tools/dev/harness" "$m/.github/workflows"
     for f in .github/workflows/ci.yml tools/harness/ci-range.sh; do cp "$repo/$f" "$m/$f"; done
     inhalt="$(cat "$selbst"; printf x)"; inhalt="${inhalt%x}"
     if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
     if [[ ${inhalt#*"$alt"} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
     neu="${inhalt/"$alt"/"$4"}"
-    printf '%s' "$neu" > "$m/tools/harness/ci-gegenprobe.sh"
-    skript18="$m/tools/harness/ci-gegenprobe.sh"
+    printf '%s' "$neu" > "$m/tools/dev/harness/ci-gegenprobe.sh"
+    skript18="$m/tools/dev/harness/ci-gegenprobe.sh"
     bewerte "$name" "$rote" p18
   ) &
 }

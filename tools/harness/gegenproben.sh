@@ -5,7 +5,7 @@
 # Kein Gate: kein Stand, kein Nachweis, nichts im Arbeitsbaum geschrieben. Reihenfolge der Gründe
 # (Punkt 12): n, q, t · i · leere Liste · die Einzelziele. Die Buchstaben im ersten Wort von MAKEFLAGS,
 # wenn es nicht mit `-` beginnt, entscheiden (wie tools/harness/gates-schnell.sh); k und j ändern nichts.
-# GEPRÜFT DURCH tools/harness/gegenproben-gegenprobe.sh.
+# GEPRÜFT DURCH tools/dev/harness/gegenproben-gegenprobe.sh.
 make_bin="$1"
 sammel="$2"
 shift 2

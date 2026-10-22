@@ -16,7 +16,7 @@
 set -uo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-wurzel="$(cd "$hier/../.." && pwd)"
+wurzel="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 : > "$arbeit/fehler"
@@ -29,7 +29,7 @@ fixture() {
   mkdir -p "$st" "$w/harness/mk" "$w/tools/harness" "$w/.harness/state"
   cp "$wurzel/Makefile" "$w/Makefile"
   cp "$wurzel/harness/mk/gegenproben.mk" "$wurzel/harness/mk/enforce.mk" "$w/harness/mk/"
-  cp "$hier/gegenproben.sh" "$hier/working-tree-hash.sh" "$hier/dateiliste.sh" "$hier/record-gates.sh" "$w/tools/harness/"
+  cp "$wurzel/tools/harness/gegenproben.sh" "$wurzel/tools/harness/working-tree-hash.sh" "$wurzel/tools/harness/dateiliste.sh" "$wurzel/tools/harness/record-gates.sh" "$w/tools/harness/"
   cat > "$w/tools/harness/attrappe.sh" <<'EOF'
 #!/usr/bin/env bash
 z="$1"

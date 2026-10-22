@@ -5,6 +5,6 @@
 .PHONY: container-start-gegenprobe
 
 container-start-gegenprobe: ## Gegenprobe von container-start (nur Host): Fälle und Mutationen je Punkt von SPEC-058 — KEIN Gate
-	@bash tools/harness/container-start-gegenprobe.sh
+	@bash tools/dev/harness/container-start-gegenprobe.sh
 
 GEGENPROBEN_HOST += container-start-gegenprobe

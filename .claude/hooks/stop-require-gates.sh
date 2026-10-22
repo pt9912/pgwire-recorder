@@ -6,7 +6,7 @@
 # Liste und Vergleich: tools/harness/dateiliste.sh (dieselben Funktionen wie record-gates),
 # Vertrag: harness/vertraege/SPEC-052-gate-kette.md.
 #
-# Zugesagt, soweit tools/harness/stop-hook-gegenprobe.sh es je Fall prüft:
+# Zugesagt, soweit tools/dev/harness/stop-hook-gegenprobe.sh es je Fall prüft:
 # - Ein nicht aufgelöster Index-Eintrag (`git ls-files -u`) sperrt, als erste Prüfung nach
 #   dem Schleifenschutz, auch bei sonst identischer Liste.
 # - Ein fehlender, nicht lesbarer oder beschädigter Stand sperrt, auch bei sauberem Baum

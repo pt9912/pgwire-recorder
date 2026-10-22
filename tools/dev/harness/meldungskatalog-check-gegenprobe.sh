@@ -15,8 +15,8 @@
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
 
-hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-skript="$hier/meldungskatalog-check.sh"
+gp_wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+skript="$gp_wurzel/tools/harness/meldungskatalog-check.sh"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 fehler=0
@@ -275,11 +275,11 @@ done
 # rotem Skript mit Exit ungleich 0, und make -n, -q, -t, -i hinterlassen nichts.
 anschluss() {
   bau "$BC$1"
-  cp "$hier/../../Makefile" "$w/Makefile"
-  mkdir -p "$w/harness/mk" "$w/tools/harness"
-  cp "$hier/../../harness/mk/meldungskatalog-check.mk" "$hier/../../harness/mk/gates-schnell.mk" "$w/harness/mk/"
+  cp "$gp_wurzel/Makefile" "$w/Makefile"
+  mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/tools/dev/harness"
+  cp "$gp_wurzel/harness/mk/meldungskatalog-check.mk" "$gp_wurzel/harness/mk/gates-schnell.mk" "$w/harness/mk/"
   cp "$skript" "$w/tools/harness/meldungskatalog-check.sh"
-  printf 'exit 1\n' > "$w/tools/harness/meldungskatalog-check-gegenprobe.sh"
+  printf 'exit 1\n' > "$w/tools/dev/harness/meldungskatalog-check-gegenprobe.sh"
 }
 anschluss ""; gruen_baum="$w"
 anschluss " PGR-E2003"

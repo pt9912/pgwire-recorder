@@ -18,7 +18,7 @@ workflows-check: ## Workflow-Dateien pruefen: Syntax, Rechte, Zeitgrenzen und Bi
 	@bash tools/harness/workflows-check.sh
 
 workflows-check-gegenprobe: ## Gegenprobe des Workflow-Gates: Faelle und Mutationen je Punkt von SPEC-063
-	@DOCKER='$(DOCKER)' WORKFLOWS_ACTIONLINT='$(WORKFLOWS_ACTIONLINT)' DCHECK_REF='$(DCHECK_REF)' bash tools/harness/workflows-check-gegenprobe.sh
+	@DOCKER='$(DOCKER)' WORKFLOWS_ACTIONLINT='$(WORKFLOWS_ACTIONLINT)' DCHECK_REF='$(DCHECK_REF)' bash tools/dev/harness/workflows-check-gegenprobe.sh
 
 GATE_CHECKS += workflows-check
 GEGENPROBEN_CONTAINER += workflows-check-gegenprobe

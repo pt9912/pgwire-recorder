@@ -25,7 +25,7 @@
 set -euo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-wurzel="$(cd "$hier/../.." && pwd)"
+wurzel="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "${arbeit:?}"' EXIT
 fehler=0
@@ -184,11 +184,11 @@ FIXTURE_ZAEHLER=0
 fixture() {
   FIXTURE_ZAEHLER=$((FIXTURE_ZAEHLER + 1))
   w="$arbeit/baum-$FIXTURE_ZAEHLER"
-  mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/.harness/state"
+  mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/tools/dev/harness" "$w/.harness/state"
   cp "$wurzel/Makefile" "$wurzel/Dockerfile" "$w/"
   cp "$wurzel/harness/mk/integration.mk" "$wurzel/harness/mk/container.mk" "$w/harness/mk/"
   cp "$wurzel/tools/harness/binaries.sh" "$wurzel/tools/harness/run-container.sh" "$wurzel/tools/harness/container-smoke.sh" "$wurzel/tools/harness/container-eingabe.sh" "$w/tools/harness/"
-  printf '#!/usr/bin/env bash\n: > marke-gegenprobe\n' > "$w/tools/harness/container-gegenprobe.sh"
+  printf '#!/usr/bin/env bash\n: > marke-gegenprobe\n' > "$w/tools/dev/harness/container-gegenprobe.sh"
 }
 
 # lauf [VAR=wert…] -- <befehl>… — führt den Befehl in $w aus; setzt code, Ausgabe in $aus.
@@ -591,7 +591,7 @@ pruefe() {
   done
   if lauft p11-gegenprobe; then
     ma=(); lauf -- make -n -s --no-print-directory test-container-gegenprobe
-    ist p11-gegenprobe-rezept '[ "$(cat "$aus")" = "bash tools/harness/container-gegenprobe.sh" ] && [ ! -e "$w/marke-gegenprobe" ]'
+    ist p11-gegenprobe-rezept '[ "$(cat "$aus")" = "bash tools/dev/harness/container-gegenprobe.sh" ] && [ ! -e "$w/marke-gegenprobe" ]'
   fi
 
   # Punkt 12: test-container hängt an GATE_CHECKS, die Gegenprobe steht in der Liste für den Container.
@@ -824,8 +824,8 @@ mut p11-make-gate "$F_" $'\t@POSTGRES_IMAGE=' $'\t@$(MAKE) --version >/dev/null;
 mut p11-plus-gate "$F_" $'\t@POSTGRES_IMAGE=' $'\t+@POSTGRES_IMAGE=' p11-gate p11-gate-makeflags-n p11-gate-makeflags-q p11-gate-makeflags-t p11-gate-n p11-gate-ni p11-gate-q p11-gate-qi p11-gate-t p11-gate-ti
 mut p11-i-binaries "$F_" $'\t@DOCKER=\'$(DOCKER)\' bash tools/harness/binaries.sh' $'\t@case "$(MAKEFLAGS)" in *i*) ;; *) DOCKER=\'$(DOCKER)\' bash tools/harness/binaries.sh ;; esac' "p11-werkz-i p11-werkz-makeflags-i" p11-werkz-i p11-werkz-makeflags-i
 mut p11-i-gate "$F_" $'\t@POSTGRES_IMAGE=\'$(POSTGRES_IMAGE)\' DOCKER=\'$(DOCKER)\' bash tools/harness/run-container.sh' $'\t@case "$(MAKEFLAGS)" in *i*) ;; *) POSTGRES_IMAGE=\'$(POSTGRES_IMAGE)\' DOCKER=\'$(DOCKER)\' bash tools/harness/run-container.sh ;; esac' "p11-gate-i p11-gate-makeflags-i" p11-gate-i p11-gate-makeflags-i
-mut p11-make-gegenprobe "$F_" $'\t@bash tools/harness/container-gegenprobe.sh' $'\t@$(MAKE) --version >/dev/null; bash tools/harness/container-gegenprobe.sh' p11-gegenprobe p11-gegenprobe-rezept
-mut p11-plus-gegenprobe "$F_" $'\t@bash tools/harness/container-gegenprobe.sh' $'\t+@bash tools/harness/container-gegenprobe.sh' p11-gegenprobe p11-gegenprobe-rezept
+mut p11-make-gegenprobe "$F_" $'\t@bash tools/dev/harness/container-gegenprobe.sh' $'\t@$(MAKE) --version >/dev/null; bash tools/dev/harness/container-gegenprobe.sh' p11-gegenprobe p11-gegenprobe-rezept
+mut p11-plus-gegenprobe "$F_" $'\t@bash tools/dev/harness/container-gegenprobe.sh' $'\t+@bash tools/dev/harness/container-gegenprobe.sh' p11-gegenprobe p11-gegenprobe-rezept
 
 # --- Punkt 12: Anschluss an GATE_CHECKS und an die Liste ---
 mut p12-ziel "$F_" $'GATE_CHECKS += test-container\n' $'GATE_CHECKS +=\n' p12 p12-gate-checks-ziel

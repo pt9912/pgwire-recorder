@@ -40,7 +40,7 @@ T0=$SECONDS
 GPN=container-einrichten-gegenprobe
 LOADAVG=/proc/loadavg
 GP_SELF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOURCE[0]}")
-quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../.." && pwd -P)}
+quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../../.." && pwd -P)}
 
 # SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden, 0 schaltet die Prüfung ab; ohne die
 # Variable gilt die Obergrenze aus (1), und das nur bei einem Lauf ohne GP_MUT. Ein ungültiger Wert endet vor

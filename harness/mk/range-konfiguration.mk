@@ -6,6 +6,6 @@
 .PHONY: range-konfiguration-gegenprobe
 
 range-konfiguration-gegenprobe: ## Gegenprobe der Range-Pruefungen: Faelle und Mutationen von .d-check.yml je Punkt 11 und 12 von SPEC-064, Abbruch (Punkt 18)
-	@DOCKER='$(DOCKER)' DCHECK_REF='$(DCHECK_REF)' bash tools/harness/range-konfiguration-gegenprobe.sh
+	@DOCKER='$(DOCKER)' DCHECK_REF='$(DCHECK_REF)' bash tools/dev/harness/range-konfiguration-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += range-konfiguration-gegenprobe

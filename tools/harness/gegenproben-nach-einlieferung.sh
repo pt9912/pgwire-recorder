@@ -4,7 +4,7 @@
 # Aufruf: als Kopie (`install -m 755`) unter <Bare-Repo>/hooks/post-receive; git liefert die Zeilen `<alt> <neu> <ref>` auf stdin.
 # Je eingeliefertem refs/heads/*-Zweig fährt ein Hintergrundlauf (dieselbe Datei mit --lauf, eigene Sitzung) `make gegenproben` auf
 # genau dem Hash und legt bei beendetem `make` die Ergebnisdatei ab. Der Hook endet in jedem Fall mit Exit 0 und braucht keine
-# andere Datei des Repos. GEPRÜFT DURCH tools/harness/gegenproben-nach-einlieferung-gegenprobe.sh.
+# andere Datei des Repos. GEPRÜFT DURCH tools/dev/harness/gegenproben-nach-einlieferung-gegenprobe.sh.
 sig="gegenproben-nach-einlieferung"
 melde() { echo "$sig: $1: $2" >&2; }
 

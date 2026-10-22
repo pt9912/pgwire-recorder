@@ -17,8 +17,8 @@
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
 
-hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-skript="$hier/kopf-check.sh"
+gp_wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+skript="$gp_wurzel/tools/harness/kopf-check.sh"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 fehler=0
@@ -301,11 +301,11 @@ set +e; (cd "$w" && bash "$skript") 2>"$arbeit/err"; code=$?; set -e
 # wenn ihr Skript rot ist — kopf-check gegen einen Plan mit Befund, die Gegenprobe
 # gegen ein Ersatzskript, das mit Exit 1 endet.
 neu
-cp "$hier/../../Makefile" "$w/Makefile"
-mkdir -p "$w/harness/mk" "$w/tools/harness"
-cp "$hier/../../harness/mk/kopf-check.mk" "$w/harness/mk/"
+cp "$gp_wurzel/Makefile" "$w/Makefile"
+mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/tools/dev/harness"
+cp "$gp_wurzel/harness/mk/kopf-check.mk" "$w/harness/mk/"
 cp "$skript" "$w/tools/harness/kopf-check.sh"
-printf 'exit 1\n' > "$w/tools/harness/kopf-check-gegenprobe.sh"
+printf 'exit 1\n' > "$w/tools/dev/harness/kopf-check-gegenprobe.sh"
 plan "$w/$P1" "—" "—" "SPEC-004" "-"
 # make -q endet ungleich 0, wenn das Ziel nicht aktuell ist; gelesen wird nur -p.
 datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"

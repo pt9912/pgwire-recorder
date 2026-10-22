@@ -5,10 +5,10 @@
 # GEGENPROBEN_CONTAINER (SPEC-060, nicht an GATE_CHECKS): Sie fuehrt
 # Pruefschritt und Stufe an Profilen und in Kopien des Arbeitsbaums aus und braucht bash,
 # make, docker, awk und coreutils. Welche Zusagen sie prueft, nennt ihr Kopf.
-# GEPRUEFT DURCH tools/harness/coverage-gegenprobe.sh: p11-gegenprobe-liste.
+# GEPRUEFT DURCH tools/dev/harness/coverage-gegenprobe.sh: p11-gegenprobe-liste.
 .PHONY: coverage-gegenprobe
 
 coverage-gegenprobe: ## Gegenprobe der Schwelle der Anweisungsabdeckung: Profile und Kopien der Stufe test
-	@DOCKER='$(DOCKER)' bash tools/harness/coverage-gegenprobe.sh
+	@DOCKER='$(DOCKER)' bash tools/dev/harness/coverage-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += coverage-gegenprobe

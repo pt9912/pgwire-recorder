@@ -28,7 +28,7 @@
 set -euo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-wurzel="$(cd "$hier/../.." && pwd)"
+wurzel="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 fehler=0
@@ -42,7 +42,7 @@ GP_CONTAINER="lint-gegenprobe coverage-gegenprobe kopf-check-gegenprobe abdeckun
 GP_HOST="container-start-gegenprobe"
 
 # shellcheck source=tools/harness/gegenproben-regel.sh
-. "$hier/gegenproben-regel.sh"
+. "$wurzel/tools/harness/gegenproben-regel.sh"
 
 # gate_variable <wurzel> <name> — Wörter der Make-Variable aus der Datenbank von make.
 gate_variable() {
@@ -76,7 +76,7 @@ deckung() {
 # fixture <name> — legt eine Kopie an und setzt w auf ihre Wurzel.
 fixture() {
   w="$arbeit/$1"
-  mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/.harness/state"
+  mkdir -p "$w/harness/mk" "$w/tools/harness" "$w/tools/dev/harness" "$w/.harness/state"
   cp "$wurzel/Makefile" "$w/Makefile"
   cp "$wurzel/harness/mk/gates-schnell.mk" "$wurzel/harness/mk/enforce.mk" "$w/harness/mk/"
   cp "$wurzel/tools/harness/gates-schnell.sh" "$wurzel/tools/harness/working-tree-hash.sh" \
@@ -195,7 +195,7 @@ pruefe() {
   rm -rf "$w-rot"
   cp -r "$w" "$w-rot"
   printf 'exit 1\n' > "$w-rot/tools/harness/gates-schnell.sh"
-  printf 'exit 1\n' > "$w-rot/tools/harness/gates-schnell-gegenprobe.sh"
+  printf 'exit 1\n' > "$w-rot/tools/dev/harness/gates-schnell-gegenprobe.sh"
   lauf "$w-rot" gates-schnell
   [ "$code" -ne 0 ] || echo "anschluss-exit-schnell"
   lauf "$w-rot" gates-schnell-gegenprobe
@@ -252,19 +252,20 @@ fixture ok; gruen ok
 # Fall p2-arbeitsbaum: Eine Kopie dieser Gegenprobe ist ein eigener Arbeitsbaum, in dem lint-gegenprobe in
 # GATE_CHECKS steht; die Prüfung des Arbeitsbaums färbt sie rot. Mutation: ohne die Zeile der Prüfung bleibt sie grün.
 selbst="$arbeit/selbst"
-mkdir -p "$selbst/tools/harness"
+mkdir -p "$selbst/tools/harness" "$selbst/tools/dev/harness"
 cp "$wurzel/Makefile" "$selbst/"
 cp -r "$wurzel/harness" "$selbst/harness"
-cp "$hier/gates-schnell-gegenprobe.sh" "$hier/gegenproben-regel.sh" "$selbst/tools/harness/"
+cp "$hier/gates-schnell-gegenprobe.sh" "$selbst/tools/dev/harness/"
+cp "$wurzel/tools/harness/gegenproben-regel.sh" "$selbst/tools/harness/"
 sed -i 's/^GATE_CHECKS += lint$/GATE_CHECKS += lint lint-gegenprobe/' "$selbst/harness/mk/lint.mk"
-if (GP_NUR_ARBEITSBAUM=1 bash "$selbst/tools/harness/gates-schnell-gegenprobe.sh" > /dev/null 2>&1); then
+if (GP_NUR_ARBEITSBAUM=1 bash "$selbst/tools/dev/harness/gates-schnell-gegenprobe.sh" > /dev/null 2>&1); then
   melde "Fall 'p2-arbeitsbaum': der Arbeitsbaum mit lint-gegenprobe in GATE_CHECKS bleibt grün"
 fi
-cp "$selbst/tools/harness/gates-schnell-gegenprobe.sh" "$arbeit/selbst-alt.sh"
-sed -i 's/^ist="\$(deckung "\$wurzel" .*$/ist=""/' "$selbst/tools/harness/gates-schnell-gegenprobe.sh"
-if cmp -s "$arbeit/selbst-alt.sh" "$selbst/tools/harness/gates-schnell-gegenprobe.sh"; then
+cp "$selbst/tools/dev/harness/gates-schnell-gegenprobe.sh" "$arbeit/selbst-alt.sh"
+sed -i 's/^ist="\$(deckung "\$wurzel" .*$/ist=""/' "$selbst/tools/dev/harness/gates-schnell-gegenprobe.sh"
+if cmp -s "$arbeit/selbst-alt.sh" "$selbst/tools/dev/harness/gates-schnell-gegenprobe.sh"; then
   melde "Mutation 'p2-arbeitsbaum-gestrichen' ändert die Gegenprobe nicht"
-elif ! (GP_NUR_ARBEITSBAUM=1 bash "$selbst/tools/harness/gates-schnell-gegenprobe.sh" > /dev/null 2>&1); then
+elif ! (GP_NUR_ARBEITSBAUM=1 bash "$selbst/tools/dev/harness/gates-schnell-gegenprobe.sh" > /dev/null 2>&1); then
   melde "Mutation 'p2-arbeitsbaum-gestrichen': die Gegenprobe ohne Prüfung des Arbeitsbaums ist rot"
 fi
 
@@ -375,7 +376,7 @@ fixture m-schnell-exit-ignoriert
 sed -i 's|^\t@bash tools/harness/gates-schnell.sh|\t-@bash tools/harness/gates-schnell.sh|' "$w/harness/mk/gates-schnell.mk"
 rot m-schnell-exit-ignoriert anschluss-exit-schnell
 fixture m-gegenprobe-exit-ignoriert
-sed -i 's|^\t@bash tools/harness/gates-schnell-gegenprobe.sh|\t-@bash tools/harness/gates-schnell-gegenprobe.sh|' "$w/harness/mk/gates-schnell.mk"
+sed -i 's|^\t@bash tools/dev/harness/gates-schnell-gegenprobe.sh|\t-@bash tools/dev/harness/gates-schnell-gegenprobe.sh|' "$w/harness/mk/gates-schnell.mk"
 rot m-gegenprobe-exit-ignoriert anschluss-exit-gegenprobe
 
 # --- SPEC-060 Punkte 1 und 2: die Namensregel, ein Fall je Verletzung und je Fall eine Mutation der Regel ---
@@ -409,7 +410,7 @@ regelrot() {
 # regelmut <name> <alt> <neu> <rote Fälle> — eine Kopie der Regel mit der Änderung; rot sind genau die benannten Fälle.
 regelmut() {
   local datei="$arbeit/regel-$1.sh" inhalt neu ist
-  inhalt="$(cat "$hier/gegenproben-regel.sh"; printf x)"; inhalt="${inhalt%x}"
+  inhalt="$(cat "$wurzel/tools/harness/gegenproben-regel.sh"; printf x)"; inhalt="${inhalt%x}"
   neu="${inhalt/"$2"/"$3"}"
   if [ "$neu" = "$inhalt" ]; then melde "Mutation '$1' ändert die Regel nicht: $2"; return; fi
   printf '%s' "$neu" > "$datei"
@@ -445,7 +446,7 @@ if [ -z "$LOC" ] || ! (export LC_ALL="$LOC" LANGUAGE=de; { make -s -C "$w" -pq h
   melde "Fall 'p2-locale': die Locale ${LOC:-(keine de_DE oder en_US installiert)} erzwingt nicht die deutsche Ausgabe von make -p"
 fi
 
-ist="$(regelrot "$hier/gegenproben-regel.sh")"
+ist="$(regelrot "$wurzel/tools/harness/gegenproben-regel.sh")"
 [ -z "$ist" ] || melde "Regel: Fälle rot, die grün sein müssen: $ist"
 
 for v in 1 2 3 4; do

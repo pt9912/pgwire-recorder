@@ -5,7 +5,7 @@
 # Umgebung: PGR_DEV (Pflicht), PGR_NAME, PGR_SSH_PORT, PGR_WARTEN, PGR_CPUS, PGR_MEM.
 # Exit-Codes: 0 bereit · 2 eingaben · 3 werkzeuge · 4 zustand · 5 Fehler eines Schrittes · 130 SIGINT · 143 SIGTERM.
 #
-# GEPRÜFT DURCH tools/harness/container-start-gegenprobe.sh (Fälle p<Punkt>-*).
+# GEPRÜFT DURCH tools/dev/harness/container-start-gegenprobe.sh (Fälle p<Punkt>-*).
 set -uo pipefail
 export LC_ALL=C
 # Punkt 8: Kein Kindprozess (u-boot, mk-override.sh, docker, devcontainer, ssh) erbt einen Zugang.

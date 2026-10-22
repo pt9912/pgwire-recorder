@@ -123,7 +123,7 @@
 set -euo pipefail
 export LC_ALL=C
 
-wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 docker_build="${DOCKER_BUILD:-docker build}"
 if [ -z "${LINT_GEGENPROBE_PARALLEL+gesetzt}" ]; then
   parallel=3
@@ -337,12 +337,12 @@ revive_ist="$(awk '/^    revive:$/ { r = 1; next } r && /^      rules:$/ { f = 1
 # --- LINT_GEGENPROBE_PARALLEL: ungültige Werte -------------------------------
 # Das Skript läuft als Kopie in einem Baum ohne Profil, damit es nach der Prüfung
 # der Einstellung nichts baut; ohne die Prüfung endet es dort mit Ausgang 1.
-mkdir -p "$arbeit/einstellung/tools/harness"
-cp "${BASH_SOURCE[0]}" "$arbeit/einstellung/tools/harness/lint-gegenprobe.sh"
+mkdir -p "$arbeit/einstellung/tools/dev/harness"
+cp "${BASH_SOURCE[0]}" "$arbeit/einstellung/tools/dev/harness/lint-gegenprobe.sh"
 for wert in 0 '' -1 abc ' 3'; do
   set +e
   aus="$(LINT_GEGENPROBE_PARALLEL="$wert" DOCKER_BUILD=false timeout 20 \
-    bash "$arbeit/einstellung/tools/harness/lint-gegenprobe.sh" 2>&1)"
+    bash "$arbeit/einstellung/tools/dev/harness/lint-gegenprobe.sh" 2>&1)"
   code=$?
   set -e
   soll="lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl: '$wert'"
@@ -910,7 +910,7 @@ starte bruecke-allein
 # Die Kopie trägt eine `lint:`-Zeile allein; ihre Gegenprobe ist ein Ersatzskript.
 kopie gate
 find "$k/harness/mk" -name '*.mk' ! -name lint.mk -delete
-printf 'exit 0\n' | datei tools/harness/lint-gegenprobe.sh
+printf 'exit 0\n' | datei tools/dev/harness/lint-gegenprobe.sh
 datei "$G/allein/fall.go" <<'EOF'
 // Package allein trägt eine Direktive.
 package allein
@@ -1182,7 +1182,7 @@ for ziel in lint lint-gegenprobe; do
     melde "Fall '$fall': $ziel steht nicht in $liste"
   fi
 done
-printf 'exit 1\n' > "$arbeit/gate/tools/harness/lint-gegenprobe.sh"
+printf 'exit 1\n' > "$arbeit/gate/tools/dev/harness/lint-gegenprobe.sh"
 if make -s -C "$arbeit/gate" lint-gegenprobe >/dev/null 2>&1; then
   melde "Fall 'p10-gegenprobe-scharf': make lint-gegenprobe endet bei rotem Skript mit Exit 0"
 fi

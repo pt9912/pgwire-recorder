@@ -7,7 +7,7 @@
 # Umgebung: DOCKER (Vorgabe docker), WORKFLOWS_ACTIONLINT (Image mit Digest, harness/mk/workflows.mk)
 # Ausgang: 0 ohne Befund und ohne Prüfbereich, 1 mit Befund, 2 bei Umgebungsfehler.
 #
-# GEPRÜFT DURCH tools/harness/workflows-check-gegenprobe.sh, Fälle nach Punkt (p<n>-*).
+# GEPRÜFT DURCH tools/dev/harness/workflows-check-gegenprobe.sh, Fälle nach Punkt (p<n>-*).
 set -o pipefail
 export LC_ALL=C
 
