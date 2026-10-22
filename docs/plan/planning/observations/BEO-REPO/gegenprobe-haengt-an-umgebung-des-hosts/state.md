@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** geplant — Kennung: `slice-harness-randform-umgebung-der-gegenprobe` (2026-10-22, Entscheidung des Nutzers, „deine empfehlungen“)
+
+Ausgang zugewiesen: Der Nutzer hat am 2026-10-22 („deine empfehlungen“, so vom Koordinator übermittelt) die Vorschläge des Planners unten gewählt; die Regel (Randform *Umgebung der Gegenprobe* in `AGENTS.md` §3.12, Fahrt vor der Übergabe unter fremder Locale, Zeitzone und fremdem Benutzer, Zeile in der Anweisung von Implementer und Verifier) schreibt `slice-harness-randform-umgebung-der-gegenprobe` (`open/`); den Wortlaut hat der Nutzer nicht entschieden, der Implementer legt ihn vor. Geschnitten: Die Fahrt unter Last und ein Sensor sind ausgeschlossen (dort §1; die Last-Beschreibung liefert `slice-test-unter-last-ursache`). Der Eintrag wird `verkörpert`, wenn der Slice schließt und die Regel in `AGENTS.md` steht; die Vorschläge unten sind der Stand vor der Entscheidung.
 
 Schwelle erreicht: 5× (`evidence/`; der fünfte Beleg, `slice-harness-gegenproben-aus-gates-fahrstelle-umgebung`, kam mit der ersten echten Fahrt des Hooks am 2026-10-18 hinzu), aus den Belegen der Slices nachgetragen (Urteil des Planners bei der Closure von `slice-harness-gegenproben-aus-gates-fahrstelle`, 2026-10-18; die Belege der drei früheren Slices liegen unter `BEO-REPO/make-ausgabe-locale-abhaengig-gelesen`, `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig` und `BEO-REPO/lastabhaengige-zaehlung`). Ohne Ausgang, bis der Nutzer entschieden hat.
 
