@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Verantwortlich:** —
 
-**Autor:** Planner. **Datum:** 2026-10-22.
+**Autor:** Planner. **Datum:** 2026-10-22; nachgeführt am 2026-10-22 (Entscheidung zu den sechs Meldungen, §1).
 
 ---
 
@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die **sechs Meldungen** von `tools/harness/traeger-fetch.sh` (Zeilen 43, 59, 67, 96, 101 und 130: `echo … >&2` mit ADR 0058 oder 0059, `LH-QA-02` oder `LH-QA-04` im Text) — Klasse 2 (Bestand bleibt bewusst stehen): Eine Meldung ist die Ausgabe eines Werkzeugs, kein Kommentar; sie zu ändern ist eine Änderung des Verhaltens (Text auf stderr) einer Datei, die der Bootstrap emittiert und die keine Gegenprobe prüft. Dieser Slice ändert **keinen Code** (DoD). Ob die Meldungen geändert werden dürfen, ist eine Frage an den Nutzer (§6, Frage 1); eine Adresse gibt es nicht.
+- Die **sechs Meldungen** von `tools/harness/traeger-fetch.sh` (Zeilen 43, 59, 67, 96, 101 und 130: `echo … >&2` mit ADR 0058 oder 0059, `LH-QA-02` oder `LH-QA-04` im Text) — Klasse 2 (Bestand bleibt bewusst stehen): Eine Meldung ist die Ausgabe eines Werkzeugs, kein Kommentar; sie zu ändern ist eine Änderung des Verhaltens (Text auf stderr) einer Datei, die der Bootstrap emittiert und die keine Gegenprobe prüft. Dieser Slice ändert **keinen Code** (DoD). **Entschieden (Entscheidung des Nutzers vom 2026-10-22, wörtlich „ja nächster slice“ auf die Vorlage mit den Empfehlungen des Koordinators, so übermittelt):** Die Meldungen bleiben stehen, bis der Bootstrap sie ändert (§6, Randform 1). Grund: Die Datei ist eine Kopie des Werkzeugs, kein Eingriff der Repo-Pflege. Eine Adresse gibt es nicht und braucht es nicht.
 - Die **Träger-Dateien an der Quelle** (`ai-harness-init`, Kurs-Repo) — Klasse 3 (anderer Vorgang): Dieser Slice ändert die Kopie in diesem Repo; was der Bootstrap schreibt, entscheidet das Werkzeug.
 - **Code und Verhalten** der fünf Dateien und die **Kennungen, die stimmen** (`SPEC-060`, `SPEC-067`, `SPEC-069`, [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) und [ADR-0057](../../adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) in `container-einrichten-gegenprobe.sh`, `homebrew-nachweis.sh` und `homebrew-nachweis.mk`) — Klasse 2: Sie zeigen auf Dateien dieses Repos und lösen auf.
 - Der **Ort des Belegs in den Anweisungen der Rollen und in `harness/README.md`** — Klasse 1: `slice-harness-regeln-implementer-uebergabe` (Anweisungen) und `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` (die Zeile `make homebrew-nachweis`); beide nehmen die Sendung in ihrem §1 an. Grund: andere Dateien, andere Schicht.
@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/homebrew-nachweis.sh` (Zeile 26) | update (Kommentar) | Liefer-Punkt 1 |
 | `tools/harness/container-einrichten-gegenprobe.sh` (Zeile 16, im Kopf) | update (Kommentar) | Liefer-Punkt 1 |
 | `harness/mk/traeger.mk` (sieben Kommentarzeilen) | update (Kommentar) | Liefer-Punkt 2: Herkunft der Kennungen; Datei emittiert von `ai-harness-init` |
-| `tools/harness/traeger-fetch.sh` (dreizehn Kommentarzeilen) | update (Kommentar) | Liefer-Punkt 2; die sechs Meldungen bleiben (§1) |
+| `tools/harness/traeger-fetch.sh` (dreizehn Kommentarzeilen) | update (Kommentar) | Liefer-Punkt 2; die sechs Meldungen bleiben (§1, entschieden am 2026-10-22) |
 | `docs/plan/planning/observations/BEO-REPO/ungekuerzter-beleg-laesst-den-plan-wachsen/` | update bei Closure | Vermerk (kein Liefer-Punkt) |
 
 Tests und Gates: keine neuen. Der Slice liefert Kommentare (`AGENTS.md` §3.10 verlangt Mutationen für Verträge von Code und Gates); die Prüfung ist der Diff (DoD, *Kein Code*).
@@ -101,7 +101,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benannt:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe nach der Metrik liegt über 200, oder die Suche am Anfang findet Kennungen in einer sechsten Datei.
-- `in-progress` → `open` (blockiert): Der Nutzer entscheidet, dass die Meldungen von `traeger-fetch.sh` mitzuändern sind (Verhalten einer emittierten Datei): Das ist ein anderer Schnitt (Code, Ausgabetext), und der Planner plant ihn neu.
+- `in-progress` → `open` (blockiert): Der Nutzer nimmt die Entscheidung vom 2026-10-22 zurück und entscheidet, dass die Meldungen von `traeger-fetch.sh` mitzuändern sind (Verhalten einer emittierten Datei): Das ist ein anderer Schnitt (Code, Ausgabetext), und der Planner plant ihn neu.
 
 ## 5. Closure-Trigger
 
@@ -120,7 +120,7 @@ dasteht.
 
 **Randformen** (`AGENTS.md` §3.12; der Slice liefert keinen Vertrag von Code, aber Änderungen an Dateien, deren Ränder der Planner sonst im Einzelfall entscheidet):
 
-1. **Die Meldungen von `traeger-fetch.sh`** (sechs Zeilen mit ADR 0058 oder 0059, `LH-QA-02` oder `LH-QA-04` in der Ausgabe) — **Frage an den Nutzer, nicht entschieden:** Dürfen sie geändert werden? Eine Änderung ändert Text auf stderr einer vom Bootstrap emittierten Datei, ohne dass eine Gegenprobe ihn prüft; bleiben sie, führt eine Meldung weiter Kennungen, die hier anderes meinen. Empfehlung des Planners: bleiben, bis der Bootstrap sie ändert (Kopie des Werkzeugs, nicht ein Eingriff der Repo-Pflege).
+1. **Die Meldungen von `traeger-fetch.sh`** (sechs Zeilen mit ADR 0058 oder 0059, `LH-QA-02` oder `LH-QA-04` in der Ausgabe) — **Entschieden (Entscheidung des Nutzers vom 2026-10-22, wörtlich „ja nächster slice“ auf die Vorlage mit den Empfehlungen des Koordinators, so übermittelt):** Sie bleiben stehen, bis der Bootstrap sie ändert. Eine Änderung änderte Text auf stderr einer vom Bootstrap emittierten Datei, ohne dass eine Gegenprobe ihn prüft; bleiben sie, führt eine Meldung weiter Kennungen, die hier anderes meinen (akzeptiert). Grund: Die Datei ist eine Kopie des Werkzeugs, kein Eingriff der Repo-Pflege.
 2. **Der Träger wird vom Bootstrap emittiert.** Ein erneuter Lauf von `ai-harness-init` schreibt `harness/mk/traeger.mk` und `tools/harness/traeger-fetch.sh` neu, und der Kommentar mit der Herkunft **fehlt dann wieder**. Akzeptiertes Negativ; Grund: Die Dateien gehören dem Werkzeug, und dieses Repo sperrt den Bootstrap nicht; die Änderung dieses Slice hält bis zum nächsten Lauf. Gegenmittel: keines im Repo; der Befund gehört in das Register und in einen Änderungswunsch an das Werkzeug (nicht Gegenstand dieses Slice).
 3. **Form der Herkunft:** Name des Werkzeugs vor der Kennung (Entwurf in §3); der Implementer ändert die Form nicht selbst.
 4. **Die Suche ist nicht abschließend**, wenn eine Kennung in einer anderen Schreibweise steht (zum Beispiel „ADR 58“); die Suche der DoD ist der Maßstab, kein Beweis der Vollständigkeit.
@@ -131,7 +131,7 @@ dasteht.
 - Die Suche am Anfang findet mehr Kennungen als §1 nennt — **Ausgang:** entfallen, wenn die Treffer in §7 stehen und der Diff in Marke und Schicht bleibt; sonst Rückführung nach `next` (§4).
 - Ein neuer Kommentar sagt mehr zu, als der Vertrag oder ein Test hält (`AGENTS.md` §3.11) — **Ausgang:** entfallen, wenn jeder neue Satz auf den Vertrag zeigt, statt ihn zu wiederholen.
 - Ein erneuter Bootstrap schreibt die Träger-Dateien zurück (Randform 2) — **Ausgang:** weiter offen → der neue Eintrag der Klasse „fremde Kennung im emittierten Kommentar“ (DoD, Register), mit dem Wiederauftreten als Beleg.
-- Die Meldungen tragen weiter fremde Kennungen (Randform 1) — **Ausgang:** weiter offen → derselbe Eintrag; die Frage an den Nutzer steht in §1.
+- Die Meldungen tragen weiter fremde Kennungen (Randform 1) — **Ausgang:** weiter offen → derselbe Eintrag; die Entscheidung des Nutzers (bleiben, 2026-10-22) steht in §1 und in Randform 1.
 - Der Slice wächst über Marke oder Meldeschwelle von §4 (Schätzung 52 bis 100 gegen Marke 200) — **Ausgang:** offen bis Closure; Marke und Meldeschwelle stehen in §4.
 
 ## 7. Closure-Notiz
