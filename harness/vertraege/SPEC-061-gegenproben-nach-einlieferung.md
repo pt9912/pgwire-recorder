@@ -16,7 +16,7 @@ das, was `make gegenproben` fährt ([`SPEC-060`](SPEC-060-gegenproben.md)), nich
 ([`SPEC-058`](SPEC-058-container-start.md)) und nichts über den Wortlaut der Anweisungen der Rollen (Punkt 15 nennt nur die Regel an den Leser).
 Der Name `gegenproben-nach-einlieferung-gegenprobe` folgt der Namensregel ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 2): Die Gegenprobe
 steht in `GEGENPROBEN_CONTAINER`, nicht in `GATE_CHECKS` und nicht in der Ausnahmeliste der schnellen Kette; ihr Fragment ist
-`harness/mk/gegenproben-nach-einlieferung-gegenprobe.mk`, ihr Skript `tools/harness/gegenproben-nach-einlieferung-gegenprobe.sh`.
+`harness/mk/gegenproben-nach-einlieferung-gegenprobe.mk`, ihr Skript `tools/dev/harness/gegenproben-nach-einlieferung-gegenprobe.sh`.
 Sie arbeitet in Temp-Verzeichnissen mit einem Bare-Repo, einer Kopie des Skripts als Hook und einer Attrappe als `make` (im `PATH` vorangestellt),
 ruft Docker nicht und braucht `git`, `flock`, `setsid`, `pgrep` und `timeout`. **Voraussetzung der Gegenprobe: ein Benutzer ohne root** (Entscheidung des Architect; Grund: der Fall `p13-ablage-weg` macht die Ablage mit `chmod` unschreibbar, und root schließt `chmod` nicht aus). Als root endet sie mit Exit 2 und einer Meldung, die den Fall nennt, ohne Überspringen (wie [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 3); der Gegenproben-Container läuft als `vscode`. Dass die Prüfung selbst als root greift, belegt kein Fall (akzeptiertes Negativ; Grund: ein Fall bräuchte root).
 

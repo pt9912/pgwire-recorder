@@ -98,7 +98,7 @@ Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
    nicht gebraucht. Die Fälle `p3-angelegt`, `p4-fremd`, `p4-rest-rot` und `p4-vorrang` nutzen
    dasselbe `docker` ohne die Wartezeit. `SIGINT` setzt voraus, dass der Runner nicht als Hintergrundjob einer
    nicht interaktiven Shell startet (sonst wird es ignoriert); das Vorbild ist
-   `tools/test/postgres-versionen-gegenprobe.sh`.
+   `tools/dev/test/postgres-versionen-gegenprobe.sh`.
 8. **Docker-Version.** Gemessen ist Docker 29.9.0: `docker inspect` nennt die Mounts schon im
    Zustand `created`. Eine Version, die das nicht tut, macht `p2-ohne-v` grün statt rot und
    damit die Gegenprobe rot; die Blindheit wird sichtbar. Auf einer anderen Version als der

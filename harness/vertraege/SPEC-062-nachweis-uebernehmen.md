@@ -33,7 +33,7 @@ Grund: Die Erzeugung der Liste ist es auch nicht, und das Werkzeug benutzt sie; 
 endet der Lauf in `ungleich` oder mit einem Fehler des Werkzeugs, nie mit `übernommen`).
 
 **Aufbau der Gegenprobe.** `make nachweis-uebernehmen-gegenprobe` (Fragment `harness/mk/nachweis-uebernehmen-gegenprobe.mk`, Skript
-`tools/harness/nachweis-uebernehmen-gegenprobe.sh`) steht in `GEGENPROBEN_CONTAINER` und nicht in `GATE_CHECKS`
+`tools/dev/harness/nachweis-uebernehmen-gegenprobe.sh`) steht in `GEGENPROBEN_CONTAINER` und nicht in `GATE_CHECKS`
 ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 2). Sie arbeitet in Temp-Repos, ohne Docker und ohne Netz, und lässt den Arbeitsbaum unberührt.
 Der Name jedes Falls trägt die Nummer des Punktes. Je Zusage und je Element einer Aufzählung gibt es einen Fall und eine Mutation des
 Skripts, die ihn rot färbt; die Gegenprobe verlangt je Mutation genau die genannte Menge roter Fälle (mehr und weniger machen sie rot),

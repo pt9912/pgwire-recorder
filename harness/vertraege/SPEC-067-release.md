@@ -19,7 +19,7 @@ diese Kennung wiederholt es nicht. Das Gate der Datei ist [`SPEC-063`](SPEC-063-
 `eingaben`, `binaries`, `image`, `veroeffentlichen`, `vergleichen`, `smoke`, `latest`, `github-release`, `homebrew`), nicht im YAML, wo sie ungeprüft bliebe. Die Version steht in
 der Datei `VERSION` im Wurzelverzeichnis: genau eine Zeile, `<SemVer>` ohne `v`, LF, keine Leerzeichen. Der Smoke ist das Skript `tools/harness/container-smoke.sh <Image-Referenz>`, das
 der Smoke von [`SPEC-055`](SPEC-055-container-und-binaries.md) Punkt 7 und dieser Lauf gemeinsam rufen (SPEC-055 behält seinen Text; die Quelle der Image-Referenz ist ein Parameter). Das Fragment
-`harness/mk/release.mk` definiert `release-gegenprobe` (`.PHONY`), das `tools/harness/release-gegenprobe.sh` ruft und in `GEGENPROBEN_CONTAINER` steht
+`harness/mk/release.mk` definiert `release-gegenprobe` (`.PHONY`), das `tools/dev/harness/release-gegenprobe.sh` ruft und in `GEGENPROBEN_CONTAINER` steht
 ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 bis 3). Die Pipeline läuft nie unter `make`.
 
 **Plattform** (`AGENTS.md` §3.12). Der Lauf nutzt `ubuntu-24.04`, `linux/amd64`, mit den vorinstallierten Werkzeugen `docker` (mit `buildx`), `skopeo`, `gh`, `git`, `bash`

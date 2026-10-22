@@ -288,7 +288,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     `p11-erbt-quit`). Eine Gegenprobe, die den Start mit ignoriertem `SIGINT` dennoch besteht (etwa durch `env --default-signal` an den Startstellen
     ihrer Signalfälle), sagt es nicht zu, solange ihr Vertrag es nicht mit einem Fall nennt.
     **Regel an den Aufrufer:** im Vordergrund starten, oder im Hintergrund mit zurückgesetzter Disposition: `setsid -f env --default-signal=INT,QUIT
-    <Befehl> > <Datei> 2>&1`, der Befehl ist `make <Ziel>` oder `bash tools/harness/<name>.sh` (`env --default-signal` braucht GNU coreutils ab 8.31,
+    <Befehl> > <Datei> 2>&1`, der Befehl ist `make <Ziel>` oder `bash tools/dev/<bereich>/<name>.sh` (`<bereich>` ist `harness`, `test`, `hook` oder `arch`; `env --default-signal` braucht GNU coreutils ab 8.31,
     wie [`SPEC-061`](SPEC-061-gegenproben-nach-einlieferung.md) Punkt 11). **Gemessen** am 2026-10-21 (bash 5.2.37, coreutils 9.7) mit einem Aufrufer,
     der `SIGINT` mit `trap '' INT` ignoriert: Bei direktem Start, bei `setsid -f` allein und bei `nohup` bleibt `SIGINT` im Skript ignoriert (`trap -p INT`
     zeigt `trap -- '' SIGINT`, die Maske `SigIgn` in `/proc/<pid>/status` trägt das Bit von `SIGINT`, `0x2`, und ein `kill -INT` an das Skript ändert
