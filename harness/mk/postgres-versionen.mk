@@ -8,7 +8,7 @@
 # GEGENPROBEN_CONTAINER (SPEC-060).
 # Bestätigt am 2026-10-14 gegen die Release-Liste von PostgreSQL: 14 bis 18. Die Liste
 # wird von Hand gepflegt (SPEC-053 Punkt 14).
-# GEPRÜFT DURCH tools/test/postgres-versionen-gegenprobe.sh.
+# GEPRÜFT DURCH tools/dev/test/postgres-versionen-gegenprobe.sh.
 POSTGRES_REFERENZ := 17
 POSTGRES_VERSIONEN := \
 	14=postgres:14-alpine@sha256:4ea9e5ed06591da7ea23eb65465e8d3187fe79f4d5ec3ae976d29a33b013e77a \
@@ -27,7 +27,7 @@ test-postgres-versionen: ## Teilmenge der Integrationstests gegen jede Version d
 	@POSTGRES_VERSIONEN='$(POSTGRES_VERSIONEN)' POSTGRES_REFERENZ='$(POSTGRES_REFERENZ)' POSTGRES_IMAGE='$(POSTGRES_IMAGE)' POSTGRES_TESTS_PHASE1='$(POSTGRES_TESTS_PHASE1)' POSTGRES_TESTS_PHASE2='$(POSTGRES_TESTS_PHASE2)' DOCKER='$(DOCKER)' bash tools/test/run-postgres-versionen.sh
 
 test-postgres-versionen-gegenprobe: ## Gegenprobe der Versionsmatrix: Eingabe, Teilmenge, Ablauf, Aufräumen, Aufrufarten, mit Attrappe von docker
-	@bash tools/test/postgres-versionen-gegenprobe.sh
+	@bash tools/dev/test/postgres-versionen-gegenprobe.sh
 
 GATE_CHECKS += test-postgres-versionen
 GEGENPROBEN_CONTAINER += test-postgres-versionen-gegenprobe

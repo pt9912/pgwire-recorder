@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # integration-aufraeumen — Funktionen des Aufräumens von tools/test/run-integration-tests.sh
 # (Vertrag: harness/vertraege/SPEC-057-integration-aufraeumen.md). Der Runner und
-# tools/test/integration-volumes-gegenprobe.sh laden diese Datei; sie setzen vorher
+# tools/dev/test/integration-volumes-gegenprobe.sh laden diese Datei; sie setzen vorher
 # docker, pg, tests und daten (Namen der Container und des benannten Volumes des Laufs).
 # Die Funktionen schreiben nichts außer Meldungen auf stderr und entfernen nur Container und Volumes,
 # deren Namen sie so gelesen haben (Punkt 4).

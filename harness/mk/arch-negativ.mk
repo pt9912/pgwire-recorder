@@ -15,6 +15,6 @@
 .PHONY: a-check-negativ
 
 a-check-negativ: ## Architektur-Gate-Gegenprobe: pgproto3 und crypto/tls nur in den PGWire-Adaptern, YAML nicht im PGWire-Adapter, aber im CLI-Adapter, SQLite nur im Recording-Adapter, time nicht im Kern
-	@A_CHECK_IMAGE='$(A_CHECK_IMAGE)' DOCKER='$(DOCKER)' bash tools/arch/a-check-negativ.sh
+	@A_CHECK_IMAGE='$(A_CHECK_IMAGE)' DOCKER='$(DOCKER)' bash tools/dev/arch/a-check-negativ.sh
 
 GEGENPROBEN_CONTAINER += a-check-negativ

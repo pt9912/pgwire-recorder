@@ -15,7 +15,7 @@ abdeckung-check: ## Abdeckungstabellen gegen die Deklarationen der Tests und Geg
 	@bash tools/test/abdeckung.sh --check
 
 abdeckung-gegenprobe: ## Gegenprobe des Abdeckungs-Skripts: Fehlformen werden abgelehnt
-	@bash tools/test/abdeckung-gegenprobe.sh
+	@bash tools/dev/test/abdeckung-gegenprobe.sh
 
 GATE_CHECKS += abdeckung-check
 GEGENPROBEN_CONTAINER += abdeckung-gegenprobe

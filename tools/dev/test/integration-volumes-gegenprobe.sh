@@ -27,7 +27,7 @@
 # Ausgang: 0, wenn jeder Fall und jede Mutation wie erwartet endet, sonst 1.
 set -euo pipefail
 
-hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+gp_wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 docker_echt="${DOCKER:-docker}"
 image="${POSTGRES_IMAGE:?POSTGRES_IMAGE fehlt}"
 arbeit="$(mktemp -d)"
@@ -231,7 +231,7 @@ fixture() {
   BAUM=$((BAUM + 1))
   w="$arbeit/baum-$BAUM"
   mkdir -p "$w"
-  cp "$hier/integration-aufraeumen.sh" "$hier/run-integration-tests.sh" "$w/"
+  cp "$gp_wurzel/tools/test/integration-aufraeumen.sh" "$gp_wurzel/tools/test/run-integration-tests.sh" "$w/"
 }
 # mutiere <Datei> <alt> <neu> — ersetzt genau eine Stelle (wörtlich) in der Kopie; trifft die
 # Ersetzung nichts oder mehr als eine Stelle, bricht die Gegenprobe ab.

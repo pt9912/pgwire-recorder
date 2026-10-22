@@ -6,6 +6,6 @@
 .PHONY: hook-gegenprobe
 
 hook-gegenprobe: ## Gegenprobe des Commit-Traegers: benannte Slice- und Welle-Kennungen
-	@bash tools/hook/commit-msg-gegenprobe.sh
+	@bash tools/dev/hook/commit-msg-gegenprobe.sh
 
 GEGENPROBEN_CONTAINER += hook-gegenprobe

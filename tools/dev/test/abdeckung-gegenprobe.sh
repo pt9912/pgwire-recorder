@@ -50,7 +50,8 @@
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
 
-skript="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/abdeckung.sh"
+gp_wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+skript="$gp_wurzel/tools/test/abdeckung.sh"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 fehler=0

@@ -20,7 +20,7 @@
 set -euo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-wurzel="$(cd "$hier/../.." && pwd)"
+wurzel="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "${arbeit:?}"' EXIT
 fehler=0

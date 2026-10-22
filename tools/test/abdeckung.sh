@@ -12,7 +12,7 @@
 # Gesamtzahl n einer geteilten Messung stimmt (nur, dass sie je Anforderung einheitlich
 # ist), und nicht, ob ein Teil zur richtigen Messmethode gehört.
 #
-# GEPRÜFT DURCH tools/test/abdeckung-gegenprobe.sh (Fallnamen dort):
+# GEPRÜFT DURCH tools/dev/test/abdeckung-gegenprobe.sh (Fallnamen dort):
 #   (1) Deklaration — nicht-gelesen, verschachtelt, leerzeile, hilfsfunktion, doppelt,
 #       dateiende, eingerueckt, ohne-trenner, gueltig-maskierung
 #   (2) Anforderung und Pfad — pfad, qa-happy, fa-messung, unbekannt,
