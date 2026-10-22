@@ -143,6 +143,42 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+Beginn: `date` am 2026-10-22 18:22:17 CEST (Zweig `impl-upstream-ext`, Basis `642f5f51`); Ende der Läufe 18:39 CEST. Server: PostgreSQL 17.11 (`POSTGRES_IMAGE` aus `harness/mk/integration.mk`).
+
+**Beleg je DoD-Punkt**
+
+| DoD | Befehl | Ausgabe |
+|---|---|---|
+| Liefer-Punkt 1 (Sync) und 2 (Flush), Vergleich an beiden Fixtures | `make test-integration` (voll) | `--- PASS:` für `TestE2ERecordEndeExtendedSync`, `TestE2ERecordEndeExtendedFlush`, `TestE2EReplayEndeExtendedSync`, `TestE2EReplayEndeExtendedFlush` (Phase 1) und `TestE2EOhnePostgresEndeExtendedSync`, `TestE2EOhnePostgresEndeExtendedFlush` (Phase 2); `run-integration-tests: gruen`, `EXIT=0 DAUER=193s`, 281 PASS, kein FAIL |
+| dasselbe, engster Lauf | `PGR_TESTS_1="TestE2ERecordEndeExtendedSync TestE2ERecordEndeExtendedFlush TestE2EReplayEndeExtendedSync TestE2EReplayEndeExtendedFlush" PGR_TESTS_2="TestE2EOhnePostgresEndeExtendedSync TestE2EOhnePostgresEndeExtendedFlush" bash tools/test/run-integration-tests.sh` | die sechs `--- PASS:`, `run-integration-tests: gruen` |
+| kein Flackern (§4, `in-progress` → `open`) | die zwei Aufzeichnungs-Tests mit `-test.count=30` gegen eine Instanz 17.11 | je 30 `--- PASS:`, kein FAIL |
+| Test wird rot, wenn die Fixture falsch ist | je Runde die Fixtures geändert (`touch`), engster Lauf, danach zurückgesetzt | siehe unten |
+| `make docs-check` | `make docs-check` | `d-check: 1404 Datei(en) geprüft, 0 Befund(e)` |
+| `make kopf-check`, `make abdeckung-check` | beide | Exit 0 |
+| Teile von `make gates` | `make lint` (46 s), `make test` (gofmt, `go vet -tags integration`, Unit-Tests, Abdeckung) | beide Exit 0; `make gates` fährt der Koordinator am Endstand |
+
+**Fixtures falsch** (Lauf je Runde nach Änderung von `ende-extended-sync.yaml` und `ende-extended-flush.yaml`):
+
+- Runde a: Sync-Fixture in der Fassung vor diesem Slice (Gruppe 2: `parse sync`, `parse_complete`, Fehlerantwort), Flush-Fixture mit `C: 57P02`. `TestE2ERecordEndeExtendedSync` rot: `Typenfolge der Session 1:` aufgezeichnet `… parse bind execute sync parse_complete bind_complete data_row error_response connection_closed`, Fixture `… parse sync parse_complete error_response connection_closed`. `TestE2ERecordEndeExtendedFlush` rot: `Feld C der Aufzeichnung "57P01", der Fixture "57P02"`. Dazu die zwei Replay-Tests rot (`parse weicht in sql ab` bzw. `C57P02`).
+- Runde b: Sync-Fixture ohne `data_row`, Flush-Fixture mit einem zusätzlichen `bind_complete` vor der Fehlerantwort. Beide Aufzeichnungs-Tests rot an der Typenfolge (`… bind_complete error_response …` fehlt `data_row` bzw. trägt ein `bind_complete` mehr), beide Replay-Tests rot (`12E` statt `12DE` bzw. `12E` statt `1E`).
+- Zurückgesetzt: `diff` gegen die Sicherung ohne Unterschied; danach der Lauf grün (`EXIT=0`).
+
+**Größe** (Befehl aus `AGENTS.md` §3.14, Pfade `test docs/user`, Basis `642f5f51`, Stand `e21c89a4`): 280 Zeilen (Marke 1500); davon `ende_extended_e2e_test.go` 202, `replay_ende_extended_e2e_test.go` 54, `abdeckung-e2e.md` 18, Fixture 6.
+
+**Abweichungen vom Plan**
+
+- Der Text der Parse-Nachricht der Gruppe mit Ende im Flush-Fall ist `SELECT 3 /* ende-extended-flush */` (`endeFlushSQL`), nicht `SELECT 3` der Fixture: die zweite Verbindung findet den Backend am Text (`query =` und `pid <> pg_backend_pid()`); der Text zählt im Vergleich nicht (§6). `TestE2EReplayEndeExtendedFlush` sendet weiter `SELECT 3`.
+- In der Sync-Fixture trägt die Gruppe mit Ende `beendeSQL` statt `SELECT 3` (zur `data_row` mit `t` passend); der Plan nennt den Text nicht.
+- Der Ablauf des Clients steht je Fall einmal (`endeSyncAblauf`, `endeFlushAblauf`); `TestE2EReplayEndeExtendedSync` nutzt ihn, damit Aufzeichnen und Wiedergeben dieselben Bytes senden (§3 nachgezogen).
+
+**Grenzen des Vergleichs**
+
+- Die Typenfolge enthält keine Gruppengrenzen (`client:`, `server:`), nur die `type:`-Werte (so §6): Eine Client-Nachricht, die über eine Grenze ohne Server-Nachricht dazwischen wandert, ändert die Folge nicht. In beiden Fixtures trägt jede Gruppe Server-Nachrichten; ein Test dafür fehlt.
+- Im Flush-Fall deckt die Sicht des Clients (`endeSicht`) nur die Fehlerantwort; die Bestätigungen vor ihr liest `bisTyp` (Typ `1`), den Rumpf (leer) vergleicht kein Test.
+- Alle Läufe gegen 17.11; andere Versionen sind nicht geprüft (§1, §6 Risiko 2).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
