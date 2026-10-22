@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-regeln-rueckbau
+**Fund:** Review F-1 (MEDIUM): Der Wortlaut von `AGENTS.md` §3.14 (Marke 1500, keine Meldeschwelle) ändert Punkt 6 der ADR zur Größen-Metrik („Pfade, Marke und Meldeschwelle“) und löst ihren Re-Evaluierungs-Trigger aus; weder der Plan noch die Regel nannte es. Behoben: ein Satz in §3.14 benennt die Änderung von Punkt 6 und den ausgelösten Trigger, ohne Folge-ADR, die ADR bleibt angenommen (Muster `AGENTS.md` §6 Punkt 6); Plan §1, §2 und §6 führen es. Quelle: Review-Bericht zu `slice-harness-regeln-rueckbau`.

@@ -1,4 +1,7 @@
-**Stand:** offen
+**Stand:** gestrichen
+
+Gestrichen am 2026-10-22 mit `slice-harness-regeln-rueckbau`, auf Entscheidung des Nutzers vom 2026-10-22 („ja“, so vom Koordinator übermittelt, Punkt 3: Marke eine Zahl mit dem Standard 1500, Faktor, 70-%-Schnitt, Meldeschwelle, Schätzung und Messzeile in §7 entfallen). Die Regel, die diese Klasse trug (der Absatz zu Schätzung, Faktor, Schnitt und Meldeschwelle in `AGENTS.md` §3.14 und der Satz dazu in `.claude/commands/plan-welle.md` Schritt 6), entfällt; sie hing an keiner bleibenden Regel, und kein Zähler wird gesetzt. Die Zielort- und Anker-Absätze darunter nennen den Stand vor dem Streichen. Begründung: Eine Meldeschwelle gibt es nicht mehr, also keine, die in keinem Artefakt steht, und keine Entscheidung nach einer Meldung ohne Ablage. Konsultation: 2 Dateien in `evidence/`, beide seit dem 2026-10-13, 0 von 10 zuletzt geschlossenen Slices; unter der Schwelle von 3× (`gestrichen` ist an sie nicht gebunden, fällt die Ursache vorher weg).
+
 
 1×; kein Ausgang. Ein Vorschlag an den Nutzer steht in `slice-v1-abschluss-tls-client` §7 (Lerneintrag): die Meldeschwelle neben der Marke in §4 des Plans nennen.
 
