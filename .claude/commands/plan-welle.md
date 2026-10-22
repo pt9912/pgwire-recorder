@@ -71,9 +71,10 @@ die Antwort und wird notiert.
    (`docs/plan/planning/open/slice-<NN>-<titel>.md`), dann füllen. Nie hand-authoren. **§8 des
    Plans trägt dieselbe Register-Sichtung noch einmal je Slice** (Modul 5, *Zwei Schritte vor der
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
-   dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice eine neue Wire-, Datei- oder
-   Formatgrenze oder den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/`, nennt §6
-   deren Randformen** (bei Option und Hilfetext ohne Wirkung auf den Record-/Replay-Pfad den Verweis auf die
+   dort ebenfalls eine Antwort und werden notiert. **Betrifft der Slice eine neue Wire-, Datei- oder
+   Formatgrenze, das Verhalten von `record`, `replay` und `play` (auch einer Option, die es ändert)
+   oder den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/`, nennt §6 deren
+   Randformen** (bei Option und Hilfetext ohne Wirkung auf den Record-/Replay-Pfad den Verweis auf die
    Geschwister-Regel; `AGENTS.md`
    §3.12, seit slice-harness-randformen-vor-code); entschieden werden sie vor dem Code, mit dem
    Architect. Trage die Marke von `AGENTS.md` §3.14 in §4 ein; geschnitten wird nach Liefer-Punkten

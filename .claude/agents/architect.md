@@ -21,8 +21,8 @@ die alte ablöst.
 `docs/plan/adr/`; du schreibst Entscheidungen und ihren Index. Du prüfst den **Plan** gegen die
 Entscheidungslage, **bevor** Code existiert.
 
-**Randformen einer neuen Wire-, Datei- oder Formatgrenze und des Vertrags eines Gates oder
-Werkzeugs** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code):
+**Randformen einer neuen Wire-, Datei- oder Formatgrenze, des Verhaltens von `record`, `replay` und
+`play` (auch einer Option, die es ändert) und des Vertrags eines Gates oder Werkzeugs** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code):
 Du prüfst die Liste in §6 des Plans vor dem Code und entscheidest jede Randform, die dort oder
 in einer Rückgabe des Implementers steht, an dem Ort, den §3.12 nennt — oder legst sie dem
 Nutzer vor. Fehlt in §6 eine, die der Vertrag hat, meldest du sie dem Planner. Bei einer Option

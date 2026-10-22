@@ -65,8 +65,7 @@ oder §3.13 gilt als HIGH oder MEDIUM nur mit Failure-Szenario, sonst als LOW (d
 - unklare Fehlerbehandlung am Rand des Spec-Bereichs
 - fehlende Negativtests bei neuem öffentlichem Vertrag; MEDIUM nur mit Failure-Szenario (eine Zusage
   des Vertrags bricht, ohne dass ein Test rot wird), sonst LOW
-- Wiederholung eines Musters, das schon zweimal LOW war; MEDIUM nur mit Failure-Szenario des
-  Musters, sonst LOW
+- Wiederholung eines Musters, das schon zweimal LOW war
 - **Randform im Code-Commit** — eine Randform erscheint im selben Commit wie eine
   Änderung an Code, Tests oder Gates neu in §6 des Slice-Plans, oder §6 weist sie dem
   Review statt dem Architect zu; MEDIUM nur mit Failure-Szenario, sonst LOW (Szenario: der Code

@@ -485,9 +485,10 @@ Entscheidung des Nutzers vom 2026-10-13. Die Metrik ist am 2026-10-21 nach
 (Entscheidung des Nutzers vom selben Tag). Jede Rückführungs-Marke in §4 eines Plans („zu groß, über
 N Zeilen mit Tests“) nennt ihre Metrik. **Die Marke ist 1500 Zeilen** (Entscheidung des Nutzers vom
 2026-10-22); eine andere Zahl nennt §4 mit ihrem Grund. Diese Entscheidung und der Wegfall der
-Meldeschwelle ändern Punkt 6 der ADR oben („Pfade, Marke und Meldeschwelle“) und lösen deren
-Re-Evaluierungs-Trigger „Nutzer ändert Marke oder Meldeschwelle“ aus; ein Folge-ADR entsteht nicht,
-die ADR bleibt angenommen, und für Punkt 6 gilt dieser Text. Gemessen wird mit
+Meldeschwelle ändern Punkt 6 der ADR oben („Pfade, Marke und Meldeschwelle“) und die Form in ihrer
+Zeile zur Fitness Function und lösen deren Re-Evaluierungs-Trigger aus (der Nutzer ändert Marke oder
+Meldeschwelle als Größen); ein Folge-ADR entsteht nicht, die ADR bleibt angenommen, und für Punkt 6
+gilt dieser Text. Gemessen wird mit
 
 ```
 git diff --numstat --find-renames=10% <Basis>..HEAD -- <Pfade des Plans> \

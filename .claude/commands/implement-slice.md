@@ -112,9 +112,10 @@ emittierten Durchsetzungsschicht):
 12. **Den Ist-Zustand gegen den Slice-Plan messen, bevor du editierst** (`grep`/`diff`, nicht
     `edit`) — Geschwister-Slices lassen Pläne altern (gelöschte Pfade, verschobene
     Lifecycle-Dateien). Drift zuerst abgleichen; keinen veralteten Plan blind abarbeiten.
-    Liefert der Slice eine neue Wire-, Datei- oder Formatgrenze (`AGENTS.md` §3.12) oder den Vertrag
-    eines Gates oder Werkzeugs unter `harness/vertraege/` und ist eine Randform in §6 nicht
-    entschieden, gilt die Randform-Rückgabe unten, bevor Code entsteht (`AGENTS.md` §3.12,
+    Betrifft der Slice eine neue Wire-, Datei- oder Formatgrenze (`AGENTS.md` §3.12), das Verhalten
+    von `record`, `replay` und `play` (auch einer Option, die es ändert) oder den Vertrag eines Gates
+    oder Werkzeugs unter `harness/vertraege/` und ist eine Randform in §6 nicht entschieden, gilt die
+    Randform-Rückgabe unten, bevor Code entsteht (`AGENTS.md` §3.12,
     seit slice-harness-randformen-vor-code).
 13. Die kleinste sinnvolle Änderung gegen die DoD planen. Erst planen, dann coden. Triffst du
     hier oder beim Implementieren auf eine Randform, die §6 nicht nennt (bei einer Option oder einem
