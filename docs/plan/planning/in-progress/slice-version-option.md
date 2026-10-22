@@ -89,7 +89,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik und Messbefehl: `AGENTS.md` §3.14; Pfade des Plans: `internal/adapters/driving/cli test docs/user`); die Basis ist der Commit des Übergangs nach `in-progress/`, sein Hash steht beim Übergang hier. Dann hält der Implementer an und meldet dem Planner.
+- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik und Messbefehl: `AGENTS.md` §3.14; Pfade des Plans: `internal/adapters/driving/cli test docs/user`); die Basis ist der Commit des Übergangs nach `in-progress/`, sein Hash: `49da54b6993287b9d1902b30aacef66e8afc4703`, Zweig `impl-version-option`. Dann hält der Implementer an und meldet dem Planner.
 - `in-progress` → `next`: **vorgemerkter Schnitt.** Zählt die Spezifikation als dritte Schicht (weil der Architect sie im Slice ändert, §3) oder entscheidet er ein Kurzoptionen-Schema (§1), geht der Handbuch-Teil in einen eigenen Slice `slice-version-option-doku` direkt dahinter (`AGENTS.md` §3.11 und §3.13, Schichtzählung); dieser Slice behält dann Parser, Tests und Hilfetext.
 - `in-progress` → `open`: Der Architect gibt eine Entscheidung zurück, die der Nutzer treffen muss und §6 nicht nennt — der Slice wartet nicht in `in-progress/`, er geht zurück und hält das WIP-Limit frei.
 
