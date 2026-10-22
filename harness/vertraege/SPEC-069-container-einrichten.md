@@ -484,14 +484,18 @@ der die Fassung ersetzt.
        `docker rm -fv` (die zwei Volumes und die zwei Images stehen noch) und die Liste nach dem Entfernen
        per Name (keines bleibt).
 
-    **Beleg** (Form wie [`SPEC-067`](SPEC-067-release.md) Punkt 20 (6)): eingefügter Text in §7 des
-    Slice-Plans — Datum, `uname -s`/`uname -m`, die Versionen von `docker version --format
-    '{{.Server.Version}}'`, `u-boot --version`, `devcontainer --version` und `git --version` des Hosts,
-    dann die Schritte 1 bis 5 mit ihren Ausgaben, darunter beide Exit-Codes aus 2 und 3 und die Zeile
-    `container-einrichten: eingerichtet …`. Gekürzt wird allein ein Geheimnis oder ein kurzlebiger Token,
-    mit der Marke `[gekürzt: <Grund>]` (Lesart von `SPEC-067` Punkt 20). Eine Angabe ohne diesen Text ist
-    eine Angabe der Koordination, kein Beleg; die Zusagen aus Punkt 17 (*akzeptiertes Negativ*) gelten dann
-    als nicht geprüft.
+    **Beleg** (Ort und Form wie [`SPEC-067`](SPEC-067-release.md) Punkt 20 (6), *Ort des Belegs*, Entscheidung des Nutzers
+    vom 2026-10-22): eine **eigene Datei** `docs/reviews/<YYYY-MM-DD>-nachweis-<Kennung des Slice>.md`. Ihr Kopf nennt Datum,
+    `uname -s`/`uname -m`, den Stand (Commit) und die Versionen von `docker version --format '{{.Server.Version}}'`, `u-boot --version`,
+    `devcontainer --version` und `git --version` des Hosts; danach stehen die Schritte 1 bis 5 mit ihren Ausgaben **ungekürzt**, darunter
+    beide Exit-Codes aus 2 und 3 und die Zeile `container-einrichten: eingerichtet …`. **§7 des Slice-Plans nennt** den Pfad der Datei,
+    ihre Summe nach `sha256sum`, die Zeile `container-einrichten: eingerichtet …` mit den beiden Exit-Codes und den Kopf (Datum, Stand,
+    Plattform); die Ausgabe selbst steht nicht in §7. Gekürzt wird allein ein Geheimnis oder ein kurzlebiger Token, mit der Marke
+    `[gekürzt: <Grund>]` (Lesart von `SPEC-067` Punkt 20). Eine Angabe ohne diese Datei ist eine Angabe der Koordination, kein Beleg; die
+    Zusagen aus Punkt 17 (*akzeptiertes Negativ*) gelten dann als nicht geprüft. [`ADR-0057`](../../docs/plan/adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md)
+    nennt in der Tabelle seiner Fitness Function noch „Beleg in §7 des Slice-Plans“; maßgeblich ist dieser Punkt (Rang 2 vor Rang 4), und die ADR wird dafür
+    nicht ersetzt (akzeptiertes Negativ; Grund: Die Zelle wiederholt eine Regel der Spezifikation, `AGENTS.md` §3.8, und eine Ersetzungs-ADR berichtigte
+    nur den Text).
 
     **Akzeptiertes Negativ, mit Grund:** Bricht der Nachweis zwischen Schritt 1 und Schritt 5 ab, bleibt ein
     Container des Präfixes `pgr-ce-` samt seinen Volumes **und seinen Images** stehen. Grund: Ohne Treiber fängt ihn keine Falle;
