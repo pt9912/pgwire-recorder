@@ -61,6 +61,7 @@
 | [0055](0055-gegenproben-haben-ein-zeitbudget.md) | Jede Gegenprobe hat eine Obergrenze von zehn Minuten für den vollen Lauf und räumt je Mutation auf | Accepted | — |
 | [0056](0056-groessen-metrik-misst-den-gelieferten-diff.md) | Die Größen-Metrik der Rückführungs-Marke misst den gelieferten Diff, nicht die Bücher des Slice | Proposed | — |
 | [0057](0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) | Die Einrichtung im Dev-Container ist ein Werkzeug im Repo; ihre Gegenprobe fährt ohne Container, der Lauf gegen einen echten Container ist ein Nachweis | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0058](0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md) | Die Zeitgrenze eines Rollenlaufs setzt ein deterministischer Wächter im Werkzeug-Aufruf durch | Proposed | — |
 
 ## Konventionen
 
@@ -111,3 +112,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0055](0055-gegenproben-haben-ein-zeitbudget.md) | Jede Gegenprobe hat eine Obergrenze von 600 s für den vollen Lauf (Entscheidung des Nutzers: höchstens zehn Minuten), räumt je Mutation auf und streicht keine Mutation (Accepted, 2026-10-21); ergänzt [0048](0048-gegenproben-verlassen-die-gate-kette.md), ersetzt keine ADR |
 | [0056](0056-groessen-metrik-misst-den-gelieferten-diff.md) | Berichtigt die Messung der Rückführungs-Marke aus `AGENTS.md` §3.14 (Planungsbaum und Reports fallen aus der Zählung, Basis und Messpunkt benannt, Umbenennungs-Schwelle gepinnt); die Schwellen selbst bleiben; ergänzt [0032](0032-kopf-sensor-fuer-slice-plaene.md), ersetzt keine ADR |
 | [0057](0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) | Werkzeug `container-einrichten` im Repo, Gegenprobe mit Attrappen ohne Container, Lauf gegen einen echten Container als Nachweis (Accepted, 2026-10-21); ergänzt [0045](0045-container-start-als-werkzeug-im-repo.md), [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) und [0055](0055-gegenproben-haben-ein-zeitbudget.md) und folgt für den Nachweis [0051](0051-veroeffentlichung-auf-github-actions.md), ersetzt keine ADR |
+| [0058](0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md) | Hook im Werkzeug-Aufruf begrenzt einen Rollenlauf auf eine Stunde (Proposed, 2026-10-22); ergänzt [0055](0055-gegenproben-haben-ein-zeitbudget.md) (Zeit der Gegenprobe) und [0038](0038-gate-kette-voll-und-schnell.md) (Hooks dieses Repos) um eine zusätzliche Grenze über dem Lauf, ersetzt keine ADR |
