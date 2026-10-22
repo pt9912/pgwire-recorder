@@ -122,7 +122,7 @@ emittierten Durchsetzungsschicht):
 ## Implementieren und gaten (Modul 9, Schritte 5–6)
 
 14. Die kleinste sinnvolle Änderung implementieren.
-15. Zuerst den engsten nützlichen Gate laufen lassen (z. B. eine Testdatei / ein Gate). Bei `release-gegenprobe` und `test-container-gegenprobe` heißt das bis zur Lieferung von `slice-harness-gegenproben-schneller`: den engsten Fall mit `GP_MUT=<Muster>`; den vollen Lauf fährt der Verifier einmal am Endstand (`AGENTS.md` §6 Punkt 6).
+15. Zuerst den engsten nützlichen Gate laufen lassen (z. B. eine Testdatei / ein Gate). Bei `release-gegenprobe` und `test-container-gegenprobe` heißt das bis zur Lieferung von `slice-harness-gegenproben-schneller`: den engsten Fall mit `GP_MUT=<Muster>`; auch der Verifier fährt nur den engsten Fall, keinen vollen Lauf (`AGENTS.md` §6 Punkt 6).
 16. `make gates` laufen lassen.
 
 **Plan-Defekt-Rücksprungkanten (Modul 9):** ein roter Sensor (15) oder rotes Gate (16) führt
