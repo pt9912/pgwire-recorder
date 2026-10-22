@@ -1,6 +1,8 @@
-**Stand:** geplant — Kennung: `slice-harness-schaetzung-planner-faktor`
+**Stand:** verkörpert
 
-Bisherige Verkörperung (gilt weiter): `AGENTS.md §3.14` (Metrik der Rückführungs-Marke; der Architect schätzt in ihr und rechnet für Tabellen- und Gegenprobe-Code mit rund dem Doppelten des Produktcodes) — Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-liste` (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`; Entscheidung des Nutzers vom 2026-10-13: Zuweisung `verkörpert`, Zielort §3.14).
+Zielort: `AGENTS.md §3.14` und `.claude/commands/plan-welle.md Schritt 6` (Schätzung des Planners beim Anlegen und beim Schnitt in der Metrik der Marke, Faktor Tests zu Produktcode mit Beleg, mindestens 5 bei einer Tabelle von Randformen; Schnitt vor dem Anspruch bei einer Mitte der Schätzung über 70 % der Marke, auch je Hälfte nach einem Schnitt; Meldeschwelle neben der Marke in §4; Entscheidung nach einer Meldung als datierte Zeile; Zählung nach der Obergrenze der Schätzspanne; der Architect rechnet mit dem Faktor des Planners) — Herkunfts-Anker `seit slice-harness-schaetzung-planner-faktor` (Entscheidung des Nutzers vom 2026-10-22 zur Substanz; Beleg: Closure-Notiz des Slice) und `seit slice-harness-gate-kette-stop-hook-liste` (Metrik der Marke).
+
+Die Absätze unten nennen den Stand vor der Lieferung, darunter „rund dem Doppelten des Produktcodes“: Sie beschreiben, was der jeweilige Beleg vorfand, nicht den Zielort.
 
 Drittes Auftreten mit `slice-harness-gate-kette-stop-hook-liste`: Der Nutzer hat die Zuweisung am 2026-10-13 entschieden. Der Retirement-Check von §3.14 gilt für diese Beobachtung mit: Ist sie seit `slice-harness-gate-kette-stop-hook-liste` wieder aufgetreten?
 
@@ -19,3 +21,5 @@ Kein Auftreten, Vermerk (Urteil des Planners, `slice-v1-abschluss-container`, 20
 Kein Auftreten, Vermerk (Urteil des Planners, `slice-erster-release-veroeffentlichung`, 2026-10-19): Die Größe des ungeteilten Slice (1970 bis 2570 gegen die Marke 1800) war vor dem Anspruch sichtbar, der Schnitt in A und B lief davor; A überschritt seine Marke 1300 erst in der Messung (1425, siehe `schaetzung-in-zeilen-unterschaetzt-tests`). Kein Evidence, der Zähler bleibt.
 
 Auftreten trotz der Regel (Urteil des Planners, `slice-harness-devcontainer-einrichten`, 2026-10-21; Beleg `evidence/slice-harness-devcontainer-einrichten.md`): Die Schätzung des Planners beim Anlegen (565 bis 830, unter der Marke 900) wurde von der Prüfung des Architect auf 815 bis 1210 berichtigt, bevor der Code begann; nach dem Schnitt des Dokument-Teils (745 bis 1090) lag die obere Hälfte weiter über der Marke, gemessen 1407. Retirement-Check von §3.14: ja, die Beobachtung ist seit `slice-harness-gate-kette-stop-hook-liste` wieder aufgetreten (zum zweiten Mal trotz der Regel, nach `slice-v1-abschluss-verbindungsende-format`). Der Zähler steht bei 5; Stand `geplant` bleibt mit `slice-harness-schaetzung-planner-faktor`.
+
+Risiko aus §6 von `slice-harness-schaetzung-planner-faktor`, Ausgang *weiter offen*, hier geführt (2026-10-22): Die Regel ist Prosa ohne Sensor; ein Plan ohne Faktor oder Meldeschwelle bleibt unbemerkt, bis das Review ihn findet. Ein Auftreten **trotz** der Regel macht den Sensor fällig (Form von §4: Pfade, Marke, Meldeschwelle, Faktor, Zeiger auf §3.14).

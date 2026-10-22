@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-schaetzung-planner-faktor
+**Fund:** Review F-2 (LOW): Das Falsch des neuen Paars in `AGENTS.md` §3.14 nannte 1000, 650 bis 1000, 82,5 % und 850 bis 1250 ohne Slice und ohne Spanne; nachmessen ließ sich das Beispiel nur über das Register. Behoben: Eine Herkunftszeile hinter dem Richtig, wie das Paar des Gebers sie trägt; sie nennt den Commit `690e353c` statt `99eebb97`, weil nur jener alle Zahlen des Falsch trägt (gemessen). Quelle: Review- und Verifikations-Report zu `slice-harness-schaetzung-planner-faktor`, Closure-Notiz (Planner, 2026-10-22).

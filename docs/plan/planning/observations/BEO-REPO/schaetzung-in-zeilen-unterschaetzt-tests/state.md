@@ -1,6 +1,8 @@
-**Stand:** geplant — Kennung: `slice-harness-schaetzung-planner-faktor`
+**Stand:** verkörpert
 
-Bisherige Verkörperung (gilt weiter): `AGENTS.md §3.14` (Metrik der Rückführungs-Marke; der Architect schätzt in ihr und rechnet für Tabellen- und Gegenprobe-Code mit rund dem Doppelten des Produktcodes) — Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-liste` (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`; Entscheidung des Nutzers vom 2026-10-13 „Regel in AGENTS.md aufnehmen“).
+Zielort: `AGENTS.md §3.14` und `.claude/commands/plan-welle.md Schritt 6` (Schätzung des Planners beim Anlegen und beim Schnitt in der Metrik der Marke, Faktor Tests zu Produktcode mit Beleg, mindestens 5 bei einer Tabelle von Randformen; Schnitt vor dem Anspruch bei einer Mitte der Schätzung über 70 % der Marke, auch je Hälfte nach einem Schnitt; Meldeschwelle neben der Marke in §4; Entscheidung nach einer Meldung als datierte Zeile; Zählung nach der Obergrenze der Schätzspanne; der Architect rechnet mit dem Faktor des Planners) — Herkunfts-Anker `seit slice-harness-schaetzung-planner-faktor` (Entscheidung des Nutzers vom 2026-10-22 zur Substanz; Beleg: Closure-Notiz des Slice) und `seit slice-harness-gate-kette-stop-hook-liste` (Metrik der Marke).
+
+Die Absätze unten nennen den Stand vor der Lieferung, darunter „rund dem Doppelten des Produktcodes“: Sie beschreiben, was der jeweilige Beleg vorfand, nicht den Zielort.
 
 Weiter offen, kein Auftreten (Urteil des Planners, `slice-v1-abschluss-sessions`): Geschätzt 1400 bis 1900 Zeilen mit Tests (Architect, ohne Abdeckungstabellen), gemessen 2115 (Summe unter `internal` und `test`, Metrik in §4 jenes Plans). Die Messung liegt über der Obergrenze, aber die Schwelle von 2200 wurde nicht überschritten, und die Abweichung liegt bei einem Zehntel, nicht bei der Hälfte; der Spielraum zur Schwelle war für sie gemeint. Zählte der Nutzer sie mit, wäre es das dritte Auftreten ohne Regel.
 
