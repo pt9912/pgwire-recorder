@@ -14,9 +14,15 @@ Kennung wiederholt ihn nicht.
 (siehe .claude/agents) und commands -- max. 1 Stunde“. Dazu gehören aus derselben Entscheidung: Bei der Grenze hält der Lauf an,
 committet, pusht in das Austausch-Repo und berichtet, ohne Abbruch und ohne Rücknahme von Arbeit; und sein „ok“ vom selben Tag auf den
 Entwurf des Mechanismus: ein deterministischer `PreToolUse`-Hook (bash und awk, wie `pretooluse-command-guard.sh`), kein
-Hintergrundprozess, Datenquelle die vorhandene Erfassung. **Empfehlung des Architect bis zur Annahme von [ADR-0058](../../docs/plan/adr/0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md)** sind die Wahl der Mittel
-darunter: Sperrmenge, Fail-Richtung, Anker, Wanduhr, Wege über die Grenze, Umgang mit den pflichtigen Läufen
-(Punkte 2 bis 10).
+Hintergrundprozess, Datenquelle die vorhandene Erfassung. [ADR-0058](../../docs/plan/adr/0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md) ist **angenommen**: Entscheidung des
+Nutzers vom 2026-10-22, Wortlaut „adr accept“. Damit gilt die Wahl der Mittel darunter: Sperrmenge, Fail-Richtung, Anker, Wanduhr, Wege
+über die Grenze, Umgang mit den pflichtigen Läufen (Punkte 2 bis 10). **Geltungsbereich**, bestätigt in einer eigenen Entscheidung
+des Nutzers vom 2026-10-22 (Wortlaut „2. ja“ auf die Frage der Koordination, ob der Wächter nur für Rollenläufe gilt und Commands und Hauptsitzung im
+Regeltext als nicht erzwungen stehen): Der Hook deckt Rollenläufe; Commands und Hauptsitzung sind nicht erzwungen (Punkt 2, Grenze 12 (1)).
+Ein Anker für sie wäre eine eigene Entscheidung (Folgepflicht der ADR). **Grenze bleibt, was noch kein Lauf belegt und kein Fall der
+Gegenprobe zeigt** (Grenze 12 (7), Nachweis Punkt 13): dass die Eingabe von `PreToolUse` `agent_id` trägt (im Quelltext von Claude Code 2.1.306 gelesen,
+nicht beobachtet), dass `decision: block` an dieser Stelle greift, ob und wo Claude Code stderr bei Exit 0 anzeigt und was bei überschrittenem
+`timeout` geschieht. Die Zusagen unten gelten für den Hook, wie ihn die Gegenprobe zeigt, nicht für das Verhalten von Claude Code.
 
 **Was er nicht ist.** Er beendet keinen Lauf, nimmt keine Arbeit zurück, schreibt keine Zeile in den Strom
 und keine Datei (Leser, Punkt 1) und gilt nicht für die Hauptsitzung (Punkt 2, Grenze 12 (1)). Er ändert weder
@@ -24,8 +30,8 @@ und keine Datei (Leser, Punkt 1) und gilt nicht für die Hauptsitzung (Punkt 2, 
 Stop-Hook, noch die Zeitgrenze von 600 s je Gegenprobe ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16); die
 Stunde ist eine **zusätzliche** Grenze über dem Lauf.
 
-**Plattform** (`AGENTS.md` §3.12). Zugesagt und geprüft ist **Linux** (der Dev-Container und der
-Gegenproben-Container; bash ≥ 4, `awk` nach POSIX, GNU `date`, `env` und `timeout`). Der Hook läuft, wo Claude Code
+**Plattform** (`AGENTS.md` §3.12). Zugesagt und geprüft ist **Linux** (die Gegenprobe im Gegenproben-Container
+und im Dev-Container, der Nachweis nach Punkt 13 an dem Host, auf dem der Agent läuft; bash ≥ 4, `awk` nach POSIX, GNU `date`, `env` und `timeout`). Der Hook läuft, wo Claude Code
 läuft; die drei Betriebssysteme von [`LH-QA-03`](../../spec/lastenheft.md#lh-qa-03--portabilität) gelten dem
 Produkt, nicht diesem Werkzeug. **macOS und Windows sind nicht zugesagt** (Grenze; Grund: kein solcher Host
 steht zur Messung bereit). Plattformabhängig sind genau drei Dinge, und der Hook nutzt von jedem nur den
@@ -68,7 +74,7 @@ und hat nie einen Start. 132 Ströme tragen mehr als einen Start (307 spätere S
 einer Zeile des Werkzeugs `SubagentHandback`): ein fortgesetzter Agent schreibt einen neuen Start in denselben
 Strom. Vom **letzten** Start bis zur letzten Zeile des Stroms dauern 10 von 849 Läufen länger als eine Stunde,
 vom **ersten** Start an 100 Ströme (längster: vier Tage). Bash-Aufrufe: 32 472, die längste Dauer 601 s, 88
-Aufrufe mit mindestens 600 s (das Zeitlimit des Werkzeugs).
+Aufrufe mit mindestens 600 s (vermutlich eine Obergrenze des Werkzeugs; nicht zugesagt).
 **Gelesen** im Quelltext der installierten Fassung von Claude Code (2.1.306, Zeichenketten des Binaries): Die
 Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `transcript_path`, `cwd`,
 `permission_mode`, `agent_id`, `agent_type` …) mit `hook_event_name`, `tool_name`, `tool_input`, `tool_use_id`;
@@ -169,8 +175,7 @@ Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `tra
    `Grep`, `Glob`, `SubagentHandback`, `git commit`, `git push`, `git status`, `git diff`, `git log`, `git mv`, `git add`, der unbekannte Name); die Wortgrenze ohne `-`
    (färbt `p5-strichwort`), ohne `.` (färbt `p5-strichwort` und `p5-punkt-wort`); die Wortgrenze verlangt Leerraum davor (färbt `p5-pfad-make`, `p5-wort-in-message`, `p5-wort-in-ssh`); die Prüfung
    liest nur die erste Zeile des Befehls (färbt `p5-zeilenumbruch`); ein Wort in Anführungszeichen wird ausgenommen (färbt `p5-wort-in-message`, `p5-wort-in-ssh`).
-6. **Ausgabe und Exit-Code.** Im Fall „frei“ gibt der Hook **nichts** auf stdout aus (keine Ausgabe heißt: die normale Berechtigungsprüfung übernimmt; ein `approve` übersprünge
-   sie). Im Fall „gesperrt“ gibt er auf stdout **genau eine Zeile** aus, ein JSON-Objekt in der Form des Wächters nach §3.1 (`{"decision":"block","reason":"<Text>"}`), und `<Text>` ist
+6. **Ausgabe und Exit-Code.** Im Fall „frei“ gibt der Hook **nichts** auf stdout aus (wie beim Wächter nach §3.1; was Claude Code mit einer leeren Ausgabe tut, ist nicht zugesagt, Grenze 12 (7)). Im Fall „gesperrt“ gibt er auf stdout **genau eine Zeile** aus, ein JSON-Objekt in der Form des Wächters nach §3.1 (`{"decision":"block","reason":"<Text>"}`), und `<Text>` ist
    dieser, Zeichen für Zeichen, auf einer Zeile:
 
    ```
@@ -210,9 +215,9 @@ Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `tra
    Überschreitung tut, ist nicht zugesagt (Grenze 12 (7)). Die Zeit wächst mit dem Strom, ohne dass über seine Größe etwas zugesagt ist; gemessen: Das Suchen des Ankers in einem Strom von 5 MB (11 166 Zeilen, das
    Sechsfache des größten Stroms des Bestands) dauert 21 ms. (4) **Worktree und Container:** Die Erfassung ordnet `slice`, `branch` und `commit` dem Zustand des Hauptbaums zu
    (`BEO-REPO/span-zuordnung-folgt-dem-hauptbaum-nicht-dem-klon`); der Hook braucht nur den **Ort** des Stroms und den **Beginn**, beides hängt nicht an diesen Feldern, und er ist von dieser Beobachtung nicht
-   betroffen. Läuft Claude Code im Hauptbaum und arbeitet der Agent in einem Worktree oder im Klon eines Dev-Containers (Aufrufe über `ssh`), schreiben Emitter und Hook am selben Ort. Läuft eine Sitzung **in** einem
-   Worktree ohne `.harness/state/bin/` (gitignored), schreibt der Emitter nichts, und der Hook schweigt mit `kein-verzeichnis` oder `kein-strom`. Läuft Claude Code im Dev-Container, gilt dieselbe Regel für den
-   Container. Geprüft ist keiner dieser Orte durch die Gegenprobe (sie läuft ohne Claude Code); den Beleg im Agentenlauf trägt Punkt 13. (5) **Aufruf-Voraussetzung:** Der Hook hat keinen Zustand und sagt keine Ordnung über
+   betroffen. Läuft Claude Code im Hauptbaum und arbeitet der Agent in einem Worktree oder im Klon eines Dev-Containers (Aufrufe über `ssh`), lesen Hook und Emitter dieselbe Wurzel nach (1); wo Claude Code `CLAUDE_PROJECT_DIR` setzt, ist nicht zugesagt. Läuft eine Sitzung **in** einem
+   Worktree ohne `.harness/state/bin/` (gitignored), schreibt der Emitter nichts, und der Hook schweigt mit `kein-verzeichnis` oder `kein-strom`. Läuft Claude Code im Dev-Container, gilt dieselbe Regel (1) für den
+   Container; geprüft ist das nicht. Geprüft ist keiner dieser Orte durch die Gegenprobe (sie läuft ohne Claude Code); den Beleg im Agentenlauf trägt Punkt 13, und nur für den Ort, an dem er läuft. (5) **Aufruf-Voraussetzung:** Der Hook hat keinen Zustand und sagt keine Ordnung über
    mehrere Aufrufe zu; Aufrufe einer Session nacheinander und gleichzeitig (parallele Werkzeug-Aufrufe eines Agenten) sind zugesagt, weil er nur liest; ein Start, den der Emitter in dem Augenblick schreibt, in dem der Hook liest, ist
    eine abgeschnittene Zeile (Punkt 3 (g)), und eine Entscheidung auf dem vorigen Start ist die Folge (akzeptiertes Negativ; Grund: ein Fenster von Mikrosekunden, und der Fall trifft nur den ersten Aufruf nach einer Fortsetzung).
    Fälle: `p8-wurzel-projektdir` (Strom nur unter `$CLAUDE_PROJECT_DIR`, anderes Arbeitsverzeichnis: wie Punkt 3), `p8-wurzel-ort-der-datei` (`CLAUDE_PROJECT_DIR` leer, Hook als `<wurzel>/.claude/hooks/…` im Temp-Baum: gesperrt),
@@ -242,7 +247,7 @@ Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `tra
 11. **Plattform.** Siehe den Kopf dieser Kennung. Je Plattform von `LH-QA-03`: Linux geprüft, macOS und Windows Grenze (keine Zusage, kein Fall). Ein Satz in einem Handbuch über die Zeitgrenze nennt nur Linux (§3.11).
 12. **Grenzen.** (1) **Die Hauptsitzung** hat keinen `SubagentStart` und damit keinen Beginn: Ein Command, das in ihr läuft (`.claude/commands/`), ist nicht begrenzt. Das Budget des Nutzers nennt „rollen und commands“;
     diese Kennung deckt die Rollen. Ein Anker für die Hauptsitzung ist eine eigene Entscheidung ([ADR-0058](../../docs/plan/adr/0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md), Folgepflicht), nicht ein Zusatz dieses Hooks. (2) **Innerhalb eines laufenden Vordergrund-Befehls** feuert kein
-    Hook; die Zusage lautet darum „beim ersten Aufruf ab der Grenze“, nicht „nach einer Stunde“. Die Überschreitung ist durch das Zeitlimit des Werkzeugs begrenzt (gemessen: längster Bash-Aufruf 601 s), ein Befehl im
+    Hook; die Zusage lautet darum „beim ersten Aufruf ab der Grenze“, nicht „nach einer Stunde“. Wie lange die Überschreitung dauern kann, ist nicht zugesagt (gemessen: längster Bash-Aufruf 601 s von 32 472; ein Zeitlimit des Werkzeugs ist dessen Sache), ein Befehl im
     Hintergrund läuft weiter; der Hook beendet keinen Prozess (Abbruch ist nicht gewollt: ein Wächter, der einen Lauf tötet, verlöre den Bericht). (3) **Der Hook wirkt nur, wo die Erfassung liegt** (Punkt 7, 8). (4) **Denkzeit:**
     Zeit, in der ein Agent kein Werkzeug aufruft, feuert keinen Hook; ein Lauf, der lange nur denkt, bemerkt die Grenze beim nächsten Aufruf. (5) **Stolperdraht, keine Sandbox:** Ein Befehl, der das Wort umgeht (`m""ake`, ein Skript,
     `bash -c`, `ssh`-Skript, das `make` erst darin nennt), und das Werkzeug `Monitor` werden nicht erkannt; der Strom liegt gitignored und nicht zugriffsbeschränkt (`harness/erfassung-feldliste.md`), und wer ihn

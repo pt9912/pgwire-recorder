@@ -1,6 +1,6 @@
 # ADR-0058: Die Zeitgrenze eines Rollenlaufs setzt ein deterministischer Wächter im Werkzeug-Aufruf durch
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-22
 
@@ -74,5 +74,7 @@ Wenn die Selbstauskunft des Hooks in Läufen auftaucht, in denen die Erfassung d
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-22 | Proposed (Empfehlung des Architect; Entscheidungen des Nutzers vom 2026-10-21 und 2026-10-22) | `docs/plan/planning/open/slice-harness-rollenlauf-zeitgrenze.md` |
+| 2026-10-22 | Accepted (Entscheidung des Nutzers, Wortlaut „adr accept“) | Vorlage der Koordination am 2026-10-22 |
+| 2026-10-22 | Geltungsbereich bestätigt (Entscheidung des Nutzers, Wortlaut „2. ja“ auf die Frage der Koordination, ob der Wächter nur für Rollenläufe gilt und Commands und Hauptsitzung im Regeltext als nicht erzwungen stehen) | Frage 2 der Koordination am 2026-10-22 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen entstehen als neue ADR mit `Supersedes ADR-0058`.
