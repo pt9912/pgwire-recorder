@@ -197,7 +197,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`). Hier stehen:
 - **Belege des Implementers:** die Mutationstabelle je Zusage der ersten Stufe von `SPEC-070` (Zusage · Mutation · roter Fall), die Zeit des vollen Gegenprobe-Laufs, und der **Nachweis im Agentenlauf** — Pfad der Datei unter `docs/reviews/`, ihre Summe nach `sha256sum`, die Zeile mit dem Exit-Code und der Kopf (Datum, Stand, Plattform, Fassung von Claude Code), nicht die Ausgabe.
 - **Steering-Loop-Eintrag:** —
 - **Beobachtungs-Register (`../observations/`):** ein weiterer Beleg in `BEO-REPO/rollenlauf-ohne-zeitgrenze` (`evidence/slice-harness-rollenlauf-zeitgrenze.md`); `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` um die gemessene Zeit ergänzt.
-- **Folge-Slices:** `slice-harness-rollenlauf-zeitgrenze-regel`, `slice-harness-rollenlauf-zeitgrenze-haertung`, `slice-harness-rollenlauf-wiederholungsgrenze` (Dateien in `open/` oder `done/`).
+- **Folge-Slices:** `slice-harness-rollenlauf-zeitgrenze-regel`, `slice-harness-rollenlauf-zeitgrenze-haertung`, `slice-harness-rollenlauf-wiederholungsgrenze` (Dateien in `open/`, `next/` oder `done/`).
 - **Risiken aus §6:** jedes mit genau einem Ausgang — siehe §6.
 - **Drei Paarungen:** Anker · Folge-Slice · Register, Ergebnis.
 
