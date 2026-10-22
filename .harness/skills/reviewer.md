@@ -23,7 +23,9 @@ die er prüft*.
 ## Klassifikation
 
 Jeder Anker HIGH/MEDIUM/LOW hat eine *konkrete* Liste — nicht generisch. INFO ist
-bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
+bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal). Ein Verstoß gegen `AGENTS.md` §3.10, §3.12
+oder §3.13 gilt als HIGH oder MEDIUM nur mit Failure-Szenario, sonst als LOW (letzter Eintrag
+unter LOW).
 
 **HIGH** — eines der folgenden:
 - ADR-Verstoß (Layer, Tool, Hard Rule)
@@ -38,13 +40,14 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   oder Skript beschreibt die verworfene Alternative („Ohne X wäre …"), einen
   abwesenden Text („früher stand hier …") oder bricht mitten im Satz ab, weil
   eine Teilersetzung den Rest stehen ließ. Kein Gate fängt das (siehe
-  Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt)
+  Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt); HIGH nur mit
+  Failure-Szenario, sonst LOW
 - **Zustandsfeld trägt Chronik** — eine `Stand`-/`Status`-Zelle (Roadmap,
   Beobachtungs-Register, Meilenstein) erzählt, wie der Zustand entstand, statt
   Zustand und Beleg als Anker zu nennen; oder ein Drift-Log protokolliert
   Schließungen und erreichte Meilensteine. Kein Gate fängt das (siehe
   Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt,
-  *Dieselbe Regel für Zustandsfelder*)
+  *Dieselbe Regel für Zustandsfelder*); HIGH nur mit Failure-Szenario, sonst LOW
 - **Spec-Stratum nennt Artefakt unterhalb oder außerhalb** — Lastenheft,
   Spezifikation oder Architektur nennen eine ADR, einen Slice, eine Welle, einen
   Commit oder (Lastenheft) die darunterliegenden Spec-Dateien; die Sicht trägt
@@ -63,28 +66,35 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - Wiederholung eines Musters, das schon zweimal LOW war
 - **Randform im Code-Commit** — eine Randform erscheint im selben Commit wie eine
   Änderung an Code, Tests oder Gates neu in §6 des Slice-Plans, oder §6 weist sie dem
-  Review statt dem Architect zu; mindestens MEDIUM, gegen `AGENTS.md` §3.12
+  Review statt dem Architect zu; MEDIUM nur mit Failure-Szenario, sonst LOW (Szenario: der Code
+  entscheidet die Randform anders, als die Spezifikation sie verlangt), gegen `AGENTS.md` §3.12
   (seit slice-harness-blackbox-kern)
 - **Adresse nimmt nicht an** — der Diff nennt einen anderen Slice neu oder geändert als
   Adresse (Folge-Slice, Risiko-Ausgang *eingetreten*, Register *geplant*, Abgrenzung der
   Klasse 1), und §1 oder DoD des Nehmers führt die Sendung nicht mit der Kennung des
   Gebers, ein Punkt unter *Ausdrücklich NICHT* trifft sie, oder der Nehmer liegt in
-  `done/`. Jede solche Adresse wird gegen §1 und DoD des Nehmers gelesen; mindestens
-  MEDIUM, gegen `AGENTS.md` §3.13 (seit slice-lint-bestand-kern-driven)
+  `done/`. Jede solche Adresse wird gegen §1 und DoD des Nehmers gelesen; MEDIUM nur mit
+  Failure-Szenario, sonst LOW (Szenario: die Sendung erreicht ihren Nehmer nicht, weil ein
+  Ausschluss sie trifft oder der Nehmer in `done/` liegt), gegen `AGENTS.md` §3.13
+  (seit slice-lint-bestand-kern-driven)
 - **Äquivalenter Mutant ohne Invariante, Ort oder Sonde** — §7 führt einen grünen Mutanten als
   äquivalent, und Invariante, der Ort, der sie erzwingt, oder die Sonde mit Lauf fehlt; der Reviewer
-  sondiert jeden so geführten Mutanten mit einer Eingabe, an die der Autor nicht dachte. Mindestens
-  MEDIUM, gegen `AGENTS.md` §3.10 (seit welle-v1-abschluss)
+  sondiert jeden so geführten Mutanten mit einer Eingabe, an die der Autor nicht dachte. MEDIUM nur
+  mit Failure-Szenario, sonst LOW (Szenario: die Sonde des Reviewers trennt Original und Mutant),
+  gegen `AGENTS.md` §3.10 (seit welle-v1-abschluss)
 - **Nehmer nicht nachgezählt** — der Diff trägt eine Sendung in einen Nehmer ein (§1 oder
   DoD des Nehmers), und §8 des Nehmers nennt die Zählung seiner Liefer-Punkte und
   Schichten mit der Sendung nicht im selben Commit, oder der Nehmer liegt mit ihr über drei Liefer-Punkten
   oder zwei Schichten. Gezählt wird nach Baseline-Regelwerk `modul-05-planning-harness.md`
-  §Ziel-Form: Slice; mindestens MEDIUM, gegen `AGENTS.md` §3.13 *Nachzählen beim
-  Eintragen* (seit slice-v1-abschluss-einspielen)
+  §Ziel-Form: Slice; MEDIUM nur mit Failure-Szenario, sonst LOW (Szenario: der Nehmer liegt mit
+  der Sendung über drei Liefer-Punkten oder zwei Schichten), gegen `AGENTS.md` §3.13
+  *Nachzählen beim Eintragen* (seit slice-v1-abschluss-einspielen)
 
 **LOW** — *mit Konventions-Anker* (ADR, Hard Rule, Linter-Regel, Eintrag im
 Reviewer-Skill): stilistisch unschön ohne semantische Auswirkung, einmalige
 Tippfehler, unbenutzte Imports.
+- Verstoß gegen `AGENTS.md` §3.10, §3.12 oder §3.13 ohne Failure-Szenario (Entscheidung des Nutzers
+  vom 2026-10-22; seit slice-harness-regeln-rueckbau)
 
 **INFO** — Hinweis ohne erwartete Aktion (z. B. „diese Stelle hat ein passendes
 ArchUnit-Pendant, das du nicht kennst").

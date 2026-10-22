@@ -71,12 +71,12 @@ die Antwort und wird notiert.
    (`docs/plan/planning/open/slice-<NN>-<titel>.md`), dann füllen. Nie hand-authoren. **§8 des
    Plans trägt dieselbe Register-Sichtung noch einmal je Slice** (Modul 5, *Zwei Schritte vor der
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
-   dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice einen neuen Vertrag, nennt
-   §6 dessen Randformen** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code);
-   entschieden werden sie vor dem Code, mit dem Architect. Schätze den Umfang beim Anlegen und beim
-   Schnitt in der Metrik von `AGENTS.md` §3.14, nenne den Faktor Tests zu Produktcode mit Beleg und
-   trage Marke und Meldeschwelle in §4 ein; liegt die Mitte der Schätzung über 70 % der Marke,
-   schneide vor dem Anspruch (`AGENTS.md` §3.14, seit slice-harness-schaetzung-planner-faktor).
+   dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice eine neue Wire-, Datei- oder
+   Formatgrenze oder den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/`, nennt §6
+   deren Randformen** (bei Option und Hilfetext den Verweis auf die Geschwister-Regel; `AGENTS.md`
+   §3.12, seit slice-harness-randformen-vor-code); entschieden werden sie vor dem Code, mit dem
+   Architect. Trage die Marke von `AGENTS.md` §3.14 in §4 ein; geschnitten wird nach Liefer-Punkten
+   und Schichten, nicht nach einer Schätzung in Zeilen.
    **Verlangt ein DoD-Punkt einen Beleg
    des Implementers** (Mutationstabelle, Befundzeilen vorher und nachher, Läufe), nennt er als
    Ort §7 des Slice-Plans, nicht „im Bericht“ (seit slice-harness-blackbox-kern). **Nennt der

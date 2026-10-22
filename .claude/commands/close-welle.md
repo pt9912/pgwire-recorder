@@ -75,6 +75,8 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
    (`seit welle-<NN>`). Der Ausgang steht danach in seiner `state.md`, das Verzeichnis bleibt liegen;
    *gestrichen* trägt dieselbe `state.md`, mit Begründung — still löschen macht die Beobachtung
    ununterscheidbar von einer, die es nie gab.
+   Zugleich rechnet der Planner die Rate je fortgeschriebener Klasse, die eine eigene Regel von
+   `AGENTS.md` trägt, nach §3.15 und legt dem Nutzer vor, was über 0,5 liegt.
    Erreicht kein Eintrag 3×, ist *„kein Eintrag über der Schwelle"* die Feststellung, die in die
    Results-Notiz gehört — Auslassen ist keine Antwort. Was **unter** 3× steht, liest diese Closure
    **nicht**; dafür ist der Sichtungs-Schritt der Slice-Planung zuständig (`/plan-welle`).

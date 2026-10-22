@@ -191,9 +191,7 @@ Commit §1 (Ziel und Abgrenzung), §3 (Plan) und §6 (Risiken) des Slice-Plans n
 dazu den Kopf (`Bezug`, `Berührte Spec-Stellen`) und betroffene Folge-Slices. Die
 Harness-Artefakte zählen seit slice-v1-abschluss-zeitangaben-doku (Entscheidung des
 Nutzers vom 2026-10-12): Ein Satz in `implement-slice.md`, den der Plan weder in §1 noch
-in §3 nennt, ist derselbe Mismatch (`BEO-REPO/plan-folgt-korrektur-nicht`). Entfernen
-des Zusatzes setzt den Retirement-Check voraus: Ist die Beobachtung seit
-slice-v1-abschluss-zeitangaben-doku wieder aufgetreten?
+in §3 nennt, ist derselbe Mismatch (`BEO-REPO/plan-folgt-korrektur-nicht`).
 
 **Sensor für die Kopf-Hälfte** (seit slice-harness-kopf-sensor): `make kopf-check`
 meldet rot, wenn §1 oder §2 eines Slice-Plans in `open/`, `next/` oder
@@ -208,29 +206,28 @@ nennt, was schon geliefert ist.
 
 **Begründung:** Review und Verifikation messen gegen den Plan; ein Plan, der dem
 Code nicht folgt, erzeugt in jeder Runde dieselben Findings
-(`BEO-REPO/plan-folgt-korrektur-nicht`). Entfernen oder Lockern dieser Regel
-setzt den Retirement-Check voraus: Ist die Beobachtung seit welle-walking-skeleton
-wieder aufgetreten?
+(`BEO-REPO/plan-folgt-korrektur-nicht`).
 
 ### 3.10 Jede Zusage eines neuen Vertrags fängt eine Mutation (seit welle-extended-query)
 
-Wer einen neuen Vertrag liefert (Protokollrand, Format, Leser, Diagnose, Option,
-Gate), schreibt zu jeder seiner Zusagen einen Test, der rot wird, wenn der Code die
-Zusage bricht, und fährt diese Mutation vor der Übergabe selbst. Der Bericht nennt je
-Zusage: Zusage · Mutation · roter Test.
+Wer am Record-/Replay-Pfad (Nachrichten und Bytes zwischen Client, Aufzeichnung und Server), an
+einem Format der Aufzeichnung oder am Protokollrand eine Zusage der Spezifikation neu liefert oder
+ändert, schreibt zu jeder dieser Zusagen einen Test, der rot wird, wenn der Code die Zusage bricht,
+und fährt diese Mutation vor der Übergabe selbst. Der Bericht nennt je Zusage: Zusage · Mutation ·
+roter Test. Für eine Option oder einen Hilfetext der Kommandozeile, für Testdaten, Kommentare und
+Doku genügt ein Test je Zusage der Spezifikation, ohne Mutation (§3.11). Für den Vertrag eines Gates
+oder Werkzeugs unter `harness/vertraege/` gilt die Regel ohne diese Einschränkung.
 
 **Falsch:** Die Tests decken den Gutfall; dass eine Mutation grün bleibt, findet erst
 das Review.
 **Richtig:** Je Zusage eine Mutation, vom Implementer selbst rot gesehen.
 
 **Begründung:** Ein grünes Gate belegt, dass nichts bricht, nicht, dass eine Zusage
-geprüft ist (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`). Entfernen oder
-Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-welle-extended-query wieder aufgetreten?
+geprüft ist (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`).
 
 **Aufzählung und Ortsangabe zählen je Element** (seit slice-harness-gate-kette-stop-hook-liste,
-Entscheidung des Nutzers vom 2026-10-13): Je Element einer Aufzählung in einer Zusage und je
-Schritt einer Ortsangabe (zum Beispiel „steht vor allen Prüfungen“) ein Fall und eine Mutation,
+Entscheidung des Nutzers vom 2026-10-13): Je Element einer Aufzählung in einer Zusage der Spezifikation und je
+Schritt einer Ortsangabe darin (zum Beispiel „steht vor allen Prüfungen“) ein Fall und eine Mutation,
 die nur ihn bricht.
 
 **Falsch:** Die Zusage nennt „Zeilenumbruch, Leerzeichen, Tabulator und Nicht-UTF-8“ im Pfad und
@@ -242,8 +239,6 @@ Mutation, die nur ihn bricht.
 
 **Begründung:** Eine Zusage mit Aufzählung oder Ortsangabe trägt mehrere Zusagen, und eine
 Mutation je Zusage zählte sie als eine (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`).
-Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
 
 **Ein grüner Mutant gilt als äquivalent erst mit Invariante, Ort und Sonde** (seit welle-v1-abschluss,
 Entscheidung des Nutzers vom 2026-10-18): Wer in §7 einen grünen Mutanten äquivalent nennt, nennt (a) die
@@ -262,8 +257,7 @@ eines davon, bekommt der Mutant einen Test.
 
 **Begründung:** Die Begründung eines äquivalenten Mutanten stützt sich auf die Eingaben, an die der
 Implementer gedacht hat; eine andere unterscheidet ihn, und erst Review oder Verifikation finden sie
-(`BEO-REPO/gruener-mutant-faelschlich-aequivalent`, fünf Slices). Entfernen oder Lockern setzt den
-Retirement-Check voraus: Ist die Beobachtung seit welle-v1-abschluss wieder aufgetreten?
+(`BEO-REPO/gruener-mutant-faelschlich-aequivalent`, fünf Slices).
 
 ### 3.11 Ein Kommentar sagt nur zu, was ein Test prüft (seit welle-extended-query)
 
@@ -309,18 +303,15 @@ findet eine weitere Form, die grün bleibt.
 `.d-check.yml` festlegt, was das Gate prüft.
 
 **Begründung:** Eine Zusage ohne Prüfung liest jeder Lauf als geprüft
-(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Entfernen oder Lockern setzt
-den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
-aufgetreten, für das Handbuch seit slice-v1-abschluss-upstream-verbinden, für Prosa über ein
-Gate seit slice-harness-d-check-v0-85, für den Ist-Zustand von Handbuch und README seit
-slice-v1-abschluss-einspielen-laufsteuerung?
+(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`).
 
 ### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
 
-Ein Slice, der einen neuen Vertrag liefert (§3.10), nennt in §6 des Slice-Plans dessen
-Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
-Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
-Serverversion, und je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
+Ein Slice, der eine neue Wire-, Datei- oder Formatgrenze liefert (eine Nachrichtenfolge am
+Protokollrand, ein Aufzeichnungsformat, eine Datei, die ein Leser einliest), nennt in §6 des
+Slice-Plans deren Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
+Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je Serverversion, und
+je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
 ersten Code-Commit, in der Spezifikation (Technik-Stratum), auch für
 Harness-Werkzeuge (seit slice-lastenheft-pruefbarkeit): in `harness/vertraege/` (Ort seit
 slice-harness-vertraege-umzug-gate-kette); auch eine Entscheidung des
@@ -330,6 +321,12 @@ genannte oder offene Randform entscheidet der Implementer nicht, er hält an und
 sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe). Eine
 Randform, die erst ein Commit mit Code, Tests oder Gates in §6 einträgt, ist nicht genannt
 (seit slice-harness-blackbox-kern).
+
+Bei einer Option oder einem Hilfetext der Kommandozeile nennt §6 die Spezifikationsstelle der
+Geschwister-Option, deren Regeln die neue übernimmt (zum Beispiel die Hilfe-Angabe in `LH-FA-01.a`),
+und was von ihr abweicht; was der Verweis deckt, ist entschieden, eine Abweichung ist eine Randform
+wie oben. Für den Vertrag eines Gates oder Werkzeugs unter `harness/vertraege/` gilt die Regel ohne
+diese Einschränkung.
 
 **Aufruf-Voraussetzung gehört dazu** (seit slice-v1-abschluss-zeitangaben-aufzeichnen): Sagt ein Vertrag eine Ordnung
 oder Eindeutigkeit der Werte zu, die er über mehrere Aufrufe einer Session liefert (nicht absteigend, fortlaufend), nennt §6
@@ -381,17 +378,12 @@ und Windows steht als Risiko in §6 mit dem Ausgang „weiter offen“ (drei Sli
 die sie als Grenze festhält; dann folgt der Code.
 
 **Begründung:** Die Plattformgrenze trat als Risiko in drei Slices auf, jedes Mal erst im Review oder als
-§6-Risiko mit dem Ausgang „weiter offen“ (`BEO-REPO/verhalten-nur-unter-linux-geprueft`). Entfernen oder
-Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit welle-v1-abschluss wieder aufgetreten?
+§6-Risiko mit dem Ausgang „weiter offen“ (`BEO-REPO/verhalten-nur-unter-linux-geprueft`).
 
 **Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
 eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
 der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen diese
-Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
-seit slice-harness-randformen-vor-code wieder aufgetreten, für die Aufruf-Voraussetzung seit
-slice-v1-abschluss-zeitangaben-aufzeichnen, für die Aufrufarten des Treibers seit
-slice-harness-gate-kette-schnell, für die Stelle einer Nachricht seit
-slice-harness-randform-stelle-und-lesart?
+Regel.
 
 ### 3.13 Eine Adresse nimmt an, bevor sie genannt wird (seit slice-lint-bestand-kern-driven)
 
@@ -408,9 +400,7 @@ den Planner.
 `grep` nach ihr findet sie im Nehmer.
 
 **Begründung:** Beim Zuweisen geprüft war nur, dass es den Nehmer gibt; dass er
-annimmt, fand erst das Review (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`). Entfernen
-oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-slice-lint-bestand-kern-driven wieder aufgetreten?
+annimmt, fand erst das Review (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`).
 
 **Auch eine Bindung ist eine Sendung** (seit slice-v1-abschluss-einspielen-laufsteuerung): Ruht
 ein akzeptiertes Negativ, eine Grenze oder eine Randform darauf, dass ein anderer Slice etwas
@@ -423,8 +413,6 @@ Vertrag eines Ports gebunden seien; keiner der beiden nennt die Bindung.
 
 **Begründung:** Die Aufzählung der vier Formen las sich als abschließend, und die Bindung ging
 ohne Eintrag hinaus; das Review fand es (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`).
-Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-slice-v1-abschluss-einspielen-laufsteuerung wieder aufgetreten?
 
 **Nachzählen beim Eintragen** (seit slice-v1-abschluss-einspielen): Wer eine Sendung in
 einen Nehmer einträgt, zählt im selben Commit dessen Liefer-Punkte und Schichten nach,
@@ -442,9 +430,7 @@ Bericht meldet die Zählung als Hinweis, §8 der Nehmer bleibt leer, und das Rev
 **Richtig:** Jeder der vier Nehmer führt im selben Commit eine Zählung mit der Kennung des Gebers.
 
 **Begründung:** Die Regel galt dem Wortlaut nach für eine Sendung mit Inhalt, und eine Ortsangabe
-las sich als keine (`BEO-REPO/slice-waechst-durch-uebernahmen`, zwei Slices in Folge). Entfernen
-oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-slice-harness-vertraege-umzug-gate-kette wieder aufgetreten?
+las sich als keine (`BEO-REPO/slice-waechst-durch-uebernahmen`, zwei Slices in Folge).
 
 **Schichten zählen alle Pläne gleich** (seit slice-doku-ist-stand, Entscheidung des Nutzers
 vom 2026-10-10): nach der Teilung in `slice-harness-d-check-v0-85` §8. Nutzer- und
@@ -473,9 +459,7 @@ und bleibt mit zwei Code-Schichten bei zwei.
 Doku-Folge-Slice ab.
 
 **Begründung:** Geber und Nehmer zählten im selben Commit mit verschiedenen Teilungen
-(`BEO-REPO/schichtteilung-je-plan-verschieden`). Entfernen oder Lockern setzt den
-Retirement-Check voraus: Ist die Beobachtung seit slice-doku-ist-stand wieder aufgetreten?
-Für die Zählung des Bootstrap gilt derselbe Check seit slice-v1-abschluss-einspielen-anmeldung.
+(`BEO-REPO/schichtteilung-je-plan-verschieden`).
 
 **Falsch:** Die siebte Übernahme wandert in einen vorhandenen Liefer-Punkt; der Nehmer
 bleibt bei drei Punkten und berührt vier Schichten, die Größe findet erst die Prüfung des
@@ -485,16 +469,15 @@ die Zählung in dessen §8; läge er darüber, entscheidet der Planner, ob gesch
 ein anderer Slice annimmt.
 
 **Begründung:** Die Größenregel zählt Punkte, und ein Punkt nimmt Übernahme um Übernahme
-auf, ohne dass die Zahl steigt (`BEO-REPO/slice-waechst-durch-uebernahmen`). Entfernen
-oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-slice-v1-abschluss-einspielen wieder aufgetreten?
+auf, ohne dass die Zahl steigt (`BEO-REPO/slice-waechst-durch-uebernahmen`).
 
-### 3.14 Eine Rückführungs-Marke nennt ihre Metrik, und die Schätzung rechnet in ihr (seit slice-harness-gate-kette-stop-hook-liste)
+### 3.14 Eine Rückführungs-Marke nennt ihre Metrik (seit slice-harness-gate-kette-stop-hook-liste)
 
 Entscheidung des Nutzers vom 2026-10-13. Die Metrik ist am 2026-10-21 nach
 [ADR-0056](docs/plan/adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) berichtigt
 (Entscheidung des Nutzers vom selben Tag). Jede Rückführungs-Marke in §4 eines Plans („zu groß, über
-N Zeilen mit Tests“) nennt ihre Metrik. Gemessen wird mit
+N Zeilen mit Tests“) nennt ihre Metrik. **Die Marke ist 1500 Zeilen** (Entscheidung des Nutzers vom
+2026-10-22); eine andere Zahl nennt §4 mit ihrem Grund. Gemessen wird mit
 
 ```
 git diff --numstat --find-renames=10% <Basis>..HEAD -- <Pfade des Plans> \
@@ -510,28 +493,18 @@ eingeschlossen; die zwei Ausschlüsse stehen in jedem Fall im Befehl, damit eine
 (`docs`, `.`) den Planungsbaum und die Reports nicht wieder einfängt. Nicht gezählt sind damit Plan,
 Closure-Notiz, Roadmap, Welle-Plan, Beobachtungs-Register, Review- und Verifikationsbericht; gezählt
 bleiben Entscheidungen (`docs/plan/adr/`, `docs/plan/carveouts/`) sowie Nutzer- und Wartungs-Doku.
-**Der Befehl steht hier, einmal:** §4 eines Plans nennt Pfade, Marke und Meldeschwelle und zeigt auf
+**Der Befehl steht hier, einmal:** §4 eines Plans nennt Pfade und Marke und zeigt auf
 diese Stelle; wiederholt ein Plan den Befehl, gilt der von hier.
 
-Der Architect gibt Schätzungen in dieser Metrik an und rechnet für Tabellen- und
-Gegenprobe-Code mit dem Faktor des Planners (folgender Absatz).
-
-Der Planner schätzt beim Anlegen eines Plans und bei jedem Schnitt in derselben Metrik und nennt in
-§4 den Faktor Tests zu Produktcode mit seinem Beleg (der gemessene Wert eines Vorgängers mit seiner
-Kennung, oder „keine Messung“). Für einen Plan mit einer Tabelle von Randformen und einer Mutation
-je Element (§3.10) ist der Faktor mindestens 5 (`slice-v1-abschluss-protokollrand` maß rund 8).
-Liegt die Mitte der Schätzung über 70 % der Marke, schneidet der Planner vor dem Anspruch; die
-Prüfung des Architect ist dafür nicht der erste Ort. Das gilt für jede Hälfte nach einem Schnitt:
-Liegt die Mitte ihrer Schätzung über 70 % der Marke, schneidet der Planner sie weiter, bevor der
-Anspruch gilt; eine vorab benannte Naht für einen zweiten Schnitt ersetzt diesen Schnitt nicht.
-Entscheidet der Nutzer, ohne weiteren Schnitt zu beginnen, steht die Entscheidung mit Datum im Plan.
-Neben der Marke nennt §4 beim Anlegen die Meldeschwelle, mit derselben Metrik; ein Plan ohne sie ist
-nicht angelegt. Meldet der Implementer das Erreichen der Meldeschwelle, trägt der Planner seine
-Entscheidung vor dem Weiterarbeiten als datierte Zeile in §7 des Plans ein (`weiter` oder
-`schneiden`, mit dem gemessenen Stand); ein Satz im Bericht des Implementers ist keine Ablage. Als
-Auftreten von `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` zählt die Überschreitung der
-Obergrenze der Schätzspanne (bei einem Einzelwert: des Werts), unabhängig davon, ob die Marke
-erreicht wurde.
+Erreicht die Summe die Marke, hält der Implementer an und meldet es dem Planner; der Planner
+schneidet (`in-progress → next`) oder entscheidet mit dem Nutzer, ohne Schnitt weiterzuarbeiten, und
+trägt die Entscheidung mit Datum in §7 ein. Gemessen wird, wenn der Diff die Marke zu erreichen
+scheint oder ein Review sie in Frage stellt. Ob ein Plan zu groß ist, sagen vor dem Anspruch die
+Liefer-Punkte und die Schichten (Baseline-Regelwerk `modul-05-planning-harness.md` §Ziel-Form:
+Slice), nicht eine Schätzung in Zeilen: Der Planner nennt keinen Faktor und keine Meldeschwelle, der
+Architect gibt keine Schätzung ab, und §7 trägt keine Messzeile. Ein Plan, der vor
+`slice-harness-regeln-rueckbau` angelegt wurde, behält Marke, Meldeschwelle und Schätzung seines §4,
+bis der Planner ihn beim Anspruch nachzieht.
 
 **Falsch:** §4 nennt „Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit>`“ über `tools harness spec docs README.md`; am
@@ -542,30 +515,47 @@ Diff steht (`464 0` unter `done/`, `0 207` unter `next/`) und Review- und Verifi
 Closure-Notiz, Move und Verweis-Nachzug ändern die Zahl nicht, nur Arbeit in einem gezählten Pfad.
 Die Zahlen: Closure von `slice-erster-release-homebrew-nachweis`, Basis `2c56dabb`, bis `fd140c11`.
 
-**Begründung:** `BEO-REPO/groessenprobe-ohne-messbaren-stand`. Entfernen oder Lockern setzt den
-Retirement-Check voraus: Ist die Beobachtung seit slice-harness-groessen-metrik wieder aufgetreten?
+**Begründung:** `BEO-REPO/groessenprobe-ohne-messbaren-stand` (seit slice-harness-groessen-metrik).
 
-**Falsch:** §4 nennt Marke 1000 und die Schätzung 650 bis 1000 mit „Verhältnis Test zu Code etwa
-3 zu 1“, die Mitte liegt bei 82,5 % der Marke, der Architect schätzt 850 bis 1250, und der Slice
-geht vor dem ersten Code-Commit zurück.
-**Richtig:** §4 nennt den Faktor 5 mit Beleg, die Mitte der Schätzung über 70 % führt zum Schnitt
-beim Anlegen, jede Hälfte hat Schätzung, Marke und Meldeschwelle.
-Die Zahlen: ungeteilter Plan von `slice-v1-abschluss-verbindungsende-format`, Schätzungen des Planners und des Architect, Commit `690e353c`.
+**Falsch:** §4 nennt Marke 700 und die Schätzung 376 bis 844 mit dem Faktor 10; die Mitte liegt bei
+87 % der Marke, der Planner schneidet vor dem Anspruch in zwei Hälften mit je eigener Schätzung,
+Marke und Meldeschwelle (`slice-v1-abschluss-verbindungsende-replay-extended`), und die acht Slices
+zum Verbindungsende des Servers werden fünfzehn.
+**Richtig:** §4 nennt „Marke 1500“ und die Pfade; der Slice wird nach Liefer-Punkten und Schichten
+geschnitten und an der Marke gemessen, wenn der Diff sie erreicht.
 
-**Begründung:** `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` und
-`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`. Entfernen oder Lockern setzt den
-Retirement-Check voraus: Ist eine der beiden Beobachtungen
-seit slice-harness-schaetzung-planner-faktor wieder aufgetreten?
+**Begründung:** Reviews von 560 bis 941 Zeilen dauerten 5 bis 23 Minuten, und jeder Schnitt kostete
+einen Plan von rund 300 Zeilen, einen Review, eine Verifikation und einen vollen Gate-Lauf (Messung
+in `slice-harness-regeln-rueckbau` §1). Die Schätzung in Zeilen bediente nur den Schnitt und lag in
+19 Slices unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`); die Liefer-Punkte
+und die Schichten schneiden, wo die Baseline es verlangt.
 
-**Begründung:** Eine Marke ohne Metrik lässt die Probe an der Lesart hängen
-(`BEO-REPO/groessenprobe-ohne-messbaren-stand`), und eine Schätzung ohne den Faktor der Tests liegt
-unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`); der ungeteilte Plan über der Grenze zeigte
-sich erst in der Prüfung des Architect (`BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar`).
-Entfernen oder Lockern setzt den Retirement-Check voraus: Ist eine der drei Beobachtungen seit
-slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
-Der Absatz des Planners geht zusätzlich auf `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` und
-`BEO-REPO/meldeschwelle-ohne-artefakt` zurück; für beide gilt der Check
-seit slice-harness-schaetzung-planner-faktor.
+### 3.15 Eine eigene harte Regel, die in über der Hälfte der Slices auftritt, wird Sensor oder fällt (seit slice-harness-regeln-rueckbau)
+
+Entscheidung des Nutzers vom 2026-10-22. Gilt für §3.8 bis §3.14 und für jede weitere eigene
+Regel dieser Liste, deren Begründung auf eine Klasse des Beobachtungs-Registers zeigt
+(`BEO-REPO/<slug>`). Für jede Klasse dieser Art, zu der eine Closure eine Datei unter `evidence/`
+anlegt, rechnet der Planner dabei die Rate: die Zahl der zehn zuletzt geschlossenen Slices, zu
+denen die Klasse eine Datei unter `evidence/` führt, geteilt durch zehn; gezählt wird ab dem Slice
+hinter `slice-harness-regeln-rueckbau`. Liegt die Rate über 0,5, legt der Planner dem Nutzer vor,
+die Regel zu streichen oder durch einen Sensor zu ersetzen (ein Gate prüft sie); er nennt die
+kleinere Lösung zuerst. Bis zur Entscheidung gilt die Regel.
+
+Wer eine dieser Regeln entfernt oder lockert, nennt im Plan des Slice den Zähler und die Rate ihrer
+Klasse; das ist die Konsultation der Herkunft, die der Retirement-Check der Baseline verlangt
+(`grundlagen-traceability.md` §Sensor 2). Dass die Beobachtung wieder aufgetreten ist, sperrt das
+Lockern nicht.
+
+**Falsch:** Eine Klasse steht in acht von zehn Slices im Register, und der nächste Slice fügt der
+Regel einen Absatz hinzu, weil das Review sie wieder fand
+(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: 59 von 73 Produkt-Slices).
+**Richtig:** Der Planner legt die Rate vor, und der Nutzer entscheidet über Sensor oder Streichen,
+bevor ein weiterer Absatz entsteht.
+
+**Begründung:** Ein Auftreten im Register sagt, dass das Review die Verletzung findet, nicht, dass
+die Regel sie verhindert, und nicht, was sie kostet. Die Sätze „Entfernen oder Lockern setzt den
+Retirement-Check voraus: Ist die Beobachtung wieder aufgetreten?“ beantwortete jede Regel, die das
+Review prüft, mit ja und lasen sich als Sperre (Messung in `slice-harness-regeln-rueckbau` §1).
 
 ## 4. Quality Gates
 
