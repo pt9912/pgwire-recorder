@@ -73,7 +73,11 @@ die Antwort und wird notiert.
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
    dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice einen neuen Vertrag, nennt
    §6 dessen Randformen** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code);
-   entschieden werden sie vor dem Code, mit dem Architect. **Verlangt ein DoD-Punkt einen Beleg
+   entschieden werden sie vor dem Code, mit dem Architect. Schätze den Umfang beim Anlegen und beim
+   Schnitt in der Metrik von `AGENTS.md` §3.14, nenne den Faktor Tests zu Produktcode mit Beleg und
+   trage Marke und Meldeschwelle in §4 ein; liegt die Mitte der Schätzung über 70 % der Marke,
+   schneide vor dem Anspruch (`AGENTS.md` §3.14, seit slice-harness-schaetzung-planner-faktor).
+   **Verlangt ein DoD-Punkt einen Beleg
    des Implementers** (Mutationstabelle, Befundzeilen vorher und nachher, Läufe), nennt er als
    Ort §7 des Slice-Plans, nicht „im Bericht“ (seit slice-harness-blackbox-kern). **Nennt der
    Plan einen anderen Slice als Adresse** (Folge-Slice, Risiko-Ausgang, Abgrenzung der Klasse 1),

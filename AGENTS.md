@@ -514,7 +514,24 @@ bleiben Entscheidungen (`docs/plan/adr/`, `docs/plan/carveouts/`) sowie Nutzer- 
 diese Stelle; wiederholt ein Plan den Befehl, gilt der von hier.
 
 Der Architect gibt Schätzungen in dieser Metrik an und rechnet für Tabellen- und
-Gegenprobe-Code mit rund dem Doppelten des Produktcodes.
+Gegenprobe-Code mit dem Faktor des Planners (folgender Absatz).
+
+Der Planner schätzt beim Anlegen eines Plans und bei jedem Schnitt in derselben Metrik und nennt in
+§4 den Faktor Tests zu Produktcode mit seinem Beleg (der gemessene Wert eines Vorgängers mit seiner
+Kennung, oder „keine Messung“). Für einen Plan mit einer Tabelle von Randformen und einer Mutation
+je Element (§3.10) ist der Faktor mindestens 5 (`slice-v1-abschluss-protokollrand` maß rund 8).
+Liegt die Mitte der Schätzung über 70 % der Marke, schneidet der Planner vor dem Anspruch; die
+Prüfung des Architect ist dafür nicht der erste Ort. Das gilt für jede Hälfte nach einem Schnitt:
+Liegt die Mitte ihrer Schätzung über 70 % der Marke, schneidet der Planner sie weiter, bevor der
+Anspruch gilt; eine vorab benannte Naht für einen zweiten Schnitt ersetzt diesen Schnitt nicht.
+Entscheidet der Nutzer, ohne weiteren Schnitt zu beginnen, steht die Entscheidung mit Datum im Plan.
+Neben der Marke nennt §4 beim Anlegen die Meldeschwelle, mit derselben Metrik; ein Plan ohne sie ist
+nicht angelegt. Meldet der Implementer das Erreichen der Meldeschwelle, trägt der Planner seine
+Entscheidung vor dem Weiterarbeiten als datierte Zeile in §7 des Plans ein (`weiter` oder
+`schneiden`, mit dem gemessenen Stand); ein Satz im Bericht des Implementers ist keine Ablage. Als
+Auftreten von `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` zählt die Überschreitung der
+Obergrenze der Schätzspanne (bei einem Einzelwert: des Werts), unabhängig davon, ob die Marke
+erreicht wurde.
 
 **Falsch:** §4 nennt „Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit>`“ über `tools harness spec docs README.md`; am
@@ -523,9 +540,21 @@ Diff steht (`464 0` unter `done/`, `0 207` unter `next/`) und Review- und Verifi
 179 Zeilen mitzählen.
 **Richtig:** Derselbe Stand ergibt mit dem Befehl oben 244; Review-Bericht, Verifikationsbericht,
 Closure-Notiz, Move und Verweis-Nachzug ändern die Zahl nicht, nur Arbeit in einem gezählten Pfad.
+Die Zahlen: Closure von `slice-erster-release-homebrew-nachweis`, Basis `2c56dabb`, bis `fd140c11`.
 
 **Begründung:** `BEO-REPO/groessenprobe-ohne-messbaren-stand`. Entfernen oder Lockern setzt den
 Retirement-Check voraus: Ist die Beobachtung seit slice-harness-groessen-metrik wieder aufgetreten?
+
+**Falsch:** §4 nennt Marke 1000 und die Schätzung 650 bis 1000 mit „Verhältnis Test zu Code etwa
+3 zu 1“, die Mitte liegt bei 82,5 % der Marke, der Architect schätzt 850 bis 1250, und der Slice
+geht vor dem ersten Code-Commit zurück.
+**Richtig:** §4 nennt den Faktor 5 mit Beleg, die Mitte der Schätzung über 70 % führt zum Schnitt
+beim Anlegen, jede Hälfte hat Schätzung, Marke und Meldeschwelle.
+
+**Begründung:** `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` und
+`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`. Entfernen oder Lockern setzt den
+Retirement-Check voraus: Ist eine der beiden Beobachtungen
+seit slice-harness-schaetzung-planner-faktor wieder aufgetreten?
 
 **Begründung:** Eine Marke ohne Metrik lässt die Probe an der Lesart hängen
 (`BEO-REPO/groessenprobe-ohne-messbaren-stand`), und eine Schätzung ohne den Faktor der Tests liegt
@@ -533,6 +562,9 @@ unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`); der ung
 sich erst in der Prüfung des Architect (`BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar`).
 Entfernen oder Lockern setzt den Retirement-Check voraus: Ist eine der drei Beobachtungen seit
 slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
+Der Absatz des Planners geht zusätzlich auf `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` und
+`BEO-REPO/meldeschwelle-ohne-artefakt` zurück; für beide gilt der Check
+seit slice-harness-schaetzung-planner-faktor.
 
 ## 4. Quality Gates
 
