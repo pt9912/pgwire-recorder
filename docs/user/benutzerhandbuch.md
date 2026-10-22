@@ -1,8 +1,8 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.10  
+Version: 0.11  
 Software-Version: `0.1.1` (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.1`)  
-Stand: 21.10.2026  
+Stand: 22.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder` der Software-Version 0.1.1 (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.1`); ein aus dem Repository gebautes Binary meldet `dev`
 
@@ -1879,6 +1879,9 @@ Das Werkzeug verwendet genau **eine** Konfigurationsdatei, in dieser Reihenfolge
 
 Fehlt eine mit `--config` oder `PGWIRE_RECORDER_CONFIG` genannte Datei, startet das
 Werkzeug nicht (`PGR-E2004`); fehlt `.pgwire-recorder.yaml`, liest es keine Datei.
+`version`, `--version` und `-v` lesen keine Konfigurationsdatei: Sie geben die Version
+auch dann aus, wenn `PGWIRE_RECORDER_CONFIG` eine fehlende Datei nennt oder
+`.pgwire-recorder.yaml` ungültig ist.
 
 Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne `--`; einen
 Schlüssel `config` gibt es nicht, und Groß- und Kleinschreibung zählt. Einstellungen
@@ -1967,7 +1970,8 @@ oder Verbindung), nie den Wert.
 ### Log-Ausgaben
 
 Log-Zeilen und Fehlermeldungen gehen nach `stderr`; auf `stdout` stehen nur die
-Hilfe, die Ausgabe von `version` und die von `config show`.
+Hilfe, die Ausgabe von `version`, auch als `--version` oder `-v`, und die von
+`config show`.
 
 `--log-level` (Umgebungsvariable `PGWIRE_RECORDER_LOG_LEVEL`) legt fest, wie viel
 das Werkzeug schreibt. Es gibt genau vier Stufen; jede zeigt ihre Zeilen und die
@@ -2005,9 +2009,8 @@ als letzte Zeile, ohne `time` und `level`, und vorher nichts anderes; das gilt
 auch, wenn der Wert von `--log-level` selbst ungültig ist.
 
 Mit `--help` oder `-h` (ebenso `--h` und `-help`, auch mit `=` und einem Wert)
-zeigt das Werkzeug die Hilfe an und endet mit Exit-Code 0, mit
-`pgwire-recorder version` die Version. Steht ein Kommando vorn, ist es dessen
-Hilfe, sonst die allgemeine. Die Hilfe geht jeder Prüfung vor: Unbekannte
+zeigt das Werkzeug die Hilfe an und endet mit Exit-Code 0. Steht ein Kommando
+vorn, ist es dessen Hilfe, sonst die allgemeine. Die Hilfe geht jeder Prüfung vor: Unbekannte
 Optionen, ungültige Werte, fehlende Pflichtoptionen und ungültige
 Umgebungsvariablen meldet das Werkzeug dann nicht. Auch an der Stelle eines
 Optionswerts ist `--help` die Hilfe; als Wert geht es nur mit `=`
@@ -2015,8 +2018,20 @@ Optionswerts ist `--help` die Hilfe; als Wert geht es nur mit `=`
 `--` beendet die Optionen an jeder Stelle, auch dort, wo ein Optionswert stünde:
 `--input --` ist eine Option ohne Wert (`PGR-E2001`), den Wert `--` geben Sie
 mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argument an
-(`PGR-E2001`). Eine Option `--version` gibt es nicht; die Version zeigt
-`pgwire-recorder version`.
+(`PGR-E2001`).
+
+Die Version zeigen `pgwire-recorder version`, `pgwire-recorder --version` und
+`pgwire-recorder -v`. Jede der drei Formen schreibt auf `stdout` genau eine Zeile,
+`pgwire-recorder <Version>`, nichts auf `stderr`, und endet mit Exit-Code 0. Keine
+liest eine Umgebungsvariable oder eine Konfigurationsdatei. `--version` und `-v` gelten nur
+als einziges Argument und nur in genau dieser Schreibweise: `-version`, `--v`, `-V`,
+`--Version` und eine Schreibweise mit `=` (`--version=x`, `-v=x`) sind ein unbekanntes
+Kommando (`PGR-E2001`). Mit einem weiteren Argument, davor oder danach, ist der Aufruf
+`PGR-E2001`: `--version record`, `-v record`, `record --version`, `record -v`,
+`version --version` und `-- --version`. Bei `record`, `replay` und `play` sind `--version`
+und `-v` unbekannte Optionen. Steht neben `--version` oder `-v` auch `--help` oder `-h`,
+gilt die Hilfe: `--version --help` zeigt die allgemeine Hilfe. Nur die allgemeine Hilfe nennt
+`--version` und `-v`, die Hilfe eines Kommandos nicht.
 
 ### Exit-Codes
 

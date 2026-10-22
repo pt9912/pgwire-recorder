@@ -10,7 +10,7 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 
 | Anforderung | Happy | Boundary | Negative | Messung | Stand |
 | --- | --- | --- | --- | --- | --- |
-| [`LH-FA-01`](../../spec/lastenheft.md) | E2E, Unit | Unit | Unit | n/a | vollständig |
+| [`LH-FA-01`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-02`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-03`](../../spec/lastenheft.md) | E2E | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-04`](../../spec/lastenheft.md) | E2E | — | — | n/a | teilweise |

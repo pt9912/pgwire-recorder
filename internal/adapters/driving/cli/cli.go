@@ -314,6 +314,10 @@ Kommandos:
            zeigt die gewählte Konfigurationsdatei
   version  gibt die Programmversion aus
 
+Programmversion, nur als einziges Argument:
+  --version, -v
+           gibt die Programmversion aus, wie version
+
 ` + optionenRecord + `
 ` + optionenReplay + `
 ` + optionenPlay + `
@@ -344,7 +348,8 @@ var ErrHelp = errors.New("Hilfe ausgegeben")
 // auch immer, gibt Parse vor jeder anderen Prüfung die Hilfe auf out aus und
 // liefert ErrHelp: die des Kommandos, wenn das erste Argument ein bekanntes
 // Kommando ist, sonst die globale (LH-FA-01.a). Das Kommando help gibt die
-// globale Hilfe aus.
+// globale Hilfe aus. Eine Versions-Angabe (versionsAngabe) liefert dasselbe
+// Kommando wie version.
 func Parse(args []string, out io.Writer) (Command, error) {
 	return parse(args, out, time.Now)
 }
@@ -360,6 +365,9 @@ func parse(args []string, out io.Writer, jetzt func() time.Time) (Command, error
 		}
 		fmt.Fprint(out, text)
 		return Command{}, ErrHelp
+	}
+	if versionsAngabe(args) {
+		return Command{Name: "version"}, nil
 	}
 	if len(args) == 0 {
 		return Command{}, model.Errorf(model.CodeUsage, nil, "kein Kommando angegeben; --help zeigt die Kommandos")
@@ -889,6 +897,14 @@ func hilfeAngabe(arg string) bool {
 		return true
 	}
 	return false
+}
+
+// versionsAngabe meldet, ob args genau ein Argument sind und es genau --version
+// oder -v lautet (LH-FA-01.a, Absatz Version). Jede andere Schreibweise, ein
+// Argument mit "=" und ein weiteres Argument vor oder nach ihm ergeben keine
+// Versions-Angabe.
+func versionsAngabe(args []string) bool {
+	return len(args) == 1 && (args[0] == "--version" || args[0] == "-v")
 }
 
 // hilfeVerlangt meldet, ob unter den Argumenten vor dem ersten "--" eine

@@ -388,6 +388,28 @@ func TestRunVersionLogLevel(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-01/Happy, LH-FA-14/Boundary — version, --version und -v als einziges Argument
+// schreiben auf stdout genau die Zeile "pgwire-recorder <Version>", nichts auf stderr, und enden
+// mit Exit-Code 0; sie lesen weder Umgebungsvariablen noch Konfigurationsdatei, auch nicht mit
+// ungültiger PGWIRE_RECORDER_FAIL_ON_UNCONSUMED, ungültiger PGWIRE_RECORDER_LOG_LEVEL,
+// PGWIRE_RECORDER_CONFIG auf eine fehlende Datei und ungültiger Standarddatei (LH-FA-01.a
+// *Version*, LH-FA-14.a).
+func TestRunVersionsAngabe(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "1")
+	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "INFO")
+	t.Setenv("PGWIRE_RECORDER_CONFIG", filepath.Join(t.TempDir(), "fehlt.yaml"))
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(standardDatei, []byte("log_level: INFO\nunbekannt: [\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"version"}, {"--version"}, {"-v"}} {
+		var stdout, stderr bytes.Buffer
+		if code := bootstrap.Run(context.Background(), nil, args, "1.2.3", &stdout, &stderr); code != 0 || stdout.String() != "pgwire-recorder 1.2.3\n" || stderr.Len() > 0 {
+			t.Errorf("%q: Exit-Code %d, stdout %q, stderr %q", args, code, stdout.String(), stderr.String())
+		}
+	}
+}
+
 // Abdeckung: LH-FA-17/Happy, LH-FA-14/Boundary — config show schreibt die
 // Anzeige auf stdout, nichts auf stderr, und endet mit Exit-Code 0; ist die
 // Datei ungültig, steht auf stdout nichts, auf stderr genau die Zeile beim

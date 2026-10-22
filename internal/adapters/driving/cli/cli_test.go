@@ -3,6 +3,8 @@ package cli_test
 import (
 	"bytes"
 	"errors"
+	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -304,15 +306,93 @@ func TestParseEndeDerOptionen(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-01/Negative — eine Option --version gibt es nicht, weder
-// als Kommando noch nach version (PGR-E2001).
+// Abdeckung: LH-FA-01/Happy — --version und -v sind als einziges Argument eine Versions-Angabe: Parse
+// liefert dasselbe Kommando wie version, ohne Ausgabe und ohne Fehler, auch mit ungültigen
+// Umgebungsvariablen und ungültiger Standarddatei (LH-FA-01.a *Version*).
 func TestParseVersion(t *testing.T) {
-	if cmd, err := keineHilfe(t, "version"); err != nil || cmd.Name != "version" {
-		t.Fatalf("version: %#v, %v", cmd, err)
+	t.Setenv(cli.EnvFailOnUnconsumed, "1")
+	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "INFO")
+	t.Setenv("PGWIRE_RECORDER_CONFIG", "/nicht/vorhanden.yaml")
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(".pgwire-recorder.yaml", []byte("log_level: INFO\nunbekannt: [\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"--version"}, {"version", "--version"}} {
-		if _, err := keineHilfe(t, args...); !istUsage(err) {
-			t.Errorf("%q: erwartet %s, erhalten %v", args, model.CodeUsage, err)
+	for _, args := range [][]string{{"version"}, {"--version"}, {"-v"}} {
+		if cmd, err := keineHilfe(t, args...); err != nil || cmd.Name != "version" {
+			t.Errorf("%q: erwartet das Kommando version, erhalten %#v, %v", args, cmd, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-01/Negative — andere Schreibweisen (-version, --v, -V, --Version) und ein
+// Argument mit = (--version=x, -v=x) sind keine Versions-Angabe, anders als bei der
+// Hilfe-Angabe: als einziges Argument sind sie ein unbekanntes Kommando (PGR-E2001, Exit-Code 2).
+func TestParseKeineVersionsAngabe(t *testing.T) {
+	for _, arg := range []string{"-version", "--v", "-V", "--Version", "--version=x", "-v=x", "--version=", "-v="} {
+		if cmd, err := keineHilfe(t, arg); !istUsage(err) || cmd.Name != "" || !strings.Contains(err.Error(), "unbekanntes Kommando") {
+			t.Errorf("%q: erwartet %s (unbekanntes Kommando), erhalten %#v, %v", arg, model.CodeUsage, cmd, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-01/Negative — mit einem weiteren Argument ist --version oder -v keine
+// Versions-Angabe, vor oder nach dem Argument: --version record, -v record, record --version,
+// record -v, version --version und -- --version sind PGR-E2001; bei record, replay und play mit
+// allen Pflichtoptionen ist --version oder -v eine unbekannte Option, nicht eine fehlende.
+func TestParseVersionMitWeiteremArgument(t *testing.T) {
+	t.Setenv(cli.EnvFailOnUnconsumed, "")
+	for _, args := range [][]string{
+		{"--version", "record"}, {"-v", "record"}, {"record", "--version"}, {"record", "-v"},
+		{"version", "--version"}, {"--", "--version"},
+		{"version", "-v"}, {"--version", "--version"}, {"-v", "-v"}, {"--version", "-v"},
+		{"--version", "--"}, {"-v", "x"},
+	} {
+		if cmd, err := keineHilfe(t, args...); !istUsage(err) || cmd.Name != "" {
+			t.Errorf("%q: erwartet %s, erhalten %#v, %v", args, model.CodeUsage, cmd, err)
+		}
+	}
+	for kommando, basis := range map[string][]string{
+		"record": {"record", "--listen", ":1", "--upstream", "pg:5432", "--output", "r.yaml"},
+		"replay": {"replay", "--listen", ":1", "--input", "r.yaml"},
+		"play":   {"play", "--upstream", "pg:5432", "--input", "r.yaml"},
+	} {
+		if _, err := keineHilfe(t, basis...); err != nil {
+			t.Fatalf("%s mit allen Pflichtoptionen: %v", kommando, err)
+		}
+		for _, option := range []string{"--version", "-v"} {
+			_, err := keineHilfe(t, append(append([]string{}, basis...), option)...)
+			if !istUsage(err) || !strings.Contains(err.Error(), "not defined: -"+strings.TrimLeft(option, "-")) {
+				t.Errorf("%s %s: erwartet %s mit der unbekannten Option, erhalten %v", kommando, option, model.CodeUsage, err)
+			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-01/Boundary — neben --version oder -v gilt Hilfe vor Prüfung: mit einer
+// Hilfe-Angabe, davor oder danach, gibt Parse die globale Hilfe aus (--version --help), nicht die
+// Versions-Zeile und keinen Fehler.
+func TestParseVersionHilfe(t *testing.T) {
+	for _, args := range [][]string{
+		{"--version", "--help"}, {"--version", "-h"}, {"-v", "--help"}, {"-v", "-h"},
+		{"--help", "--version"}, {"-h", "-v"}, {"--version", "--h=x"},
+	} {
+		if text := hilfe(t, args...); !strings.Contains(text, "Kommandos:") {
+			t.Errorf("%q: nicht die globale Hilfe:\n%s", args, text)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-01/Happy — die globale Hilfe nennt --version und -v; die Hilfe je Kommando
+// (record, replay, play, config, version) nennt keine von beiden (LH-FA-01.a *Version*).
+func TestUsageNenntVersionsAngabe(t *testing.T) {
+	global := hilfe(t, "--help")
+	if !strings.Contains(global, "\n  --version, -v\n") {
+		t.Errorf("die globale Hilfe nennt --version und -v nicht:\n%s", global)
+	}
+	nennt := regexp.MustCompile(`--version|(^|[\s,])-v([\s,]|$)`)
+	for _, kommando := range []string{"record", "replay", "play", "config", "version"} {
+		if text := hilfe(t, kommando, "--help"); nennt.MatchString(text) {
+			t.Errorf("%s --help nennt die Versions-Angabe:\n%s", kommando, text)
 		}
 	}
 }
