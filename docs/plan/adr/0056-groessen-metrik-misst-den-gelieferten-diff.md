@@ -1,6 +1,6 @@
 # ADR-0056: Die Größen-Metrik der Rückführungs-Marke misst den gelieferten Diff, nicht die Bücher des Slice
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-21
 
@@ -93,5 +93,6 @@ Wenn `BEO-REPO/groessenprobe-ohne-messbaren-stand` nach dieser Berichtigung ein 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-21 | Proposed (Empfehlung des Architect; Auftrag des Nutzers „Metrik-Lücke beheben“, Messung an der Closure von `docs/plan/planning/in-progress/slice-erster-release-homebrew-nachweis.md`) | Zweig `arch-metrik` |
+| 2026-10-21 | Accepted (Entscheidung des Nutzers, wörtlich „ok deine Empfehlungen“ auf die Vorlage der Empfehlungen, deren erster Punkt die Annahme dieser ADR war; auf die zweite Vorlage desselben Tages mit „ok deine empfehlugnen“: der Wortlaut-Entwurf für `AGENTS.md` §3.14 aus dieser ADR gilt) | Vorlage der Empfehlungen durch die Koordination am 2026-10-21 |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen entstehen als neue ADR mit `Supersedes ADR-0056`.
