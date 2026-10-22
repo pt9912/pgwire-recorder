@@ -144,6 +144,73 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+Worktree `/Development/pgwire-recorder-vo`, Zweig `impl-version-option`, Basis der Metrik `49da54b6993287b9d1902b30aacef66e8afc4703`. Beginn laut `date`: Do 22. Okt 19:38:49 CEST 2026. Code- und Doku-Endstand `5804f486`; danach ändert nur dieser Abschnitt den Zweig. Eine Randform-Rückgabe an den Architect war nicht nötig: `LH-FA-01.a` *Version* und §6 waren vollständig. Keine Mutations-Tabelle: Die Option wirkt nicht auf `record`, `replay` und `play` (`AGENTS.md` §3.10), je Zusage steht ein Test.
+
+**Läufe am Endstand `5804f486`** (engster Sensor während der Arbeit: `go test` des CLI-Adapters und des Bootstraps im Image der Stufe `deps` mit Bind-Mount, die vier E2E-Tests über `PGR_TESTS_1` und `PGR_TESTS_2` des Runners)
+
+| Lauf | Ergebnis |
+|---|---|
+| `make test` | Exit 0 (gofmt, vet mit Tag `integration`, Unit-Tests; Anweisungsabdeckung gesamt 94,43 % (4092 von 4333), Schwelle 94 %) |
+| `make lint` | Exit 0 |
+| `make docs-check`, `make kopf-check` | je Exit 0, auch nach dem Eintrag dieses Abschnitts; `d-check: 1406 Datei(en) geprüft, 0 Befund(e)` |
+| `make abdeckung-check`, `make meldungskatalog-check` | je Exit 0 (die Tabellen mit `make abdeckung` erzeugt) |
+| `make test-integration` | Exit 0, `run-integration-tests: gruen`, 19:51 bis 19:53; `TestE2EVersionsAngabe`, `TestE2EKeineVersionsAngabe`, `TestE2EVersionNachKommando`, `TestE2EVersionHilfe` je `PASS` |
+| `make gates` | nicht gefahren (Auftrag des Koordinators: einmal am Endstand im Hauptbaum) |
+
+**Beleg je Liefer-Punkt.** Das gebaute Binary (Stufe `integration`, `VERSION=dev`):
+
+| Aufruf | Exit | `stdout` | `stderr` |
+|---|---|---|---|
+| `version`, `--version`, `-v` | 0 | `pgwire-recorder dev` | leer |
+| `-V` | 2 | leer | `Konfiguration [PGR-E2001]: unbekanntes Kommando "-V"; --help zeigt die Kommandos` |
+| `--version=x` | 2 | leer | `… [PGR-E2001]: unbekanntes Kommando "--version=x"; …` |
+| `--version record` | 2 | leer | `… [PGR-E2001]: unbekanntes Kommando "--version"; …` |
+| `record -v` | 2 | leer | `… [PGR-E2001]: ungültige Verwendung von record: flag provided but not defined: -v` |
+| `-- --version` | 2 | leer | `… [PGR-E2001]: unbekanntes Kommando "--"; …` |
+| `--version --help` | 0 (`TestE2EVersionHilfe`) | die globale Hilfe mit dem Block `Programmversion, nur als einziges Argument:` | leer |
+
+Liefer-Punkt 1, ein Test je Zusage von `LH-FA-01.a` *Version* (Unit `cli_test.go` · Run `bootstrap_test.go` · E2E `version_e2e_test.go`):
+
+| Zusage | Test |
+|---|---|
+| `--version` und `-v` als einziges Argument sind das Kommando `version` | `TestParseVersion` |
+| dieselbe Zeile `pgwire-recorder <Version>`, `\n`, `stdout`; `stderr` leer; Exit-Code 0 (auch `LH-FA-14.a`) | `TestRunVersionsAngabe` (`1.2.3`), `TestE2EVersionsAngabe` (Zeile gleich der von `version`, genau eine) |
+| liest keine Umgebungsvariable (E2E: jede `PGWIRE_RECORDER_*` der allgemeinen Hilfe, `PASSWORD` und eine unbekannte, ungültig) und keine Konfigurationsdatei (`PGWIRE_RECORDER_CONFIG` auf eine fehlende, Standarddatei ungültig) | `TestParseVersion`, `TestRunVersionsAngabe`, `TestE2EVersionsAngabe` |
+| die Liste ist abgeschlossen: `-version`, `--v`, `-V`, `--Version` je ein Fall; `--version=x`, `-v=x` je ein Fall; als einziges Argument ein unbekanntes Kommando (`PGR-E2001`, Exit-Code 2) | `TestParseKeineVersionsAngabe`, `TestE2EKeineVersionsAngabe` |
+| mit weiterem Argument `PGR-E2001`: die sechs Beispiele je ein Fall, dazu `record`, `replay`, `play` mit allen Pflichtoptionen und `--version`, `-v`: unbekannte Option, nicht fehlende | `TestParseVersionMitWeiteremArgument`, `TestE2EKeineVersionsAngabe`, `TestE2EVersionNachKommando` |
+| `--version --help` ist die globale Hilfe, Exit-Code 0 (dazu `-v -h`, Reihenfolge vertauscht) | `TestParseVersionHilfe`, `TestE2EVersionHilfe` |
+| die globale Hilfe nennt die Option, die Hilfe je Kommando (`record`, `replay`, `play`, `config`, `version`) nicht | `TestUsageNenntVersionsAngabe`, `TestE2EVersionHilfe` |
+| `version` bleibt | `TestParseVersion`, `TestRunVersion`, `TestRunVersionLogLevel` |
+| Grenze: `\n` nur unter Linux geprüft | kein Test, Grenze an der Zusage in `LH-FA-01.a` (§6 Punkt 5) |
+
+Liefer-Punkt 2, ein Satz des Handbuchs, eine Zeile (Abschnitte *Log-Ausgaben* und *Konfigurationsdatei*):
+
+| Satz | Probe |
+|---|---|
+| auf `stdout` stehen nur die Hilfe, die Ausgabe von `version`, auch als `--version` oder `-v`, und die von `config show` | `TestE2EVersionsAngabe` (stderr leer, eine Zeile), `TestE2EVersionHilfe` |
+| die Version zeigen `version`, `--version`, `-v`; jede der drei schreibt genau eine Zeile `pgwire-recorder <Version>`, nichts auf `stderr`, Exit-Code 0 | `TestE2EVersionsAngabe` |
+| keine liest eine Umgebungsvariable oder eine Konfigurationsdatei | `TestE2EVersionsAngabe` |
+| `version`, `--version`, `-v` geben die Version aus, auch wenn `PGWIRE_RECORDER_CONFIG` eine fehlende Datei nennt oder `.pgwire-recorder.yaml` ungültig ist | `TestE2EVersionsAngabe` |
+| `--version` und `-v` gelten nur als einziges Argument und nur in genau dieser Schreibweise; `-version`, `--v`, `-V`, `--Version`, `--version=x`, `-v=x` sind ein unbekanntes Kommando (`PGR-E2001`) | `TestE2EKeineVersionsAngabe` (Meldung `unbekanntes Kommando` für die sechs) |
+| mit einem weiteren Argument, davor oder danach, `PGR-E2001`: `--version record`, `-v record`, `record --version`, `record -v`, `version --version`, `-- --version` | `TestE2EKeineVersionsAngabe` |
+| bei `record`, `replay`, `play` sind `--version` und `-v` unbekannte Optionen | `TestE2EVersionNachKommando` |
+| steht neben `--version` oder `-v` auch `--help` oder `-h`, gilt die Hilfe; `--version --help` zeigt die allgemeine Hilfe | `TestE2EVersionHilfe` |
+| nur die allgemeine Hilfe nennt `--version` und `-v`, die Hilfe eines Kommandos nicht | `TestE2EVersionHilfe` (fünf Kommandos) |
+
+Durchsicht des Handbuchs nach der Allgemeinregel (Quantoren über Argument, Option, Kommando, `stdout`, Exit-Code, Variable, Datei; erste Durchsicht): *verbunden:* der Satz zu `stdout` in *Log-Ausgaben*, der Satz „startet das Werkzeug nicht (`PGR-E2004`)“ in *Konfigurationsdatei* (Satz zur Version dahinter). *Unverändert, mit Grund:* „Das erste `--` beendet die Optionen an jeder Stelle“ und „nehmen nach `--` kein Argument an“ (`-- --version` bleibt `PGR-E2001`, Probe oben); die Zeile `PGR-E2001` der Fehlercodes („Eine Option fehlt, ist unbekannt …“; sie nennt ein unbekanntes Kommando auch im Bestand nicht, `record -v` ist eine unbekannte Option und gedeckt); die Sätze zu Umgebungsvariablen der Betriebsart in *Einstellungen* (Betriebsart sind `record`, `replay`, `play`); „keine Option“ bei Passwort, `config show` und Variablen ohne Option (anderer Gegenstand); „fragt nie nach Eingaben“ (Testautomatisierung, kein Satz zur Version). Ausnahmen derselben Seite für die neuen Sätze mit Quantor: Hilfe-Angaben gelten an jeder Stelle (Probe `--version --help`, `--help -v`), `config show` liest `PGWIRE_RECORDER_CONFIG` (anderes Kommando, kein Satz zur Version). `README.md` bleibt unberührt: Es nennt weder das Kommando noch die Option (`grep`: 0 Treffer).
+
+`grep -rn -- '--version' spec docs/user README.md internal test` am Endstand, je Datei (Risiko 2 in §6): `spec/spezifikation.md` 8 Zeilen (Ausgabe, Absatz *Version*, Historie), `docs/user/benutzerhandbuch.md` 10 (Absätze *Konfigurationsdatei*, *Log-Ausgaben*, Version), `docs/user/abdeckung-unit.md` 7 und `abdeckung-e2e.md` 5 (erzeugt aus den Deklarationen), `README.md` 0, `cli.go` 3 (Hilfetext, Kommentar, Erkennung), `cli_test.go` 21, `bootstrap_test.go` 2, `version_e2e_test.go` 14; keine Zeile verneint die Option.
+
+**Größe** (`AGENTS.md` §3.14, Pfade des Plans `internal/adapters/driving/cli test docs/user`, Basis `49da54b6…`, gemessen bis `5804f486`): 273 Zeilen (Einfügungen plus Löschungen), Marke 1500. Dazu `internal/bootstrap/bootstrap_test.go` mit 22 Zeilen außerhalb der Pfade; mit ihm 295.
+
+**Abweichungen vom Plan**
+
+- §3 nannte für den Beleg „E2E-Fall oder `bootstrap_test.go`“; geliefert sind beide. Der Bootstrap-Code ändert sich nicht, die Datei zählt nicht als Schicht (`AGENTS.md` §3.13, Verdrahtung ohne Logik); Schichten bleiben zwei.
+- Das Handbuch ändert drei Stellen statt des einen Absatzes: den Satz zu `stdout` in *Log-Ausgaben* (er hätte der Versions-Angabe widersprochen), einen Satz in *Konfigurationsdatei* und den Kopf (Version des Dokuments 0.11, Stand 22.10.2026). Software-Version und Gültigkeitsbereich im Kopf nennen weiter `0.1.1`; das Release 0.1.1 hat die Option nicht, der Kopf zieht beim nächsten Release nach.
+- `TestParseKeineVersionsAngabe` führt zwei Fälle mehr als die Spezifikation nennt (`--version=`, `-v=` mit leerem Wert).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
