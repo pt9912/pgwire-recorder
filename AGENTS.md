@@ -491,18 +491,41 @@ slice-v1-abschluss-einspielen wieder aufgetreten?
 
 ### 3.14 Eine Rückführungs-Marke nennt ihre Metrik, und die Schätzung rechnet in ihr (seit slice-harness-gate-kette-stop-hook-liste)
 
-Entscheidung des Nutzers vom 2026-10-13. Jede Rückführungs-Marke in §4 eines Plans („zu groß, über
-N Zeilen mit Tests“) nennt ihre Metrik: die Summe aus Einfügungen und Löschungen von
-`git diff --numstat <Basis>..<letzter Commit des Slice>` über die Pfade, die der Plan nennt, Tests
-eingeschlossen. Der Architect gibt Schätzungen in dieser Metrik an und rechnet für Tabellen- und
+Entscheidung des Nutzers vom 2026-10-13. Die Metrik ist am 2026-10-21 nach
+[ADR-0056](docs/plan/adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) berichtigt
+(Entscheidung des Nutzers vom selben Tag). Jede Rückführungs-Marke in §4 eines Plans („zu groß, über
+N Zeilen mit Tests“) nennt ihre Metrik. Gemessen wird mit
+
+```
+git diff --numstat --find-renames=10% <Basis>..HEAD -- <Pfade des Plans> \
+  ':(exclude)docs/plan/planning' ':(exclude)docs/reviews' \
+  | awk '{a+=$1; b+=$2} END {print a+b+0}'
+```
+
+**Basis** ist der Commit, der die Plandatei nach `in-progress/` bewegt; seinen Hash trägt §4 beim
+Übergang ein. Was davor liegt — Vertrag und Entscheidung des Architect vor dem Start —, zählt nicht.
+**Messpunkt** ist der committete Stand des Zweigs zu jeder Zeit der Arbeit, nicht erst der letzte
+Commit; nicht gezählt ist, was noch nicht committet ist. **Pfade** sind die des Plans, Tests
+eingeschlossen; die zwei Ausschlüsse stehen in jedem Fall im Befehl, damit eine weite Pfadangabe
+(`docs`, `.`) den Planungsbaum und die Reports nicht wieder einfängt. Nicht gezählt sind damit Plan,
+Closure-Notiz, Roadmap, Welle-Plan, Beobachtungs-Register, Review- und Verifikationsbericht; gezählt
+bleiben Entscheidungen (`docs/plan/adr/`, `docs/plan/carveouts/`) sowie Nutzer- und Wartungs-Doku.
+**Der Befehl steht hier, einmal:** §4 eines Plans nennt Pfade, Marke und Meldeschwelle und zeigt auf
+diese Stelle; wiederholt ein Plan den Befehl, gilt der von hier.
+
+Der Architect gibt Schätzungen in dieser Metrik an und rechnet für Tabellen- und
 Gegenprobe-Code mit rund dem Doppelten des Produktcodes.
 
-**Falsch:** §4 nennt „über 700 Zeilen mit Tests“; gemessen sind 630 (netto), 704 (Einfügungen) und
-778 (Summe), ob die Marke eintrat, hängt an der Lesart, und die Schätzung von 440 bis 620 Zeilen
-endet bei 1065, weil die Gegenprobe zwei Drittel des Diffs trägt.
-**Richtig:** §4 nennt „Summe aus Einfügungen und Löschungen von `git diff --numstat 9662e13..<letzter
-Commit> -- tools harness .claude`, über 700“; der Architect schätzt in dieser Zahl und setzt die
-Gegenprobe mit dem Doppelten des Produktcodes an.
+**Falsch:** §4 nennt „Summe aus Einfügungen und Löschungen von
+`git diff --numstat <Basis>..<letzter Commit>`“ über `tools harness spec docs README.md`; am
+Endstand ergibt dieselbe Arbeit 1148, weil die Plandatei nach der Closure zweimal im Diff steht
+(`464 0` unter `done/`, `0 207` unter `next/`) und Review- und Verifikationsbericht mit 179 Zeilen
+mitzählen.
+**Richtig:** Derselbe Stand ergibt mit dem Befehl oben 244, und die Zahl steht über Review,
+Verifikation, Nacharbeit, Closure und Move still.
+
+**Begründung:** `BEO-REPO/groessenprobe-ohne-messbaren-stand`; Retirement-Check: Ist die Beobachtung
+seit slice-harness-groessen-metrik wieder aufgetreten?
 
 **Begründung:** Eine Marke ohne Metrik lässt die Probe an der Lesart hängen
 (`BEO-REPO/groessenprobe-ohne-messbaren-stand`), und eine Schätzung ohne den Faktor der Tests liegt
