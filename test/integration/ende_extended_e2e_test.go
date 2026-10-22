@@ -159,12 +159,13 @@ func wiedergabeEndeExtended(t *testing.T, art string, ablauf endeAblauf) {
 
 // Abdeckung: LH-FA-25/Happy, LH-FA-18/Happy, LH-FA-02/Happy — Aufzeichnung am Binary gegen
 // PostgreSQL 17 (Gruppe mit Ende, die mit Sync schließt): Beendet der Server die Verbindung in
-// Execute von pg_terminate_backend (Parse, Bind, Execute, Sync, 57P01), erhält der Client die
-// Bestätigungen, die Datenzeile und die Fehlerantwort FATAL und danach das Ende seiner
-// Verbindung, ohne ReadyForQuery; der Lauf endet mit Exit-Code 0 und ohne Meldung; die
-// Aufzeichnung trägt die Version 2, genau ein connection_closed und eine Session, die Typenfolge
-// der Session 1 und V, S, C und M der Fehlerantwort von ende-extended-sync.yaml. Die Aufzeichnung
-// bleibt unter PGR_DATEN für TestE2EOhnePostgresEndeExtendedSync liegen.
+// Execute von pg_terminate_backend (Parse, Bind, Execute, Sync, 57P01), erhält der Client als
+// letzte Nachricht die Fehlerantwort FATAL 57P01 und danach das Ende seiner Verbindung, ohne
+// ReadyForQuery; der Lauf endet mit Exit-Code 0 und ohne Meldung; die Aufzeichnung trägt die
+// Version 2, genau ein connection_closed und eine Session, die Typenfolge der Session 1 (darin
+// vor der Fehlerantwort die Bestätigungen von Parse und Bind und die Datenzeile) und V, S, C und
+// M der Fehlerantwort von ende-extended-sync.yaml. Die Aufzeichnung bleibt unter PGR_DATEN für
+// TestE2EOhnePostgresEndeExtendedSync liegen.
 func TestE2ERecordEndeExtendedSync(t *testing.T) {
 	aufnehmenEndeExtended(t, "sync", endeExtendedSyncYAML, endeSyncAblauf)
 }
@@ -172,12 +173,12 @@ func TestE2ERecordEndeExtendedSync(t *testing.T) {
 // Abdeckung: LH-FA-25/Happy, LH-FA-18/Happy, LH-FA-02/Happy — Aufzeichnung am Binary gegen
 // PostgreSQL 17 (Gruppe mit Ende, die mit Flush schließt, die Gruppe davor ebenso): Beendet eine
 // zweite Verbindung den Backend, nachdem der Client die Bestätigung von Parse der Gruppe mit
-// Ende gelesen hat (genau ein Backend mit dieser Anfrage in pg_stat_activity, 57P01), erhält der
-// Client die Fehlerantwort FATAL und danach das Ende seiner Verbindung, ohne ReadyForQuery; der
-// Lauf endet mit Exit-Code 0 und ohne Meldung; die Aufzeichnung trägt die Version 2, genau ein
-// connection_closed und eine Session, die Typenfolge der Session 1 und V, S, C und M der
-// Fehlerantwort von ende-extended-flush.yaml. Die Aufzeichnung bleibt unter PGR_DATEN für
-// TestE2EOhnePostgresEndeExtendedFlush liegen.
+// Ende gelesen hat (genau ein Backend mit dieser Anfrage in pg_stat_activity), erhält der Client
+// als letzte Nachricht die Fehlerantwort FATAL 57P01 und danach das Ende seiner Verbindung,
+// ohne ReadyForQuery; der Lauf endet mit Exit-Code 0 und ohne Meldung; die Aufzeichnung trägt
+// die Version 2, genau ein connection_closed und eine Session, die Typenfolge der Session 1 und
+// V, S, C und M der Fehlerantwort von ende-extended-flush.yaml. Die Aufzeichnung bleibt unter
+// PGR_DATEN für TestE2EOhnePostgresEndeExtendedFlush liegen.
 func TestE2ERecordEndeExtendedFlush(t *testing.T) {
 	aufnehmenEndeExtended(t, "flush", endeExtendedFlushYAML, endeFlushAblauf(beendeFlushBackend))
 }
