@@ -92,7 +92,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik und Messbefehl: `AGENTS.md` §3.14; Pfade des Plans: `test docs/user`); die Basis ist der Commit des Übergangs nach `in-progress/`, sein Hash steht beim Übergang hier. Dann hält der Implementer an und meldet dem Planner; Schnitt `Sync` | `Flush` (Zuschnitt: Planner).
+- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik und Messbefehl: `AGENTS.md` §3.14; Pfade des Plans: `test docs/user`); die Basis ist der Commit des Übergangs nach `in-progress/`, sein Hash: `642f5f51ceed85ff06588e45e07065add06eecd6`, Zweig `impl-upstream-ext`. Dann hält der Implementer an und meldet dem Planner; Schnitt `Sync` | `Flush` (Zuschnitt: Planner).
 - `in-progress` → `next`: Die echte Form des Servers verlangt eine Änderung an Produktcode (Upstream-Adapter, Record-, Replay-Service, PGWire-Adapter) — Befund an den Planner, zurück zur Zerlegung; ein Folge-Slice trägt die Änderung (§1: der Slice liefert keinen Produktcode).
 - `in-progress` → `open`: Das Ende einer Extended-Gruppe ist gegen PostgreSQL nicht deterministisch herstellbar (die Antwort des Servers hängt von der Zeit ab, ein Fall ist flackernd) — der Nutzer entscheidet, ob die Fixture als handgeschrieben akzeptiert bleibt (Carveout, Register bleibt offen).
 
