@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Entscheidung:** Entscheidung des Nutzers vom 2026-10-21 (wörtlich): „'--version -v' als slice einplanen“. Entschieden ist damit, **dass** der Slice eingeplant wird und dass er beide Formen zum Gegenstand hat; **wie** die Option sich verhält (Ausgabe, Exit-Code, Formen, Stelle, Vorrang, ob `-v` wirklich belegt wird) ist nicht entschieden und steht in §6 als Rückgabe an den Architect. Keine ADR.
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** Planner. **Datum:** 2026-10-21.
 
 ---
