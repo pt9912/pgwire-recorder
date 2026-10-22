@@ -81,7 +81,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-ci-freshness` liegt in `done/`, dazu der Start-Trigger von [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (`welle-erster-release` in `done/`), und der Architect hat `SPEC-066` erweitert, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 3 der Reihenfolge in §5 der Welle.
+**Start** (`next` → `in-progress`): `slice-harness-ci-freshness` liegt in `done/`, dazu der Start-Trigger von [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (`welle-erster-release` in `done/`), und der Architect hat `SPEC-066` erweitert, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 3 der Reihenfolge in §5 der Welle. **Größe gegen die Regel von `AGENTS.md` §3.14** (Entscheidung des Nutzers vom 2026-10-22, wörtlich „Beim Start je Plan entscheiden (Empfohlen)“): Die Mitte der Schätzung liegt bei 108,6 % der Marke 900, über 70 % (Mitte 977,5; der Schnitt in Tag-Achse und Digest-Achse ist vorgemerkt, Frage 1 in §6); es wird nicht rückwirkend geschnitten. Beim Übergang nach `next/`, spätestens vor dem Anspruch, rechnet der Planner die Mitte erneut gegen 70 % der Marke und schneidet nach der Regel oder legt dem Nutzer die datierte Entscheidung „ohne weiteren Schnitt“ vor.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
