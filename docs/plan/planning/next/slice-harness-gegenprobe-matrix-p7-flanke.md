@@ -36,7 +36,7 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Die Kopplung zwischen der Mutation `p7-int-treiber` und den TERM-Fällen der Gruppe `p7-sig` in
-`tools/test/postgres-versionen-gegenprobe.sh` ist in ihrer Ursache ermittelt, und die Gegenprobe der Versionsmatrix färbt unter
+`tools/dev/test/postgres-versionen-gegenprobe.sh` ist in ihrer Ursache ermittelt, und die Gegenprobe der Versionsmatrix färbt unter
 dieser Mutation nur die Fälle ihrer Gruppe (`p7-sigINT-gruppe`, `p7-sigINT-skript`) — oder `SPEC-053` nennt die Bedingung,
 unter der die Zusage gilt, und die Gegenprobe prüft sie.
 
@@ -64,7 +64,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] **Liefer-Punkt 1:** Die Ursache der Kopplung zwischen `p7-int-treiber` und den TERM-Fällen von `p7-sig` ist ermittelt und belegt (ein Lauf, der sie zeigt, nicht die Beschreibung des Musters), und `SPEC-053` trägt die Entscheidung dazu: entweder die Zusage „Mutationen färben nur die Fälle ihrer Gruppe“ unverändert, mit der Ursache behoben, oder die Bedingung, unter der sie gilt (Aufruf-Voraussetzung, `AGENTS.md` §3.12). Die Sendung der drei Geber `slice-v1-abschluss-postgres-versionen-zusage`, `slice-v1-abschluss-protokollrand` und `slice-harness-randform-stelle-und-lesart` ist damit angenommen.
-- [ ] **Liefer-Punkt 2:** `tools/test/postgres-versionen-gegenprobe.sh` färbt unter `p7-int-treiber` nur `p7-sigINT-gruppe` und `p7-sigINT-skript`; ein Fall mit Mutation hält die Entscheidung aus Punkt 1 (rot, wenn die Kopplung wiederkehrt), und eine Wiederholung der Gruppe `p7-sig` in der Zahl, die der Architect vor dem Code festlegt, bleibt grün.
+- [ ] **Liefer-Punkt 2:** `tools/dev/test/postgres-versionen-gegenprobe.sh` färbt unter `p7-int-treiber` nur `p7-sigINT-gruppe` und `p7-sigINT-skript`; ein Fall mit Mutation hält die Entscheidung aus Punkt 1 (rot, wenn die Kopplung wiederkehrt), und eine Wiederholung der Gruppe `p7-sig` in der Zahl, die der Architect vor dem Code festlegt, bleibt grün.
 - [ ] Mutation je Zusage des geänderten Vertrags (`AGENTS.md` §3.10), vom Implementer selbst rot gesehen; Bericht nennt je Zusage: Zusage · Mutation · roter Test.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -85,7 +85,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `harness/vertraege/SPEC-053-postgres-versionen.md` | update | Entscheidung zur Ursache in Punkt 7 und 14; vor dem Code vom Architect geschrieben (`AGENTS.md` §3.12) |
-| `tools/test/postgres-versionen-gegenprobe.sh` | update | Gruppe `p7-sig` (Fälle und Mutationen `p7-int-treiber`, `p7-term-treiber`, `p7-term-runner`); Ansatz nach der Ursache, nicht vorab |
+| `tools/dev/test/postgres-versionen-gegenprobe.sh` | update | Gruppe `p7-sig` (Fälle und Mutationen `p7-int-treiber`, `p7-term-treiber`, `p7-term-runner`); Ansatz nach der Ursache, nicht vorab |
 
 Welche Zeile in `harness/README.md` (Sensors, `make test-postgres-versionen-gegenprobe`) mitzieht, sagt der Architect nach der Ursache; trägt der Slice sie, zählt er neu (§8).
 
@@ -98,7 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test harness/vertraege harness/README.md`, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist und beim Start eingetragen wird; **über 200** geht der Slice zurück zur Zerlegung. **Meldeschwelle 160:** Erreicht die Summe 160, hält der Implementer an und meldet dem Planner. Schätzung des Planners: 60 bis 120 (Mitte 90), unsicher, solange die Ursache fehlt; Marke 200 und Meldeschwelle 160 bleiben Schätzung, der Architect setzt sie neu, sobald die Ursache feststeht (Entscheidung des Nutzers vom 2026-10-15); die Gegenprobe trägt rund das Doppelte des Produktcodes, Tabellen- und Fall-Code eingeschlossen.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test tools/dev/test harness/vertraege harness/README.md`, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist und beim Start eingetragen wird; **über 200** geht der Slice zurück zur Zerlegung. **Meldeschwelle 160:** Erreicht die Summe 160, hält der Implementer an und meldet dem Planner. Schätzung des Planners: 60 bis 120 (Mitte 90), unsicher, solange die Ursache fehlt; Marke 200 und Meldeschwelle 160 bleiben Schätzung, der Architect setzt sie neu, sobald die Ursache feststeht (Entscheidung des Nutzers vom 2026-10-15); die Gegenprobe trägt rund das Doppelte des Produktcodes, Tabellen- und Fall-Code eingeschlossen.
 - `in-progress` → `open`: Die Flanke lässt sich nicht herstellen und die Ursache nicht belegen (kein Lauf zeigt sie in der Zahl von Wiederholungen, die der Architect festlegt) — der Slice wartet auf ein weiteres Auftreten, und die Beobachtung geht mit Begründung nach *offen* zurück, nicht nach *gestrichen*.
 - `in-progress` → `open`: Die Ursache liegt im Runner `tools/test/run-postgres-versionen.sh` oder im Aufräumen nach `SIGTERM` (`SPEC-053` Punkt 14) — der Gegenstand gehört einem anderen Slice (§1); der Planner schneidet ihn.
 
@@ -173,3 +173,5 @@ Nachgezählt (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Slice ist neu; die S
 Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice trägt keine Sendung ein und nimmt keine an: Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung; tritt das Rot der Gruppe `p7-sig` bis dahin wieder auf, bleibt es ein Auftreten im Zähler von `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`.
 
 **Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe der Versionsmatrix hängt seit `slice-harness-gegenproben-aus-gates` an der Container-Liste und nicht mehr an `GATE_CHECKS`; die Aufrufarten-Randform nennt die Liste. Liefer-Punkte und Schichten ändern sich nicht.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (2) und Schichten (2) unverändert. Die Marke von §4 misst mit `-- tools/test …`; weil die Gegenprobe jetzt unter `tools/dev/test/` liegt, nennt der Befehl dort zusätzlich `tools/dev/test`.

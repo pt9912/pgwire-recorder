@@ -86,7 +86,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Ein Lauf von `make slice-mv` mit `SLICE=slice-v1-abschluss-verbindungsende-sqlite` und
       `…-sqlite-schreiber` zeigt, dass der exakte Name den Präfix schlägt (in einem Wegwerf-Klon, nicht im
       Arbeitsbaum).
-- [ ] **Liefer-Punkt 2 (Gegenprobe):** `tools/harness/slice-mv-gegenprobe.sh` mit dem Fragment
+- [ ] **Liefer-Punkt 2 (Gegenprobe):** `tools/dev/harness/slice-mv-gegenprobe.sh` mit dem Fragment
       `harness/mk/slice-mv-gegenprobe.mk` (Ziel `slice-mv-gegenprobe`, hängt an einer der beiden Listen nach `SPEC-060` Punkt 3, nicht an `GATE_CHECKS`) prüft in
       einem Wegwerf-Repo (`mktemp -d`) die Fälle: exakter Treffer vor Präfix, Bindestrich-Grenze, zwei
       Präfix-Treffer (Exit 2), kein Treffer (Exit 2), derselbe Name in zwei Verzeichnissen (Exit 2),
@@ -115,7 +115,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `tools/harness/slice-mv.sh` | update (Übernahme `v0.7.0`) | Funktion `quelle_finden`, Hilfetext, Aufruf in `main()`: +49/−15 Zeilen; Kommentar zur Prüfdatei auf die Gegenprobe umgebogen |
-| `tools/harness/slice-mv-gegenprobe.sh` | neu | Gegenprobe im Stil von `kopf-check-gegenprobe.sh`: Wegwerf-Repo, Fälle je Zusage, Mutationen in Kopien |
+| `tools/dev/harness/slice-mv-gegenprobe.sh` | neu | Gegenprobe im Stil von `kopf-check-gegenprobe.sh`: Wegwerf-Repo, Fälle je Zusage, Mutationen in Kopien |
 | `harness/mk/slice-mv-gegenprobe.mk` | neu | Ziel `slice-mv-gegenprobe`, an der Liste der Gegenproben nach `SPEC-060` Punkt 3 |
 | `harness/mk/gates-schnell.mk` | entfällt | Die Ausnahmeliste der schnellen Kette nennt keine Gegenprobe mehr (`SPEC-060` Punkt 2) |
 | `harness/README.md` §Sensors | update | Zeile für `make slice-mv-gegenprobe` |
@@ -183,7 +183,7 @@ dasteht.
 - *Braucht der Slice `harness/sensors/slice-mv.md`?* Die Zeile in `harness/README.md` reicht, wenn kein Vertrag mit Punkten zu führen ist; der
   Architect entscheidet, und mit Datei zählt der Plan neu (§8).
 
-**Randformen der Gegenprobe** (`AGENTS.md` §3.12; Ort der Entscheidung: der Kopf von `tools/harness/slice-mv-gegenprobe.sh`, weil das Werkzeug
+**Randformen der Gegenprobe** (`AGENTS.md` §3.12; Ort der Entscheidung: der Kopf von `tools/dev/harness/slice-mv-gegenprobe.sh`, weil das Werkzeug
 keinen Vertrag unter `harness/vertraege/` führt — der Architect bestätigt den Ort oder legt einen Vertrag an):
 
 - *Glob-Metazeichen im Argument* (`slice-*`, `slice-?`, `[`): Das Argument ist ein Name, kein Muster; `quelle_finden` stellt den Namen in
@@ -260,3 +260,5 @@ Nachgezählt (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Slice ist neu und tr
 Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice trägt keine Sendung ein und nimmt keine an: Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung; die Moves der Schritte 39b bis 44 und der Release-Slices gehen von Hand, wo das Präfix mehrdeutig ist.
 
 **Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe hängt an einer der beiden Listen statt an `GATE_CHECKS`, und die Zeile zu `gates-schnell.mk` entfällt (die Ausnahmeliste nennt keine Gegenprobe mehr); der Slice wird dadurch nicht größer, Liefer-Punkte und Schichten ändern sich nicht.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (2) und Schichten (2) unverändert.

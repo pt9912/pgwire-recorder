@@ -81,7 +81,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `harness/vertraege/SPEC-070-…md` oder eine eigene Kennung | neu oder update, **durch den Architect** vor dem Code | Zusagen der Wiederholungs-Grenze und jede Randform aus §6 entschieden (`AGENTS.md` §3.12) |
 | `.claude/hooks/pretooluse-zeitgrenze.sh`, `tools/harness/hook-felder.awk` | update | Liefer-Punkt 1: die Zählung aus dem Strom und die Sperre |
-| `tools/harness/zeitgrenze-gegenprobe.sh` | update | Liefer-Punkt 2: Fälle und Mutationen |
+| `tools/dev/harness/zeitgrenze-gegenprobe.sh` | update | Liefer-Punkt 2: Fälle und Mutationen |
 | `docs/plan/planning/observations/BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` | update bei Closure | gemessene Zeit (kein Liefer-Punkt) |
 
 - **Reihenfolge:** (1) der Architect entscheidet die Randformen aus §6 in der Spezifikation; (2) der Hook; (3) die Gegenprobe, je Zusage eine Mutation, vom Implementer selbst rot gesehen; (4) Closure. Jeder Commit nennt die Kennung dieses Slice.
@@ -169,3 +169,5 @@ Hälften.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Zählung nach `AGENTS.md` §3.13 und §3.14 (Planner, 2026-10-22, im Commit, der diesen Plan anlegt und die Sendung von `slice-harness-rollenlauf-zeitgrenze` einträgt):** Liefer-Punkte 2 (die Wiederholungs-Grenze im Wächter | die Gegenprobe dazu). Schichten 1 (Harness); Planung, Vertrag und Entscheidung zählen nicht. Schätzung 160 bis 450 in der Metrik von §4 mit dem Faktor 3 bis 4,6 für Gegenprobe-Code, **vor dem Vertrag**; Marke 700 und Meldeschwelle 550 vorläufig. Die Sendung legt keinen Liefer-Punkt und keine Schicht an.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (2) und Schichten (1) unverändert.

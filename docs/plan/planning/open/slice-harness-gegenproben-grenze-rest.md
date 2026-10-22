@@ -82,7 +82,7 @@ Der Architect füllt diese Tabelle nach dem Lesen der Skripte und vor dem ersten
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `tools/harness/*-gegenprobe.sh` und `tools/harness/<name>.sh` der aufzunehmenden Gegenproben (Liste: Messung) | update | Zeitbudget, Ausgabe und Fälle nach `SPEC-060` Punkt 16 (9) in der Form des Architect; nur für Gegenproben unter 600 s |
+| `tools/dev/harness/*-gegenprobe.sh` und `tools/harness/<name>.sh` der aufzunehmenden Gegenproben (Liste: Messung) | update | Zeitbudget, Ausgabe und Fälle nach `SPEC-060` Punkt 16 (9) in der Form des Architect; nur für Gegenproben unter 600 s |
 | `harness/mk/*.mk` der aufzunehmenden Gegenproben | update, falls das Fragment `GP_BUDGET` o. ä. durchreicht | nur wo die Form des Architect es verlangt |
 | `harness/README.md` (§Sensors, Zeilen der aufgenommenen Gegenproben) | update, erst mit der Lieferung | nennt Obergrenze und Schalter; vorher nicht (`AGENTS.md` §3.11) |
 | `harness/vertraege/SPEC-060-gegenproben.md` (Tabelle Punkt 16) | durch den Architect | Zahl je Gegenprobe, `aufgenommen`, Kennung der Folge-Slices |
@@ -175,3 +175,5 @@ nicht mehr.
 **Nachzählung mit der Sendung aus `slice-harness-container-start-u-boot-0-13`** (Planner, 2026-10-21, im selben Commit, der sie in §1 und §6 einträgt; `AGENTS.md` §3.13): **Liefer-Punkte bleiben 3, Schichten bleibt 1.** Die Sendung trägt eine Zahl und eine Version in die vorhandenen Punkte 1 (Messung: `container-start-gegenprobe` steht dort schon, die Vormessung ist eine Eingabe, kein neuer Gegenstand) und 3 (Schnitt: für diese Gegenprobe ist der Ausgang damit vorgezeichnet, die Zahl der zu schneidenden Gegenproben wächst nicht); sie bringt kein Skript, keinen Vertragstext und keine Datei außerhalb der Planung. Damit bleibt der Slice unter drei Liefer-Punkten und unter zwei Schichten. Der vorgemerkte Schnitt nach Gruppen (§4) bleibt davon unberührt: Er hängt an der Zahl der **aufzunehmenden** Gegenproben, und `container-start-gegenprobe` wird nach dieser Messung nicht aufgenommen. **Größe über der Marke nicht ausgeschlossen:** Die Zahl der aufzunehmenden Gegenproben steht erst nach der Messung fest; der vorgemerkte Schnitt steht in §4. Größe: Marke und Schätzung in §4.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Verträge und Konventionen des Harness gehen den Skripten voraus).
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (3) und Schichten (1) unverändert. Die Zeile in §3 nennt als Glob nur `tools/dev/harness/`; die Gegenproben unter `tools/dev/test/`, `tools/dev/arch/` und `tools/dev/hook/` gehören zur Messung ebenso.

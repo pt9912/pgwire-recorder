@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `harness/vertraege/SPEC-070-rollenlauf-zeitgrenze.md` | liegt vor; die Zuordnung der Punkte und Fälle zu den zwei Stufen steht im Abschnitt *Stufen* | Zusagen und Randformen der zweiten Stufe entschieden (`AGENTS.md` §3.12) |
 | `.claude/hooks/pretooluse-zeitgrenze.sh`, `tools/harness/hook-felder.awk` | update | Liefer-Punkt 1: Bereich des Ankers, Reihenfolge der Gründe, Zeile auf stderr, übrige Fälle der Freigabe, Umgebung |
-| `tools/harness/zeitgrenze-gegenprobe.sh` | update | Liefer-Punkt 2: Fälle und Mutationen der zweiten Stufe |
+| `tools/dev/harness/zeitgrenze-gegenprobe.sh` | update | Liefer-Punkt 2: Fälle und Mutationen der zweiten Stufe |
 | `harness/mk/zeitgrenze.mk` (Kommentar im Kopf), `harness/README.md` (Zeile des Wächters) | update, höchstens wenige Zeilen | das Ziel und seine Zeile bestehen seit der ersten Stufe; Sätze über den Hook nennen nach dieser Stufe die Selbstauskunft und die allgemeine Freigabe (DoD) |
 | `docs/plan/planning/observations/BEO-REPO/rollenlauf-ohne-zeitgrenze/` und `…/gate-laufzeit-waechst-mit-gegenprobe/` | update bei Closure | Beleg, gemessene Zeit (kein Liefer-Punkt) |
 
@@ -164,3 +164,5 @@ Hälften.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Zählung nach `AGENTS.md` §3.13 und §3.14 (Planner, 2026-10-22, im Commit, der diesen Plan anlegt und die Sendung von `slice-harness-rollenlauf-zeitgrenze` einträgt; nachgezählt am 2026-10-22 nach der Zuordnung der Stufen im Vertrag):** Liefer-Punkte 2 (der Wächter nennt seine Lage | die Gegenprobe der zweiten Stufe). Schichten 1 (Harness: Hook, Leser, Gegenprobe, eine Zeile `harness/README.md`; die Planung zählt keine Schicht, Vertrag und Entscheidung liegen vor der Basis). Schätzung **200 bis 405** in der Metrik von §4 mit dem Faktor 3 bis 4,6 für Gegenprobe-Code, rund 29 Fälle nach dem Vertrag (Marke 500, Meldeschwelle 400; vorher 273 bis 493 gegen Marke 700 bei 53 Fällen). Die Sendung (nur noch die übrigen Fälle von Punkt 7 und die Zeile auf stderr) legt keinen Liefer-Punkt und keine Schicht an.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (2) und Schichten (1) unverändert.

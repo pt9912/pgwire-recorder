@@ -130,7 +130,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md`, `harness/vertraege/README.md` (*Historie*) | update (Architect, vor dem Code, geliefert) | `SPEC-050` mit der Ablehnung, den Entscheidungen zu den Randformen aus §6 und den Grenzen; Historien-Zeile |
 | `docs/plan/adr/0035-…` und ADR-Index | neu (Architect, vor dem Code, geliefert) | [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) ergänzt [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) und [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) um die Ablehnung; Entscheidung und Gründe, `Schärft:` `SPEC-050` (`AGENTS.md` §3.8); Accepted am 2026-10-08 nach Entscheidung des Nutzers |
 | `.githooks/commit-msg` | update | Ablehnung nach `SPEC-050` **vor** dem frühen Exit 0 für benannte Slices und Wellen; Kopfkommentar |
-| `tools/hook/commit-msg-gegenprobe.sh` | update | je Randform aus §6 ein Fall mit der Erwartung aus `SPEC-050`; die Tabelle im Kopf folgt; die 15 vorhandenen Fälle bleiben |
+| `tools/dev/hook/commit-msg-gegenprobe.sh` | update | je Randform aus §6 ein Fall mit der Erwartung aus `SPEC-050`; die Tabelle im Kopf folgt; die 15 vorhandenen Fälle bleiben |
 | `harness/mk/hook-gegenprobe.mk` | update | Hilfetext des Ziels nennt die Ablehnung |
 | `harness/README.md`, `AGENTS.md` §5 | update | §Sensors und §Traceability rules; Regel 1 nennt ihren Träger |
 
@@ -325,3 +325,5 @@ Außer dem Gegenstand erreicht keiner der Einträge mit diesem Slice die Schwell
 keine neue Lücke vor dem Code.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (3) und Schichten (1) unverändert. Gezählt nach der DoD in §2 (Vertrag und Träger · Gegenprobe · Doku); der Plan führt in §8 bisher keine Zählung.

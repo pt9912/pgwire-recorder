@@ -85,7 +85,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `test/integration/play_vergleich_e2e_test.go`, `internal/bootstrap/play_test.go` | gelesen und gefahren; Proben nur in einer Kopie außerhalb des Repos | Ursache des Rots unter Last (Frist, Reihenfolge, Wettlauf) |
-| `tools/harness/container-einrichten-gegenprobe.sh` | gefahren (`GP_MUT`), nicht geändert | zweite Probe: Signalfall |
+| `tools/dev/harness/container-einrichten-gegenprobe.sh` | gefahren (`GP_MUT`), nicht geändert | zweite Probe: Signalfall |
 | `.claude/commands/implement-slice.md` | update | Zwischenregel in Schritt 16 |
 | `docs/plan/planning/observations/BEO-REPO/test-faellt-unter-cpu-last-aus/state.md` | update | Ausgang bei Closure |
 
@@ -186,3 +186,5 @@ Hälften.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Zählung nach `AGENTS.md` §3.13 und §3.14 (Planner, 2026-10-22, im Commit, der diesen Plan anlegt und die Sendung von `slice-harness-randform-umgebung-der-gegenprobe` einträgt):** Liefer-Punkte 3 (Ursache der zwei Go-Tests | zweite Probe: Signalfall der Gegenprobe | Zwischenregel). Schichten 2: Tests des Produkts (Bootstrap und Integrationstests, gelesen und gefahren, Proben in einer Kopie, kein Diff; konservativ als eine Schicht gezählt) und Harness-Artefakte (Gegenprobe gefahren, `implement-slice.md` geändert); Planung zählt keine Schicht, kein Produkt-Code im Diff. Schätzung 5 bis 15 in der Metrik von §4 (Marke 100, Meldeschwelle 80); der Faktor Tests zu Produktcode entfällt (kein Code, keine Gegenprobe). Die Sendung von `slice-harness-randform-umgebung-der-gegenprobe` (Aufruf der Last wörtlich in §7) steht in DoD 1 und legt keinen Liefer-Punkt und keine Schicht an. Läge der Slice mit der Zeit der Messung über einem Rollenlauf, ist der Schnitt vorgemerkt: Punkt 2 als eigener Slice (§4).
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (3) und Schichten (2) unverändert.

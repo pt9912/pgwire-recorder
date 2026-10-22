@@ -72,7 +72,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `tools/harness/nachweis-uebernehmen.sh` | update | Behandlung von `SIGINT` und `SIGTERM` (Hilfsverzeichnis und Hilfsdateien aufräumen, Exit 130 und 143), Wechsel in die Wurzel, falls `slice-harness-nachweis-uebernehmen` ihn nicht schon trägt |
-| `tools/harness/nachweis-uebernehmen-gegenprobe.sh` | update | 22 Fälle des Teils 2 mit Mutationen; Attrappen für `cmp` und `mv` (warten), zweite Kopie des Temp-Repos mit dem Hook aus dem Arbeitsbaum |
+| `tools/dev/harness/nachweis-uebernehmen-gegenprobe.sh` | update | 22 Fälle des Teils 2 mit Mutationen; Attrappen für `cmp` und `mv` (warten), zweite Kopie des Temp-Repos mit dem Hook aus dem Arbeitsbaum |
 | `harness/README.md` | update | Zeile der Gegenprobe nennt Fälle und Punkte des Teils 2 |
 
 ## 4. Trigger
@@ -161,3 +161,5 @@ nicht mehr.
 alle berührten Sub-Areas GF (`REPO`: Spezifikation und Entscheidung gehen dem Code voraus, der Vertrag des Architect steht vor dem Code).
 
 **Zählung nach `AGENTS.md` §3.13 und §3.14 (Planner, 2026-10-18, im Commit des Schnitts, der die Sendungen von `slice-harness-nachweis-uebernehmen` einträgt):** Liefer-Punkte 3 (Signale | Aufrufarten | Kopplung an den Hook); die Sendungen sind diese drei Punkte, ein vierter hat keinen Platz. Schichten 1: Harness-Werkzeug mit Gegenprobe und Gate-Index; Planung, Vertrag und ADR sind keine Schicht, Dokumentation unter `docs/` wird hier nicht geändert. Schätzung in der Metrik von §4: 165 bis 250 (Marke 900). Der Geber `slice-harness-nachweis-uebernehmen` zählt in seinem §8 mit: Liefer-Punkte 3, Schichten 2, 665 bis 940.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (3) und Schichten (1) unverändert.

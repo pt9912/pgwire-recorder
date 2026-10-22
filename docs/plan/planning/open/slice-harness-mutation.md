@@ -130,7 +130,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/vertraege/` (neue Datei der Kennung 053) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` oder eigenes Werkzeug-Image | update / neu | Stufe oder Image mit dem gepinnten Werkzeug; netzlos außer der Download-Stufe |
 | `harness/mk/<mutation>.mk` | neu | Ziel des Gates an `GATE_CHECKS`, Ziel der Gegenprobe an `GEGENPROBEN_CONTAINER`, Schwelle als eine benannte Stelle |
-| `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Pfad: ein Test entfernt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall |
+| `tools/dev/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Pfad: ein Test entfernt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall |
 | `harness/README.md`, `AGENTS.md` | update | §Sensors: Gate und Gegenprobe; §3.10 und §3.11: Zeile *Sensor* |
 
 ## 4. Trigger
@@ -320,3 +320,5 @@ Sendung senkt die Zahl der Schichten, sie erhöht keine.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der den Kettenumbau `slice-harness-gegenproben-aus-gates` mit seinem Vertrag (`SPEC-060`) nachzieht): Die Gegenprobe des Gates hängt seit `slice-harness-gegenproben-aus-gates` an der Container-Liste statt an `GATE_CHECKS` (die Namensregel verlangt es für jedes Ziel auf `-gegenprobe`); das Gate selbst bleibt an `GATE_CHECKS`. Liefer-Punkte (3) und Schichten (1) ändern sich nicht.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (3) und Schichten (1) unverändert.

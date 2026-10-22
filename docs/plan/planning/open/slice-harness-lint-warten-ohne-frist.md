@@ -128,7 +128,7 @@ nicht im Bericht.
       sie in *Vertrag* und *Grenze* (auch: synchrone Aufrufe prüft sie nicht), der Kopf
       von `lint.sh` ihre Fälle der Gegenprobe. Beleg in §7: je Zusage Zusage · Mutation ·
       roter Fall (`AGENTS.md` §3.10).
-- [ ] **Gegenprobe:** `tools/harness/lint-gegenprobe.sh` führt je Randform aus §6
+- [ ] **Gegenprobe:** `tools/dev/harness/lint-gegenprobe.sh` führt je Randform aus §6
       mindestens einen Fall in einer Kopie des Arbeitsbaums — rot mit genau der eigenen
       Zeile, wo der Architect einen Befund entschieden hat, ohne Befund, wo er die Form
       frei entschieden hat (mindestens: Empfang ohne `select`, `select` mit `time.After`,
@@ -167,7 +167,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/plan/adr/` | neu (nur wenn der Architect eine ADR verlangt) | [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ist angenommen und unveränderlich (`AGENTS.md` §3.5); eine neue Prüfung, die nicht aus ihr folgt, wäre eine ergänzende ADR mit `Schärft:` auf `SPEC-049` |
 | `tools/harness/lint.sh` | update | die Prüfung; Kopf *GEPRÜFT DURCH* um den neuen Punkt |
 | Programm unter `tools/harness/` | neu (nur bei Erkennung über den AST, §6) | liest die Testdateien mit `go/parser` in der Stufe `lint`, ohne Netz |
-| `tools/harness/lint-gegenprobe.sh` | update | Fälle je Randform, rot und frei (DoD-Punkt 2) |
+| `tools/dev/harness/lint-gegenprobe.sh` | update | Fälle je Randform, rot und frei (DoD-Punkt 2) |
 | `harness/sensors/lint.md` | update | *Vertrag* und *Grenze* der Prüfung |
 | `harness/README.md` | update | Zeile `make lint` der Sensors-Tabelle nennt die Prüfung |
 | `internal/hexagon/services/record_extended_test.go` | update | neun Stellen nach §1, Frist nach `SPEC-038` (Negative: Mutant an `:529`, `:812`) |
@@ -209,7 +209,7 @@ wird; mit dieser Prüfung wartet kein Test mehr ohne Frist auf einen Kanal oder 
 Prozessende, und ein solcher Mutant wird binnen der Frist rot.
 
 *Reihenfolge zu `slice-harness-gegenprobe-baumkopie`* (Entscheidung des Nutzers vom
-2026-10-18, Neuschnitt der Wellen 2 und 3): Beide ändern `tools/harness/lint-gegenprobe.sh`,
+2026-10-18, Neuschnitt der Wellen 2 und 3): Beide ändern `tools/dev/harness/lint-gegenprobe.sh`,
 und die Baumkopie behebt die Flake der Läufe (eine Datei im Arbeitsbaum ändert sich während
 der Kopie). `slice-harness-gegenprobe-baumkopie` startet deshalb vor diesem Slice, in
 derselben Welle (welle-gegenproben-und-mutanten, §5 dort), und dieser rebased auf dessen
@@ -338,7 +338,7 @@ Stand `bb36f2d` (§1).
 - **Laufzeit der Gegenprobe** — jeder neue Fall läuft die Stufe `lint` in einer Kopie
   (`BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, 1×); Laufzeit vorher und nachher in
   §7. — **Ausgang:** — (bei Closure)
-- **Gemeinsame Datei `tools/harness/lint-gegenprobe.sh`** — `slice-harness-gegenprobe-baumkopie`
+- **Gemeinsame Datei `tools/dev/harness/lint-gegenprobe.sh`** — `slice-harness-gegenprobe-baumkopie`
   ersetzt dort die Funktion `kopie` durch den Helfer; dieser Slice startet nach ihm (§4,
   Entscheidung des Nutzers vom 2026-10-18) und baut seine Fälle auf der geänderten Datei auf.
   Es ist keine Sendung (kein Gegenstand wandert), die Bindung steht in §4. — **Ausgang:**
@@ -419,3 +419,5 @@ keine neue Lücke.
 **Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit des Neuschnitts der Wellen 2 und 3): Der Commit trägt die Reihenfolge zu `slice-harness-gegenprobe-baumkopie` in §4 und §6 ein; Gegenstand, Liefer-Punkte und Schichten ändern sich nicht: Liefer-Punkte 3 (Prüfung, Gegenprobe, Bestand), Schichten 3 wie oben, der Plan liegt weiter über der Grenze von zwei Schichten, und der vorgemerkte Schnitt vor dem `open → next` bleibt. Die Welle-Zeile nennt weiter welle-gegenproben-und-mutanten.
 
 **Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der `slice-harness-gegenproben-aus-gates` anlegt): Die DoD-Zeile `make gates` nennt `make lint-gegenprobe` zusätzlich, weil `lint-gegenprobe` die Kette verlässt; Liefer-Punkte und Schichten ändern sich nicht.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-22, im Commit, der die Ortsangabe aus `slice-harness-gegenproben-umzug-dev` einträgt): Die Gegenproben liegen seit jenem Slice unter `tools/dev/<bereich>/`, die Pfade der Gegenproben in diesem Plan sind nachgezogen (`tools/dev/` ist wie `tools/harness/` Harness-Werkzeug, keine neue Schicht). Ortsangabe der Gegenprobe geändert, Liefer-Punkte (3) und Schichten (3) unverändert. Der Plan liegt weiter über der Grenze von zwei Schichten (Harness, Kern, Driven-Adapter Postgres), und der vorgemerkte Schnitt vor dem `open → next` bleibt; die Ortsangabe legt keine Schicht an.
