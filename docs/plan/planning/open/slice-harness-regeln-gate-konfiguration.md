@@ -84,7 +84,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`open` → `next` → `in-progress`): Der Nutzer hat den Slice priorisiert und den Ausgang `geplant` des Registers bestätigt (oder `verkörpert` mit anderem Zielort entschieden, dann entfällt dieser Slice nach `done/` mit `Gegenstand: entfallen`); der Wortlaut ist vor dem ersten Commit bestätigt.
+**Start** (`open` → `next` → `in-progress`): **pausiert seit dem 2026-10-22** (Entscheidung des Nutzers, Drift-Log der Roadmap und §5 von welle-harness-regeln): Die Priorisierung wartet auf `slice-harness-regeln-rueckbau` in `done/`; sonst gilt, was folgt. Der Nutzer hat den Slice priorisiert und den Ausgang `geplant` des Registers bestätigt (oder `verkörpert` mit anderem Zielort entschieden, dann entfällt dieser Slice nach `done/` mit `Gegenstand: entfallen`); der Wortlaut ist vor dem ersten Commit bestätigt.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
