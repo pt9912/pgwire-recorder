@@ -550,7 +550,7 @@ Retirement-Check voraus: Ist die Beobachtung seit slice-harness-groessen-metrik 
 geht vor dem ersten Code-Commit zurück.
 **Richtig:** §4 nennt den Faktor 5 mit Beleg, die Mitte der Schätzung über 70 % führt zum Schnitt
 beim Anlegen, jede Hälfte hat Schätzung, Marke und Meldeschwelle.
-Die Zahlen: ungeteilter Plan von `slice-v1-abschluss-verbindungsende-format`, Planner in `99eebb97`, Architect in `690e353c`.
+Die Zahlen: ungeteilter Plan von `slice-v1-abschluss-verbindungsende-format`, Schätzungen des Planners und des Architect, Commit `690e353c`.
 
 **Begründung:** `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` und
 `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`. Entfernen oder Lockern setzt den
