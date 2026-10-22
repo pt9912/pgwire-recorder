@@ -11,10 +11,10 @@ er zusagt, wann er schweigt, woran er sperrt und was die Gegenprobe belegt. Der 
 Kennung wiederholt ihn nicht.
 
 **Stand.** Entscheidung des Nutzers vom 2026-10-21 (wörtlich, vom Koordinator übermittelt): „Wir haben rollen
-(siehe .claude/agents) und commands -- max. 1 Stunde“; bei der Grenze hält der Lauf an, committet, pusht in das
-Austausch-Repo und berichtet, ohne Abbruch und ohne Rücknahme von Arbeit; der Wächter ist ein deterministischer
-`PreToolUse`-Hook (bash und awk, wie `pretooluse-command-guard.sh`), kein Hintergrundprozess; Datenquelle ist die
-vorhandene Erfassung. **Empfehlung des Architect bis zur Annahme von [ADR-0058](../../docs/plan/adr/0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md)** sind die Wahl der Mittel
+(siehe .claude/agents) und commands -- max. 1 Stunde“. Dazu gehören aus derselben Entscheidung: Bei der Grenze hält der Lauf an,
+committet, pusht in das Austausch-Repo und berichtet, ohne Abbruch und ohne Rücknahme von Arbeit; und sein „ok“ vom selben Tag auf den
+Entwurf des Mechanismus: ein deterministischer `PreToolUse`-Hook (bash und awk, wie `pretooluse-command-guard.sh`), kein
+Hintergrundprozess, Datenquelle die vorhandene Erfassung. **Empfehlung des Architect bis zur Annahme von [ADR-0058](../../docs/plan/adr/0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md)** sind die Wahl der Mittel
 darunter: Sperrmenge, Fail-Richtung, Anker, Wanduhr, Wege über die Grenze, Umgang mit den pflichtigen Läufen
 (Punkte 2 bis 10).
 
@@ -207,7 +207,8 @@ Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `tra
    `.claude/hooks/span-emit.sh`: der Hook liest dort, wo der Emitter schreibt. Das Arbeitsverzeichnis des Aufrufs ändert nichts (Aufruf aus einem Unterverzeichnis, in einem Worktree, in einem anderen Verzeichnis).
    (2) **Leere Umgebung:** mit `env -i`, einem gesetzten `CLAUDE_PROJECT_DIR` und ohne `PATH` findet der Hook seine Werkzeuge über den Standardpfad von bash (Linux: `/usr/bin`) und urteilt wie sonst; der Fall läuft mit der echten Uhr. (3) **Zeitgrenze des Hooks:**
    Der Eintrag nennt `timeout` 5; das Skript endet bei einer Eingabe bis 1 MB (ein `Write` mit großem `content`) in unter 5 s (gemessen mit `extract-command.awk`: 0,15 s für 1 MB, gawk 5.2.1); was Claude Code bei
-   Überschreitung tut, ist nicht zugesagt (Grenze 12 (7)). (4) **Worktree und Container:** Die Erfassung ordnet `slice`, `branch` und `commit` dem Zustand des Hauptbaums zu
+   Überschreitung tut, ist nicht zugesagt (Grenze 12 (7)). Die Zeit wächst mit dem Strom, ohne dass über seine Größe etwas zugesagt ist; gemessen: Das Suchen des Ankers in einem Strom von 5 MB (11 166 Zeilen, das
+   Sechsfache des größten Stroms des Bestands) dauert 21 ms. (4) **Worktree und Container:** Die Erfassung ordnet `slice`, `branch` und `commit` dem Zustand des Hauptbaums zu
    (`BEO-REPO/span-zuordnung-folgt-dem-hauptbaum-nicht-dem-klon`); der Hook braucht nur den **Ort** des Stroms und den **Beginn**, beides hängt nicht an diesen Feldern, und er ist von dieser Beobachtung nicht
    betroffen. Läuft Claude Code im Hauptbaum und arbeitet der Agent in einem Worktree oder im Klon eines Dev-Containers (Aufrufe über `ssh`), schreiben Emitter und Hook am selben Ort. Läuft eine Sitzung **in** einem
    Worktree ohne `.harness/state/bin/` (gitignored), schreibt der Emitter nichts, und der Hook schweigt mit `kein-verzeichnis` oder `kein-strom`. Läuft Claude Code im Dev-Container, gilt dieselbe Regel für den
