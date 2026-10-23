@@ -35,8 +35,8 @@ func handbuchLauf(t *testing.T, db, input string, args ...string) string {
 // Benutzerhandbuch sie beschreibt: bei Spaltenbeschreibung die Typ-OID je Spalte
 // und die Zahl der Spalten, bei Befehl beide Befehle, bei Fehler beide SQLSTATE, bei
 // Transaktionsstatus beide Zustände, bei Nachrichtenart nichts; auch bei einer
-// einzigen Abweichung hat die Meldung die Form mit der Gesamtzahl, ohne die Option
-// nicht; nie ein Zeilenwert (Abnahmeszenario 16, LH-FA-24.a *Alle Abweichungen*).
+// einzigen Abweichung hat die Meldung die Form mit der Gesamtzahl;
+// nie ein Zeilenwert (Abnahmeszenario 16, LH-FA-24.a *Alle Abweichungen*).
 func TestE2EPlayHandbuchDiffAllEinzelheiten(t *testing.T) {
 	leereDatenbank(t, "hb_quelle")
 	input := nimmAufVergleich(t, "hb_quelle")
@@ -123,7 +123,7 @@ func TestE2EPlayHandbuchDiffAllObergrenzen(t *testing.T) {
 // diff_all unter play:, wie das Benutzerhandbuch sie nennt; ohne --compare-responses
 // ist es PGR-E2001 mit Exit-Code 2, aus jeder der drei Quellen, auch bei
 // --compare-responses=false und auch, wenn die Datei den Schlüssel trägt (nicht
-// PGR-E2004); bei record und replay ist die Option und die Umgebungsvariable
+// PGR-E2004); ein ungültiger Wert des Schlüssels unter play: ist PGR-E2004; bei record und replay ist die Option und die Umgebungsvariable
 // PGR-E2001 und der Schlüssel PGR-E2004 (Abnahmeszenario 16, LH-FA-24.a *Alle
 // Abweichungen*, LH-FA-17.a).
 func TestE2EPlayHandbuchDiffAllQuellen(t *testing.T) {
@@ -187,6 +187,8 @@ func TestE2EPlayHandbuchDiffAllQuellen(t *testing.T) {
 		{"record Option", "", "PGR-E2001", []string{"record", "--upstream", "x:5432", "--output", filepath.Join(dir, "o.yaml"), "--diff-all"}},
 		{"replay Option", "", "PGR-E2001", []string{"replay", "--input", input, "--diff-all"}},
 		{"replay Umgebungsvariable", "true", "PGR-E2001", []string{"replay", "--input", input}},
+		{"record Umgebungsvariable", "true", "PGR-E2001", []string{"record", "--upstream", "x:5432", "--output", filepath.Join(dir, "o.yaml")}},
+		{"play Schlüssel ungültig", "", "PGR-E2004", []string{"play", "--upstream", "x:5432", "--input", input, "--config", schreibe("p.yaml", "play:\n  diff_all: 1\n")}},
 		{"replay Schlüssel", "", "PGR-E2004", []string{"replay", "--input", input, "--config", schreibe("r.yaml", "replay:\n  diff_all: true\n")}},
 		{"record Schlüssel", "", "PGR-E2004", []string{"record", "--upstream", "x:5432", "--output", filepath.Join(dir, "o.yaml"), "--config", schreibe("rec.yaml", "record:\n  diff_all: true\n")}},
 	} {

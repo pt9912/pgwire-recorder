@@ -54,6 +54,7 @@ ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung**.
 | `docs/user/benutzerhandbuch.md` | update | Abschnitt zum Vergleich, Optionstabelle, Fehlercodes `PGR-E5004`/`PGR-E2001`, Stellen zu „erste Abweichung“: Option, Meldung, Obergrenze, Spalte als ein Eintrag mit Name und Typ-OID; Kopf (Version des Dokuments, Stand) |
 | `README.md` | update | Stellen zu `--compare-responses`, soweit sie die erste Abweichung beschreiben |
 | `test/integration/play_vergleich_handbuch_e2e_test.go` | neu | E2E-Fälle gegen das gebaute Binary für jeden Satz des Handbuchs (nur Test der Doku, kein Produkt-Code) |
+| `docs/user/abdeckung-e2e.md` | update (erzeugt) | `make abdeckung` schreibt sie aus den Deklarationen des neuen Tests |
 
 ## 4. Trigger
 
@@ -102,6 +103,8 @@ Mutationen nur an den Zusagen, die der Handbuchsatz über §3.10 hinaus an eine 
 **README (Liefer-Punkt 2):** von den fünf Stellen beschreibt nur die erste (Meldung als `PGR-E5004`) die Abweichung als einzelne; dort steht jetzt `--diff-all`. Zeilen 26 und 37 sowie 121 nennen `--compare-responses` ohne Aussage über die Zahl der Abweichungen: unverändert.
 
 **Nicht belegt, nicht im Handbuch:** Parameterbeschreibung beim erweiterten Protokoll, Wertemenge und Rangfolge der Quellen von `--diff-all`, Verhalten mit FATAL in der Liste. Das Handbuch sagt dazu nichts.
+
+**Nacharbeit nach dem Review (F-1 bis F-5):** F-1 enger gefasst („Ist `--diff-all` wirksam `true` und `--compare-responses` nicht …“, belegt durch die vier Fälle). F-2: Satz zur Form ohne Option aus dem Abschnitt gestrichen, Testkommentar enger. F-3: Fall `record Umgebungsvariable` ergänzt. F-4: Satz zum Ende der Verbindung auf den Wortlaut vor diesem Slice zurückgesetzt. F-5: `diff_all` in der Zeile `PGR-E2004` des Handbuchs, Fall `play Schlüssel ungültig` (`diff_all: 1`, `PGR-E2004`) ergänzt; `docs/user/abdeckung-e2e.md` in §3 genannt. Klasse (Merkmal: Handbuchsatz nennt eine Quelle oder Betriebsart, der Test eine Auswahl): übrige Sätze des Abschnitts mit Quelle oder Betriebsart gegen die Fälle gelesen, keine weitere Lücke. F-5 (b) und (c) bleiben unverändert (Handbuch sagt dazu nichts Zusätzliches).
 
 **Keine Beobachtung angefallen** (Implementer; Closure-Notiz und Register schreibt der Planner).
 

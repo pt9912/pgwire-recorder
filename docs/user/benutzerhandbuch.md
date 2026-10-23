@@ -1114,7 +1114,7 @@ time=2026-10-12T14:03:12.482+02:00 level=INFO msg="play beendet" eingespielt=1 v
   Verbindung durch die Datenbank mit demselben SQLSTATE zeigt; sonst ist es `PGR-E5004`,
   auch wenn die Aufzeichnung an dieser Stelle einen Fehler mit demselben SQLSTATE trägt,
   der kein Ende ist. Die Art ist `Fehler` an der Position der Fehlerantwort; weicht davor
-  schon eine Antwort ab, nennt die Meldung ohne `--diff-all` diese Abweichung. Ohne Vergleich gilt
+  schon eine Antwort ab, nennt die Meldung diese Abweichung. Ohne Vergleich gilt
   [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank).
 * Bricht die Verbindung ohne Fehlerantwort der Datenbank ab, ist das `PGR-E4003` mit
   Exit-Code 4, auch nach einer Abweichung; beide Meldungen stehen im Log.
@@ -1189,8 +1189,7 @@ time=2026-10-23T09:16:02.640+02:00 level=INFO msg="play beendet" eingespielt=1 v
 
 * Die Zeile nennt die Sitzung, die Nummer der Interaktion und die Zahl der Abweichungen,
   danach je Abweichung Position und Art in aufsteigender Reihenfolge der Position. Die
-  Zeile hat diese Form auch bei einer einzigen Abweichung; ohne `--diff-all` hat sie die
-  Form aus [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen).
+  Zeile hat diese Form auch bei einer einzigen Abweichung.
   Eine Interaktion ohne Abweichung hat keine Zeile.
 * Die Einzelheiten stehen in Klammern hinter der Art und nennen beide Seiten, die
   aufgezeichnete und die der Datenbank:
@@ -1216,7 +1215,7 @@ time=2026-10-23T09:16:02.640+02:00 level=INFO msg="play beendet" eingespielt=1 v
   zählt jede Interaktion mit Abweichung einmal unter `abweichend`. Ohne
   `--continue-on-error` endet `play` nach der ersten Interaktion mit Abweichung, deren Zeile
   die vollständige Liste dieser Interaktion trägt. Der Exit-Code ist 5.
-* Ohne `--compare-responses` ist `--diff-all` ein ungültiger Aufruf (`PGR-E2001`,
+* Ist `--diff-all` wirksam `true` und `--compare-responses` nicht, ist das ein ungültiger Aufruf (`PGR-E2001`,
   Exit-Code 2), auch mit `--compare-responses=false` und auch, wenn `--diff-all` aus der
   Umgebungsvariable oder der Konfigurationsdatei kommt; die Meldung nennt beide Optionen.
 * Die Option gibt es nur bei `play`: bei `record` und `replay` ist sie ein ungültiger
@@ -2189,7 +2188,7 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--diff-all` steht ohne `--compare-responses` (siehe [Alle Abweichungen einer Interaktion melden](#alle-abweichungen-einer-interaktion-melden)), oder `--tls-cert` und `--tls-key` stehen nicht zusammen, oder `--allow-plaintext=true` steht ohne `--tls-cert` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)), oder `--session-assignment` hat einen anderen Wert als `first-request` und `connection`, oder `replay` soll mit `--session-assignment connection` eine Aufzeichnung wiedergeben, die nicht mit `--record-empty-sessions` entstand (siehe [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2003` | Aufzeichnung ohne Zeitangabe bei `--keep-timing` | `play --keep-timing` hat eine Aufzeichnung, in der eine Anfrage kein `offset_ms` trägt. Die Meldung nennt die Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder spielen Sie ohne `--keep-timing` ein. |
-| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `record_empty_sessions`, `keep_timing`, `compare_responses` und `allow_plaintext` (erlaubt sind `true` und `false`), `session_assignment` (erlaubt sind `first-request` und `connection`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). Die Schlüssel `tls_cert`, `tls_key` und `allow_plaintext` stehen nur in `record:` und `replay:`; in `play:` sind sie unbekannt. |
+| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `record_empty_sessions`, `keep_timing`, `compare_responses`, `diff_all` und `allow_plaintext` (erlaubt sind `true` und `false`), `session_assignment` (erlaubt sind `first-request` und `connection`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). Die Schlüssel `tls_cert`, `tls_key` und `allow_plaintext` stehen nur in `record:` und `replay:`; in `play:` sind sie unbekannt. |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca`, `--tls-cert` oder `--tls-key` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Bei `--tls-cert` und `--tls-key` außerdem: das Zertifikat ist abgelaufen oder noch nicht gültig, der Schlüssel ist verschlüsselt oder passt nicht zum Zertifikat, oder eine Datei hat einen anderen Inhalt, als die Option verlangt (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
