@@ -74,9 +74,10 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/hexagon/services/play_vergleich.go` | update | neben `erste` eine Funktion, die alle Abweichungen der normalisierten Folge liefert (`unterschied` je Position mit den Einzelheiten beider Seiten, Zuordnung, Folgen verschiedener Länge einzeln und Ende des Servers nach `LH-FA-24.a` *Alle Abweichungen*); Text der Liste mit Gesamtzahl, Obergrenze 20 Positionen und 20 Spalten je Position; `erste` und seine Meldung bleiben |
 | `internal/hexagon/services/play.go` | update | Feld der `PlayOptionen` für die Option; der Aufrufstelle des Vergleichs wählt `erste` oder die Liste; Meldung `PGR-E5004` je Interaktion; Zähler `abweichend` unverändert |
-| `internal/hexagon/services/play_vergleich*_test.go` | update/neu | Fälle je Zusage und je Element, Mutationen aus DoD 1; Standardfall unverändert |
-| `internal/adapters/driving/cli/cli.go` | update | Option in der Tabelle der Optionen von `play` (Wahrheitswert, Standard `false`, Umgebung, Schlüssel), Kombination mit `--compare-responses` in der Reihenfolge der Prüfungen, Hilfetext von `play` |
-| `internal/adapters/driving/cli/play_test.go` und Nachbarn | update/neu | Fälle je Zusage und Element aus DoD 2 |
+| `internal/hexagon/services/play_vergleich_alle_test.go` | neu | Fälle je Zusage und je Element, Mutationen aus DoD 1 (§7); der Standardfall steht in `TestVergleichAlleStandardErste` und im Bestand (`play_vergleich*_test.go`, unverändert) |
+| `internal/adapters/driving/cli/cli.go` | update | Option in der Tabelle der Optionen von `play` (Wahrheitswert, Standard `false`, Umgebung, Schlüssel), Kombination mit `--compare-responses` in der Reihenfolge der Prüfungen, Hilfetext von `play`; die globale Hilfe nennt `--diff-all` nicht (`optionenPlayGlobal` ohne `optionDiffAll`, `LH-FA-20.a` Hilfe von play); die Prüfung der Kombination steht in `diffAllKombination` nach `tlsKombination` und vor jedem `zuletzt` (Logik des CLI-Adapters, nicht des Bootstraps) |
+| `internal/adapters/driving/cli/play_diff_all_test.go` (neu), `leser_test.go` und `fremd_test.go` (Tabellen um `diff-all`) | update/neu | Fälle je Zusage und Element aus DoD 2 |
+| `internal/bootstrap/play_diff_all_test.go` | neu | nur ein Test: die Option erreicht den Service und die Kombination endet mit Exit-Code 2 ohne Verbindung; `internal/bootstrap` bleibt Verdrahtung (Konvertierung `services.PlayOptions(o.Einspielen)` unverändert) |
 | `test/integration/play_vergleich_e2e_test.go` | update | E2E gegen das gebaute Binary und PostgreSQL: eine Interaktion mit mehreren Abweichungen, mit und ohne Option; mit Abdeckungs-Deklaration |
 | `docs/user/abdeckung-*.md` | update (erzeugt) | `make abdeckung` nach den neuen Deklarationen |
 
@@ -160,7 +161,57 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-*(Wird bei der Closure gefüllt.)*
+**Belege des Implementers** (Stand `d195a58f`, Zweig `impl-diff-all`, 2026-10-23)
+
+*Läufe.* Engster Sensor je Änderung: `go test` im gepinnten Go-Image (`golang:1.27-alpine@sha256:f92b6ef8…`, Bind-Mount, kein `make`-Ziel; Pakete `internal/hexagon/services`, `internal/adapters/driving/cli`, `internal/bootstrap`): grün. `make lint`: 0 issues. `make abdeckung` geschrieben, `make abdeckung-check`, `make meldungskatalog-check`, `make kopf-check`: grün. `make gates` am Endstand `d195a58f` (Arbeitsbaum sauber): Exit 0, Anweisungsabdeckung gesamt 94,49 % (Schwelle 94 %), `make test-integration` mit `TestE2EPlayVergleichAlle` (Option, Umgebungsvariable, Datei) grün. Marke (§4, `AGENTS.md` §3.14, Basis `bf68b876`, Pfade `internal/hexagon/services internal/adapters/driving/cli test`): 996 von 1500 am Stand `d195a58f`. Keine Gegenprobe berührt: kein Gate, Werkzeug oder Vertrag unter `harness/` geändert.
+
+*Zusage · Mutation · roter Test* (je Mutation einmal gefahren, Mutant im Bind-Mount, danach zurückgesetzt; „rot“ nennt die Tests der obersten Ebene, die als erste rot wurden; `Alle…` = `TestVergleichAlle…` im Paket `services`, `Play…`/`Leser…` im Paket `cli`). Skripte: `muts_service.sh` und `muts_cli.sh` im Scratchpad der Sitzung (nicht im Repo).
+
+| Zusage (`LH-FA-24.a` *Alle Abweichungen*) | Mutation | roter Test |
+|---|---|---|
+| ohne Option bleibt es bei der ersten Abweichung, Meldung Wort für Wort | `abweichung` sammelt immer (`if true`) | `AlleStandardErste`, `TestVergleichStruktur` u. a. |
+| die Option wirkt | `abweichung` ignoriert die Option (`if false`) | `Alle`, `AlleZusammenspiel`, `AlleEndeDesServers`, E2E `TestE2EPlayVergleichAlle` (Option, Umgebung, Datei) |
+| alle Abweichungen statt der ersten | `alle` liefert nur die erste | `Alle`, `AlleObergrenzePositionen`, `AlleSignal` |
+| Listenform auch bei einer Abweichung | eine Abweichung mit der alten Form | `Alle` (Fall „eine Abweichung in Listenform“) |
+| aufsteigende Position; je Position höchstens eine | erste zwei Positionen vertauscht; Position doppelt | `Alle` (beide) |
+| Zuordnung Position für Position, Verschiebung gemeldet | Positionen hinter einer Verschiebung werden gemeldet | unmittelbar auf eine Abweichung folgende Position unterdrückt (`us[len(us)-1].position != i`) | `Alle` (Fall „fehlende Nachricht verschiebt den Rest“), `AlleObergrenzePositionen`, `AlleSignal`, `AlleZusammenspiel` |
+| verschieden lange Folgen: jede Position einzeln | nur eine Position hinter der kürzeren (M4); keine (M4b) | `Alle` (Server länger, Aufzeichnung länger); M4b zusätzlich `AlleFlushEnde`, `AlleStelle`, `TestVergleichStruktur` |
+| Ende des Servers: Positionen davor, nichts dahinter | Abweichungen hinter dem Ende nicht abgeschnitten (`u.position == ende`) | `AlleEndeDesServers`, `TestVergleichEndeAbweichung` |
+| Ende ohne erwartetes Gegenstück ist Art Fehler an seiner Position | kein Fehler am Ende; Grenze `> ende` statt `>= ende` | `AlleEndeDesServers`, `TestVergleichEndeAbweichung` |
+| Nachrichtenart ohne Einzelheiten | Einzelheiten für Nachrichtenart | `Alle`, `AlleSignal`, `AlleFlushEnde`, `AlleStelle` |
+| Fehler: SQLSTATE beider Seiten, nie Text | Server-Seite falsch; ohne Aufzeichnung; Fehlertext angehängt; ohne SQLSTATE | `Alle`, `AlleEndeDesServers` (je Mutation) |
+| Befehl: beide Befehle ohne Zahlen | Tag mit Zahlen; nur Server; nur Aufzeichnung | `Alle`, `AlleZusammenspiel` |
+| Transaktionsstatus: beide Zeichen | Seiten vertauscht; nur Server | `Alle`, `AlleZusammenspiel` |
+| Spalten: Zahl beider Seiten, wenn verschieden | Zahlzeile entfällt | `Alle` (Fälle Spaltenzahl) |
+| Spalten: je abweichende gemeinsame Nummer, Name vor Typ-OID | ohne Typ-OID; ohne Name; Typ-OID vor Name; Nummer falsch; Seiten vertauscht | `Alle`, `AlleEndeDesServers`, `AlleObergrenzeEinzelne` |
+| Parameter: Zahl beider Seiten, je abweichender Parameter | Zahlzeile entfällt; Parameter entfallen; nur Server | `Alle` (Fälle Parameter), `AlleObergrenzeEinzelne` |
+| höchstens 20 Spalten oder Parameter je Position, „und N weitere“ | Grenze 19; Grenze 21; N falsch | `AlleObergrenzeEinzelne` |
+| höchstens 20 Positionen; 20 ohne, 21 mit „und 1 weitere“; Gesamtzahl im Kopf | Grenze 19; Grenze 21; ohne Grenze; Gesamtzahl gekappt; N falsch; ohne Zusatz | `AlleObergrenzePositionen` |
+| Zähler zählen Interaktionen, nicht Abweichungen | `abschluss` zählt je Abweichung | `Alle`, `AlleSignal`, `AlleZusammenspiel` u. a. |
+| mit `--continue-on-error` vollständige Liste und weiter; ohne endet nach der Interaktion | mit `DiffAll` ohne `ContinueOnError`-Zweig; ohne Fortsetzung weiter | `AlleZusammenspiel` (beide) |
+| `--allow-recorded-errors` ohne Wirkung | Option wirkt mit `DiffAll` | `AlleZusammenspiel` |
+| `DiffAll` ohne Vergleich ohne Wirkung im Service | Service vergleicht mit `DiffAll` allein | `AlleOhneVergleich` |
+| Signal: erstes Signal vollständige Liste, zweites ohne Meldung | (kein eigener Pfad im Code; geteilt mit der Interaktion) `alle` nur die erste | `AlleSignal` |
+| `Art` Nachrichtenart als Wort der Meldung | `artNachricht` umbenannt | `Alle`, `AlleStelle`, `TestVergleichStruktur` u. a. |
+| Option `--diff-all` nimmt an (Kommandozeile, Umgebung, Datei, Wertemenge) | Option fehlt; Art Text; setzt `== "false"`; Standard `true` | `PlayDiffAllQuellen`, `PlayDiffAllOhneVergleich`, `LeserOptionen`, `LeserZuordnungGleichTabelle` |
+| Kombination ohne `--compare-responses` ist `PGR-E2001`, aus jeder Quelle | Prüfung entfällt; nur Kommandozeile; `--compare-responses` nur Kommandozeile; nur ausdrückliches `false`; Fehlercode Datei | `PlayDiffAllOhneVergleich` (alle); `…Quellen` bei „nur Kommandozeile“ von `--compare-responses` |
+| Meldung nennt beide Optionen, nie einen Wert | Meldung mit Werten | `PlayDiffAllOhneVergleich` |
+| Reihenfolge: vor `--upstream` und vor jeder anderen Kombination | Prüfung nach den `zuletzt`-Aufrufen; nach `upstream`; nach `timing-reference` | `PlayDiffAllOhneVergleich` (je Mutation, Fälle `--upstream`, `--timing-mode`, `--upstream-ca`) |
+| `record` und `replay` kennen die Option nicht | Zuordnung `record play`; Zuordnung fehlt | `RecordReplayDiffAll`, `LeserUmgebungAndererKommandos` |
+| Hilfe von `play`: alle statt der ersten · höchstens 20 Positionen · nur mit `--compare-responses` · Variable | je Aussage entfernt (H1 bis H4) | `ParsePlayDiffAllHilfe` (je Mutation) |
+| globale Hilfe nennt die Option nicht; Hilfe von `play` nennt sie | globale Hilfe mit Option; `play` ohne | `ParsePlayDiffAllHilfe` |
+| der Bootstrap reicht die Option durch | `DiffAll` im Bootstrap auf `false` | `TestRunPlayDiffAll` (Paket `bootstrap`) |
+
+*Grüne Mutanten:* keiner. Äquivalent geführt wird nichts; `kommando == "play"` im Kombinationsprüfer ist entfernt, die Prüfung liest `q.wert`, das die Option bei `record` und `replay` nicht führt (`TestRecordReplayDiffAll`).
+
+*Verneinende Zusagen.* „nie Zeilenwerte, Zeilenzahl oder Text einer Fehlerantwort“: `Alle` prüft die Meldung auf `geheim`, `aufgezeichneter Text`, `SELECT 1`, `UPDATE 5`, `„1“`; Mutanten: Fehlertext angehängt (rot), Tag mit Zahlen (rot). Zeilenwerte erreichen die Folge nicht (`nimmNormalisiert` verwirft `data_row`; Fall „Befehl ohne Zahlen, Zeilen nie genannt“ trägt zwei `data_row` auf der Server-Seite).
+
+*Rückgabe an den Architect (Randform, nicht entschieden):* `LH-FA-24.a` *Einzelheiten je Art*: „Name oder Typ-OID beider Seiten (weichen beide ab, erst der Name)“. Der Code nennt bei einer Spalte, die in Name und Typ-OID abweicht, beide Felder in einem Eintrag, den Namen zuerst; die Obergrenze 20 zählt Spalten, nicht Felder. Frage: ein Eintrag mit beiden Feldern, nur der Name, oder je Feld ein Eintrag (zählt dann zwei)? Siehe Bericht.
+
+*Handbuch.* Handbuch und `README.md` sind nicht berührt (Folge-Slice `slice-play-feldvergleich-doku`).
+
+
+*(Closure-Notiz: wird bei der Closure gefüllt.)*
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
