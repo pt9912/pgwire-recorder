@@ -329,3 +329,52 @@ func TestE2EPlayVergleichHinweise(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-24/Happy, LH-FA-24/Boundary, LH-FA-17/Boundary — gegen die reale
+// Instanz meldet play mit --diff-all in der Interaktion mit mehreren Abweichungen
+// (der Server antwortet auf zwei Anweisungen statt auf eine Abfrage mit zwei
+// Spalten) eine Zeile PGR-E5004 mit der Gesamtzahl und allen Positionen mit Art
+// und Einzelheiten beider Seiten, auch aus der Umgebungsvariable und dem Schlüssel
+// diff_all unter play:; mit --continue-on-error läuft play weiter, Exit-Code 5, die
+// Zeile zum Ende zählt die Interaktion einmal; ohne die Option bleibt es bei der
+// ersten Abweichung; --diff-all ohne --compare-responses ist PGR-E2001 mit Exit-Code
+// 2 (Abnahmeszenario 16, LH-FA-24.a *Alle Abweichungen*).
+func TestE2EPlayVergleichAlle(t *testing.T) {
+	leereDatenbank(t, "vgl_quelle_alle")
+	input := nimmAufVergleich(t, "vgl_quelle_alle")
+	datei := geaendert(t, input, "SELECT * FROM vgl", "SELECT 1; SELECT 1")
+	alle := "Session 1, Interaktion 3: Antworten weichen von der Aufzeichnung ab, Abweichungen: 4; " +
+		"Position 1, Art Spaltenbeschreibung (Spalten aufgezeichnet 2, Server 1; Spalte 1: Name aufgezeichnet „id“, Server „?column?“); " +
+		"Position 3, Art Nachrichtenart; Position 4, Art Nachrichtenart; Position 5, Art Nachrichtenart"
+	erste := "Session 1, Interaktion 3: Antwort weicht von der Aufzeichnung ab: Position 1, Art Spaltenbeschreibung"
+	konfiguration := filepath.Join(t.TempDir(), "k.yaml")
+	if err := os.WriteFile(konfiguration, []byte("play:\n  diff_all: true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PGWIRE_RECORDER_DIFF_ALL", "")
+	for _, f := range []struct {
+		name string
+		env  string
+		args []string
+	}{
+		{"Option", "", []string{"--diff-all"}},
+		{"Umgebungsvariable", "true", nil},
+		{"Datei", "", []string{"--config", konfiguration}},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			t.Setenv("PGWIRE_RECORDER_DIFF_ALL", f.env)
+			stderr, code := vergleichLauf(t, "vgl_alle", datei, append([]string{"--continue-on-error"}, f.args...)...)
+			if code != 5 || strings.Count(stderr, "code=PGR-E5004") != 1 || !strings.Contains(stderr, alle) || strings.Contains(stderr, erste) || zaehler(t, stderr) != "5/5/1" {
+				t.Fatalf("Exit-Code %d, Zähler %s, erwartet 5 mit einer Meldung %q und 5/5/1:\n%s", code, zaehler(t, stderr), alle, stderr)
+			}
+		})
+	}
+	stderr, code := vergleichLauf(t, "vgl_alle_erste", datei, "--continue-on-error")
+	if code != 5 || strings.Count(stderr, "code=PGR-E5004") != 1 || !strings.Contains(stderr, erste) || strings.Contains(stderr, "Abweichungen:") || zaehler(t, stderr) != "5/5/1" {
+		t.Fatalf("ohne --diff-all: Exit-Code %d, Zähler %s, stderr:\n%s", code, zaehler(t, stderr), stderr)
+	}
+	_, stderr, code = starteBisFrist(t, 30*time.Second, "play", "--upstream", os.Getenv("PGR_UPSTREAM"), "--input", datei, "--diff-all")
+	if code != 2 || !strings.Contains(stderr, "PGR-E2001") || !strings.Contains(stderr, "--diff-all") || !strings.Contains(stderr, "--compare-responses") {
+		t.Fatalf("--diff-all ohne --compare-responses: Exit-Code %d, stderr:\n%s", code, stderr)
+	}
+}

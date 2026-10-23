@@ -99,7 +99,8 @@ func (Passwort) Format(f fmt.State, _ rune) {
 // URL*); "" heißt, die Startup-Daten der Session gelten. ContinueOnError,
 // AllowRecordedErrors und FinishSessionOnInterrupt sind --continue-on-error,
 // --allow-recorded-errors und --finish-session-on-interrupt (LH-FA-20.a).
-// CompareResponses ist --compare-responses (LH-FA-24.a).
+// CompareResponses ist --compare-responses (LH-FA-24.a), DiffAll ist --diff-all
+// (LH-FA-24.a *Alle Abweichungen*); DiffAll ist nur mit CompareResponses gültig.
 // KeepTiming ist --keep-timing; mit ihm sind TimingMode (relative oder absolute)
 // und, bei absolute, TimingReference (connect oder first-request) der Wert der
 // zusammengeführten Optionen (LH-FA-21.a *Einspielen*), sonst sind beide leer,
@@ -118,6 +119,7 @@ type Einspielvorgaben struct {
 	TimingMode               string
 	TimingReference          string
 	CompareResponses         bool
+	DiffAll                  bool
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
@@ -193,7 +195,10 @@ const optionenReplay = `Optionen von replay:
               PGWIRE_RECORDER_SESSION_ASSIGNMENT
 ` + optionShutdownTimeout + optionTLS + optionLogLevel + optionConfig + optionUmgebung
 
-const optionenPlay = `Optionen von play:
+// optionenPlayAnfang und optionenPlayEnde fassen die Optionen von play ohne
+// --diff-all; die Hilfe von play fügt optionDiffAll hinzu, die globale Hilfe nicht
+// (LH-FA-20.a, Hilfe von play).
+const optionenPlayAnfang = `Optionen von play:
   --upstream  PostgreSQL-Server als host:port oder Name einer Verbindung der
               Konfigurationsdatei (Pflicht); verlangt der Server ein
               Passwort, nimmt play es aus dem Platzhalter der Verbindung,
@@ -254,7 +259,20 @@ const optionenPlay = `Optionen von play:
               erwartet, wenn die Aufzeichnung es an derselben Stelle mit
               demselben SQLSTATE zeigt, sonst eine Abweichung; Standard false;
               Umgebungsvariable PGWIRE_RECORDER_COMPARE_RESPONSES
-` + optionLogLevel + optionConfig + optionUmgebung
+`
+
+const optionDiffAll = `  --diff-all[=true|false]
+              mit --compare-responses meldet play je Interaktion alle
+              Abweichungen statt der ersten, höchstens 20 Positionen; nur mit
+              --compare-responses (sonst PGR-E2001); Standard false;
+              Umgebungsvariable PGWIRE_RECORDER_DIFF_ALL
+`
+
+const optionenPlayEnde = optionLogLevel + optionConfig + optionUmgebung
+
+const optionenPlay = optionenPlayAnfang + optionDiffAll + optionenPlayEnde
+
+const optionenPlayGlobal = optionenPlayAnfang + optionenPlayEnde
 
 const optionUmgebung = `
 Jede Option ist auch über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und
@@ -320,7 +338,7 @@ Programmversion, nur als einziges Argument:
 
 ` + optionenRecord + `
 ` + optionenReplay + `
-` + optionenPlay + `
+` + optionenPlayGlobal + `
 ` + optionenConfigShow
 
 const optionenConfigShow = `Optionen von config show:
@@ -518,6 +536,7 @@ func optionen(kommando string) []option {
 			{name: "timing-reference", art: artZeitbezug(), standard: bezugConnect, zuletzt: zeitPlay},
 			{name: "upstream-ca", art: artText(), zuletzt: upstreamCA},
 			{name: "compare-responses", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.CompareResponses = v == "true" }},
+			{name: "diff-all", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.DiffAll = v == "true" }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
 		}
 	}
@@ -630,6 +649,9 @@ func lies(kommando string, args []string, jetzt func() time.Time) (Command, erro
 	if err := tlsKombination(kommando, q); err != nil {
 		return Command{}, err
 	}
+	if err := diffAllKombination(q); err != nil {
+		return Command{}, err
+	}
 	for i, o := range opts {
 		if o.zuletzt == nil {
 			continue
@@ -639,6 +661,17 @@ func lies(kommando string, args []string, jetzt func() time.Time) (Command, erro
 		}
 	}
 	return cmd, nil
+}
+
+// diffAllKombination lehnt --diff-all ohne --compare-responses ab (PGR-E2001,
+// LH-FA-24.a *Alle Abweichungen*): Maßgebend sind die zusammengeführten Werte, aus
+// welcher Quelle auch immer; die Meldung nennt beide Optionen, keinen Wert. Bei record
+// und replay führt q.wert die Option nicht (TestRecordReplayDiffAll).
+func diffAllKombination(q quellen) error {
+	if q.wert["diff-all"] == "true" && q.wert["compare-responses"] != "true" {
+		return model.Errorf(model.CodeUsage, nil, "--diff-all verlangt --compare-responses")
+	}
+	return nil
 }
 
 // zeile ist eine Zeile der Optionstabelle in LH-FA-17.a: eine Option und die
@@ -660,7 +693,7 @@ func zuordnung() []zeile {
 		{"fail-on-unconsumed", rp}, {"shutdown-timeout", rr}, {"session-assignment", rp}, {"user", p},
 		{"database", p}, {"continue-on-error", p}, {"allow-recorded-errors", p}, {"upstream-tls", p},
 		{"finish-session-on-interrupt", p}, {"keep-timing", p}, {"timing-mode", p}, {"timing-reference", p},
-		{"tls-cert", rr}, {"tls-key", rr}, {"allow-plaintext", rr}, {"upstream-ca", p}, {"compare-responses", p},
+		{"tls-cert", rr}, {"tls-key", rr}, {"allow-plaintext", rr}, {"upstream-ca", p}, {"compare-responses", p}, {"diff-all", p},
 		{"log-level", leserKommandos()},
 	}
 }

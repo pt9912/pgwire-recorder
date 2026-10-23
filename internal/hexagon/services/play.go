@@ -56,7 +56,10 @@ func Wartezeiten(uhr driven.Uhr) PlayOption {
 //
 // CompareResponses ist --compare-responses: Der Service vergleicht die
 // Antworten jeder Interaktion mit der Aufzeichnung (LH-FA-24.a); mit ihm hat
-// AllowRecordedErrors keine Wirkung.
+// AllowRecordedErrors keine Wirkung. DiffAll ist --diff-all: Mit ihm meldet der
+// Service je Interaktion alle Abweichungen statt der ersten (LH-FA-24.a *Alle
+// Abweichungen*); der Aufrufer setzt sie nur mit CompareResponses, ohne es hat sie
+// keine Wirkung.
 //
 // Kopplung: Der CLI-Adapter liest die Optionen in einen Typ mit denselben
 // Feldern in derselben Reihenfolge, und der Bootstrap konvertiert ihn in
@@ -72,6 +75,7 @@ type PlayOptions struct {
 	TimingMode               string
 	TimingReference          string
 	CompareResponses         bool
+	DiffAll                  bool
 }
 
 // Werte von PlayOptions.TimingMode und PlayOptions.TimingReference.
@@ -449,12 +453,12 @@ func (s *PlayService) fatal(l *lauf) error {
 	ende := len(l.v.ist)
 	l.v.nimm(model.Response{Type: model.ResponseConnectionClosed})
 	s.zaehler.Verglichen++
-	u := l.v.erste(ende)
-	if u == nil {
+	text, abweichend := s.abweichung(l, ende)
+	if !abweichend {
 		return errSessionEnde
 	}
 	s.zaehler.Abweichend++
-	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", u.text())
+	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", text)
 	if !s.optionen.ContinueOnError {
 		return fehler
 	}
@@ -470,12 +474,12 @@ func (s *PlayService) fatal(l *lauf) error {
 // Fehler, der abbricht.
 func (s *PlayService) abschluss(l *lauf) error {
 	s.zaehler.Verglichen++
-	u := l.v.erste(0)
-	if u == nil {
+	text, abweichend := s.abweichung(l, 0)
+	if !abweichend {
 		return nil
 	}
 	s.zaehler.Abweichend++
-	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", u.text())
+	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", text)
 	if !s.optionen.ContinueOnError {
 		return fehler
 	}
@@ -528,4 +532,22 @@ func eingeordnet(err error, format string, args ...any) error {
 		return model.Errorf(me.Code, err, format, args...)
 	}
 	return fmt.Errorf(format+": %w", append(args, err)...)
+}
+
+// abweichung liefert die Meldung der Abweichungen der Interaktion und ob es
+// welche gibt: ohne DiffAll die erste, mit DiffAll alle (LH-FA-24.a *Alle
+// Abweichungen*). ende ist die Position des Endes des Servers oder 0 (erste).
+func (s *PlayService) abweichung(l *lauf, ende int) (string, bool) {
+	if s.optionen.DiffAll {
+		us := l.v.alle(ende)
+		if len(us) == 0 {
+			return "", false
+		}
+		return listeText(us), true
+	}
+	u := l.v.erste(ende)
+	if u == nil {
+		return "", false
+	}
+	return u.text(), true
 }

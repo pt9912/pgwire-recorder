@@ -58,6 +58,7 @@ func tabelle() map[string]string {
 		"timing-mode":                 "relative",
 		"timing-reference":            "connect",
 		"compare-responses":           "false",
+		"diff-all":                    "false",
 	}
 }
 
@@ -73,7 +74,7 @@ func alleOptionen() []string {
 		"input", "fail-on-unconsumed", "shutdown-timeout", "session-assignment", "user", "database",
 		"continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt",
 		"keep-timing", "timing-mode", "timing-reference", "tls-cert", "tls-key", "allow-plaintext",
-		"upstream-ca", "compare-responses", "config", "log-level",
+		"upstream-ca", "compare-responses", "diff-all", "config", "log-level",
 	}
 }
 
@@ -178,6 +179,11 @@ func TestLeserAlleOptionen(t *testing.T) {
 			if o.Name == "timing-mode" || o.Name == "timing-reference" {
 				// Beide verlangen --keep-timing und, die zweite, den Modus absolute;
 				// ihre Quellen, Vorrang und Fehler prüft TestPlayZeitQuellen.
+				continue
+			}
+			if o.Name == "diff-all" {
+				// --diff-all steht nur mit --compare-responses; seine Quellen, Vorrang,
+				// Wertemenge und die Kombination prüft TestPlayDiffAllQuellen.
 				continue
 			}
 			werte, ok := werteJeArt()[o.Art]
@@ -308,7 +314,7 @@ func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
 		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "record-empty-sessions", "shutdown-timeout", "tls-cert", "tls-key", "allow-plaintext", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "session-assignment", "tls-cert", "tls-key", "allow-plaintext", "log-level"},
-		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "compare-responses", "log-level"},
+		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "compare-responses", "diff-all", "log-level"},
 	} {
 		var got []string
 		for _, o := range cli.Optionen(kommando) {

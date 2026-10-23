@@ -29,7 +29,7 @@ func tabelleSpec() []zeileSpec {
 		{"allow-recorded-errors", "play"}, {"upstream-tls", "play"}, {"finish-session-on-interrupt", "play"},
 		{"keep-timing", "play"}, {"timing-mode", "play"}, {"timing-reference", "play"},
 		{"tls-cert", "record replay"}, {"tls-key", "record replay"}, {"allow-plaintext", "record replay"},
-		{"upstream-ca", "play"}, {"compare-responses", "play"}, {"log-level", "record replay play"},
+		{"upstream-ca", "play"}, {"compare-responses", "play"}, {"diff-all", "play"}, {"log-level", "record replay play"},
 	}
 }
 
