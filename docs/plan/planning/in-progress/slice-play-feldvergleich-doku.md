@@ -38,9 +38,9 @@ ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung**.
 
 ## 2. Definition of Done
 
-- [ ] **Liefer-Punkt 1 — Handbuch** ([`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)): der Abschnitt zum Vergleich der Antworten in `docs/user/benutzerhandbuch.md` (der Satz „Je Interaktion meldet `play` die erste Abweichung“ und jede Stelle, die der neuen Meldung widerspräche: Optionstabelle, Fehlercodes `PGR-E5004` und `PGR-E2001`, Abschnitt zum Ende der Verbindung, Exit-Code 5) nennt die Option, ihre drei Quellen, die Form der Meldung und die Obergrenze; jeder Satz belegt durch einen Lauf gegen das gebaute Binary (Datei, nicht gelesen gegen den Code), keine Chronik, kein Verweis auf Spezifikation, ADR, Slice oder Welle.
-- [ ] **Liefer-Punkt 2 — README** ([`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)): die fünf Stellen von `--compare-responses` in `README.md` sind durchgesehen; wo sie die erste Abweichung als einzige beschreiben, ist die Option genannt, sonst bleibt der Text, mit Grund in §7.
-- [ ] `make gates` am Endstand: grün.
+- [x] **Liefer-Punkt 1 — Handbuch** ([`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)): der Abschnitt zum Vergleich der Antworten in `docs/user/benutzerhandbuch.md` (der Satz „Je Interaktion meldet `play` die erste Abweichung“ und jede Stelle, die der neuen Meldung widerspräche: Optionstabelle, Fehlercodes `PGR-E5004` und `PGR-E2001`, Abschnitt zum Ende der Verbindung, Exit-Code 5) nennt die Option, ihre drei Quellen, die Form der Meldung und die Obergrenze; jeder Satz belegt durch einen Lauf gegen das gebaute Binary (Datei, nicht gelesen gegen den Code), keine Chronik, kein Verweis auf Spezifikation, ADR, Slice oder Welle.
+- [x] **Liefer-Punkt 2 — README** ([`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)): die fünf Stellen von `--compare-responses` in `README.md` sind durchgesehen; wo sie die erste Abweichung als einzige beschreiben, ist die Option genannt, sonst bleibt der Text, mit Grund in §7.
+- [x] `make gates` am Endstand: grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`), kein Self-Review.
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [ ] Beobachtungs-Register fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
@@ -77,6 +77,33 @@ DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschri
 ## 7. Closure-Notiz
 
 *(Wird bei der Closure gefüllt.)*
+### Belege des Implementers (Stand `5f35239f`)
+
+**Läufe:** `make gates` am Endstand grün (Exit 0, einschließlich `test-integration`, `test-postgres-versionen`, `docs-check`, `abdeckung-check` nach `make abdeckung`, `lint`, `test`). Engster Fall davor: `make test-integration` mit `PGR_TESTS_1` auf die vier neuen Tests, alle PASS (die Phase ohne PostgreSQL dieser Teilläufe ist ohne die Aufzeichnungen der vollen Phase 1 rot und zählt nicht). **Marke 1500** (§3.14, Basis `3d3832d9`, Pfade `docs/user README.md test`): 340 Zeilen.
+
+**Handbuchaussage · Test (Datei `test/integration/play_vergleich_handbuch_e2e_test.go`; Beispiele als Zeile aus dem Lauf gegen das gebaute Binary):**
+
+| Aussage im Handbuch | Test | Mutation, rot gesehen |
+|---|---|---|
+| Option, Umgebungsvariable `PGWIRE_RECORDER_DIFF_ALL`, Schlüssel `diff_all` wirken (Beispiel und Konfiguration) | `TestE2EPlayHandbuchDiffAllQuellen` (Option, Datei, Umgebung) | — (Geltung der Quellen gehört dem Geber; hier Beleg des Satzes) |
+| Beispielzeile Typ-OID, Beispielzeile COMMIT gegen BEGIN (Zeile samt `play beendet`-Zähler) | `…Einzelheiten` (Fälle Typ-OID, Transaktionsstatus: Zeile `Replay [PGR-E5004]: …"` vollständig, Zähler) | — |
+| Einzelheiten je Art (`Nachrichtenart` keine; Spalten: Zahl, Nummer, Name zuerst, Typ-OID; Befehl; Fehler; Transaktionsstatus), keine Zeilenwerte, kein Fehlertext | `…Einzelheiten` (sechs Fälle) | — |
+| Form auch bei einer Abweichung; eine Zeile je Interaktion; Interaktion ohne Abweichung keine Zeile | `…Einzelheiten` (`Abweichungen: 1`), `…Fortsetzung` (zwei Zeilen bei zwei Interaktionen von fünf) | — |
+| höchstens 20 Positionen, dahinter `und N weitere`; Gesamtzahl auch bei Kürzung | `…Obergrenzen` (20, 21, 23 Abweichungen) | `maxPositionen` 20→21: 21_ und 23_Abweichungen rot; Kürzung entfernt (`&& false`): beide rot |
+| je Spaltenbeschreibung höchstens 20 Spalten, dahinter `und N weitere`; Grenze zählt Spalten, nicht Angaben (20 Spalten mit Name und Typ-OID = 40 Angaben, alle genannt) | `…Obergrenzen` (20, 21, 23 Spalten) | `maxEinzelne` 20→21: 21_ und 23_Spalten rot (20_Spalten bleibt grün, es bricht keine Zusage) |
+| `--continue-on-error`: Liste je Interaktion, weiter, `abweichend` zählt je Interaktion einmal; ohne: Ende nach der ersten Interaktion mit vollständiger Liste; Exit 5 | `…Fortsetzung` (5/5/2 und 2/2/1) | — |
+| ohne `--compare-responses` `PGR-E2001`, Exit 2, auch `=false`, auch aus Umgebung und Datei (nicht `PGR-E2004`), nennt beide Optionen | `…Quellen` (vier Fälle) | Kombinationsprüfung entfernt (`cli.go`, Bedingung `false`): die vier Fälle ohne `--compare-responses` rot |
+| `record`/`replay`: Option und Umgebungsvariable `PGR-E2001`, Schlüssel `PGR-E2004` | `…Quellen` (fünf Fälle) | — |
+
+Mutationen nur an den Zusagen, die der Handbuchsatz über §3.10 hinaus an eine Grenze bindet (Obergrenzen, Kombination); die übrigen Zeilen sind Belege der Doku (§3.11, Test je Zusage), die Mutationen des Produkts liegen beim Geber. Der Mutant stand je in einer Kopie derselben Datei mit `touch`, danach zurückgesetzt (`git status` zeigte nur Doku und Test).
+
+**Durchsicht der Quantoren (Schritt 17):** Treffer zu „erste Abweichung“: Zeile 1096 (eng gefasst: „Ohne `--diff-all`“), Satz zur Meldung davor (eng gefasst: „Ohne `--diff-all` nennt die Meldung …“), Fehlercode-Zeile `PGR-E5004` (ergänzt um `--diff-all`), Zeile zur Art `Fehler` bei FATAL („nennt die Meldung ohne `--diff-all` diese Abweichung“, eng gefasst). „jede Interaktion mit einer Abweichung“ (Fortsetzung): unverändert, gilt mit und ohne Option, durch `…Fortsetzung` belegt. „ist das keine Abweichung“ (erwartetes Ende): unverändert, die Option ändert nicht, was zählt. Zeile 1655 (`PGR-E5001`): anderer Gegenstand, unverändert. Optionstabelle und `PGR-E2001`-Zeile: ergänzt. Abschnitte zum Ende der Verbindung (Art `Nachrichtenart`/`Fehler`): unverändert, die Art ist weiter die der Position; die Form der Zeile mit der Option steht im neuen Abschnitt.
+
+**README (Liefer-Punkt 2):** von den fünf Stellen beschreibt nur die erste (Meldung als `PGR-E5004`) die Abweichung als einzelne; dort steht jetzt `--diff-all`. Zeilen 26 und 37 sowie 121 nennen `--compare-responses` ohne Aussage über die Zahl der Abweichungen: unverändert.
+
+**Nicht belegt, nicht im Handbuch:** Parameterbeschreibung beim erweiterten Protokoll, Wertemenge und Rangfolge der Quellen von `--diff-all`, Verhalten mit FATAL in der Liste. Das Handbuch sagt dazu nichts.
+
+**Keine Beobachtung angefallen** (Implementer; Closure-Notiz und Register schreibt der Planner).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
