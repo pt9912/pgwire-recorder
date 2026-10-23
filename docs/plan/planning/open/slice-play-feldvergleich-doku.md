@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)
 
-**Berührte Spec-Stellen:** `LH-FA-24.a` (*Meldung*, Randformen der Option; gelesen, der Slice ändert die Spezifikation nicht) · `LH-FA-24`
+**Berührte Spec-Stellen:** `LH-FA-24.a` (*Meldung* und *Alle Abweichungen*: Optionsname `--diff-all`, Einzelheiten je Art, Obergrenze 20, `PGR-E2001` ohne `--compare-responses`; gelesen, der Slice ändert die Spezifikation nicht) · `LH-FA-24`
 
 **Verantwortlich:** —
 **Autor:** Planner. **Datum:** 2026-10-23.
@@ -26,7 +26,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
 ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung**.
 
-**Ziel:** Benutzerhandbuch und `README.md` nennen die Option zur Meldung aller Abweichungen (Name, Umgebungsvariable, Schlüssel, Meldung, Obergrenze, Kombination) so, wie das gebaute Binary sie zeigt, jeder Satz mit einem Lauf gegen das Binary belegt (`AGENTS.md` §3.11).
+**Ziel:** Benutzerhandbuch und `README.md` nennen die Option `--diff-all` zur Meldung aller Abweichungen (Name, Umgebungsvariable `PGWIRE_RECORDER_DIFF_ALL`, Schlüssel `diff_all`, Meldung, Obergrenze 20, Kombination mit `--compare-responses`) so, wie das gebaute Binary sie zeigt, jeder Satz mit einem Lauf gegen das Binary belegt (`AGENTS.md` §3.11).
 
 **Sendung von `slice-play-feldvergleich`:** dessen Handbuch- und README-Teil (`AGENTS.md` §3.11 und §3.13); dieser Slice ist sein Doku-Folge-Slice und nimmt sie an.
 
@@ -83,6 +83,6 @@ DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschri
 
 **Vorgelagert — offene Beobachtungen sichten:** Register `BEO-REPO/` durchgegangen (2026-10-23). Treffer: `zusage-im-kommentar-weiter-als-pruefung` (verkörpert in `AGENTS.md` §3.11; DoD 1 bindet jeden Satz an einen Lauf), `folge-slice-liefert-handbuch-teil-nicht` (dieser Slice ist die Adresse; sein §1 nimmt die Doku-Hälfte an, Eintrag im selben Commit wie der Geber). Keine Schwelle neu erreicht.
 
-**Zählung** (Planner, 2026-10-23, `AGENTS.md` §3.13): **Liefer-Punkte: 2** (Handbuch, README). **Schichten: eine** (Nutzer-Doku, `docs/user/` und `README.md`; der E2E-Test ist Beleg der Doku, nicht Produkt-Code). Sendung aus `slice-play-feldvergleich` (Doku-Hälfte) mitgezählt: Grenzen 3 Punkte und 2 Schichten gehalten.
+**Zählung** (Planner, 2026-10-23, `AGENTS.md` §3.13): **Liefer-Punkte: 2** (Handbuch, README). **Schichten: eine** (Nutzer-Doku, `docs/user/` und `README.md`; der E2E-Test ist Beleg der Doku, nicht Produkt-Code). Sendung aus `slice-play-feldvergleich` (Doku-Hälfte) mitgezählt: Grenzen 3 Punkte und 2 Schichten gehalten. **Nachgezählt vom Architect (2026-10-23):** Die Festlegung der Randformen in `LH-FA-24.a` *Alle Abweichungen* ändert die Zählung nicht (Liefer-Punkte 2, Schichten 1); der Handbuchtext folgt dem Inhalt der Meldung (Einzelheiten je Art, Gesamtzahl, „und N weitere“), nicht einem festgelegten Wortlaut, und belegt jeden Satz mit einem Lauf.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

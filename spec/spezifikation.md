@@ -1546,6 +1546,7 @@ bekannte Kommando, seine Hilfe die von `config show` (LH-FA-01.a). `config` ohne
 | `--allow-plaintext` | `record`, `replay` | `PGWIRE_RECORDER_ALLOW_PLAINTEXT` | `false` (verlangt `--tls-cert`) |
 | `--upstream-ca` | `play` | `PGWIRE_RECORDER_UPSTREAM_CA` | — (Pfad einer PEM-Datei; verlangt TLS zum Server) |
 | `--compare-responses` | `play` | `PGWIRE_RECORDER_COMPARE_RESPONSES` | `false` (`LH-FA-24.a`) |
+| `--diff-all` | `play` | `PGWIRE_RECORDER_DIFF_ALL` | `false` (verlangt `--compare-responses`; `LH-FA-24.a` *Alle Abweichungen*) |
 | — (nur Umgebung) | `play` | `PGWIRE_RECORDER_PASSWORD` | — |
 | `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis, sofern vorhanden |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` (`SPEC-005`) |
@@ -1703,6 +1704,7 @@ in `LH-FA-17.a`):
 | `--upstream-tls` | die Verbindung zum Server wird mit TLS aufgebaut |
 | `--upstream-ca` | eine zusätzliche Zertifizierungsstelle für die Prüfung des Serverzertifikats (nur mit TLS) |
 | `--compare-responses` | die Serverantworten werden mit der Aufzeichnung verglichen (`LH-FA-24.a`) |
+| `--diff-all` | mit `--compare-responses` meldet `play` je Interaktion alle Abweichungen statt der ersten (`LH-FA-24.a` *Alle Abweichungen*); ohne `--compare-responses` ungültig (`PGR-E2001`) |
 | `--finish-session-on-interrupt` | ein Abbruchsignal beendet zuvor die laufende Session |
 | `--keep-timing`, `--timing-mode`, `--timing-reference` | zeitgetreues Einspielen (`LH-FA-21.a`) |
 
@@ -1712,7 +1714,7 @@ ein Ende des Servers (`FATAL` oder `PANIC`), das die aufgezeichnete Anfrage eben
 läuft die nächste Session; die Option ist mit `--compare-responses` ohne Wirkung. Zu
 `--compare-responses` sagt sie, dass ein Ende des Servers (`FATAL` oder `PANIC`) erwartet ist, wenn
 die Aufzeichnung es an derselben Stelle mit demselben SQLSTATE zeigt, und sonst eine Abweichung.
-Ein Test je Aussage prüft sie.
+Zu `--diff-all` sagt sie dreierlei: Sie meldet je Interaktion alle Abweichungen statt der ersten; die Meldung nennt höchstens 20 Positionen je Interaktion; sie gilt nur mit `--compare-responses`. Die Hilfe je Kommando trägt diese drei Aussagen; die globale Hilfe nennt die Option nicht. Ein Test je Aussage prüft sie.
 
 Beispiel:
 
@@ -1786,7 +1788,7 @@ wiederholen sie nicht.
 | Anmeldung fehlgeschlagen (SQLSTATE-Klasse 28), Verfahren nicht unterstützt, TLS abgelehnt (der Server antwortet mit `N`), Zertifikat ungültig oder abgelaufen, Server lehnt unverschlüsselte Verbindung ab | `PGR-E4005`, Exit-Code `4` | gleich | immer sofort |
 | Verbindung endet nach dem ersten `ReadyForQuery`, auch durch eine Fehlerantwort `FATAL` oder `PANIC` | `PGR-E4003`, Exit-Code `4`, immer; ausgenommen ein Ende des Servers, das die Aufzeichnung der Interaktion trägt, mit `--allow-recorded-errors`: erwartet, keine Meldung, die Session endet und die nächste läuft (`LH-FA-25.a`) | **Fehlerantwort mit dem Schweregrad `FATAL` oder `PANIC`** (die Verbindung endet): Trägt die Aufzeichnung an derselben Stelle ein Ende mit demselben SQLSTATE, ist es erwartet (keine Meldung; die Session endet, die nächste läuft, auch ohne `--continue-on-error`); sonst Abweichung `PGR-E5004`, Exit-Code `5`, sofort festgestellt (`LH-FA-24.a` *Ende der Aufzeichnung*); die Session endet, mit `--continue-on-error` läuft die nächste Session. **Verbindungsverlust ohne Fehlerantwort des Servers** (zum Beispiel Netzwerkabbruch): `PGR-E4003`, Exit-Code `4` | `PGR-E4003`: immer sofort; `PGR-E5004`: ohne `--continue-on-error` sofort; erwartetes Ende: kein Abbruch |
 | `ErrorResponse` des Servers auf eine Anfrage | `PGR-E4004`, Exit-Code `4` am Ende; zählt nicht, wenn `--allow-recorded-errors` gesetzt ist und die aufgezeichnete Interaktion eine `ErrorResponse` enthält | der Vergleich entscheidet: gleicher SQLSTATE an der aufgezeichneten Stelle gilt als erwartet, jeder andere Fehler ist eine Abweichung; `PGR-E4004` entfällt | ohne `--continue-on-error` sofort, außer bei erwartetem Fehler |
-| Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung | ohne `--continue-on-error` sofort |
+| Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung, mit `--diff-all` alle (`LH-FA-24.a` *Alle Abweichungen*) | ohne `--continue-on-error` sofort |
 | Serverantwort, die das Einspielen nicht lesen oder nicht bedienen kann (*Interaktion* unten) | `PGR-E6001`, Exit-Code `6` | gleich | immer sofort |
 | Abbruchsignal (Schritt 7) | Exit-Code `0`, wenn bis zum Ende des Einspielens kein Fehler auftrat, sonst `4`; bricht ein Fehler ab, gilt *Exit-Code* unten | `0`, nach einer Abweichung `5` | nach der laufenden Interaktion (oder Session) |
 
@@ -2553,8 +2555,8 @@ Session, Sequenznummer, die Position der Nachricht in der normalisierten Folge u
 die Art: Nachrichtenart, Spaltenbeschreibung, Befehl, Fehler oder Transaktionsstatus.
 Werte des Servers erscheinen in der Meldung nicht, nur Typen und Namen von Spalten
 und bei der Art Fehler der SQLSTATE beider Seiten; Text und weitere Felder einer
-`ErrorResponse` erscheinen nie.
-Je Interaktion wird die erste Abweichung gemeldet. Bei jedem Ende des Laufs (auch
+`ErrorResponse` erscheinen nie; mit `--diff-all` kommen die Einzelheiten je Art nach *Alle Abweichungen* hinzu.
+Je Interaktion wird die erste Abweichung gemeldet, mit `--diff-all` alle (*Alle Abweichungen*). Bei jedem Ende des Laufs (auch
 Abbruch und Signal) trägt die Zeile zum Ende, eine Log-Zeile der Stufe `info` auf
 `stderr` (`SPEC-006`), die Attribute `eingespielt`, `verglichen` und
 `abweichend`, ohne Meldungscode; es entsteht keine zweite Zeile. `verglichen` zählt jede Interaktion, deren Antworten
@@ -2604,6 +2606,83 @@ findet kein Vergleich statt.
   (`LH-FA-20.a`).
 * *Signal.* Das erste Signal beendet die laufende Interaktion mit Vergleich wie ohne Signal,
   eine Abweichung darin wird festgestellt; das zweite Signal unterbricht sie ohne Vergleich.
+
+**Alle Abweichungen (`--diff-all`).** Entscheidung des Nutzers vom 2026-10-23: Die Option heißt
+`--diff-all` (Umgebungsvariable `PGWIRE_RECORDER_DIFF_ALL`, Schlüssel `diff_all` im Abschnitt
+`play:`), hat keinen Kurznamen und den Standard `false`; das Lastenheft ändert sich nicht, denn es
+legt „die erste“ Abweichung nicht fest. Ohne die Option gilt alles Obige unverändert, auch die
+Meldung Wort für Wort. Mit ihr meldet `play` je Interaktion alle Abweichungen; welche Positionen
+abweichen und mit welcher Art, bestimmen die Regeln oben, die Option ändert nur die Meldung und
+nicht, was zählt. Die Randformen:
+
+* *Quellen und Werte.* Option, Umgebungsvariable und Schlüssel wie bei `--compare-responses`
+  (`LH-FA-17.a`): Rangfolge Kommandozeile vor Umgebung vor Datei, Wertemenge `true` und `false`
+  (ohne Wert `true`); jeder andere Wert, auch der leere, ist als Option oder Umgebungsvariable
+  `PGR-E2001`, als Schlüssel der Datei `PGR-E2004`. Die Variable steht in der Optionstabelle hinter
+  der von `--compare-responses` und damit an dieser Stelle der Prüfung der Umgebung.
+* *Ohne `--compare-responses`.* Ist nach der Zusammenführung der Quellen `--diff-all` wirksam
+  `true` und `--compare-responses` wirksam `false` (auch ausdrücklich gesetzt, auch aus einer anderen
+  Quelle als `--diff-all`), ist das `PGR-E2001`, Exit-Code `2`, eine Kombination wie `--upstream-ca`
+  ohne TLS und gleich ihr auch dann, wenn die Quelle von `--diff-all` die Datei ist (kein
+  `PGR-E2004`); die Meldung nennt beide Optionen, nie einen Wert. Sie steht in der Reihenfolge der
+  Prüfung des Starts bei den Kombinationen nach der Zusammenführung, vor `--upstream` und vor jeder
+  anderen Kombination von `play`. `--diff-all=false` ist auch ohne `--compare-responses` gültig und
+  ohne Wirkung. Der Grund: Eine stille Option spiegelte vor, es werde verglichen.
+* *Andere Kommandos.* `record` und `replay` kennen die Option nicht: auf der Kommandozeile
+  `PGR-E2001` (unbekannte Option), die Umgebungsvariable `PGR-E2001` (`LH-FA-17.a`), der Schlüssel in
+  ihrem Abschnitt `PGR-E2004`.
+* *Zusammenspiel.* Mit `--continue-on-error` steht in jeder Interaktion mit Abweichung die
+  vollständige Liste, und es läuft weiter; ohne endet `play` nach der Interaktion mit der
+  Abweichung wie ohne `--diff-all`, deren Liste vollständig ist; Exit-Code `5` ändert sich nicht.
+  `--allow-recorded-errors` bleibt mit `--compare-responses` ohne Wirkung und ändert nicht, welche
+  Abweichungen zählen. `--fail-on-unconsumed` gehört zu `replay` und ist bei `play` unbekannt.
+* *Zuordnung der Positionen.* Position für Position in der normalisierten Folge wie bei der ersten
+  Abweichung, ohne Abgleich der Folgen: Fehlt oder steht eine Nachricht zusätzlich in der Mitte,
+  verschiebt sich der Rest, und die Positionen dahinter sind Folgen der Verschiebung; sie werden
+  trotzdem gemeldet. Haben die Folgen verschiedene Länge, ist jede Position hinter der kürzeren
+  Folge bis zum Ende der längeren eine eigene Abweichung der Art Nachrichtenart, einzeln und
+  nicht als Sammelmeldung (ein Format, eine Zählung, die Obergrenze begrenzt die Länge der Meldung).
+  Bei der letzten Gruppe mit `Flush` eines Endes zählen so die Positionen der aufgezeichneten
+  Folge, die der Server nicht beantwortet hat, bis `connection_closed`.
+* *Ende des Servers.* Eine Fehlerantwort `FATAL` oder `PANIC` des Servers ist die letzte Position;
+  dahinter wird nichts verglichen. Die Positionen davor werden vollständig gemeldet. Ist das Ende
+  erwartet (*Ende der Aufzeichnung*), ist es keine Abweichung und keine Position der Liste, und eine
+  Abweichung davor bleibt eine Meldung; sonst ist die Position des Endes eine Abweichung der Art
+  Fehler. Abweichungen der aufgezeichneten Folge hinter dieser Position erscheinen nicht.
+* *Stelle in der Folge.* Jede Nachrichtenart steht an der Stelle, die die Regeln oben zulassen
+  (`ready_for_query` als letzte, `error_response` auch in der Mitte, `connection_closed` nur nach
+  `FATAL` oder `PANIC` vom Recorder angefügt, letzte Gruppe mit `Flush` ohne `ready_for_query`); die
+  Option ändert nur, dass der Vergleich nach der ersten Abweichung weiterläuft. Verschiedene Typen
+  an einer Position (etwa `ready_for_query` und `connection_closed`) sind eine Position der Art
+  Nachrichtenart.
+* *Form der Meldung.* Je Interaktion mit mindestens einer Abweichung genau eine Zeile `PGR-E5004`
+  mit Session, Sequenznummer und der Gesamtzahl der Abweichungen der Interaktion, dann die
+  Abweichungen in aufsteigender Position (je Position höchstens eine); jede nennt Position und Art.
+  Mit der Option hat die Meldung diese Form auch bei einer einzigen Abweichung. Keine Abweichung,
+  keine Zeile.
+* *Einzelheiten je Art, beide Seiten.* Nachrichtenart: keine. Fehler: der SQLSTATE beider Seiten
+  (leer, wo die Aufzeichnung an der Position keine `ErrorResponse` trägt). Befehl: beide Befehle,
+  also die Tags ohne die abschließenden Zahlen. Transaktionsstatus: beide Zeichen. Spaltenbeschreibung
+  einer `row_description`: die Zahl der Spalten beider Seiten, wenn sie verschieden ist, und je
+  abweichende Spalte der gemeinsamen Nummern (ab 1, aufsteigend) Nummer und das Feld, das abweicht,
+  Name oder Typ-OID beider Seiten (weichen beide ab, erst der Name); Spalten ohne Gegenstück stehen
+  nicht einzeln. Bei einer `parameter_description`: die Zahl der Parameter beider Seiten, wenn sie
+  verschieden ist, und je abweichenden Parameter der gemeinsamen Nummern die Typ-OID beider Seiten.
+  Je Position nennt die Meldung höchstens 20 abweichende Spalten oder Parameter und dahinter
+  „und N weitere“. Nie erscheinen Zeilenwerte, Zeilenzahlen oder der Text und weitere Felder
+  einer `ErrorResponse`; Namen von Spalten und Befehle stehen so, wie sie in der Folge stehen.
+* *Obergrenze.* Die Meldung nennt höchstens 20 Positionen je Interaktion; gibt es mehr, steht hinter
+  der zwanzigsten „und N weitere“ mit N als Zahl der übrigen, und die Gesamtzahl steht im Kopf der
+  Meldung. Genau 20 Abweichungen stehen ohne den Zusatz, 21 mit „und 1 weitere“.
+* *Zähler.* `verglichen` und `abweichend` zählen Interaktionen, nicht Abweichungen, und ändern sich
+  nicht: `abweichend` zählt eine Interaktion mit mehreren Abweichungen einmal. Die Zeilen `error`
+  stehen wie bei der ersten Abweichung (`LH-FA-20.a`).
+* *Signal.* Das erste Signal beendet die laufende Interaktion mit Vergleich, ihre Liste ist
+  vollständig; das zweite unterbricht sie ohne Vergleich und ohne Meldung der Interaktion.
+* *Serverversion, Aufruf, Plattform.* Wie beim Vergleich ohne die Option gleicht die Option keine
+  Version aus (*Serverversion*) und sagt keine Ordnung über mehrere Aufrufe zu (*Aufruf-
+  Voraussetzung*). Meldung und Exit-Code hängen weder von Betriebssystem noch Dateisystem ab; es gibt
+  keine Plattformgrenze an dieser Zusage.
 
 ---
 
@@ -3580,3 +3659,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-21 | Homebrew: ein Nachweis nach Abnahmeszenario 11 gilt je Kombination aus Betriebssystem und Architektur einzeln, mit Installation, `pgwire-recorder version` und einem startenden `replay`-Lauf als Schritten; jede Kombination ohne Ausgaben ist Grenze (`LH-FA-19.a`) |
 | 2026-10-21 | Homebrew-Nachweis, Fehlerausgabe des `replay`-Laufs: die Warnung über die nie zugeordnete Session (`PGR-W2001`) ist in diesem Szenario erwartet; welche Zeilen zulässig sind und welche den Nachweis nicht erbracht sein lassen, legt `SPEC-067` Punkt 20 (3) fest (`LH-FA-19.a`) |
 | 2026-10-22 | Versions-Angabe: `--version` und `-v` als einziges Argument geben dieselbe Zeile aus wie `version`; mit weiteren Argumenten, anderer Schreibweise oder `=` sind sie `PGR-E2001`; der Satz, eine Option `--version` gebe es nicht, entfällt; die Zeile von `version` ist festgelegt (`LH-FA-01.a`, `LH-FA-14.a`) |
+| 2026-10-23 | Einspielen: Option `--diff-all` meldet je Interaktion alle Abweichungen statt der ersten (Umgebungsvariable, Schlüssel, ohne `--compare-responses` `PGR-E2001`, Zuordnung der Positionen, Folgen verschiedener Länge einzeln, Ende des Servers, Einzelheiten je Art beider Seiten, Obergrenze 20, Zähler unverändert); Standard bleibt die erste Abweichung (`LH-FA-24.a`, `LH-FA-17.a`, `LH-FA-20.a`) |
