@@ -517,3 +517,36 @@ func TestVergleichAlleStelle(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-24/Boundary — weichen Name und Typ-OID einer Spalte ab, steht
+// ein Eintrag mit beiden Feldern (Name zuerst), und die Grenze von 20 zählt
+// Spalten, nicht Felder: 20 solche Spalten stehen ohne Zusatz, 21 mit „und 1
+// weitere“ (LH-FA-24.a *Einzelheiten je Art, beide Seiten*).
+func TestVergleichAlleObergrenzeSpaltenMitBeidenFeldern(t *testing.T) {
+	spalten := func(n int, praefix string, oid uint32) []model.Column {
+		var cs []model.Column
+		for i := range n {
+			cs = append(cs, spalte(fmt.Sprintf("%s%d", praefix, i+1), oid))
+		}
+		return cs
+	}
+	for _, n := range []int{20, 21} {
+		soll := []model.Response{zeilenkopf(spalten(n, "c", 1)...), bereitMit("I")}
+		ist := []model.Response{zeilenkopf(spalten(n, "x", 2)...), bereitMit("I")}
+		_, err := spieleAlle(t, false, soll, ist, alleOptionen())
+		got := texte(err)
+		if len(got) != 1 {
+			t.Fatalf("n=%d: Meldungen %q", n, got)
+		}
+		eintrag := "Spalte 20: Name aufgezeichnet „c20“, Server „x20“, Typ-OID aufgezeichnet 1, Server 2"
+		if !strings.Contains(got[0], eintrag) || strings.Count(got[0], "Typ-OID aufgezeichnet") != 20 {
+			t.Errorf("n=%d: 20 Einträge mit beiden Feldern erwartet: %s", n, got[0])
+		}
+		if n == 20 && strings.Contains(got[0], "weitere") {
+			t.Errorf("n=20: Zusatz in %s", got[0])
+		}
+		if n == 21 && (!strings.HasSuffix(got[0], "und 1 weitere)") || strings.Contains(got[0], "Spalte 21:")) {
+			t.Errorf("n=21: %s", got[0])
+		}
+	}
+}
