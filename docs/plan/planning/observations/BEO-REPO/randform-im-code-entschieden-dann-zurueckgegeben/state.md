@@ -37,3 +37,5 @@ Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-
 Wiederaufgetreten (`slice-erster-release-freigabe`, Review Runde 1 F-1 MEDIUM): neun vorläufige Lesarten im Code, weil der Auftrag der Koordination Rückgabe im Bericht und Weiterarbeiten vorsah; der Architect entschied alle, Code und Gegenprobe wurden nachgezogen (Beleg `evidence/slice-erster-release-freigabe.md`). Zähler 26.
 
 Wiederaufgetreten (`slice-harness-devcontainer-einrichten`, Review F-7 MEDIUM): Eine Randform (ungültiger Zweigname und fehlendes `git`) beantwortete der Implementer im Code und gab sie als Hinweis in §7 zurück; der Architect entschied dieselbe Antwort (Beleg `evidence/slice-harness-devcontainer-einrichten.md`). Zähler 27.
+
+Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-play-feldvergleich` — eine Randform (Name und Typ-OID einer Spalte: ein Eintrag oder zwei, Grenze 20 je Spalte) im Code umgesetzt (`d195a58f`) und danach zurückgegeben, vom Architect mit derselben Antwort in `LH-FA-24.a` *Einzelheiten je Art* entschieden (`e2ecc02f`; Beleg `evidence/slice-play-feldvergleich.md`). Zähler 28.

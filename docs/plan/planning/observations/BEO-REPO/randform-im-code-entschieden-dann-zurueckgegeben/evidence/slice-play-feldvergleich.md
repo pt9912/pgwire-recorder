@@ -1,0 +1,2 @@
+**Vorgang:** slice-play-feldvergleich
+**Fund:** Spalte mit abweichendem Namen **und** Typ-OID: §6 Punkt 6 und `LH-FA-24.a` *Einzelheiten je Art* nannten Namen und Typ-OID je Spalte, nicht ob es ein oder zwei Einträge sind und was die Grenze 20 zählt. Der Code (`d195a58f`) machte einen Eintrag mit beiden Feldern und zählte Spalten; zurückgegeben und vom Architect mit einer Klammer in der Spezifikation entschieden wurde es danach (`e2ecc02f`), mit derselben Antwort. Die Rückgabe kam an, aber nach der Lesart im Code.

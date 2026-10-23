@@ -1,0 +1,2 @@
+**Vorgang:** slice-play-feldvergleich
+**Fund (Review F-3, LOW; Verifikation):** §3 und §4 sagten, eine Änderung der Spezifikation während des Slice zähle als dritte Schicht und der vorgemerkte Schnitt greife. `e2ecc02f` änderte die Spezifikation (drei Zeilen, Klammer in *Einzelheiten je Art* mit Änderungsprotokoll; der Code folgte ihr schon); §8 nannte weiter zwei Schichten. Der Implementer trug die Frage in §8 ein und überließ die Entscheidung dem Planner, der sie bei der Closure traf: Schnitt nicht ausgelöst (Plan §7 und §8, 2026-10-23).
