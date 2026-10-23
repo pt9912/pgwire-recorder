@@ -1,0 +1,2 @@
+**Vorgang:** slice-play-feldvergleich-doku
+**Fund (Verifikation, Hinweis 2, nicht sperrend):** Die Tests in `test/integration/play_vergleich_handbuch_e2e_test.go` lesen das Handbuch nicht; die Kopplung Satz zu Fall hält allein die Tabelle in §7 des Plans. Die Beispielzeilen (Typ-OID, COMMIT gegen BEGIN) stehen im Handbuch und als erwartete Zeichenkette im Test, ohne dass eine Änderung des einen den anderen bricht. Bekannte Eigenschaft von `AGENTS.md` §3.11; nicht behoben. Quelle: Verifikationsbericht, Closure-Notiz (Planner, 2026-10-23).

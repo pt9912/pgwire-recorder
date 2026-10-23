@@ -1,0 +1,2 @@
+**Vorgang:** slice-play-feldvergleich-doku
+**Fund (Verifikation, Hinweis 1; Review F-5 b, INFO):** Der Handbuchsatz „je abweichender Spalte … Name und Typ-OID beider Seiten, soweit sie abweichen“ hat keinen Fall für eine Abweichung nur des Namens und keinen für verschiedene Spaltenzahl bei zugleich abweichender Spalte; ein Mutant „Name nur bei gleicher OID“ bliebe grün. Der Implementer ergänzte beide Fälle bewusst nicht (der Satz gilt durch Typ-OID und Name zusammen als belegt). Nicht behoben, nicht sperrend. Quelle: Verifikationsbericht, Closure-Notiz (Planner, 2026-10-23).
