@@ -2665,7 +2665,7 @@ nicht, was zählt. Die Randformen:
   also die Tags ohne die abschließenden Zahlen. Transaktionsstatus: beide Zeichen. Spaltenbeschreibung
   einer `row_description`: die Zahl der Spalten beider Seiten, wenn sie verschieden ist, und je
   abweichende Spalte der gemeinsamen Nummern (ab 1, aufsteigend) Nummer und das Feld, das abweicht,
-  Name oder Typ-OID beider Seiten (weichen beide ab, erst der Name); Spalten ohne Gegenstück stehen
+  Name oder Typ-OID beider Seiten (weichen beide ab, steht ein Eintrag mit beiden Feldern, Name zuerst, und er zählt als eine Spalte für die Grenze von 20); Spalten ohne Gegenstück stehen
   nicht einzeln. Bei einer `parameter_description`: die Zahl der Parameter beider Seiten, wenn sie
   verschieden ist, und je abweichenden Parameter der gemeinsamen Nummern die Typ-OID beider Seiten.
   Je Position nennt die Meldung höchstens 20 abweichende Spalten oder Parameter und dahinter
@@ -3660,3 +3660,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-21 | Homebrew-Nachweis, Fehlerausgabe des `replay`-Laufs: die Warnung über die nie zugeordnete Session (`PGR-W2001`) ist in diesem Szenario erwartet; welche Zeilen zulässig sind und welche den Nachweis nicht erbracht sein lassen, legt `SPEC-067` Punkt 20 (3) fest (`LH-FA-19.a`) |
 | 2026-10-22 | Versions-Angabe: `--version` und `-v` als einziges Argument geben dieselbe Zeile aus wie `version`; mit weiteren Argumenten, anderer Schreibweise oder `=` sind sie `PGR-E2001`; der Satz, eine Option `--version` gebe es nicht, entfällt; die Zeile von `version` ist festgelegt (`LH-FA-01.a`, `LH-FA-14.a`) |
 | 2026-10-23 | Einspielen: Option `--diff-all` meldet je Interaktion alle Abweichungen statt der ersten (Umgebungsvariable, Schlüssel, ohne `--compare-responses` `PGR-E2001`, Zuordnung der Positionen, Folgen verschiedener Länge einzeln, Ende des Servers, Einzelheiten je Art beider Seiten, Obergrenze 20, Zähler unverändert); Standard bleibt die erste Abweichung (`LH-FA-24.a`, `LH-FA-17.a`, `LH-FA-20.a`) |
+| 2026-10-23 | `--diff-all`, Spaltenbeschreibung: weichen Name und Typ-OID einer Spalte ab, steht ein Eintrag mit beiden Feldern, die Grenze von 20 zählt Spalten (`LH-FA-24.a`) |
