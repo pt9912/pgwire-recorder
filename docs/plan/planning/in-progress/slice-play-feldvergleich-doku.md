@@ -41,11 +41,11 @@ ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung**.
 - [x] **Liefer-Punkt 1 — Handbuch** ([`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)): der Abschnitt zum Vergleich der Antworten in `docs/user/benutzerhandbuch.md` (der Satz „Je Interaktion meldet `play` die erste Abweichung“ und jede Stelle, die der neuen Meldung widerspräche: Optionstabelle, Fehlercodes `PGR-E5004` und `PGR-E2001`, Abschnitt zum Ende der Verbindung, Exit-Code 5) nennt die Option, ihre drei Quellen, die Form der Meldung und die Obergrenze; jeder Satz belegt durch einen Lauf gegen das gebaute Binary (Datei, nicht gelesen gegen den Code), keine Chronik, kein Verweis auf Spezifikation, ADR, Slice oder Welle.
 - [x] **Liefer-Punkt 2 — README** ([`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen)): die fünf Stellen von `--compare-responses` in `README.md` sind durchgesehen; wo sie die erste Abweichung als einzige beschreiben, ist die Option genannt, sonst bleibt der Text, mit Grund in §7.
 - [x] `make gates` am Endstand: grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`), kein Self-Review.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang.
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`), kein Self-Review.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -71,13 +71,12 @@ DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschri
 
 ## 6. Risiken und offene Punkte
 
-- Ein Handbuchsatz sagt mehr zu, als das Binary zeigt (Wortlaut der Meldung, Obergrenze) — **Ausgang:** offen bis Closure (jeder Satz mit Lauf belegt, DoD 1).
-- Die Grenze 20 zählt Spalten (ein Eintrag mit Name und Typ-OID), nicht Felder; ein Handbuchsatz, der „Felder“ oder „Einträge der Liste“ zählt, sagt es falsch — **Ausgang:** offen bis Closure (ein Lauf mit 20 und 21 Spalten mit beiden Feldern belegt den Satz, Geber `slice-play-feldvergleich` §7).
-- Das Handbuch hinkt dem Binary hinterher, solange `slice-play-feldvergleich` ohne diesen Slice in `done/` liegt — **Ausgang:** offen bis Closure (Release erst nach beiden, `AGENTS.md` §3.11).
+- Ein Handbuchsatz sagt mehr zu, als das Binary zeigt (Wortlaut der Meldung, Obergrenze) — **Ausgang: entfallen.** Jeder Satz zu `--diff-all` hat einen Lauf gegen das gebaute Binary (§7, Tabelle); das Review fand drei Sätze und einen Kommentar, die weiter reichten als ein Fall (F-1 bis F-4), sie sind enger gefasst oder haben ihren Fall (`a502e40d`), und die Verifikation las Sätze und Fälle erneut ohne Befund. Was nicht belegt ist, sagt das Handbuch nicht (§7, *Nicht belegt*).
+- Die Grenze 20 zählt Spalten (ein Eintrag mit Name und Typ-OID), nicht Felder; ein Handbuchsatz, der „Felder“ oder „Einträge der Liste“ zählt, sagt es falsch — **Ausgang:** offen bis Closure (ein Lauf mit 20 und 21 Spalten mit beiden Feldern belegt den Satz, Geber `slice-play-feldvergleich` §7) — **Ausgang: entfallen.** Der Satz zählt Spalten; `…Obergrenzen` fährt 20 Spalten mit Name und Typ-OID (40 Angaben, alle genannt), 21 und 23 Spalten. Die Verifikation fuhr `maxEinzelne` 20 → 21: `21_Spalten` und `23_Spalten` rot, `20_Spalten` grün; eine Zählung nach Feldern bräche den Fall mit 20 Spalten, den der Geber mit seiner Mutation „Grenze zählt Felder“ schon rot sieht.
+- Das Handbuch hinkt dem Binary hinterher, solange `slice-play-feldvergleich` ohne diesen Slice in `done/` liegt — **Ausgang:** offen bis Closure (Release erst nach beiden, `AGENTS.md` §3.11) — **Ausgang: entfallen.** Der Slice liefert Handbuch und `README.md` zu `--diff-all`; mit ihm in `done/` steht das Handbuch nicht mehr hinter dem Binary, und kein Release mit der Option entstand davor. Der Eintrag `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` trägt die Lieferung als „Teil geliefert, kein Auftreten“.
 
 ## 7. Closure-Notiz
 
-*(Wird bei der Closure gefüllt.)*
 ### Belege des Implementers (Stand `5f35239f`)
 
 **Läufe:** `make gates` am Endstand grün (Exit 0, einschließlich `test-integration`, `test-postgres-versionen`, `docs-check`, `abdeckung-check` nach `make abdeckung`, `lint`, `test`). Engster Fall davor: `make test-integration` mit `PGR_TESTS_1` auf die vier neuen Tests, alle PASS (die Phase ohne PostgreSQL dieser Teilläufe ist ohne die Aufzeichnungen der vollen Phase 1 rot und zählt nicht). **Marke 1500** (§3.14, Basis `3d3832d9`, Pfade `docs/user README.md test`): 340 Zeilen.
@@ -107,6 +106,22 @@ Mutationen nur an den Zusagen, die der Handbuchsatz über §3.10 hinaus an eine 
 **Nacharbeit nach dem Review (F-1 bis F-5):** F-1 enger gefasst („Ist `--diff-all` wirksam `true` und `--compare-responses` nicht …“, belegt durch die vier Fälle). F-2: Satz zur Form ohne Option aus dem Abschnitt gestrichen, Testkommentar enger. F-3: Fall `record Umgebungsvariable` ergänzt. F-4: Satz zum Ende der Verbindung auf den Wortlaut vor diesem Slice zurückgesetzt. F-5: `diff_all` in der Zeile `PGR-E2004` des Handbuchs, Fall `play Schlüssel ungültig` (`diff_all: 1`, `PGR-E2004`) ergänzt; `docs/user/abdeckung-e2e.md` in §3 genannt. Klasse (Merkmal: Handbuchsatz nennt eine Quelle oder Betriebsart, der Test eine Auswahl): übrige Sätze des Abschnitts mit Quelle oder Betriebsart gegen die Fälle gelesen, keine weitere Lücke. F-5 (b) und (c) bleiben unverändert (Handbuch sagt dazu nichts Zusätzliches).
 
 **Keine Beobachtung angefallen** (Implementer; Closure-Notiz und Register schreibt der Planner).
+
+### Closure (Planner, 2026-10-23)
+
+Stand: Zweig `impl-diff-all-doku`, Endstand der Arbeit `a502e40d` (Nacharbeit), danach Review-Report und Verifikationsbericht; Basis der Metrik `3d3832d9`.
+
+- **Was hat funktioniert:** Beide Liefer-Punkte geliefert, Doku-Schicht allein, kein Produkt-Code im Diff. Jeder Satz zu `--diff-all` steht neben einem Fall gegen das gebaute Binary; die Beispielzeilen des Handbuchs stimmen mit den erwarteten Zeichenketten überein. Die Marke 1500 ist nicht erreicht: **341** Zeilen (Befehl aus `AGENTS.md` §3.14, Pfade `docs/user README.md test`, Basis `3d3832d9`; die Zahl 340 in den Belegen des Implementers ist der Stand `5f35239f`; die Nacharbeit `a502e40d` fügt eine Zeile hinzu).
+- **Review** ([Report](../../../reviews/2026-10-23-review-slice-play-feldvergleich-doku.md)): 0 HIGH, 0 MEDIUM, 4 LOW, 1 INFO. F-1 bis F-4 behoben (`a502e40d`), F-5 (a) bis (d): `diff_all` in der Zeile `PGR-E2004` und `abdeckung-e2e.md` in §3 nachgetragen, (b) und (c) bewusst unverändert (siehe Hinweis 1).
+- **Verifikation** ([Report](../../../reviews/2026-10-23-verifikation-slice-play-feldvergleich-doku.md)): bestanden; beide Liefer-Punkte bestätigt, zwei Mutationen (`maxPositionen`, `maxEinzelne`) aus dem richtigen Grund rot gesehen, zwei Hinweise, nicht sperrend.
+- **`make gates` am Endstand: grün.** Lauf des Planners bei der Closure am Stand `e2949119` (Exit 0, kein Befund aus `docs-check`, `kopf-check`, `abdeckung-check`, `lint`, `test`, `test-integration`, `test-postgres-versionen`); Code, Tests und Handbuch sind seit `a502e40d` unverändert, danach ändern nur Review-Report, Verifikationsbericht und diese Closure den Zweig (alle auf der Positivliste). Der Lauf des Implementers stand bei `5f35239f`, vor der Nacharbeit.**
+- **Finding-Klassen des Reviews:** *Handbuchsatz weiter als der Test* (F-1, F-3), *Kommentar weiter als der Test* (F-2), *Handbuchsatz deutet Verhalten ohne Beleg an* (F-4): alle drei sind `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Beleg `evidence/slice-play-feldvergleich-doku.md`, Zähler 95). *Stellen am Rand der Belege* (F-5, INFO) führt Hinweis 1.
+- **Hinweise der Verifikation:** (1) Der Satz „je abweichender Spalte … soweit sie abweichen“ hat keinen Fall für eine Abweichung nur des Namens und keinen für verschiedene Spaltenzahl bei zugleich abweichender Spalte; ein Mutant „Name nur bei gleicher OID“ bliebe grün. **Ausgang: weiter offen** — neu `BEO-REPO/handbuchsatz-soweit-ohne-fall-je-zweig` (Zähler 1). Kein Folge-Slice: Der Satz ist nicht falsch, und das Produkt, das die Zusage hält, hat die Mutationen beim Geber (`slice-play-feldvergleich`, Zeilen „Spalten: je abweichende gemeinsame Nummer, Name vor Typ-OID“). (2) Die Kopplung Satz zu Fall hält allein die Tabelle in §7; ändert jemand einen Beispielwert im Handbuch, wird kein Test rot. **Ausgang: weiter offen** — neu `BEO-REPO/handbuch-beispiel-ohne-kopplung-an-den-test` (Zähler 1).
+- **Ausgänge der Risiken (§6):** (1) Satz weiter als das Binary: *entfallen*. (2) Spalten statt Felder: *entfallen*. (3) Handbuch hinkt dem Binary hinterher: *entfallen*. Begründungen je Risiko in §6.
+- **Steering-Loop-Eintrag (Lerneintrag, benannte Lücke, keine Regel geändert):** Die Durchsicht der Quantoren (`implement-slice` Schritt 17) fand die vier Stellen („ohne“, „ebenso“, ein Kommentar) nicht, das Review fand alle vier; jede war ein enger Satz über einem Fall, der nur einen Teil trug. Die Klasse ist `zusage-im-kommentar-weiter-als-pruefung` (Zähler 95), und die Regel dazu (`AGENTS.md` §3.11) steht schon; sie wird nicht verschärft. Benannte Lücke: §3.11 verlangt einen Test je Handbuchsatz, aber nichts koppelt Satz und Fall außer der Tabelle in §7 (Hinweis 2). Die kleinere Lösung vor einem Sensor: Der Test liest die Beispielzeile aus dem Handbuch. Das ist ein Vorschlag an den Nutzer, nicht eingetragen; kein `liegt in`.
+- **Beobachtungs-Register:** Beleg in `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Zähler 95); neu `BEO-REPO/handbuchsatz-soweit-ohne-fall-je-zweig` und `BEO-REPO/handbuch-beispiel-ohne-kopplung-an-den-test` (je Zähler 1); Vermerk in `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (Teil geliefert, kein Auftreten, Zähler 2). **Rate nach `AGENTS.md` §3.15:** nicht gerechnet; seit `slice-harness-regeln-rueckbau` sind mit diesem Slice fünf geschlossen (vorher vier), weniger als zehn: keine Rate, kein Vorschlag.
+- **Folge-Slices:** keine. Das Release mit der Option `--diff-all` kann nach diesem Slice entstehen (`AGENTS.md` §3.11); die Entscheidung dazu liegt beim Nutzer.
+- **Drei Paarungen:** (a) *Anker:* nicht ausgelöst, kein `liegt in`. (b) *Folge-Slice:* keiner genannt, keine Sendung an einen Nehmer; der Geber `slice-play-feldvergleich` nennt diesen Slice als Nehmer, `grep` findet die Kennung des Gebers in §1 und §8 dieses Plans, und der Slice hat seine Doku-Hälfte geliefert. (c) *Register:* die zitierten Einträge existieren; die Klassen mit Zähler ≥ 1 mit `evidence/`, `folge-slice-liefert-handbuch-teil-nicht` mit Vermerk.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
