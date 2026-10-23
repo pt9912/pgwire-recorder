@@ -203,6 +203,8 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 | globale Hilfe nennt die Option nicht; Hilfe von `play` nennt sie | globale Hilfe mit Option; `play` ohne | `ParsePlayDiffAllHilfe` |
 | der Bootstrap reicht die Option durch | `DiffAll` im Bootstrap auf `false` | `TestRunPlayDiffAll` (Paket `bootstrap`) |
 
+*Nacharbeit zum Review (F-1 bis F-4):* `make gates` am Stand `950f95a0` (Arbeitsbaum sauber): Exit 0; Mutation „Grenze zählt Felder“ rot in `TestVergleichAlleObergrenzeSpaltenMitBeidenFeldern` und `TestVergleichAlle`.
+
 *Grüne Mutanten:* keiner. Äquivalent geführt wird nichts; `kommando == "play"` im Kombinationsprüfer ist entfernt, die Prüfung liest `q.wert`, das die Option bei `record` und `replay` nicht führt (`TestRecordReplayDiffAll`).
 
 *Verneinende Zusagen.* „nie Zeilenwerte, Zeilenzahl oder Text einer Fehlerantwort“: `Alle` prüft die Meldung auf `geheim`, `aufgezeichneter Text`, `SELECT 1`, `UPDATE 5`, `„1“`; Mutanten: Fehlertext angehängt (rot), Tag mit Zahlen (rot). Zeilenwerte erreichen die Folge nicht (`nimmNormalisiert` verwirft `data_row`; Fall „Befehl ohne Zahlen, Zeilen nie genannt“ trägt zwei `data_row` auf der Server-Seite).
