@@ -29,7 +29,8 @@ Datenbank ab, die die Verbindung nicht beendet, mit `--continue-on-error` läuft
 Sitzung. Mit `--compare-responses` vergleicht `play` die Antworten der Datenbank mit der
 Aufzeichnung (Art und Reihenfolge der Antworten, Spalten, Befehl, SQLSTATE eines Fehlers,
 Transaktionsstatus; nicht Zeilenwerte und Hinweise) und meldet eine Abweichung als
-`PGR-E5004` mit Exit-Code 5. Ohne `--compare-responses` endet `play`, wenn die Datenbank
+`PGR-E5004` mit Exit-Code 5; mit `--diff-all` meldet es je Interaktion alle Abweichungen mit den
+Einzelheiten beider Seiten statt der ersten. Ohne `--compare-responses` endet `play`, wenn die Datenbank
 mit einem COPY-Datenstrom antwortet, mit `PGR-E6001`.
 Beendet die Datenbank eine Verbindung selbst (eine Fehlerantwort `FATAL` oder `PANIC`, danach
 das Ende der Verbindung), zeichnet `record` das als Ende der Sitzung auf; die Aufzeichnung hat dann
