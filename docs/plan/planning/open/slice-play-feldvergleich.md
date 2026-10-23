@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Entscheidung:** Entscheidung des Nutzers vom 2026-10-20 (Memory `play-voller-feldvergleich-per-option`): Der Standard bleibt die erste Abweichung; eine **neue Option** schaltet die vollständige Ausgabe aller abweichenden Felder je Interaktion zu. Name, Lastenheft und Form der Ausgabe: Entscheidung des Nutzers vom 2026-10-23 (Name `--diff-all`, Umgebungsvariable `PGWIRE_RECORDER_DIFF_ALL`, Schlüssel `diff_all`, kein Kurzname; Lastenheft unverändert; eine Zeile `PGR-E5004` je Interaktion, beide Seiten je Art, nie Zeilenwerte oder Fehlertext, Obergrenze 20 Positionen). Festgelegt in `spec/spezifikation.md` `LH-FA-24.a` *Alle Abweichungen* (Architect, 2026-10-23, vor dem Start). Keine ADR.
 
-**Verantwortlich:** —
+**Verantwortlich:** Implementer (Zweig impl-diff-all)
 **Autor:** Planner. **Datum:** 2026-10-23.
 
 ---
