@@ -61,7 +61,7 @@ ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung**.
 
 **Rückführungen:**
 
-- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik: `AGENTS.md` §3.14; Pfade des Plans: `docs/user README.md test`); Basis: der Commit des Übergangs nach `in-progress/`, Hash beim Übergang eintragen: `<Hash>` (Zweig `impl-diff-all-doku`).
+- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik: `AGENTS.md` §3.14; Pfade des Plans: `docs/user README.md test`); Basis: der Commit des Übergangs nach `in-progress/`, Hash beim Übergang eintragen: `3d3832d9` (Zweig `impl-diff-all-doku`).
 - `in-progress` → `open`: das Binary zeigt ein Verhalten, das die Spezifikation anders sagt — Rückgabe an den Architect, Slice wartet nicht in `in-progress/`.
 
 ## 5. Closure-Trigger
