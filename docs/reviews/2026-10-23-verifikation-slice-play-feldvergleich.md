@@ -44,7 +44,7 @@ Diff `spec/spezifikation.md` gegen `main`: eine Klammer in *Einzelheiten je Art*
 
 | ID | Kategorie | Befund |
 |---|---|---|
-| V-1 | LOW | §3 des Plans hält die Zahl 996 für die Marke am Stand `d195a58f` fest; am Endstand misst der Befehl 1029. Beleg-Zahl in §7 ist dadurch überholt (kein Einfluss auf die Entscheidung, Marke 1500 weit). Beim Closure die Endzahl eintragen oder die Zahl streichen (§3.14: §7 trägt keine Messzeile) |
+| V-1 | LOW | §7 des Plans hält die Zahl 996 für die Marke am Stand `d195a58f` fest; am Endstand misst der Befehl 1029. Beleg-Zahl in §7 ist dadurch überholt (kein Einfluss auf die Entscheidung, Marke 1500 weit). Beim Closure die Endzahl eintragen oder die Zahl streichen (§3.14: §7 trägt keine Messzeile) |
 | V-2 | INFO | Der Nachweis `make gates` am Endstand ruht auf dem Beleg des Implementers; wer Wert auf einen eigenen Lauf legt, fährt ihn im Hauptbaum nach dem Merge |
 | F-3 (Review, offen) | LOW | siehe Einschätzung |
 
