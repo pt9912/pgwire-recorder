@@ -93,7 +93,7 @@ dessen Mutationstabelle, am heutigen Code wie in der Tabelle oben. Zwei bekommen
    `bootstrap_test.go:353` (`exit := <-ende`) und `tls_test.go:184` (`<-ende`, Paket
    `bootstrap`); beim Umsetzen kamen `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) und
    `server_tls_test.go` (`<-fertig` im `defer` von `TestTLSNacheinanderUndGleichzeitig`, Ende von
-   `Serve`) hinzu (Review F-1, F-2). Wie ein Gate einen Mutanten zählt, der nur über die Zeitüberschreitung rot
+   `Serve`) hinzu (Review F-1, F-2), dazu `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242; Architect 2026-10-24, §6). Wie ein Gate einen Mutanten zählt, der nur über die Zeitüberschreitung rot
    wird, ist die Randform *Laufzeit* von `slice-harness-mutation`. Die Prüfung auf Warten
    ohne Frist in `make lint` kommt nach diesem Slice mit `slice-harness-lint-warten-ohne-frist`
    (Abgrenzung dort, §1): Sie setzt an Zeile 848 und in den beiden Schichten dieses Slice
@@ -222,8 +222,8 @@ Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
 - [x] **Frist beim Warten (F-468):** Die Tests dieser beiden Schichten, die ohne Frist auf
       einen Kanal oder das Ende eines Laufs warten, tragen die Frist nach §6 *Warten auf
       einen Kanal* (Kandidaten: `server_extended_test.go:848`, `server_tls_test.go:54`,
-      `bootstrap_test.go:353`, `tls_test.go:184`, dazu `tls_test.go:100` und das Ende von `Serve` in
-      `server_tls_test.go`; welche der Architect festlegt). Der Mutant W
+      `bootstrap_test.go:353`, `tls_test.go:184`, dazu `tls_test.go:100`, das Ende von `Serve` in
+      `server_tls_test.go` und `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242); welche der Architect festlegt). Der Mutant W
       des Gebers wird in `TestReplayHerunterfahrenSpaeteFrist` rot, ohne dass das Paket die
       Zeit überschreitet.
 - [x] **Abbildung (G4) und Ende des Wächters (G7):** Ein Test in `pgwire_test` über
@@ -387,8 +387,9 @@ Entscheidung · Ort):
   | `server_tls_test.go:54` (`server = <-angenommen`) | **Keine Pflicht, Frist erlaubt und zu setzen.** Das `Accept` auf dem Listener des Tests nach dessen eigenem `Dial` ist Testgeschirr, der Prüfling führt es nicht herbei. Der Implementer setzt dennoch eine Frist: `slice-harness-lint-warten-ohne-frist` meldet jeden Empfang im Rumpf einer Hilfsfunktion (§1 dort, Entscheidung des Nutzers) und kann das Geschirr nicht unterscheiden; zwei Zeilen jetzt sparen dort eine Ausnahme. |
   | `bootstrap_test.go:353` (`exit := <-ende`) | **Frist Pflicht.** Der Lauf der Kommandozeile (`bootstrap.Run`) ist der Einstiegspunkt des Prozesses; der Test startet ihn in einer Goroutine und liest sein Ende über einen Kanal. Das ist ein gestarteter Prozess im Sinn der Regel und zugleich ein Wert, den der Prüfling auf einem Kanal liefert; beide Lesarten führen zur Frist. |
   | `tls_test.go:184` (`<-ende`, Paket `bootstrap`) | **Frist Pflicht**, Gründe wie `bootstrap_test.go:353`. |
-  | `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) | **Frist Pflicht**, Gründe wie `:184`; vom Implementer ergänzt (Review F-2), Bestätigung des Architect steht aus. |
-  | `server_tls_test.go`, `defer … <-fertig` in `TestTLSNacheinanderUndGleichzeitig` (Ende von `Serve`) | **Frist Pflicht**: der Prüfling beendet `Serve`, derselbe Fall wie das Ende von `Run`; vom Implementer ergänzt (Review F-1), Bestätigung des Architect steht aus. |
+  | `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) | **Frist Pflicht**, Gründe wie `:184`; vom Implementer ergänzt (Review F-2), vom Architect bestätigt (2026-10-24). |
+  | `server_tls_test.go`, `defer … <-fertig` in `TestTLSNacheinanderUndGleichzeitig` (Ende von `Serve`) | **Frist Pflicht**: der Prüfling beendet `Serve`, derselbe Fall wie das Ende von `Run`; vom Implementer ergänzt (Review F-1), vom Architect bestätigt (2026-10-24). |
+  | `play_anmeldung_test.go`, `<-danach` (Zeilen 171 und 242; Zeile 192 und 275 tragen `time.After`) | **Frist Pflicht**: Den Wert auf `danach` füllt zwar das Double, aber mit dem, was der Prüfling sendet, und er kommt erst, wenn der Prüfling die Verbindung beendet; das Ereignis führt der Prüfling herbei (`SPEC-038`, Absatz zum Kanal des Testgeschirrs, 2026-10-24 präzisiert). Dritte und vierte Stelle dieses Slice, Schicht Bootstrap, im Liefer-Punkt *Frist beim Warten*; keine Sendung an `slice-harness-lint-warten-ohne-frist`, dessen §1 Stellen im Bootstrap ausschließt. |
 
   Für die zwei Stellen am Ende von `bootstrap.Run` gilt dazu „je Prozess genau eine Stelle
   wartet, jeder weitere Leser liest ihr Ergebnis“: Liest ein Test das Ende desselben Laufs
@@ -628,5 +629,7 @@ Planner), der Nutzer hat den Satz für `AGENTS.md` §3.13 nicht entschieden, und
 dasselbe wie dort: Die Zeilen kommen nur, wenn ein neuer Test eine Deklaration trägt, die
 die Tabelle noch nicht führt, und zählen nicht als Schicht. Die Aufzeichnung der
 Spalten-Metadaten bleibt draußen (§1), sie wäre die dritte Schicht.
+
+**Nachzählung** (Architect, 2026-10-24, für `play_anmeldung_test.go` `<-danach`, §6): zwei Zeilen in einer Testdatei der Schicht Bootstrap, im Liefer-Punkt *Frist beim Warten*; Liefer-Punkte 3, Schichten 2, unverändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

@@ -3594,6 +3594,9 @@ Prozess im Sinn dieser Regel, ebenso wie der Wert, den der Prüfling auf einem K
 liefert. Ein Kanal, den nur das Testgeschirr füllt (ein `Accept` auf dem Listener des
 Tests nach dessen eigenem `Dial`), führt der Prüfling nicht herbei; die Regel verlangt
 dort keine Frist, verbietet sie aber nicht.
+Füllt das Testgeschirr einen Kanal mit dem, was der Prüfling gesendet hat (die Typen der Nachrichten
+eines Fake-Servers), oder hängt sein Wert davon ab, dass der Prüfling die Verbindung beendet, führt
+der Prüfling das Ereignis herbei: Der Test wartet mit Frist.
 
 ## 10. Nicht zugesichert in v1
 
@@ -3739,3 +3742,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-23 | `--diff-all`, Spaltenbeschreibung: weichen Name und Typ-OID einer Spalte ab, steht ein Eintrag mit beiden Feldern, die Grenze von 20 zählt Spalten (`LH-FA-24.a`) |
 | 2026-10-24 | Spalten-Metadaten: Tabellen-OID und Spaltennummer einer `RowDescription` unverändert an Client und Aufzeichnung, einfach wie Extended (`LH-FA-02.a`); Diagnose bei Extended-Mismatch: SQL je Nachrichtenart, angenommene Nachrichten als die ersten n einer Art nach den Bestätigungen, Grenze beim unbenannten Statement nach abgelehntem `Parse` (`LH-FA-18.a`, `LH-FA-10.a`); Ort in der Meldung eines beschädigten `yaml`-Recordings, Nummer der Session und der Interaktion (`LH-FA-22.a`); Meldungstext in Tests (`SPEC-038`) |
 | 2026-10-24 | Replay: Tabellen-OID und Spaltennummer einer aufgezeichneten `RowDescription` unverändert an den Client (`LH-FA-03.a`); Signal vor dem Öffnen des Listeners, auch bei einem Namen in `--listen`: kein Startfehler, Exit-Code `0`, geprüft nur unter Linux (`LH-FA-13.a`); Hilfsabläufe einer beendeten Verbindung nicht zugesichert (`SPEC-032`); Warten in Tests: Lauf der Kommandozeile in einer Goroutine ist ein gestarteter Prozess, Kanal des Testgeschirrs ohne Pflicht zur Frist (`SPEC-038`) |
+| 2026-10-24 | Warten in Tests: ein Kanal des Testgeschirrs, dessen Wert der Prüfling bestimmt (gesendete Nachrichten, Ende der Verbindung), verlangt eine Frist (`SPEC-038`) |
