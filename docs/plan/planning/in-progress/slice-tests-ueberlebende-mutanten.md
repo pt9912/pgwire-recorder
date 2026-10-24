@@ -522,7 +522,7 @@ Statement, n = 1). F-4 behoben (§3 nennt fünf Deklarationen). F-6: Hinweis, di
 in den Meldungen halten Bestandstests (`yaml_test.go`, `sqlite_lesen_inhalt_test.go`); der neue Test
 vergleicht nur die Session, wie DoD 3 es verlangt. F-7: Hinweis, die Mutationen hat der Reviewer nicht
 gefahren, sie fährt der Verifier nach. F-3 liegt bei Closure und Nutzer, offen. Zusätzlich war
-`docs-check` am Review-Report rot (`ADR-0034` ohne Link, Zeile 16); der Link steht jetzt dort, sonst
+`docs-check` am Review-Report rot ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ohne Link, Zeile 16); der Link steht jetzt dort, sonst
 nichts am Report geändert (`32fe4711`).
 Läufe am Endstand `32fe4711`: `make docs-check` 0 Befunde, `make kopf-check` Exit 0, `make gates` Exit 0,
 11:32:11 bis 11:41:13 (9 min 1 s), allein auf Docker.
