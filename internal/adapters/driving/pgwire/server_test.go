@@ -627,11 +627,10 @@ func TestToMessageErfindetNichts(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-02/Happy, LH-FA-03/Happy — Tabellen-OID und Spaltennummer jeder
-// Spalte einer RowDescription gehen unverändert an den Client (LH-FA-02.a, LH-FA-03.a
-// Spalten-Metadaten): keines der beiden Felder fehlt, und eine Spalte ohne Tabelle
-// behält `0`. Der Weg ist für Record und Replay und für einfache und Extended-Anfragen
-// derselbe.
+// Abdeckung: LH-FA-02/Happy, LH-FA-03/Happy — ToMessage bildet Tabellen-OID und
+// Spaltennummer jeder Spalte einer RowDescription unverändert ab (LH-FA-02.a,
+// LH-FA-03.a Spalten-Metadaten): keines der beiden Felder fehlt, und eine Spalte ohne
+// Tabelle behält `0`.
 func TestToMessageSpaltenMetadaten(t *testing.T) {
 	cols := []model.Column{
 		{Name: "id", TableOID: 16384, ColumnNumber: 1, TypeOID: 23, TypeSize: 4, TypeModifier: -1, Format: 0},
