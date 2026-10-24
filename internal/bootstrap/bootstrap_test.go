@@ -333,11 +333,10 @@ func TestRunSignalVorDemOeffnen(t *testing.T) {
 			t.Run(kommando+" "+f.name, func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
+				args := quelle(t, kommando, f.listen)
 				var stdout, stderr bytes.Buffer
 				ende := make(chan int, 1)
-				go func() {
-					ende <- bootstrap.Run(ctx, nil, quelle(t, kommando, f.listen), "dev", &stdout, &stderr)
-				}()
+				go func() { ende <- bootstrap.Run(ctx, nil, args, "dev", &stdout, &stderr) }()
 				select {
 				case code := <-ende:
 					if code != f.exit || strings.Contains(stderr.String(), "PGR-E4001") != (f.exit == 4) {
