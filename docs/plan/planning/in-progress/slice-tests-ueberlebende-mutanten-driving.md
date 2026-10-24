@@ -289,7 +289,7 @@ Code misst der Implementer G1, G4 und G7 erneut und nennt in §7, ob sie überle
 
 **Rückführungs-Marke** (`AGENTS.md` §3.14): Marke 1500, Metrik und Befehl dort. Pfade des Plans:
 `internal/adapters/driving/pgwire`, `internal/bootstrap`, `spec`. Basis-Hash des Moves nach
-`in-progress/`: —
+`in-progress/`: `7ed55a23`.
 
 Erster Schritt nach dem Start, vor jedem Code-Commit: Der Architect entscheidet die
 Randformen aus §6 und hält sie in der Spezifikation fest
