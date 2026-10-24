@@ -89,7 +89,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `open` (blockiert): Ein Merkmal des Berichts fehlt oder stimmt nicht (Version der Formel im Tap anders als `0.2.0`, `uname` nennt eine andere Kombination) oder der Nutzer widerruft die Angabe — die Kombination bleibt Grenze; der Grund wird beim Übergang nachgetragen. Kein Carveout nötig (kein rotes Gate).
-- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik: `AGENTS.md` §3.14, dort der Befehl; Pfade des Plans: `docs/user docs/maintainer README.md`; Basis: der Commit des Übergangs nach `in-progress/`, Hash beim Übergang eintragen: `—`). Die Marke ist keine Schätzung.
+- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik: `AGENTS.md` §3.14, dort der Befehl; Pfade des Plans: `docs/user docs/maintainer README.md`; Basis: der Commit des Übergangs nach `in-progress/`, Basis: `34a8cf11`). Die Marke ist keine Schätzung.
 
 ## 5. Closure-Trigger
 
