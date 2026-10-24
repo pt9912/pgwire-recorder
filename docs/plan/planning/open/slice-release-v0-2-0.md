@@ -1,0 +1,221 @@
+# Slice slice-release-v0-2-0: Release v0.2.0 (zweiter stabiler Tag mit `--version`, `-v` und `play --diff-all`)
+
+**Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
+Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
+wechselt nur durch `git mv`, siehe
+Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
+Übernimmt ein anderer Slice den Gegenstand oder entfällt er, geht diese Datei
+aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
+Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
+(§Ein Slice, dessen Gegenstand ein anderer übernimmt).
+
+**Welle:** ohne Welle (Entscheidung des Planners, 2026-10-24). Der Slice hat keine Closure-Bedingung, die von seiner DoD verschieden ist, und keine Anforderung einer Welle hängt an ihm.
+
+**Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew), [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität)
+
+**Berührte Spec-Stellen:** `SPEC-067` (Punkte 2, 3, 8, 11, 17, 18 und 19, [`harness/vertraege/`](../../../../harness/vertraege/SPEC-067-release.md); gelesen, der Slice ändert den Vertrag nicht) · `SPEC-060` (Punkt 14, Pflicht zum vollen Lauf der Gegenproben am getaggten Commit; gelesen) · `SPEC-055` (Punkt 3, Namen der Binaries; gelesen) · `SPEC-052` (Punkt 12, Positivliste; gelesen) · `LH-FA-19.a` · `LH-FA-16.a` · `LH-FA-01` · `LH-FA-24` · `LH-QA-03`
+
+**Entscheidung:** [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md) · [ADR-0053](../../adr/0053-homebrew-tap-in-der-release-pipeline.md) · [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) · [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md). **Entscheidung des Nutzers vom 2026-10-24** (Angabe der Koordination, nicht nachgefahren; der Wortlaut des Ja steht beim Beleg zu Punkt 7 im Eintrag, sobald die Koordination ihn nennt): Der Nutzer sagte „release“ und bestätigte auf Rückfrage die Version **v0.2.0** und einen **Carveout wie `CO-001`** für die Punkte 2 und 3 der Freigabe (nur der engste Fall je Gegenprobe mit `GP_MUT`, die Grenze im Eintrag genannt). Das Wort „release“ gilt als das ausdrückliche Ja zum Tag (Punkt 7 der Checkliste, `SPEC-067` Punkt 18). Es nennt weder den Carveout als Datei noch Secrets: **Der Carveout `CO-002` entsteht erst, wenn der Architect ihn vorbereitet und der Nutzer ihn annimmt** (nicht der Planner, nicht der Implementer); bis dahin sind die Punkte 2 und 3 nicht ausgenommen. Secrets setzt allein der Nutzer; sie sind laut Nutzer seit `v0.1.1` hinterlegt, ob sie noch tragen (Ablaufdatum, Rechte), zeigt erst der Lauf (§6).
+
+**Verantwortlich:** —
+**Autor:** Planner. **Datum:** 2026-10-24.
+
+---
+
+## 1. Ziel und Abgrenzung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
+ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung** (Out-of-Scope-Disziplin
+des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
+Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
+zusammen mit der Begründung je Punkt.
+
+**Ziel:** Der stabile Tag `v0.2.0` ist nach der Freigabe-Checkliste (`docs/maintainer/releasing.md` §10, `SPEC-067` Punkt 17) mit Beleg je Punkt vorbereitet; setzt die Koordination ihn nach dem Ja des Nutzers, liegen am Release die sechs Binaries `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, das Image in beiden Registries mit `0.2.0` und `latest`, und der Job `homebrew` hat die Formel `0.2.0` im Tap versucht. Nach dem Lauf beschreiben Benutzerhandbuch und `README.md` den Bezug von `v0.2.0` im Ist-Zustand und nennen nur Befehle, die nach dem Tag einmal gelaufen sind. Seit `v0.1.1` ausgeliefert sind `--version` und `-v` (`LH-FA-01`) und `play --diff-all` (`LH-FA-24`) samt Handbuch; das Upstream-Ende bei Extended Query (`slice-v1-abschluss-verbindungsende-upstream-extended`) lieferte Tests und Testdaten ohne Produkt-Code und kommt in der Zeile der Änderungshistorie nicht vor.
+
+**Wer was tut** (Rollen, `SPEC-067` Punkt 18: „ein Implementer startet keinen Tag“):
+
+| Rolle | Tut | Tut nicht |
+|---|---|---|
+| Koordination (Claude) | merged den Release-Commit per ff auf `main` und pusht, startet den Trockenlauf (`workflow_dispatch`) auf genau diesem Stand, setzt und pusht den Tag nach dem Ja, beobachtet den Lauf, gibt dem Implementer die Lauf-Kennung | schreibt keinen Eintrag, keinen Carveout |
+| Architect | bereitet `CO-002` vor (§6, Rückgabe 1) und prüft die Randformen in §6 | ändert keinen Vertrag ohne Anlass; nimmt den Carveout nicht an |
+| Nutzer | nimmt `CO-002` an (Wortlaut ins Artefakt), entscheidet die offenen Punkte in §6, setzt und pflegt Secrets, nennt sein Ja zum Tag im Wortlaut | — |
+| Implementer | Release-Commit (`VERSION`, Zeile der Änderungshistorie), Belege 1 bis 6 mit Befehl, Hash, Datum, Dauer, Last, Eintrag `docs/maintainer/freigaben/0.2.0.md`, nach dem Lauf die Belege 8 bis 10 aus dem Log und der Bezug-Commit (Punkt 11) | setzt keinen Tag, startet keinen Lauf auf GitHub, fasst kein Geheimnis an, ändert weder Code noch Vertrag noch Gate |
+| Reviewer, Verifier | lesen den Eintrag gegen die Originale (`gh`, `git`, Binary) | — |
+
+**Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
+
+- Das Setzen des Tags, das Anstoßen des Trockenlaufs und der Push nach `origin` durch den Implementer-Lauf — Handlung der Koordination nach dem Ja des Nutzers (Klasse 3, anderer Vorgang). Grund: `SPEC-067` Punkt 18; der Plan ersetzt weder das Ja noch die Handlung (wie bei `v0.1.1`: der Implementer hatte keinen Zugriff auf `gh workflow run`).
+- Der Carveout `CO-002` selbst — der Architect bereitet ihn vor, der Nutzer nimmt ihn an (Klasse 3). Grund: Eine Ausnahme von einer Pflicht der Checkliste (`AGENTS.md` §3.6) ist eine Entscheidung des Nutzers und kein Planinhalt; der Slice zitiert sie erst, wenn sie als Datei vorliegt.
+- Die Verkürzung der Gegenproben (`slice-harness-gegenproben-schneller`, `slice-harness-gegenproben-grenze-rest`, beide Klasse 1) — sie lösen den Carveout auf; dieser Slice wartet nicht auf sie und liefert sie nicht. Grund: Die Zeitgrenze von [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) macht den vollen Lauf der Punkte 2 und 3 heute unmöglich; ein Tag, der darauf wartete, käme nicht.
+- Eine Korrektur an `release.sh`, `release.yml`, `SPEC-067`, den Gegenproben oder der Vorlage der Formel, die der Lauf verlangt — Folge-Slice und höherer Tag (Klasse 3, `SPEC-067` Punkt 18 „Rot“). Grund: Ein Lauf führt die Fassung des getaggten Commits aus; dieser Slice liefert keinen Werkzeug- und keinen Produkt-Code (Klasse 4: nur `VERSION`, Doku und Planung).
+- Die Belege des Taps (Annahme durch Homebrew, Binary auf macOS und `arm64`, Schreibrecht des Tokens ohne Eingriff) und der Abschnitt zu Homebrew im Handbuch — bleiben bei `slice-erster-release-homebrew-nachweis` (Klasse 2, Bestand: dort geliefert, für `0.1.1` unter Linux/amd64). Grund: Dieser Slice nennt nur das Ergebnis des Jobs `homebrew` für `0.2.0` im Eintrag (Zeile unter Punkt 8); ein neuer Nachweis für `0.2.0` wäre ein anderer Vorgang mit eigenem Umfang, und das Handbuch nennt nur Befehle nach einem Lauf (`AGENTS.md` §3.11).
+- Das Freshness-Audit — optional, kein Punkt der Checkliste, sperrt den Tag nie (`SPEC-067` Punkt 17). Grund: Niemand hat es angefordert; ein durchgeführtes stünde als eigener Absatz im Eintrag.
+- Der Release `v0.1.1` und `v0.1.0` — unverändert (Klasse 2). Grund: Ein Tag wird nie verändert (`SPEC-067` Punkt 11); der Bezug **ersetzt** den des vorigen Tags und schweigt über frühere Namen (`SPEC-067` Punkt 18, „Jeder weitere Tag“), die Zeilen der Änderungshistorie bleiben.
+- Änderung des Lastenhefts — es legt weder Version noch Namen fest.
+
+## 2. Definition of Done
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
+gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
+Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
+
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität): **Freigabe und Tag.** Ein Release-Commit trägt `VERSION` mit `0.2.0` und die Zeile `0.2.0` der Änderungshistorie des Handbuchs (drei Zellen, dritte nicht leer, kein weiteres `\|`, `releasing.md` §9). Der Eintrag `docs/maintainer/freigaben/0.2.0.md` (Kopie der Tabelle aus `releasing.md` §10, elf Punkte, dazu die Zeile des Jobs `homebrew` unter Punkt 8) trägt für genau diesen Hash die Belege 1 bis 6 (Punkte 2 und 3 nach `CO-002`, sobald der Nutzer ihn angenommen hat; ohne ihn bleiben sie unerfüllt und der Slice hält an, §4) und das Ja des Nutzers im Wortlaut mit Datum (Punkt 7; der Implementer erfindet keines). Nach dem Tag, den die Koordination setzt, trägt der Implementer die Belege 8 bis 10 aus dem Log (`gh run view <Kennung> --log`, selbst gelesen, nicht übernommen): Lauf-Kennung, Index-Digest je Registry gleich, Smoke aus beiden Registries, `latest`, die sieben Anhänge, die Beobachtungen und, getrennt, der Job `homebrew` mit seinem Ausgang. Was der Lauf nicht zeigt, steht als Grenze im Eintrag, nie als Behauptung (`AGENTS.md` §3.11).
+- [ ] [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): **Bezug nach dem Tag** (Punkt 11, `SPEC-067` Punkt 18), in einem eigenen Commit nach dem Lauf, der nur `docs/user/`, `README.md` und Planung ändert (inert nach `SPEC-052` Punkt 12): Kopf des Handbuchs (*Software-Version*, *Gültigkeitsbereich*) nennt die Ausgabe von `version` des **veröffentlichten** Binaries (`pgwire-recorder 0.2.0`); §2 *Installation* (Binary vom GitHub-Release, Image aus beiden Registries) nennt `v0.2.0`, die sechs Namen ohne Version, die Prüfung mit `sha256sum -c`, die Tags `0.2.0` und `latest` mit dem Digest des Laufs — **nur mit Befehlen, die nach dem Tag einmal gelaufen sind**, belegt im Eintrag mit Befehl, Lauf, Ausgabe; `README.md` nennt `0.2.0` mit den Adressen im Ist-Zustand und schweigt über `0.1.1` (Zeile in der Änderungshistorie bleibt). Der Abschnitt zu Homebrew bleibt dem Nachweis (§1).
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): **Stand der Wartungs-Doku** (nicht inert, daher in einem eigenen Commit mit `make gates` danach): `docs/maintainer/releasing.md` §1 (*Stand*: jüngster Tag, Digest, Ausgang des Jobs `homebrew`, Verweis auf `freigaben/0.2.0.md`), Kopf (Version, Stand) und eine Zeile der Änderungshistorie des Dokuments. Dieser Punkt ist von Punkt 2 getrennt, damit der Bezug-Commit inert bleibt; bei `v0.1.1` stand er im Bezug-Commit und musste im Eintrag als Abweichung genannt werden.
+- [ ] `make gates` grün auf dem getaggten Commit (Punkt 1 des Eintrags); die Gegenproben sind Punkte 2 und 3 des Eintrags: nicht voll gefahren, sondern nach `CO-002` mit den Ersatzbelegen aus dessen Text; der Eintrag schreibt je Punkt den Wortlaut des Carveouts „Was der Eintrag schreibt“ mit Befehl, Hash, Datum, Dauer, Last und Ausgang; nie „grün“ ohne Beleg.
+- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
+- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+
+## 3. Plan (vor Code)
+
+Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
+§Was ist eine Sub-Area? — diese Liste liefert die **Pfad-Kandidaten** für §8,
+nicht die Antwort: Pfad-Berührung ist nicht hinreichend, und eine
+Aussagen-Berührung steht hier gar nicht.
+
+**Stand vor dem Tag** (Planner, 2026-10-24, am Stand `0fe0e023`): `VERSION` ist `0.1.1`; die Änderungshistorie des Handbuchs endet bei `0.1.1`, eine Zeile `0.2.0` fehlt (ohne sie endet `Eingaben` im Lauf mit Exit 2, im Trockenlauf ist es ein Hinweis, der Punkt 5 der Checkliste verletzt); der Kopf des Handbuchs nennt `0.1.1` als *Software-Version* und im *Gültigkeitsbereich*; ein Tag `v0.2.0` gibt es nicht; `release.sh`, `release.yml` und die Vorlage der Formel sind seit `v0.1.1` unverändert bis auf eine Zeile Kommentar in `release.sh` (Pfad der Gegenprobe, Commit `3eca59e0`).
+
+**Zeile `0.2.0` (Vorschlag des Planners; der Implementer prüft jeden Satz gegen das gebaute Binary, `AGENTS.md` §3.11):** Version `0.2.0`, Datum des Release-Commits, dritte Zelle: „`pgwire-recorder --version` und `-v` geben die Version aus wie `version`; `play --diff-all` meldet mit `--compare-responses` alle Abweichungen einer Interaktion statt der ersten“. Die Zeile hat genau drei Zellen und kein weiteres Pipe-Zeichen, auch nicht maskiert (`releasing.md` §9).
+
+**Der Kopf des Handbuchs bleibt bei `0.1.1` bis nach dem Lauf** (Entscheidung des Planners, Grund: `SPEC-067` Punkt 18 lässt den Kopf die Ausgabe des **veröffentlichten** Binaries nennen, und vor dem Tag gibt es kein solches; eine Software-Version `0.2.0` im Kopf behauptete ein Binary, das noch nicht existiert, `AGENTS.md` §3.11). Der Release-Commit ändert den Kopf deshalb nicht, nur die Zeile der Änderungshistorie. Zwischen Release-Commit und Bezug-Commit beschreibt das Handbuch Verhalten, das erst `0.2.0` hat (`--diff-all`, `--version`), unter einem Kopf, der `0.1.1` nennt; das ist heute auf `main` schon so und endet mit dem Bezug-Commit (§6, Risiko 4).
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `VERSION` | update | `0.2.0` im Release-Commit, der getaggt wird; ändert das Wurzelverzeichnis und ist damit nicht inert nach `SPEC-052` Punkt 12 (volle Kette) |
+| `docs/user/benutzerhandbuch.md` §11 | update | Zeile `0.2.0` der Änderungshistorie im Release-Commit, vor dem Tag; Text und Maßgabe über der Tabelle |
+| `docs/maintainer/freigaben/0.2.0.md` | neu | Eintrag der Freigabe, Kopie der Tabelle aus `releasing.md` §10, Belege je Punkt; Form wie `freigaben/0.1.1.md`; steht in einem Commit nach dem Release-Commit (er kann dessen Hash nicht tragen) |
+| `docs/user/benutzerhandbuch.md` (Kopf, §2 *Installation*), `README.md` | update | Bezug nach dem Tag (Punkt 11), ersetzt den von `v0.1.1`; nur belegte Befehle |
+| `docs/maintainer/releasing.md` (§1 *Stand*, Kopf, Änderungshistorie) | update | Zustand nach dem Tag, eigener Commit (DoD 3) |
+| Lauf `release.yml` auf dem Tag (Trockenlauf davor) | Handlung | kein Dateiinhalt; Handlung der Koordination, nicht des Implementers; der Trockenlauf veröffentlicht nichts (`SPEC-067` Punkt 2) |
+
+**Die elf Punkte der Checkliste, je Schritt, wer, womit** (Reihenfolge der Handlungen siehe darunter):
+
+| Punkt | Wer | Schritt |
+|---|---|---|
+| 1. `make gates` | Implementer | `make gates` am Hash `R` des Release-Commits, sauberer Baum (`git status --short` leer), im Dev-Container oder Worktree; Hash, Datum, Exit, Dauer, Last (1-Minuten-Mittel, Kernzahl) im Eintrag |
+| 2. Gegenproben-Container | Implementer, nach `CO-002` | **Ersatz (Vorschlag, der Architect legt ihn fest):** `GP_MUT='^ok$' make release-gegenprobe` (unveränderte Kopie, hält `release.yml` und `release.sh` gegen jeden Fall) und `GP_MUT='^kein-treffer$' make test-container-gegenprobe` (allein die unveränderte Kopie) am Hash `R`, je mit Datum, Dauer, Last, Ausgang; das Muster gegen das Skript prüfen, bevor es in den Eintrag geht (die Gegenprobe liegt seit `3eca59e0` unter `tools/dev/harness/`, `GP_MUT` gilt dort unverändert). **Der Ersatz 1 von `CO-001` (Dateien `gegenproben-*-<Hash>` der Ablage des Gegenproben-Containers per `ssh`) entfällt: Den Container `pgr-gp` gibt es nicht mehr** (Eintrag `0.1.1`, Punkt 2). Grenze im Eintrag: die Mutationen der Gegenproben und die übrigen Gegenproben am Hash sind nicht gelaufen. Ohne angenommenen `CO-002` ist der Punkt nicht erfüllt, der Slice hält an |
+| 3. `make gegenproben-host` | Implementer, nach `CO-002` | **Ersatz:** der Diff der Dateien von `container-start` zwischen `35778a2f` (letzte belegte grüne Fahrt, 2026-10-19; Angabe aus dem Eintrag von `welle-erster-release`, kein Log in diesem Repo) und `R`. **Der Befehl aus `CO-001` ergibt hier nicht mehr leer** (Planner, 2026-10-24 gemessen): `git diff --stat -M 35778a2f HEAD -- tools/harness/container-start.sh tools/harness/container-start-gegenprobe.sh tools/dev/harness/container-start-gegenprobe.sh harness/mk/container-start.mk harness/mk/container-start-gegenprobe.mk harness/vertraege/SPEC-058-container-start.md` nennt drei Dateien mit 6 Einfügungen und 6 Löschungen, alle Pfadzeilen (Kommentar in `container-start.sh`, Pfad in `container-start-gegenprobe.mk`, vier Zeilen der verschobenen Gegenprobe) aus `slice-harness-gegenproben-umzug-dev`. Der Eintrag nennt den Befehl mit `-M` und den neuen Pfaden, die Ausgabe und die Prüfung, dass jede Zeile eine Pfadzeile ist; ob das für `CO-002` als „leer“ gilt, entscheidet der Architect (§6, Rückgabe 1), nicht der Implementer. Grenze: ein Lauf am Host am Hash `R` steht aus |
+| 4. `VERSION` und Zeile | Implementer | `git show R:VERSION` gibt `0.2.0`; `git show R:docs/user/benutzerhandbuch.md \| grep -n '^\| 0\.2\.0 \|'` findet die Zeile |
+| 5. Trockenlauf | Koordination fährt, Implementer trägt ein | `workflow_dispatch` auf `main` **an dem Stand, auf dem `main` gleich `R` ist** (siehe Reihenfolge); Lauf-Kennung, Dauer, Zeile `release: eingaben: grün für v0.2.0 (Trockenlauf)`, die Zeile der Änderungshistorie ohne Hinweis auf eine fehlende Zeile; der Eintrag nennt, auf welchem Hash der Lauf stand (bei `v0.1.1` stand er auf einem späteren Stand als der Tag, das war eine Grenze, hier soll es keine sein) |
+| 6. Scan | Implementer liest | `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` im Log des Trockenlaufs und des Laufs des Tags; ein Befund über der Schwelle ist rot, kein Tag, Entscheidung des Nutzers (`SPEC-067` Punkt 16, keine Ausnahme) |
+| 7. Ja des Nutzers | Nutzer, Koordination nennt | Wortlaut „release“, Datum 2026-10-24, und die Bestätigung der Version `v0.2.0` auf Rückfrage; **Angabe der Koordination**, im Eintrag als solche mit Datum markiert, bis der Nutzer sie selbst als Artefakt gibt |
+| 8. Lauf des Tags | Koordination setzt den Tag, Implementer liest das Log | Lauf-Kennung, Index-Digest je Registry gleich, Smoke, `latest` auf `D`, Zeilen wörtlich; darunter, getrennt, der Job `homebrew` (Lauf-Kennung, grün oder rot; bei grün Hash und Datum aus `git ls-remote https://github.com/pt9912/homebrew-pgwire-recorder.git refs/heads/main`; bei rot das Stichwort `release: homebrew: <Stichwort>:`); ein roter Job lässt Punkt 8 erfüllt, Behebung ist der Wiederanlauf oder der Nachtrag von Hand (`releasing.md` §7, §11), kein neuer Tag |
+| 9. Anhänge | Implementer | `gh release view v0.2.0 --json assets`: genau sieben Dateien (sechs Binaries ohne Version im Namen, `SHA256SUMS`) |
+| 10. Beobachtungen des Laufs | Implementer | je Beobachtung aus `releasing.md` §10 Lauf-Kennung und Zeile oder Grenze; **neu gegenüber dem ersten Tag:** `skopeo`-Wortlaut und `gh release view` für einen nicht vorhandenen Tag sind bei `v0.1.1` belegt und werden nur auf Abweichung gelesen; der Wiederanstoß eines roten **Laufs** bleibt Grenze, wenn der Lauf grün endet |
+| 11. Bezug nach dem Tag | Implementer | DoD 2; jeder Befehl läuft nach dem Tag gegen die **veröffentlichten** Artefakte (Linux/amd64: `curl`, `sha256sum -c --ignore-missing`, `./pgwire-recorder-linux-amd64 version` gibt `pgwire-recorder 0.2.0`; `docker pull` ohne Anmeldung in beiden Registries für `0.2.0` und `latest`, gleicher Digest, `docker run … version`); zusätzlich ein Beleg, dass `--version` und `-v` des **veröffentlichten** Binaries dieselbe Zeile geben (`LH-FA-01`; sonst nennt das Handbuch es nicht); `darwin`, `windows` und `linux/arm64` sind gebaut, nicht ausgeführt, das Handbuch sagt nur das |
+
+**Reihenfolge der Handlungen** (jede mit Rolle; Abweichungen nennt der Eintrag):
+
+1. Architect: Entwurf `CO-002` (§6, Rückgabe 1). Nutzer: nimmt ihn an oder ändert ihn.
+2. Implementer: Release-Commit `R` (`VERSION`, Zeile `0.2.0`), `make gates` an `R`, die Ersatzbelege 2 und 3 an `R`. Danach in getrennten Commits der Eintrag bis Punkt 7 (Punkte 8 bis 11 leer).
+3. Koordination: `R` per ff auf `main` und `origin`, so dass `R` die Spitze von `main` ist; Trockenlauf auf diesem Stand. `Eingaben` verlangt, dass der Commit des Tags im Standard-Zweig liegt (`releasing.md` §6, Schritt 1); der Eintrag und die Planung folgen **hinter** `R` und dürfen den Tag nicht tragen.
+4. Koordination: grüner Trockenlauf, Ja des Nutzers liegt vor, `CO-002` ist angenommen: `git tag v0.2.0 R`, `git push origin v0.2.0`. Roter Trockenlauf: kein Tag (§4).
+5. Implementer: Belege 8 bis 10 aus dem Log, danach der Bezug-Commit (Punkt 11), danach der Commit zu `releasing.md`; Review, Verifikation, Closure.
+
+## 4. Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Trigger je Lifecycle-Übergang und WIP-Limit.
+
+**Start** (`next` → `in-progress`): Die Entscheidung des Nutzers vom 2026-10-24 liegt vor (Kopf); `slice-play-feldvergleich-doku` und `slice-version-option` liegen in `done/`; der Architect hat den Entwurf von `CO-002` abgeliefert (Annahme durch den Nutzer ist **kein** Start-Trigger, aber Voraussetzung für das Erfüllen der Punkte 2 und 3 und für den Tag; der Implementer darf den Release-Commit, das Gate und die Belege bis Punkt 1, 4 und den Ersatz-Läufen auch vorher vorbereiten, nennt sie aber „vorbereitet“, nicht „freigegeben“). Die Vorbedingungen des Betreibers (`releasing.md` §4: Secrets beider Registries, `HOMEBREW_TAP_GITHUB_TOKEN`, Repository des Taps) sind Handlung des Nutzers; der Slice prüft ihre Existenz, nicht ihr Recht, und liest keinen Wert. WIP-Limit 1 je Rolleninhaber (`Verantwortlich`).
+
+**Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
+
+- `in-progress` → `next`: **zu groß**, wenn die Summe die **Marke 1500** erreicht (Metrik: `AGENTS.md` §3.14, dort der Befehl; Pfade des Plans: `VERSION docs/user docs/maintainer README.md`; Basis: der Commit des Übergangs nach `in-progress/`, Hash beim Übergang eintragen: `<Hash, vom Implementer nach dem Move einzutragen>`). Schnitt wäre (a) Release-Commit, Eintrag bis Punkt 7 und Tag, (b) Bezug nach dem Tag.
+- `in-progress` → `open`: (i) der Nutzer nimmt `CO-002` nicht an, oder der Architect legt einen Ersatz fest, den der Implementer nicht in Minuten fahren kann, oder die Ersatzbelege 2 oder 3 sind rot: Die Punkte 2 und 3 bleiben unerfüllt, kein Tag; ein Slice, der wartet, hält das WIP-Limit, deshalb geht er nach `open/`. (ii) Trockenlauf oder Scan sind rot aus einem Grund außerhalb dieses Slice (Befund mit Behebung, Datenbank, Netz): Entscheidung des Nutzers, kein Tag (`SPEC-067` Punkt 16). (iii) Die Koordination setzt den Tag nicht (das Ja trägt nicht mehr).
+- `in-progress` → `next`: Der Lauf des Tags endet rot aus einem Grund im Skript, im Text der Datei oder im Vertrag (`SPEC-067` Punkt 18 (b)): Der Tag bleibt, die Korrektur ist ein Folge-Slice, ein weiterer Tag `v0.2.1` braucht ein **neues Ja des Nutzers** (das Ja vom 2026-10-24 nennt nur `v0.2.0`; ein Folge-Tag ist nicht eingeschlossen, anders als bei `v0.1.1`); dieser Slice schließt dann mit dem Eintrag für `v0.2.0` nach der Incident-Klausel.
+
+## 5. Closure-Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
+Lerneintrag; ohne ihn ist der Slice nur abgelegt.
+
+DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschrieben. Beobachtbar: der Lauf des Tags ist `success`, und der Eintrag `freigaben/0.2.0.md` trägt alle elf Punkte samt Zeile des Jobs `homebrew`, jede Zahl am Original nachgefahren.
+
+## 6. Risiken und offene Punkte
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
+**einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
+dasteht.
+
+**Randformen** (`AGENTS.md` §3.12). Der Slice liefert keinen neuen Vertrag, sondern führt `SPEC-067` Punkt 17 und 18 ein drittes Mal aus (`v0.1.0`, `v0.1.1`); die Randformen stehen dort oder sind als Rückgabe benannt. Wo sie sich gegenüber `slice-v1-abschluss-release-v0-1-1` ändern, steht es hier.
+
+| Randform | Entscheidung | Stelle |
+|---|---|---|
+| (a) Version | `0.2.0`, stabil (kein `-`): `latest` wandert von `0.1.1` auf `0.2.0`, der Job `homebrew` läuft; Tag `v0.2.0` gleich `v` plus Inhalt von `VERSION`, sonst endet `Eingaben` mit Exit 2 | Entscheidung des Nutzers vom 2026-10-24 (Kopf); `SPEC-067` Punkte 3, 8, 19 (2) |
+| (b) Wer taggt, wann | Koordination, nach dem Ja („release“); der Implementer setzt keinen Tag, startet keinen Lauf und pusht nicht; Übergabe mit dem Hash `R`, und die Koordination taggt genau `R` | `SPEC-067` Punkt 18; `releasing.md` §10 |
+| (c) Reihenfolge der Commits | `R` (Release-Commit: `VERSION`, Zeile) **ist die Spitze von `main`, wenn der Trockenlauf und der Tag laufen**; danach Eintrag, Planung, Bezug-Commit, Commit zu `releasing.md`. Neu gegenüber `v0.1.1`: Dort lief der Trockenlauf auf einem späteren Stand als der Tag (Grenze im Eintrag), hier soll er auf `R` stehen | `SPEC-067` Punkte 17, 18; `releasing.md` §5, §10 |
+| (d) Rot nach dem Tag | Umgebung (Token, Schreibrecht, Sichtbarkeit, Netz): Wiederanstoß desselben Tags, Handlung des Betreibers; Skript, Text der Datei oder Vertrag: Korrektur auf `main` und neuer höherer Tag mit **neuem Ja**; Digest oder Anhang abweichend: immer neuer Tag. **Das Ja vom 2026-10-24 deckt `v0.2.0`, keinen Folge-Tag** (anders als das Ja zu `v0.1.1`, das `v0.1.2` einschloss, Entscheidung des Nutzers vom 2026-10-20, im Kopf von `slice-v1-abschluss-release-v0-1-1`); will der Nutzer das auch hier, sagt er es | `SPEC-067` Punkte 11, 18 |
+| (e) Job `homebrew` | Ein roter Job ändert weder Release noch Registries; der Slice nennt sein Ergebnis im Eintrag, Wiederanlauf oder Nachtrag von Hand (`releasing.md` §7) sind kein neuer Tag und Handlung des Betreibers | `SPEC-067` Punkt 19 (1), (7) |
+| (f) Alte Tags | `v0.1.1` und `v0.1.0` bleiben; der Bezug nennt nur `v0.2.0` | `SPEC-067` Punkt 18, „Jeder weitere Tag“ |
+| (g) `latest` | wandert auf `0.2.0`, wenn der Vergleich der Digests beider Registries grün und `0.2.0` höher ist als jede andere stabile Version unter den Tags `v*`; der Image-Tag `0.1.1` bleibt | `SPEC-067` Punkt 8 |
+| (h) Plattform | Linux/amd64 im Lauf und im Bezug geprüft (Binary und Image gestartet); `darwin`, `windows`, `linux/arm64` gebaut, nicht ausgeführt: Grenze, die das Handbuch so nennt; die Angabe des Nutzers, `brew install` auf macOS habe für `0.1.1` funktioniert, ist eine Angabe, kein Beleg (`SPEC-067` Punkt 20 (6)) und kommt nicht in das Handbuch | `SPEC-067` Punkt 15; `LH-FA-19.a`; `LH-QA-03` |
+| (i) Aufrufarten, Abbruch | entfällt: kein Werkzeug, kein Ergebnis, das ein Hook liest; Treiber ist `release.sh`, nie unter `make` | `SPEC-067` Punkt 13 |
+| (j) Ort des Eintrags | `docs/maintainer/freigaben/0.2.0.md` | `SPEC-067` Punkt 17 |
+| (k) Punkte 2 und 3 | **offen bis zur Annahme von `CO-002`** (Rückgabe 1): Die Pflicht bleibt im Vertrag (`SPEC-060` Punkt 14), die Ausnahme ist eine Entscheidung des Nutzers; `CO-001` trägt `v0.1.1` und `v0.1.2` und endet dort (Geltungsbereich: „kein dritter Tag“, ein weiterer Tag verlangt ein neues Ja **und** eine Verlängerung durch den Nutzer) | `docs/plan/carveouts/CO-001-gegenproben-am-getaggten-commit.md`; `AGENTS.md` §3.6 |
+| (l) Der Kopf des Handbuchs | bleibt `0.1.1` bis zum Bezug-Commit (§3) | `SPEC-067` Punkt 18 |
+
+**Rückgabe 1 an den Architect (vor dem Start, Voraussetzung der Punkte 2 und 3):** `CO-001` ist für `v0.2.0` **nicht** tragfähig: Sein Geltungsbereich endet mit `v0.1.1`, optional `v0.1.2`; er nennt `v0.2.0` nicht. Der Architect bereitet vor (der Nutzer nimmt an):
+
+1. **Form:** ein neuer `CO-002` (Empfehlung des Planners; Grund: der Geltungsbereich ist ein anderer Tag, Ersatz 1 und der Befehl von Ersatz 3 in `CO-001` stimmen nicht mehr, und `CO-001` trägt in seinem Text zwei Namen von Tags, die er nicht mehr deckt) **oder** eine vom Nutzer ausgesprochene Verlängerung von `CO-001` um `v0.2.0` (`CO-001`, „Geltungsbereich“: „… braucht … eine Verlängerung dieses Carveouts durch den Nutzer“); der Nutzer sagte „wie `CO-001`“, nicht welche der beiden. Was `CO-001` danach ist, nennt der Architect (Geltungsbereich abgelaufen; in `done/` darf er erst bei eingetretenem Trigger, Tabelle `SPEC-060` Punkt 16).
+2. **Ersatz 1 (Ablage des Gegenproben-Containers) streichen oder bedingen**: Den Container `pgr-gp` gibt es nicht (Eintrag `0.1.1`, Punkt 2; `docker ps -a` nannte allein `pgr-dev2`); ein Ersatzbeleg, den es nicht geben kann, ist keiner.
+3. **Ersatz 2 (unveränderte Kopie)** mit den heutigen Pfaden und Mustern: `GP_MUT='^ok$' make release-gegenprobe` und `GP_MUT='^kein-treffer$' make test-container-gegenprobe` (`AGENTS.md` §6: nur der engste Fall, auch der Verifier fährt keinen vollen Lauf); der Architect prüft, ob die Muster die unveränderte Kopie auswählen.
+4. **Ersatz 3 (Host):** Pfade mit `tools/dev/harness/container-start-gegenprobe.sh` und `-M`; der Diff ist **nicht leer**, sondern sechs Pfadzeilen (Messung in §3, Punkt 3). Der Architect legt fest, ob „nur Pfadzeilen“ das Kriterium „leer“ erfüllt, oder verlangt eine andere Form (zum Beispiel einen Lauf von `make container-start-gegenprobe` am Host, der in Minuten endet oder nicht). Die letzte belegte grüne Fahrt von `make gegenproben-host` ist `35778a2f` (2026-10-19) und eine Angabe der Koordination.
+5. **Frist und Trigger:** Auflösungs-Trigger bleibt die Tabelle in `SPEC-060` Punkt 16; `slice-harness-gegenproben-schneller` liegt in `next/`, `slice-harness-gegenproben-grenze-rest` in `open/`, keiner geliefert. Die Sendung `CO-002` in deren §1 und DoD mit der Kennung des Carveouts trägt der Planner im selben Commit ein, wenn der Carveout als Datei vorliegt (`AGENTS.md` §3.13).
+
+**Entscheidungen des Nutzers, die offen sind** (keine hat der Nutzer getroffen):
+
+- Form des Carveouts (Rückgabe 1, Punkt 1) und sein Wortlaut, einschließlich der Frage aus `CO-001`, ob er einen dritten Ersatzbeleg verlangt.
+- Ob das Ja „release“ einen Folge-Tag `v0.2.1` einschließt (Randform (d)); ohne Antwort gilt: nein.
+- Ob das Ja zum Tag den Wortlaut „release“ trägt, den die Koordination mitteilt, oder der Nutzer ihn im Eintrag selbst bestätigt (Angabe der Koordination, bis das Artefakt vorliegt).
+
+**Risiken:**
+
+- Die Punkte 2 und 3 sind ohne angenommenen `CO-002` nicht erfüllbar (der volle Lauf der Gegenproben übersteigt die Zeitgrenze, [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md)), und der Ersatz 3 ist nicht mehr leer — **Ausgang:** offen bis zur Closure (Rückgabe 1).
+- Das Tap-Token oder ein Registry-Geheimnis ist seit `v0.1.1` abgelaufen oder in seinem Recht geändert (ein Fine-grained Token trägt ein Ablaufdatum, `releasing.md` §4); die Checkliste prüft nur die Existenz (`BEO-REPO/vorbedingung-geheimnis-nur-existenz-geprueft`, Zähler 2, mit diesem Lauf als drittem Auftreten möglich) — **Ausgang:** offen bis zur Closure.
+- Die Zeile `0.2.0` der Änderungshistorie sagt mehr, als das Binary kann (`AGENTS.md` §3.11) — **Ausgang:** offen; Gegenmittel: jeder Satz der Zeile wird mit einem Lauf des gebauten Binaries belegt (`--version`, `-v`, `play --diff-all` mit und ohne `--compare-responses`) und der Beleg steht im Eintrag.
+- Der Handbuch-Kopf nennt `0.1.1`, während der Text Verhalten von `0.2.0` beschreibt, bis der Bezug-Commit liegt; ein Leser, der das Binary `0.1.1` hat, findet `--diff-all` und `--version` nicht — **Ausgang:** offen; der Zustand besteht auf `main` schon heute und endet mit dem Bezug-Commit; wird der Tag nicht gesetzt (Rückführung), bleibt er bestehen und geht an den Planner.
+- `docs/maintainer/` steht nicht auf der Positivliste von `SPEC-052` Punkt 12: Ein Commit an `releasing.md` löst die volle Kette aus; bei `v0.1.1` stand die Änderung im Bezug-Commit und musste als Abweichung genannt werden — **Ausgang:** entfallen durch den Schnitt in DoD 2 und 3 (zwei Commits), die Zählung dazu steht in §8.
+- Ein Fehler im Skript, den erst der Lauf des Tags zeigt, kostet einen Folge-Tag, den das Ja nicht deckt (Randform (d)) — **Ausgang:** offen bis zur Closure.
+
+## 7. Closure-Notiz
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Das Beobachtungs-Register (vorhandene `BEO-<KUERZEL>/<slug>` **zitieren** statt neu
+formulieren — sonst zählt das Register zwei Namen getrennt) ·
+`grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln (das
+Feld `liegt in` steht **nur**, wenn mit diesem Slice wirklich etwas verkörpert
+wurde; Feld und Zielort auf **einer** Zeile, Sektionsangabe innerhalb der
+Backticks). Ging der Gegenstand an einen anderen Slice oder entfiel er, trägt
+diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
+aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
+(`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
+übernimmt).
+
+(noch nicht geschlossen)
+
+## 8. Sub-Area-Prüfungen und Modus-Begründung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Sub-Area-Modus-Begründung — dort die **zwei vorgelagerten
+Schritte** (sie stehen in jedem Slice-Plan, unabhängig von Modus und
+Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
+Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
+nicht mehr.
+
+**Vorgelagert — Sub-Area-Wahl prüfen:** Sub-Area `REPO` (gesamtes Repo, `harness/conventions.md`); die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
+
+**Vorgelagert — offene Beobachtungen sichten:** Register `BEO-REPO/` durchgegangen (2026-10-24, gemergter Stand). Treffer: `vorbedingung-geheimnis-nur-existenz-geprueft` (Zähler 2, zwei Dateien unter `evidence/`; erreicht der Lauf des Tags ein drittes Auftreten, ist der Eintrag eine Lücke und braucht einen Folge-Slice, §6 Risiko 2), `wiederanstoss-eines-roten-release-laufs-unbelegt` (Zähler 2; ein grüner Lauf des Tags ist ein drittes Auftreten dieser Grenze, wenn der Wiederanstoß wieder nicht gefahren wird: die Zählung beim Start lesen), `plan-folgt-korrektur-nicht` (`AGENTS.md` §3.9; der Plan folgt jeder Korrektur, §7 nennt die Stände). Der Zähler folgt aus den Dateien; der Planner setzt keinen.
+
+**Zählung** (Planner, 2026-10-24, `AGENTS.md` §3.13 und §3.14): **Liefer-Punkte: 3** (1: Freigabe und Tag mit `VERSION`, Zeile der Änderungshistorie und Eintrag; 2: Bezug nach dem Tag in Handbuch und `README.md`; 3: Stand in `releasing.md`). **Schichten: zwei** — Release (Datei `VERSION`, Lauf der Pipeline als Handlung der Koordination) und Nutzer- und Wartungs-Doku (`docs/user/`, `docs/maintainer/`, `README.md`); Planung zählt nicht, Produkt- und Werkzeug-Code berührt der Slice nicht (§1). Grenzen von drei Punkten und zwei Schichten gehalten. Gegenüber `slice-v1-abschluss-release-v0-1-1` (zwei Punkte) ist `releasing.md` ein eigener Punkt, damit der Bezug-Commit inert bleibt. **Sendungen:** keine eingetragen, `CO-002` (Rückgabe 1, Punkt 5) trägt der Planner erst in `slice-harness-gegenproben-schneller` und `slice-harness-gegenproben-grenze-rest` ein, wenn der Carveout als Datei vorliegt, mit Nachzählung dort im selben Commit.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (`SPEC-067` und die Entscheidungen gehen dem Eintrag voraus).
