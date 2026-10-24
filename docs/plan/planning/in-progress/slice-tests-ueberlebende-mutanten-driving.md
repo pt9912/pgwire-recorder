@@ -519,9 +519,10 @@ wegen `contextcheck`); danach liefen `TestRunSignalVorDemOeffnen` einmal grün u
 Stelle liest das Ende desselben Laufs ein zweites Mal. **Stelle `tls_test.go:100`** (`TestRunReplayTLS`) steht nicht in
 der Tabelle des Architect; ich habe sie mit derselben Frist versehen, weil sie derselbe Fall ist wie `:184` (`<-ende` auf
 `bootstrap.Run`, Lauf der Kommandozeile in einer Goroutine, `SPEC-038`) und der Architect dort die Regel allgemein für „die
-Stelle am Ende von `bootstrap.Run`“ entschieden hat. Nicht angefasst und nicht in der Tabelle des Architect:
-`play_anmeldung_test.go` (`<-danach`, ein Wert, den der Test-Server des Tests füllt und den der Test nach dem Ende des Laufs liest) und `server_extended_test.go:790` (`<-c.freigabe`, Test-Double). Der Architect bestätigt `tls_test.go:100`
-oder nimmt die Zeile zurück.
+Stelle am Ende von `bootstrap.Run`“ entschieden hat. `tls_test.go:100` und das Ende von `Serve` hat der Architect am 2026-10-24 bestätigt (Commit `0950edcc`).
+`play_anmeldung_test.go` `<-danach` (Zeilen 171 und 242) hat der Architect am selben Tag mit Pflicht-Frist entschieden (neuer Satz in
+`SPEC-038`, ohne Sendung an einen anderen Slice); die Nacharbeit steht unten. Nicht angefasst: `server_extended_test.go:790`
+(`<-c.freigabe`, Test-Double).
 
 **Kommentare (§3.11):** Der Kommentar von `TestToMessageSpaltenMetadaten` sagt zu, was der Test prüft (`ToMessage` bildet
 beide Felder unverändert ab, eine Spalte ohne Tabelle behält 0); der Satz „Der Weg ist für Record und Replay derselbe“ stand
@@ -545,8 +546,8 @@ Vertrag geändert.
 | Finding | Stand | Beleg |
 |---|---|---|
 | F-1 (LOW) | behoben | Frist 10 s beim Warten auf das Ende von `Serve` im `defer` von `TestTLSNacheinanderUndGleichzeitig`. Zusage (`SPEC-038`: Warten auf ein vom Prüfling herbeigeführtes Ereignis mit Frist) · Mutation (`Serve` kehrt nach `s.wg.Wait()` nie zurück: `<-make(chan struct{})` statt `return`) · roter Test: `TestTLSNacheinanderUndGleichzeitig`, „Serve endet nicht binnen 10 s nach dem Schließen des Listeners“, `FAIL … 10.017s`, ohne Paket-Timeout (60 s gesetzt). 50 Läufe ohne Mutant grün (`ok … 0.231s`). |
-| F-2 (LOW) | behoben (Plan) | `tls_test.go:100` steht jetzt in §1, §2 und der Randform-Tabelle in §6, ebenso die Stelle aus F-1; beide mit „vom Implementer ergänzt, Bestätigung des Architect steht aus“. Die Bestätigung selbst bleibt offen beim Architect. |
-| F-3 (INFO) | offen, nur vermerkt | `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242) bleibt ohne Frist: Grenzfall zwischen Testgeschirr und Prüfling, Entscheidung beim Architect, sonst `slice-harness-lint-warten-ohne-frist`. |
+| F-2 (LOW) | behoben (Plan) | `tls_test.go:100` steht jetzt in §1, §2 und der Randform-Tabelle in §6, ebenso die Stelle aus F-1; beide mit „vom Implementer ergänzt“. Der Architect hat beide am 2026-10-24 bestätigt (`0950edcc`). |
+| F-3 (INFO) | entschieden, Frist Pflicht, ohne Sendung | Der Architect hat `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242) mit Pflicht-Frist entschieden (`SPEC-038`, `0950edcc`); keine Sendung an `slice-harness-lint-warten-ohne-frist`. Umgesetzt unten (*Nacharbeit zur Verifikation*). |
 | F-4 (INFO) | offen, nur vermerkt | Die Deklaration von `TestRunSignalVorDemOeffnen` führt nur `Boundary`; die zwei Startfehler-Fälle (Name löst nicht auf, Port belegt) stehen nicht als `Negative` in der Tabelle. Die Deklaration sagt weniger zu, als der Test prüft, kein Verstoß gegen §3.11; nicht geändert. |
 | F-5 (INFO) | zur Kenntnis | `0752b3ec` ändert nur Testcode, Produkt-Code unverändert. |
 | F-6 (INFO) | behoben (Zahl) | Messung am Kopf `b0aeec7a` mit dem Befehl aus §3.14: 137, nicht 138. |
@@ -557,6 +558,17 @@ Frist): `exit 0`, nichts parallel auf Docker. Der Lauf startete, als `make docs-
 Link meldete (Befund `id-unlinked`, der Report stammt aus dem Review-Commit `1361f558`); ich habe den Link im Report gesetzt
 (eigener Commit) und `make docs-check` danach einzeln grün gefahren (1455 Dateien, 0 Befunde); `make kopf-check` und
 `make abdeckung-check` grün. Änderungen seit dem Gate-Lauf liegen unter `docs/` (Report-Link, dieser Absatz).
+
+### Nacharbeit zur Verifikation (Zweig `impl-drv1c`, Bericht `docs/reviews/2026-10-24-verifikation-slice-tests-ueberlebende-mutanten-driving.md`)
+
+| Punkt | Stand | Beleg |
+|---|---|---|
+| V-1 (LOW) | erledigt | Der Architect hat `tls_test.go:100` und das Ende von `Serve` bestätigt (`0950edcc`). |
+| V-2 (LOW) | erledigt | Frist 30 s als Literal an `<-danach` in `TestRunPlayPasswort` (Zeile 171) und `TestRunPlayErstesSignalInAnmeldung` (Zeile 242), Meldung „der Fake-Server sieht binnen 30 s kein Ende der Verbindung“. Zusage (`SPEC-038`: ein Wert, den der Prüfling auf einem Kanal herbeiführt, wird mit Frist erwartet) · Mutation (der Fake-Server füllt `danach` nie: beide `typen <- string(gelesen)` in der Lesestufe entfernt; kein Mutant am Prüfling, `play` beendet die Verbindung in beiden Fällen regulär) · roter Test: `TestRunPlayPasswort/Variable_bei_host:port` und `/Platzhalter_vor_der_Variable` (je 30,03 s), `TestRunPlayErstesSignalInAnmeldung` (30,54 s), rot nach der Frist und nicht über den Paket-Timeout (250 s gesetzt). 50 Läufe ohne Mutant grün (`TestRunPlayPasswort`, `TestRunPlayOhnePasswort`, `TestRunPlayErstesSignalInAnmeldung`, `TestRunPlayZweitesSignalInAnmeldung`, `ok … 27.848s`). |
+| V-3 (INFO) | offen, nur vermerkt | Die Deklaration von `TestRunSignalVorDemOeffnen` führt nur `Boundary` (wie F-4). |
+| V-4 (INFO) | offen, nur vermerkt | Die Closure-Felder in §7 und die Risiko-Ausgänge in §6 füllt der Planner bei der Closure. |
+
+**Größe nach dieser Nacharbeit** (Befehl aus `AGENTS.md` §3.14, Basis `7ed55a23`, Kopf der Nacharbeit mit dem Commit der Frist): 169 Zeilen, Marke 1500 nicht erreicht.
 
 **Vollständige Durchsicht auf Empfänge ohne Frist** (beide Schichten, alle `*_test.go`): gesucht nach `<-` auf Kanälen als Anweisung,
 als Zuweisung (`:=`, `=`) und in `case` (jeweils mit `time.After` in der Nähe geprüft), nach `.Wait()` und nach `range` über Kanäle.
