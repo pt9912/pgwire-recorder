@@ -429,7 +429,15 @@ func TestTLSNacheinanderUndGleichzeitig(t *testing.T) {
 	}
 	fertig := make(chan struct{})
 	go func() { s.Serve(ctx, l); close(fertig) }()
-	defer func() { cancel(); l.Close(); <-fertig }()
+	defer func() {
+		cancel()
+		l.Close()
+		select {
+		case <-fertig:
+		case <-time.After(10 * time.Second):
+			t.Error("Serve endet nicht binnen 10 s nach dem Schließen des Listeners")
+		}
+	}()
 	verbinde := func() net.Conn {
 		c, err := net.Dial("tcp", l.Addr().String())
 		if err != nil {
