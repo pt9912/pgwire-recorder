@@ -50,12 +50,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 Liefer-Punkte:
 
-- [ ] **(1) Pin an beiden Stellen.** `Dockerfile` (Stufe `deps`) und `harness/mk/build.mk` (`GO_IMAGE`) tragen `golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c`. Beleg: `grep -rn 'golang:1\.27' Dockerfile harness/mk` nennt genau diese zwei Zeilen mit demselben Text, und `grep -rn 'f92b6ef800e4' --exclude-dir=.git --exclude-dir=baseline .` findet im Baum keinen Pin mehr (Erwähnungen in Plänen und Belegen unter `docs/` sind Chronik und bleiben). Der Digest ist am Tag der Lieferung neu gegen die Registry gelesen: `docker buildx imagetools inspect golang:1.27.3-alpine` nennt den Index-Digest oben (Ausgabe im Bericht).
+- [x] **(1) Pin an beiden Stellen.** `Dockerfile` (Stufe `deps`) und `harness/mk/build.mk` (`GO_IMAGE`) tragen `golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c`. Beleg: `grep -rn 'golang:1\.27' Dockerfile harness/mk` nennt genau diese zwei Zeilen mit demselben Text, und `grep -rn 'f92b6ef800e4' --exclude-dir=.git --exclude-dir=baseline .` findet im Baum keinen Pin mehr (Erwähnungen in Plänen und Belegen unter `docs/` sind Chronik und bleiben). Der Digest ist am Tag der Lieferung neu gegen die Registry gelesen: `docker buildx imagetools inspect golang:1.27.3-alpine` nennt den Index-Digest oben (Ausgabe im Bericht).
 - [ ] **(2) Der Scan-Befund ist weg.** Beleg ist der Trockenlauf des Release auf dem Stand dieses Slice (`workflow_dispatch`, ohne Tag; Auslöser und Push sind Handlung der Koordination, der Implementer pusht nicht): Lauf-Kennung, Hash, Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` im Log, und kein Befund `CVE-2026-111943` für `linux/amd64` und `linux/arm64`; Lauf-Kennung, Hash und Zeile stehen in §7. Lokal läuft kein Scanner (`SPEC-067` Punkt 16: Trivy nur in der Pipeline); die Gegenprobe der Pipeline belegt den Scan nicht (`harness/README.md` §Sensors, `release-gegenprobe`), nur der Lauf. Ist der Lauf rot aus einem anderen Grund, gilt §4 (`in-progress` → `open`), nicht ein Haken.
 
 Gates und Closure:
 
-- [ ] `make gates` grün am Endstand (darin `make test-container`: zwei Builds der sechs Binaries mit gleichen Summen, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)); Hash, Datum, Exit, Dauer im Bericht.
+- [x] `make gates` grün am Endstand (darin `make test-container`: zwei Builds der sechs Binaries mit gleichen Summen, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)); Hash, Datum, Exit, Dauer im Bericht.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -147,6 +147,14 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 (noch nicht geschlossen)
+
+**Belege des Implementers** (2026-10-24):
+
+- Digest neu gelesen: `docker buildx imagetools inspect golang:1.27.3-alpine` nennt `Digest: sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c`; gleich dem Plan.
+- Pin-Commit `143e9994`. `grep -rn 'golang:1\.27' Dockerfile harness/mk` nennt genau `Dockerfile:9` und `harness/mk/build.mk:15` mit demselben Text `golang:1.27.3-alpine@sha256:b8c9…505e9c`; `grep -rn 'f92b6ef800e4' --exclude-dir=.git --exclude-dir=baseline --exclude-dir=docs .` ohne Treffer (Exit 1); unter `docs/` nur dieser Plan (Chronik).
+- `make gates` am Stand `143e9994`: Start 2026-10-24T06:51:45Z, Ende 07:00:33Z, Dauer 528 s, Exit 0 (darin `test-container`, `test-integration`, `test-postgres-versionen`, `lint`, `workflows-check`).
+- Mutation: keine (Plan §6, Pin ist Text, `AGENTS.md` §3.10). DoD 2 (Scan) belegt die Koordination über den Trockenlauf; nicht abgehakt.
+
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
