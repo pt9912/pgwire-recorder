@@ -6,7 +6,7 @@
 # --- deps: Module aus go.mod und go.sum, geprüft gegen go.sum. Die Stufe und
 # alle von ihr abgeleiteten laufen auf der Plattform des Bau-Hosts; `build`
 # kompiliert per GOOS/GOARCH auf die Zielplattform.
-FROM --platform=$BUILDPLATFORM golang:1.27-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS deps
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c AS deps
 WORKDIR /src
 ENV CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=readonly
 COPY go.mod go.sum ./

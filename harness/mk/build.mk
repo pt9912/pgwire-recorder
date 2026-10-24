@@ -12,7 +12,7 @@
 #
 # `go-mod-tidy` ist ein Werkzeug, kein Gate: es aktualisiert go.mod und go.sum mit
 # Netz im gepinnten Go-Image und schreibt beide in den Arbeitsbaum.
-GO_IMAGE ?= golang:1.27-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d
+GO_IMAGE ?= golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c
 
 COVERAGE_SCHWELLE := $(shell sed -n 's/^\*\*Schwelle:\*\* `\([^`]*\)`.*/\1/p' harness/vertraege/SPEC-056-testabdeckung-schwelle.md)
 
