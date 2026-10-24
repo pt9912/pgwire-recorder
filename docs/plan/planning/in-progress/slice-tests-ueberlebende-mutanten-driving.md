@@ -91,7 +91,9 @@ dessen Mutationstabelle, am heutigen Code wie in der Tabelle oben. Zwei bekommen
    Schichten, die ohne Frist auf einen Kanal oder das Ende eines Laufs warten; die Sichtung
    des Planners nennt als weitere Kandidaten `server_tls_test.go:54` (`server = <-angenommen`),
    `bootstrap_test.go:353` (`exit := <-ende`) und `tls_test.go:184` (`<-ende`, Paket
-   `bootstrap`). Wie ein Gate einen Mutanten zählt, der nur über die Zeitüberschreitung rot
+   `bootstrap`); beim Umsetzen kamen `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) und
+   `server_tls_test.go` (`<-fertig` im `defer` von `TestTLSNacheinanderUndGleichzeitig`, Ende von
+   `Serve`) hinzu (Review F-1, F-2). Wie ein Gate einen Mutanten zählt, der nur über die Zeitüberschreitung rot
    wird, ist die Randform *Laufzeit* von `slice-harness-mutation`. Die Prüfung auf Warten
    ohne Frist in `make lint` kommt nach diesem Slice mit `slice-harness-lint-warten-ohne-frist`
    (Abgrenzung dort, §1): Sie setzt an Zeile 848 und in den beiden Schichten dieses Slice
@@ -220,7 +222,8 @@ Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
 - [x] **Frist beim Warten (F-468):** Die Tests dieser beiden Schichten, die ohne Frist auf
       einen Kanal oder das Ende eines Laufs warten, tragen die Frist nach §6 *Warten auf
       einen Kanal* (Kandidaten: `server_extended_test.go:848`, `server_tls_test.go:54`,
-      `bootstrap_test.go:353`, `tls_test.go:184`; welche der Architect festlegt). Der Mutant W
+      `bootstrap_test.go:353`, `tls_test.go:184`, dazu `tls_test.go:100` und das Ende von `Serve` in
+      `server_tls_test.go`; welche der Architect festlegt). Der Mutant W
       des Gebers wird in `TestReplayHerunterfahrenSpaeteFrist` rot, ohne dass das Paket die
       Zeit überschreitet.
 - [x] **Abbildung (G4) und Ende des Wächters (G7):** Ein Test in `pgwire_test` über
@@ -384,6 +387,8 @@ Entscheidung · Ort):
   | `server_tls_test.go:54` (`server = <-angenommen`) | **Keine Pflicht, Frist erlaubt und zu setzen.** Das `Accept` auf dem Listener des Tests nach dessen eigenem `Dial` ist Testgeschirr, der Prüfling führt es nicht herbei. Der Implementer setzt dennoch eine Frist: `slice-harness-lint-warten-ohne-frist` meldet jeden Empfang im Rumpf einer Hilfsfunktion (§1 dort, Entscheidung des Nutzers) und kann das Geschirr nicht unterscheiden; zwei Zeilen jetzt sparen dort eine Ausnahme. |
   | `bootstrap_test.go:353` (`exit := <-ende`) | **Frist Pflicht.** Der Lauf der Kommandozeile (`bootstrap.Run`) ist der Einstiegspunkt des Prozesses; der Test startet ihn in einer Goroutine und liest sein Ende über einen Kanal. Das ist ein gestarteter Prozess im Sinn der Regel und zugleich ein Wert, den der Prüfling auf einem Kanal liefert; beide Lesarten führen zur Frist. |
   | `tls_test.go:184` (`<-ende`, Paket `bootstrap`) | **Frist Pflicht**, Gründe wie `bootstrap_test.go:353`. |
+  | `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) | **Frist Pflicht**, Gründe wie `:184`; vom Implementer ergänzt (Review F-2), Bestätigung des Architect steht aus. |
+  | `server_tls_test.go`, `defer … <-fertig` in `TestTLSNacheinanderUndGleichzeitig` (Ende von `Serve`) | **Frist Pflicht**: der Prüfling beendet `Serve`, derselbe Fall wie das Ende von `Run`; vom Implementer ergänzt (Review F-1), Bestätigung des Architect steht aus. |
 
   Für die zwei Stellen am Ende von `bootstrap.Run` gilt dazu „je Prozess genau eine Stelle
   wartet, jeder weitere Leser liest ihr Ergebnis“: Liest ein Test das Ende desselben Laufs
@@ -522,7 +527,7 @@ beide Felder unverändert ab, eine Spalte ohne Tabelle behält 0); der Satz „D
 im ersten Entwurf und ist gestrichen, weil kein Test ihn prüft. Der Kommentar von `TestRunSignalVorDemOeffnen` nennt jeden Fall
 des Tests; die Plattformgrenze steht in `LH-FA-13.a`.
 
-**Zählung der Größe** (`AGENTS.md` §3.14, Basis `7ed55a23`): Summe 138 Zeilen vor dieser Closure-Notiz, Marke 1500 nicht erreicht.
+**Zählung der Größe** (`AGENTS.md` §3.14, Basis `7ed55a23`): am Kopf `b0aeec7a` 137 Zeilen (die 138 der ersten Fassung waren falsch, Review F-6), Marke 1500 nicht erreicht; die Zahl nach der Nacharbeit steht unten.
 
 **Gate-Läufe:** `make gates` erster Lauf am Stand `f841bb03` rot in `make lint` (`contextcheck` in
 `bootstrap_test.go`: `quelle` rief `aufzeichnung` mit `context.Background()` in der Goroutine), behoben in `0752b3ec` (Argumente
@@ -533,6 +538,24 @@ genau zwei Zeilen in `docs/user/abdeckung-unit.md` (LH-FA-02 und LH-FA-03 für `
 committet und zählen nicht als Schicht (Entscheidung des Planners im Geber, §8). G7 am Endstand: grün (`pgwire` 20,98 s,
 `bootstrap` 6,25 s). Keine Gegenprobe, kein Integrationslauf außer dem in `make gates` enthaltenen Teil; kein Gate oder
 Vertrag geändert.
+
+### Nacharbeit zum Review (Zweig `impl-drv1b`, Report `docs/reviews/2026-10-24-review-slice-tests-ueberlebende-mutanten-driving.md`)
+
+| Finding | Stand | Beleg |
+|---|---|---|
+| F-1 (LOW) | behoben | Frist 10 s beim Warten auf das Ende von `Serve` im `defer` von `TestTLSNacheinanderUndGleichzeitig`. Zusage (`SPEC-038`: Warten auf ein vom Prüfling herbeigeführtes Ereignis mit Frist) · Mutation (`Serve` kehrt nach `s.wg.Wait()` nie zurück: `<-make(chan struct{})` statt `return`) · roter Test: `TestTLSNacheinanderUndGleichzeitig`, „Serve endet nicht binnen 10 s nach dem Schließen des Listeners“, `FAIL … 10.017s`, ohne Paket-Timeout (60 s gesetzt). 50 Läufe ohne Mutant grün (`ok … 0.231s`). |
+| F-2 (LOW) | behoben (Plan) | `tls_test.go:100` steht jetzt in §1, §2 und der Randform-Tabelle in §6, ebenso die Stelle aus F-1; beide mit „vom Implementer ergänzt, Bestätigung des Architect steht aus“. Die Bestätigung selbst bleibt offen beim Architect. |
+| F-3 (INFO) | offen, nur vermerkt | `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242) bleibt ohne Frist: Grenzfall zwischen Testgeschirr und Prüfling, Entscheidung beim Architect, sonst `slice-harness-lint-warten-ohne-frist`. |
+| F-4 (INFO) | offen, nur vermerkt | Die Deklaration von `TestRunSignalVorDemOeffnen` führt nur `Boundary`; die zwei Startfehler-Fälle (Name löst nicht auf, Port belegt) stehen nicht als `Negative` in der Tabelle. Die Deklaration sagt weniger zu, als der Test prüft, kein Verstoß gegen §3.11; nicht geändert. |
+| F-5 (INFO) | zur Kenntnis | `0752b3ec` ändert nur Testcode, Produkt-Code unverändert. |
+| F-6 (INFO) | behoben (Zahl) | Messung am Kopf `b0aeec7a` mit dem Befehl aus §3.14: 137, nicht 138. |
+
+**Vollständige Durchsicht auf Empfänge ohne Frist** (beide Schichten, alle `*_test.go`): gesucht nach `<-` auf Kanälen als Anweisung,
+als Zuweisung (`:=`, `=`) und in `case` (jeweils mit `time.After` in der Nähe geprüft), nach `.Wait()` und nach `range` über Kanäle.
+Fund ohne Frist: nur `server_tls_test.go` `defer … <-fertig` (F-1, behoben). Die übrigen Empfänge ohne Frist stehen in
+Test-Doubles, die auf eine Freigabe des Tests warten und nach `SPEC-038` nicht unter die Regel fallen: `server_test.go` (Zeilen 121,
+129, 154/155, 182/183, 197, 217, 233, 246, 730 im Double `fakeRecorder` und seinen Hilfen) und `server_extended_test.go:790`
+(`<-c.freigabe`); dazu `play_anmeldung_test.go` (F-3). Alle anderen `case`-Empfänge tragen einen `time.After`-Zweig.
 
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
