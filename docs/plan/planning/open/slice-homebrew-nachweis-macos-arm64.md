@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-19.a` (gelesen, nicht geändert: der Text ist je Kombination allgemein gefasst) · `SPEC-067` (Punkt 20 (5) und (6), gelesen, nicht geändert)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-24.
 
 ---
