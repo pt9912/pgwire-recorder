@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-nachtrag](welle-v1-nachtrag.md)
 **Archiviert mit:** welle-v1-nachtrag · **Geschlossen:** 2026-10-24
 **Hervorgegangen:** [`BEO-REPO/plan-folgt-korrektur-nicht`](../../observations/BEO-REPO/plan-folgt-korrektur-nicht/observation.md) · [`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`](../../observations/BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/observation.md)
+**Bezug:** LH-FA-01

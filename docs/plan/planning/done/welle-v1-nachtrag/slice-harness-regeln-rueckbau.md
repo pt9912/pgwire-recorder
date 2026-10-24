@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-nachtrag · **Geschlossen:** 2026-10-24
 **Hervorgegangen:** [`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`](../../observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/observation.md) · [`BEO-REPO/plan-folgt-korrektur-nicht`](../../observations/BEO-REPO/plan-folgt-korrektur-nicht/observation.md) · [`BEO-REPO/regel-aendert-adr-satz-ohne-nachzug`](../../observations/BEO-REPO/regel-aendert-adr-satz-ohne-nachzug/observation.md) · [`BEO-REPO/spec-randform-erst-im-review-entschieden`](../../observations/BEO-REPO/spec-randform-erst-im-review-entschieden/observation.md) · [`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`](../../observations/BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/observation.md)
+**Bezug:** — keine —

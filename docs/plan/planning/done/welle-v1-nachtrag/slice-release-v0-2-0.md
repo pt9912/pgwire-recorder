@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-nachtrag · **Geschlossen:** 2026-10-24
 **Hervorgegangen:** — keine —
+**Bezug:** LH-FA-01, LH-FA-16, LH-FA-19, LH-FA-24, LH-QA-03

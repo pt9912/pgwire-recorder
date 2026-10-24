@@ -6,3 +6,4 @@
 **Welle:** ohne Welle
 **Archiviert mit:** welle-v1-nachtrag · **Geschlossen:** 2026-10-24
 **Hervorgegangen:** — keine —
+**Bezug:** — keine —

@@ -6,3 +6,4 @@
 **Welle:** [welle-v1-nachtrag](welle-v1-nachtrag.md)
 **Archiviert mit:** welle-v1-nachtrag · **Geschlossen:** 2026-10-24
 **Hervorgegangen:** [`BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server`](../../observations/BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server/observation.md)
+**Bezug:** LH-FA-02, LH-FA-03, LH-FA-18, LH-FA-25
