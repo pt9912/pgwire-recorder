@@ -2095,7 +2095,11 @@ offenlässt.
   Extended-Interaktion läuft bis zu ihrem `ReadyForQuery`, die mit `Flush` endende letzte Gruppe bis zur
   Antwort auf jede ihrer Client-Nachrichten (*Gruppen*). Das zweite Signal sendet
   `Terminate`, soweit die Verbindung es sofort annimmt, im Aufbau nicht (*Abbruch im
-  Aufbau*), schließt sie, auch während des Verbindungsversuchs, und
+  Aufbau*); „soweit“ heißt: nicht, solange eine Nachricht des Clients erst teilweise
+  geschrieben ist (sie wird nicht zerrissen) und nicht, wenn die Verbindung es nicht binnen
+  einer kurzen Frist annimmt; ist die Nachricht vollständig geschrieben, wird `Terminate`
+  gesendet, auch wenn der Sender seine Bearbeitung der Anfrage noch nicht abgeschlossen hat.
+  Es schließt sie, auch während des Verbindungsversuchs, und
   beendet den Prozess; die unterbrochene Interaktion und ein unterbrochener Aufbau sind
   kein Fehler, der Exit-Code folgt der Zeile *Abbruchsignal*. Jedes weitere Signal bleibt ohne Wirkung.
 * *Exit-Code.* Bricht ein Fehler das Einspielen ab, gilt der Exit-Code seiner Klasse,
@@ -3728,6 +3732,7 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Einspielen und Vergleich, letzte Gruppe mit `Flush` eines Endes: Wortlaut der Wartezeit nach einer `ErrorResponse` mit der Ausnahme, Grenzen (weniger Antworten als die Zählregel, `FATAL` nach vollständiger Zahl), Vergleich ohne `ready_for_query` und Zähler `verglichen` (`LH-FA-20.a`, `LH-FA-24.a`) |
 | 2026-10-16 | Vergleich mit Ende: Einleitung und Absatz zur `ErrorResponse` in der Extended-Interaktion nennen die Ausnahme der letzten Gruppe mit `Flush` wie der vierte Punkt von *Ende der Aufzeichnung*, kein Zuwachs an Regeln (`LH-FA-24.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
+| 2026-10-24 | Einspielen, zweites Signal: `Terminate` bleibt nur aus, solange eine Nachricht teilweise geschrieben ist oder das Schreiben die Frist reißt; nach vollständigem Schreiben wird es gesendet (`LH-FA-20.a`) |
 | 2026-10-16 | Schweregrad des Endes: ein leeres `V` gilt wie ein fehlendes, in der Datei und beim Einspielen gleich; der SQLSTATE des Vergleichs zählt nur an einer `ErrorResponse` (`LH-FA-24.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Hilfe von `play` zum Ende des Servers bei `--allow-recorded-errors` und `--compare-responses` (`LH-FA-20.a`); `SPEC-029` Punkt 2: „die Anmeldung mit Klartext-Passwort und die mit MD5“ (Berichtigung des Numerus, keine Aussage geändert) |
 | 2026-10-16 | Ende des Servers beim Aufzeichnen, Upstream-Adapter: Sendefehler an den geschlossenen Upstream im Leerlauf ist `PGR-E4003` statt „kein Fehler“ (Berichtigung gegen *Gelesen*: nach einem Sendefehler wird nicht weitergelesen), Senden nach gelesener Fehlerantwort ohne Fehler, Aufrufe nach dem Ende nicht zugesagt, Schweregrad wie in der Datei (`LH-FA-25.a`, `LH-FA-02.b`) |
