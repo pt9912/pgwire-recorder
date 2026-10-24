@@ -93,7 +93,7 @@ dessen Mutationstabelle, am heutigen Code wie in der Tabelle oben. Zwei bekommen
    `bootstrap_test.go:353` (`exit := <-ende`) und `tls_test.go:184` (`<-ende`, Paket
    `bootstrap`); beim Umsetzen kamen `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) und
    `server_tls_test.go` (`<-fertig` im `defer` von `TestTLSNacheinanderUndGleichzeitig`, Ende von
-   `Serve`) hinzu (Review F-1, F-2), dazu `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242; Architect 2026-10-24, §6). Wie ein Gate einen Mutanten zählt, der nur über die Zeitüberschreitung rot
+   `Serve`) hinzu (Review F-1, F-2), dazu `play_anmeldung_test.go` `<-danach` (in `TestRunPlayPasswort` und `TestRunPlayErstesSignalInAnmeldung`; Architect 2026-10-24, §6). Wie ein Gate einen Mutanten zählt, der nur über die Zeitüberschreitung rot
    wird, ist die Randform *Laufzeit* von `slice-harness-mutation`. Die Prüfung auf Warten
    ohne Frist in `make lint` kommt nach diesem Slice mit `slice-harness-lint-warten-ohne-frist`
    (Abgrenzung dort, §1): Sie setzt an Zeile 848 und in den beiden Schichten dieses Slice
@@ -223,7 +223,7 @@ Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
       einen Kanal oder das Ende eines Laufs warten, tragen die Frist nach §6 *Warten auf
       einen Kanal* (Kandidaten: `server_extended_test.go:848`, `server_tls_test.go:54`,
       `bootstrap_test.go:353`, `tls_test.go:184`, dazu `tls_test.go:100`, das Ende von `Serve` in
-      `server_tls_test.go` und `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242); welche der Architect festlegt). Der Mutant W
+      `server_tls_test.go` und `play_anmeldung_test.go` `<-danach` (in `TestRunPlayPasswort` und `TestRunPlayErstesSignalInAnmeldung`); welche der Architect festlegt). Der Mutant W
       des Gebers wird in `TestReplayHerunterfahrenSpaeteFrist` rot, ohne dass das Paket die
       Zeit überschreitet.
 - [x] **Abbildung (G4) und Ende des Wächters (G7):** Ein Test in `pgwire_test` über
@@ -256,6 +256,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/pgwire/server_extended_test.go` | update | Frist beim Warten auf `conn.gesetzt` (Zeile 848 am Stand `f4ff9387`) und an weiteren Stellen dieser Schicht nach §6 *Warten auf einen Kanal* (Kandidat `server_tls_test.go:54`) |
 | `internal/adapters/driving/pgwire/*_test.go` (Abbildung, Wächter) | update | G4: `ToMessage` mit RowDescription, alle Felder verglichen (Happy, LH-FA-18); G7: kein Test (keine Zusage, §6) |
 | `internal/bootstrap/bootstrap_test.go` | update | G1: `bootstrap.Run` mit beendetem Kontext und `--listen localhost:0` (Boundary, LH-FA-13), dazu die zwei Startfehler derselben Zusage; Frist beim Warten auf das Ende des Laufs (`bootstrap_test.go:353`, `tls_test.go:184` und, nach derselben Entscheidung des Architect für den Lauf der Kommandozeile, `tls_test.go:100`) |
+| `internal/bootstrap/play_anmeldung_test.go` | update | Frist 30 s beim Warten auf `danach` in `TestRunPlayPasswort` und `TestRunPlayErstesSignalInAnmeldung` (Architect 2026-10-24, `0950edcc`, `SPEC-038`; Liefer-Punkt *Frist beim Warten*, Schicht Bootstrap) |
 | `internal/adapters/driving/pgwire/server.go` | update (nur Kommentar) | Doc-Kommentar von `replayWaechter` (der gestrichene Satz, nur mit dem Test aus G7) und, wo ein benannter Test sie prüft, von `replayLesefehler` und `replayZustellen` |
 
 Die Abdeckungs-Deklarationen bleiben, wie sie sind: Die Tests decken neue Fälle
@@ -389,7 +390,7 @@ Entscheidung · Ort):
   | `tls_test.go:184` (`<-ende`, Paket `bootstrap`) | **Frist Pflicht**, Gründe wie `bootstrap_test.go:353`. |
   | `tls_test.go:100` (`<-ende`, `TestRunReplayTLS`) | **Frist Pflicht**, Gründe wie `:184`; vom Implementer ergänzt (Review F-2), vom Architect bestätigt (2026-10-24). |
   | `server_tls_test.go`, `defer … <-fertig` in `TestTLSNacheinanderUndGleichzeitig` (Ende von `Serve`) | **Frist Pflicht**: der Prüfling beendet `Serve`, derselbe Fall wie das Ende von `Run`; vom Implementer ergänzt (Review F-1), vom Architect bestätigt (2026-10-24). |
-  | `play_anmeldung_test.go`, `<-danach` (Zeilen 171 und 242; Zeile 192 und 275 tragen `time.After`) | **Frist Pflicht**: Den Wert auf `danach` füllt zwar das Double, aber mit dem, was der Prüfling sendet, und er kommt erst, wenn der Prüfling die Verbindung beendet; das Ereignis führt der Prüfling herbei (`SPEC-038`, Absatz zum Kanal des Testgeschirrs, 2026-10-24 präzisiert). Dritte und vierte Stelle dieses Slice, Schicht Bootstrap, im Liefer-Punkt *Frist beim Warten*; keine Sendung an `slice-harness-lint-warten-ohne-frist`, dessen §1 Stellen im Bootstrap ausschließt. |
+  | `play_anmeldung_test.go`, `<-danach` (in `TestRunPlayPasswort` und `TestRunPlayErstesSignalInAnmeldung`; der Anker ist der Name des Tests, Zeilennummern altern) | **Frist Pflicht**: Den Wert auf `danach` füllt zwar das Double, aber mit dem, was der Prüfling sendet, und er kommt erst, wenn der Prüfling die Verbindung beendet; das Ereignis führt der Prüfling herbei (`SPEC-038`, Absatz zum Kanal des Testgeschirrs, 2026-10-24 präzisiert). Dritte und vierte Stelle dieses Slice, Schicht Bootstrap, im Liefer-Punkt *Frist beim Warten*; keine Sendung an `slice-harness-lint-warten-ohne-frist`, dessen §1 Stellen im Bootstrap ausschließt. |
 
   Für die zwei Stellen am Ende von `bootstrap.Run` gilt dazu „je Prozess genau eine Stelle
   wartet, jeder weitere Leser liest ihr Ergebnis“: Liest ein Test das Ende desselben Laufs
@@ -520,7 +521,7 @@ Stelle liest das Ende desselben Laufs ein zweites Mal. **Stelle `tls_test.go:100
 der Tabelle des Architect; ich habe sie mit derselben Frist versehen, weil sie derselbe Fall ist wie `:184` (`<-ende` auf
 `bootstrap.Run`, Lauf der Kommandozeile in einer Goroutine, `SPEC-038`) und der Architect dort die Regel allgemein für „die
 Stelle am Ende von `bootstrap.Run`“ entschieden hat. `tls_test.go:100` und das Ende von `Serve` hat der Architect am 2026-10-24 bestätigt (Commit `0950edcc`).
-`play_anmeldung_test.go` `<-danach` (Zeilen 171 und 242) hat der Architect am selben Tag mit Pflicht-Frist entschieden (neuer Satz in
+`play_anmeldung_test.go` `<-danach` (in `TestRunPlayPasswort` und `TestRunPlayErstesSignalInAnmeldung`; am Stand des Berichts Zeilen 171 und 242) hat der Architect am selben Tag mit Pflicht-Frist entschieden (neuer Satz in
 `SPEC-038`, ohne Sendung an einen anderen Slice); die Nacharbeit steht unten. Nicht angefasst: `server_extended_test.go:790`
 (`<-c.freigabe`, Test-Double).
 
@@ -547,7 +548,7 @@ Vertrag geändert.
 |---|---|---|
 | F-1 (LOW) | behoben | Frist 10 s beim Warten auf das Ende von `Serve` im `defer` von `TestTLSNacheinanderUndGleichzeitig`. Zusage (`SPEC-038`: Warten auf ein vom Prüfling herbeigeführtes Ereignis mit Frist) · Mutation (`Serve` kehrt nach `s.wg.Wait()` nie zurück: `<-make(chan struct{})` statt `return`) · roter Test: `TestTLSNacheinanderUndGleichzeitig`, „Serve endet nicht binnen 10 s nach dem Schließen des Listeners“, `FAIL … 10.017s`, ohne Paket-Timeout (60 s gesetzt). 50 Läufe ohne Mutant grün (`ok … 0.231s`). |
 | F-2 (LOW) | behoben (Plan) | `tls_test.go:100` steht jetzt in §1, §2 und der Randform-Tabelle in §6, ebenso die Stelle aus F-1; beide mit „vom Implementer ergänzt“. Der Architect hat beide am 2026-10-24 bestätigt (`0950edcc`). |
-| F-3 (INFO) | entschieden, Frist Pflicht, ohne Sendung | Der Architect hat `play_anmeldung_test.go` `<-danach` (Zeilen 171, 242) mit Pflicht-Frist entschieden (`SPEC-038`, `0950edcc`); keine Sendung an `slice-harness-lint-warten-ohne-frist`. Umgesetzt unten (*Nacharbeit zur Verifikation*). |
+| F-3 (INFO) | entschieden, Frist Pflicht, ohne Sendung | Der Architect hat `play_anmeldung_test.go` `<-danach` (am Stand des Berichts Zeilen 171, 242; Anker: die zwei Tests aus V-2) mit Pflicht-Frist entschieden (`SPEC-038`, `0950edcc`); keine Sendung an `slice-harness-lint-warten-ohne-frist`. Umgesetzt unten (*Nacharbeit zur Verifikation*). |
 | F-4 (INFO) | offen, nur vermerkt | Die Deklaration von `TestRunSignalVorDemOeffnen` führt nur `Boundary`; die zwei Startfehler-Fälle (Name löst nicht auf, Port belegt) stehen nicht als `Negative` in der Tabelle. Die Deklaration sagt weniger zu, als der Test prüft, kein Verstoß gegen §3.11; nicht geändert. |
 | F-5 (INFO) | zur Kenntnis | `0752b3ec` ändert nur Testcode, Produkt-Code unverändert. |
 | F-6 (INFO) | behoben (Zahl) | Messung am Kopf `b0aeec7a` mit dem Befehl aus §3.14: 137, nicht 138. |
@@ -564,7 +565,7 @@ Link meldete (Befund `id-unlinked`, der Report stammt aus dem Review-Commit `136
 | Punkt | Stand | Beleg |
 |---|---|---|
 | V-1 (LOW) | erledigt | Der Architect hat `tls_test.go:100` und das Ende von `Serve` bestätigt (`0950edcc`). |
-| V-2 (LOW) | erledigt | Frist 30 s als Literal an `<-danach` in `TestRunPlayPasswort` (Zeile 171) und `TestRunPlayErstesSignalInAnmeldung` (Zeile 242), Meldung „der Fake-Server sieht binnen 30 s kein Ende der Verbindung“. Zusage (`SPEC-038`: ein Wert, den der Prüfling auf einem Kanal herbeiführt, wird mit Frist erwartet) · Mutation (der Fake-Server füllt `danach` nie: beide `typen <- string(gelesen)` in der Lesestufe entfernt; kein Mutant am Prüfling, `play` beendet die Verbindung in beiden Fällen regulär) · roter Test: `TestRunPlayPasswort/Variable_bei_host:port` und `/Platzhalter_vor_der_Variable` (je 30,03 s), `TestRunPlayErstesSignalInAnmeldung` (30,54 s), rot nach der Frist und nicht über den Paket-Timeout (250 s gesetzt). 50 Läufe ohne Mutant grün (`TestRunPlayPasswort`, `TestRunPlayOhnePasswort`, `TestRunPlayErstesSignalInAnmeldung`, `TestRunPlayZweitesSignalInAnmeldung`, `ok … 27.848s`). |
+| V-2 (LOW) | erledigt | Frist 30 s als Literal an `<-danach` in `TestRunPlayPasswort` und `TestRunPlayErstesSignalInAnmeldung` (am Stand vor dem Commit der Frist die Zeilen 171 und 242; Zeilennummern altern, Anker sind die Namen), Meldung „der Fake-Server sieht binnen 30 s kein Ende der Verbindung“. Zusage (`SPEC-038`: ein Wert, den der Prüfling auf einem Kanal herbeiführt, wird mit Frist erwartet) · Mutation (der Fake-Server füllt `danach` nie: beide `typen <- string(gelesen)` in der Lesestufe entfernt; kein Mutant am Prüfling, `play` beendet die Verbindung in beiden Fällen regulär) · roter Test: `TestRunPlayPasswort/Variable_bei_host:port` und `/Platzhalter_vor_der_Variable` (je 30,03 s), `TestRunPlayErstesSignalInAnmeldung` (30,54 s), rot nach der Frist und nicht über den Paket-Timeout (250 s gesetzt). 50 Läufe ohne Mutant grün (`TestRunPlayPasswort`, `TestRunPlayOhnePasswort`, `TestRunPlayErstesSignalInAnmeldung`, `TestRunPlayZweitesSignalInAnmeldung`, `ok … 27.848s`). |
 | V-3 (INFO) | offen, nur vermerkt | Die Deklaration von `TestRunSignalVorDemOeffnen` führt nur `Boundary` (wie F-4). |
 | V-4 (INFO) | offen, nur vermerkt | Die Closure-Felder in §7 und die Risiko-Ausgänge in §6 füllt der Planner bei der Closure. |
 
@@ -574,10 +575,10 @@ Link meldete (Befund `id-unlinked`, der Report stammt aus dem Review-Commit `136
 
 **Vollständige Durchsicht auf Empfänge ohne Frist** (beide Schichten, alle `*_test.go`): gesucht nach `<-` auf Kanälen als Anweisung,
 als Zuweisung (`:=`, `=`) und in `case` (jeweils mit `time.After` in der Nähe geprüft), nach `.Wait()` und nach `range` über Kanäle.
-Fund ohne Frist: nur `server_tls_test.go` `defer … <-fertig` (F-1, behoben). Die übrigen Empfänge ohne Frist stehen in
+Fund ohne Frist am Stand dieser Durchsicht: `server_tls_test.go` `defer … <-fertig` (F-1, behoben) und `play_anmeldung_test.go` `<-danach` (V-2, behoben). Die übrigen Empfänge ohne Frist stehen in
 Test-Doubles, die auf eine Freigabe des Tests warten und nach `SPEC-038` nicht unter die Regel fallen: `server_test.go` (Zeilen 121,
 129, 154/155, 182/183, 197, 217, 233, 246, 730 im Double `fakeRecorder` und seinen Hilfen) und `server_extended_test.go:790`
-(`<-c.freigabe`); dazu `play_anmeldung_test.go` (F-3). Alle anderen `case`-Empfänge tragen einen `time.After`-Zweig.
+(`<-c.freigabe`); nicht dazu gehört `play_anmeldung_test.go`: Dessen `<-danach` trägt seit `9d4ddda9` die Frist (Architect `0950edcc`, V-2), und der Fund steht oben unter *Nacharbeit zur Verifikation*. Alle anderen `case`-Empfänge tragen einen `time.After`-Zweig.
 
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
