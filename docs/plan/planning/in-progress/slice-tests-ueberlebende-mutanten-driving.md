@@ -550,6 +550,13 @@ Vertrag geändert.
 | F-5 (INFO) | zur Kenntnis | `0752b3ec` ändert nur Testcode, Produkt-Code unverändert. |
 | F-6 (INFO) | behoben (Zahl) | Messung am Kopf `b0aeec7a` mit dem Befehl aus §3.14: 137, nicht 138. |
 
+**Größe und Gates nach der Nacharbeit:** Messung mit dem Befehl aus §3.14 am Kopf der Nacharbeit (Basis `7ed55a23`): 147 Zeilen,
+Marke 1500 nicht erreicht. `make gates` einmal am Stand der Code-Änderung (`TestTLSNacheinanderUndGleichzeitig`, Commit mit der
+Frist): `exit 0`, nichts parallel auf Docker. Der Lauf startete, als `make docs-check` im Review-Report noch `ADR-0034` ohne
+Link meldete (Befund `id-unlinked`, der Report stammt aus dem Review-Commit `1361f558`); ich habe den Link im Report gesetzt
+(eigener Commit) und `make docs-check` danach einzeln grün gefahren (1455 Dateien, 0 Befunde); `make kopf-check` und
+`make abdeckung-check` grün. Änderungen seit dem Gate-Lauf liegen unter `docs/` (Report-Link, dieser Absatz).
+
 **Vollständige Durchsicht auf Empfänge ohne Frist** (beide Schichten, alle `*_test.go`): gesucht nach `<-` auf Kanälen als Anweisung,
 als Zuweisung (`:=`, `=`) und in `case` (jeweils mit `time.After` in der Nähe geprüft), nach `.Wait()` und nach `range` über Kanäle.
 Fund ohne Frist: nur `server_tls_test.go` `defer … <-fertig` (F-1, behoben). Die übrigen Empfänge ohne Frist stehen in
