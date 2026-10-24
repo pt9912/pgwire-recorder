@@ -570,6 +570,8 @@ Link meldete (Befund `id-unlinked`, der Report stammt aus dem Review-Commit `136
 
 **Größe nach dieser Nacharbeit** (Befehl aus `AGENTS.md` §3.14, Basis `7ed55a23`, Kopf der Nacharbeit mit dem Commit der Frist): 169 Zeilen, Marke 1500 nicht erreicht.
 
+**Gates nach dieser Nacharbeit:** `make gates` einmal am Stand `docs`-Commit nach der Frist (Code unverändert seit dem Commit der Frist), `exit 0`, nichts parallel auf Docker; `make docs-check` (0 Befunde), `make kopf-check` und `make abdeckung-check` davor grün.
+
 **Vollständige Durchsicht auf Empfänge ohne Frist** (beide Schichten, alle `*_test.go`): gesucht nach `<-` auf Kanälen als Anweisung,
 als Zuweisung (`:=`, `=`) und in `case` (jeweils mit `time.After` in der Nähe geprüft), nach `.Wait()` und nach `range` über Kanäle.
 Fund ohne Frist: nur `server_tls_test.go` `defer … <-fertig` (F-1, behoben). Die übrigen Empfänge ohne Frist stehen in
