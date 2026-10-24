@@ -133,6 +133,12 @@ pgwire-recorder record \
    Antworten des Upstreams an den Client. Der Recorder verändert fachliche
    Inhalte nicht.
 
+**Spalten-Metadaten.** Tabellen-OID und Spaltennummer jeder Spalte einer
+`RowDescription` sind Teil der Serverantwort, bei einer einfachen Anfrage wie bei
+einer Extended-Interaktion: Der Recorder gibt sie unverändert an den Client weiter und
+zeichnet sie unverändert auf. Eine Spalte ohne Tabelle trägt, was der Server ihr gibt
+(`0`); der Recorder setzt keinen Wert ein.
+
 **Fehlermodi:** Listen-Port nicht zu öffnen → Startfehler, Exit-Code `4`
 (`PGR-E4001`); Upstream nicht erreichbar → Verbindungsfehler, `PGR-E4002`
 (Fehlerebenen: LH-FA-13.b).
@@ -1668,6 +1674,36 @@ Anzahlen, die erwartete und die empfangene. Parameterwerte erscheinen nie in der
 Diagnose, weder im Log noch in der `ErrorResponse` an den Client, auf keinem
 Log-Level, auch nicht bei `debug` (`SPEC-033`).
 
+**Anweisung in der Diagnose.** Die erwartete und die empfangene Query nach
+`LH-FA-10.a` sind bei einer Extended-Nachricht das SQL der Anweisung, auf die sich die
+Nachricht bezieht: bei `Parse` ihr eigenes SQL, bei `Bind` das des Statements, bei
+`Execute` das des Portals, bei `Describe` und `Close` das ihres Ziels (Statement oder
+Portal nach der Zielart); `Flush` und `Sync` beziehen sich auf keine Anweisung. Die
+Diagnose nennt das SQL, wie es nach den Nachrichten besteht, die der Server bis zum
+Cursor angenommen hat; ein Objekt, das so nicht besteht, hat kein SQL, und die
+Diagnose nennt keines. Der Wortlaut, in dem die Diagnose das SQL einordnet, ist nicht
+zugesagt.
+
+Angenommen sind die Nachrichten einer Interaktion, die der Server bis zur ersten
+abgelehnten bearbeitet hat; alle danach bis zum `Sync` verwirft er. Der Recorder
+entnimmt das den Bestätigungen (`parse_complete`, `bind_complete`, `close_complete`)
+der ganzen Interaktion, auch einer späten Bestätigung in der folgenden Gruppe: Sind in
+einer Interaktion n Bestätigungen einer Art aufgezeichnet, sind die ersten n
+Client-Nachrichten dieser Art angenommen. Jede weitere dieser Art ist abgelehnt oder
+verworfen und ändert kein Statement und kein Portal; ein abgelehntes `Parse` auf ein
+benanntes Statement lässt ein bestehendes Statement gleichen Namens unverändert, auch
+bei `42P05`.
+
+*Grenze (unbenanntes Statement).* PostgreSQL gibt ein bestehendes unbenanntes
+Statement frei, bevor es ein `Parse` darauf prüft; scheitert dieses `Parse`, besteht
+danach kein unbenanntes Statement (geprüft an den Hauptversionen 14 bis 18 aus
+`SPEC-029`). Der Recorder bildet das nicht nach: Die Diagnose nennt für eine spätere
+Nachricht, die sich auf das unbenannte Statement bezieht, das SQL des zuletzt
+angenommenen `Parse`. Das betrifft nur den Text der Diagnose, nicht die Wiedergabe der
+Antworten, und ist eine bekannte Grenze von v1; ein `Parse`, das der Server nach einem
+früheren Fehler derselben Interaktion verwirft, lässt das unbenannte Statement
+bestehen, und dort stimmt die Diagnose.
+
 ---
 
 ### LH-FA-19.a — Bereitstellung über Homebrew
@@ -2235,6 +2271,16 @@ Leser. Eine Datei, die in ihrem Format keine gültige
 Aufzeichnung ist (falsche Formatkennung, fehlende Tabellen, unlesbarer oder
 widersprüchlicher Inhalt), ist beschädigt (`PGR-E3003`); eine unbekannte `version`
 ist `PGR-E3002`.
+
+**Ort in der Meldung (`yaml`).** Ist an einer Interaktion der Aufzeichnung ein Fehler
+des Inhalts festgestellt (die Nummer der Interaktion oder ihre Form nach `SPEC-001` und
+`SPEC-041`), ist die Meldung `PGR-E3003` und nennt die Nummer der Session, in der die
+Interaktion steht, und die der Interaktion. Die Nummer der Session ist ihre Stellung in
+der Datei, ebenso die der Interaktion in ihrer Session; eine Aufzeichnung, in der Nummer
+und Stellung abweichen (nicht ab 1 lückenlos, siehe unten), ist beschädigt, und diese
+Prüfung geht der Prüfung der Form der Interaktion voraus. Beide Zählungen nennen deshalb
+für jeden Fehler der Form dasselbe. Der Wortlaut der Meldung ist darüber hinaus nicht
+zugesagt.
 
 **Lesen von `sqlite`.** Die Datei wird nur lesend geöffnet, auch auf einem
 schreibgeschützten Mount, und nie verändert. Sie wird in einer einzigen
@@ -3506,6 +3552,12 @@ erwünscht, aber kein v1-Muss.
 Die Versionsmatrix der Kompatibilitätstests fährt die Fälle aus `SPEC-029` gegen jede
 Hauptversion der dortigen Liste und die volle Integrationssuite gegen die Referenz.
 
+**Meldungstext in Tests.** Ein Test, der eine Zusage über eine Meldung prüft, vergleicht
+den Code, den Exit-Code, wo die Zusage ihn nennt, und die zugesagten Bestandteile des
+Textes. Den Wortlaut darüber hinaus vergleicht er nicht: Er ist nicht zugesagt, und ein
+Vergleich des ganzen Textes färbte jede Umformulierung rot, ohne dass eine Zusage bricht.
+Ein Test, der den ganzen Text festhält, beschreibt den Bestand und belegt keine Zusage.
+
 **Warten in Tests.** Ein Test, der auf ein Ereignis wartet, das der Prüfling
 herbeiführt (ein Wert auf einem Kanal oder dessen Schließen, das Ende eines
 gestarteten Prozesses), wartet mit eigener Frist. Die Frist steht als Literal im
@@ -3661,3 +3713,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-22 | Versions-Angabe: `--version` und `-v` als einziges Argument geben dieselbe Zeile aus wie `version`; mit weiteren Argumenten, anderer Schreibweise oder `=` sind sie `PGR-E2001`; der Satz, eine Option `--version` gebe es nicht, entfällt; die Zeile von `version` ist festgelegt (`LH-FA-01.a`, `LH-FA-14.a`) |
 | 2026-10-23 | Einspielen: Option `--diff-all` meldet je Interaktion alle Abweichungen statt der ersten (Umgebungsvariable, Schlüssel, ohne `--compare-responses` `PGR-E2001`, Zuordnung der Positionen, Folgen verschiedener Länge einzeln, Ende des Servers, Einzelheiten je Art beider Seiten, Obergrenze 20, Zähler unverändert); Standard bleibt die erste Abweichung (`LH-FA-24.a`, `LH-FA-17.a`, `LH-FA-20.a`) |
 | 2026-10-23 | `--diff-all`, Spaltenbeschreibung: weichen Name und Typ-OID einer Spalte ab, steht ein Eintrag mit beiden Feldern, die Grenze von 20 zählt Spalten (`LH-FA-24.a`) |
+| 2026-10-24 | Spalten-Metadaten: Tabellen-OID und Spaltennummer einer `RowDescription` unverändert an Client und Aufzeichnung, einfach wie Extended (`LH-FA-02.a`); Diagnose bei Extended-Mismatch: SQL je Nachrichtenart, angenommene Nachrichten als die ersten n einer Art nach den Bestätigungen, Grenze beim unbenannten Statement nach abgelehntem `Parse` (`LH-FA-18.a`, `LH-FA-10.a`); Ort in der Meldung eines beschädigten `yaml`-Recordings, Nummer der Session und der Interaktion (`LH-FA-22.a`); Meldungstext in Tests (`SPEC-038`) |

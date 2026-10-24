@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Black-Box-Tests über die
 Export-Test-Brücke).
 
-**Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-10.a` · `LH-FA-18.a` · `SPEC-001` · `SPEC-049` (Punkt 7, nur angewandt)
+**Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-10.a` · `LH-FA-18.a` · `LH-FA-22.a` · `SPEC-001` · `SPEC-038` · `SPEC-049` (Punkt 7, nur angewandt)
 
 **Verantwortlich:** pt9912 (Zweig impl-mut1)
 
@@ -198,7 +198,8 @@ Mutant dazu der Lauf ohne den neuen Test, in dem er grün bleibt), nicht im Beri
 
 - [ ] **Diagnose nach abgelehntem `parse` (M3):** Ein Test in `services_test` über
       `NewReplayService` und `ClientMessage` hält die Zusage, die der Architect nach §6
-      *Abgelehntes parse* in `LH-FA-10.a` oder `LH-FA-18.a` festgehalten hat. Er wird
+      *Abgelehntes parse* in `LH-FA-18.a` (*Anweisung in der Diagnose*) festgehalten hat; er
+      vergleicht `PGR-E5001` und das SQL der erwarteten Anweisung, nicht den ganzen Text. Er wird
       rot ohne `bestaetigt[m.Type]--` und ist ohne Mutation grün. Der Doc-Kommentar
       von `extendedNachspielen` nennt die Zusage über die ersten n Nachrichten wieder,
       und zwar nur so weit, wie der Test sie prüft (`AGENTS.md` §3.11).
@@ -209,9 +210,9 @@ Mutant dazu der Lauf ohne den neuen Test, in dem er grün bleibt), nicht im Beri
       wird rot ohne `TableOID:` und, je für sich, ohne `ColumnNumber:` in `spalten`.
 - [ ] **Session in der Meldung eines beschädigten Recordings (Y2):** Ein Test in
       `recording_test` über `Unmarshal` hält die Zusage, die der Architect nach §6
-      *Ort in der Meldung* in `SPEC-001` oder an der Stelle festgehalten hat, die er
-      dafür wählt. Für jeden Fehler an einer Interaktion in Session 2 (Nummer,
-      `offset_ms`, Form) wird er rot, wenn `geprueftFromDTO` die Session 1 nennt.
+      *Ort in der Meldung* in `LH-FA-22.a` festgehalten hat; er vergleicht `PGR-E3003`
+      und `Session 2` im Text. Für jeden Fehler an einer Interaktion in Session 2, den
+      `geprueftFromDTO` meldet (Nummer, Form), wird er rot, wenn sie die Session 1 nennt.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -230,7 +231,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` | update (Architect, vor dem Code) | Die Randformen *Abgelehntes parse*, *Ort in der Meldung* und *Was ein Test festhält* aus §6, an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* nur, wenn er sie nicht als entschieden bestätigt |
+| `spec/spezifikation.md` | update (Architect, vor dem Code) | Geschrieben am 2026-10-24 (Architect): `LH-FA-02.a` *Spalten-Metadaten*, `LH-FA-18.a` *Anweisung in der Diagnose* mit der Grenze zum unbenannten Statement, `LH-FA-22.a` *Ort in der Meldung (`yaml`)*, `SPEC-038` *Meldungstext in Tests*, Historie |
 | `internal/hexagon/services/replay_extended_test.go` | update | M3: Diagnose nach bestätigtem und danach abgelehntem `parse` desselben benannten Statements (Negative, LH-FA-10) |
 | `internal/hexagon/services/replay.go` | update (nur Kommentar) | Doc-Kommentar von `extendedNachspielen`: die Zusage über die ersten n Nachrichten, so weit der Test sie prüft (F-460) |
 | `internal/adapters/driven/postgres/upstream_test.go`, `upstream_extended_test.go` | update | P8, P2: `RowDescription` mit `TableOID` und `TableAttributeNumber` ungleich 0, Spalte in allen Feldern verglichen, Simple- und Extended-Weg (Happy, LH-FA-02 und LH-FA-18) |
@@ -335,50 +336,55 @@ Test macht eine Zusage prüfbar. Wo die Zusage in keinem Stratum steht, entschei
 Architect vor dem ersten Code-Commit und hält sie in der Spezifikation fest. Was dort
 nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
 
-- **Abgelehntes parse** (M3) — **offen**. `LH-FA-10.a` verlangt die „erwartete Query“,
-  `LH-FA-18.a` *Mismatch* ergänzt Gruppe, Nachricht und Typ. Was die erwartete Query
-  bei `bind`, `execute`, `describe` und `close` ist, sagt keine Stelle. Der Code nennt
-  das SQL des Statements, das der Server bis dahin angenommen hat. Ein abgelehntes oder
-  bis zum `Sync` verworfenes `parse` legt nichts an. Die Bestätigungen zählt er je Art
-  in der ganzen Interaktion, und die ersten n Nachrichten einer Art mit n Bestätigungen
-  gelten als angenommen. Offen ist, ob das die Zusage ist und wo sie steht. Offen ist
-  außerdem das unbenannte Statement: Nach dem Quelltext von PostgreSQL
-  (`exec_parse_message`) gibt der Server ein bestehendes unbenanntes Statement frei,
-  bevor er ein neues `parse` darauf prüft, also auch dann, wenn dieses `parse`
-  scheitert. Der Code behält das alte. Ob das eine Grenze von v1 ist oder eine Korrektur
-  des Codes verlangt (dann eigener Slice, §4), entscheidet der Architect nach einer
-  Prüfung gegen den Server. Bis dahin prüft der Test nur ein benanntes Statement.
-- **Spalten-Metadaten** (P8, P2) — **entschieden, Lesart zu bestätigen**.
-  `LH-FA-02.a` Schritt 4: „Der Recorder verändert fachliche Inhalte nicht“;
-  `LH-FA-18.a` *Record*: Der Recorder „leitet alle Nachrichten unverändert … weiter“;
-  das Lastenheft schließt bei `LH-FA-02` die „Veränderung von Serverantworten“ aus.
-  Gelesen wird: Tabellen-OID und Spaltennummer einer `RowDescription` sind Teil der
-  Serverantwort und gehen unverändert an den Client und in die Aufzeichnung. Der
-  Architect bestätigt diese Lesart für den Simple-Weg, auf dem „fachliche Inhalte“
-  steht; verneint er sie, prüft der Test nur den Extended-Weg.
-- **Ort in der Meldung** (Y2) — **offen**. Keine Stelle in Lastenheft oder
-  Spezifikation sagt, dass die Meldung eines beschädigten Recordings (`PGR-E3003`)
-  Session und Interaktion nennt; das tun heute nur der Code und
-  `TestVorpruefungNenntOrt`. Offen sind die Zusage selbst, ihr Ort und die Zählung
-  (Kennung oder Stellung in der Datei; beide sind gleich, weil `sessionFromDTO` das
-  vorher prüft). Ohne Zusage gibt es keinen Test, und Y2 wird zum äquivalenten Fall
-  mit ausgewiesener Grenze; der Liefer-Punkt entfällt dann mit Begründung in §7.
+- **Abgelehntes parse** (M3) — **entschieden** (Architect, 2026-10-24) in
+  `spec/spezifikation.md` `LH-FA-18.a`, Absatz *Anweisung in der Diagnose*. Die „erwartete
+  Query“ von `LH-FA-10.a` ist bei `parse` das eigene SQL, bei `bind` das des Statements, bei
+  `execute` das des Portals, bei `describe` und `close` das ihres Ziels. Zugesagt ist: Sind
+  in der Interaktion n Bestätigungen einer Art aufgezeichnet, sind die ersten n Nachrichten
+  dieser Art angenommen (der Server arbeitet in Reihenfolge und verwirft nach dem ersten
+  Fehler bis zum `Sync`); jede weitere ändert nichts, ein abgelehntes `parse` auf ein
+  benanntes Statement lässt das bestehende stehen, auch bei `42P05`. Geprüft gegen
+  PostgreSQL 14 bis 18 (Docker, rohe Nachrichten): benannt, bei `42P05` und bei einem
+  Syntaxfehler, bleibt das alte Statement; ein nach einem Fehler verworfenes `parse` auf
+  das unbenannte lässt es bestehen; ein scheiterndes `parse` auf das unbenannte gibt das
+  alte frei (`26000` beim folgenden `bind`), in allen fünf Versionen gleich. **Unbenanntes
+  Statement: Grenze von v1 in der Spezifikation (dort als *Grenze (unbenanntes
+  Statement)*), Empfehlung des Architect; der Nutzer entscheidet.** Gründe: Es betrifft
+  nur den Text der Diagnose, nicht die Antworten des Replays; eine Korrektur müsste die
+  eine abgelehnte Nachricht von den verworfenen unterscheiden, und das gelingt nur, wenn
+  der Recorder auch das Gelingen von `execute` und `describe` je Nachricht nachbildet,
+  also weit über diesen Schnitt. Verwirft der Nutzer die Empfehlung, entsteht ein eigener
+  Korrektur-Slice (§4); der Test hier bleibt beim benannten Statement und ändert sich
+  nicht. Der Test prüft die Zusage so weit, wie sie dasteht: das benannte Statement.
+- **Spalten-Metadaten** (P8, P2) — **entschieden** (Architect, 2026-10-24): Die Lesart ist
+  bestätigt, für den Simple- wie für den Extended-Weg; sie steht jetzt als Absatz
+  *Spalten-Metadaten* in `LH-FA-02.a` (Extended zusätzlich durch `LH-FA-18.a` *Record*).
+  Der Test prüft beide Wege. Die Spezifikation sagt die ganze Kette zu (Client und
+  Aufzeichnung); dieser Slice belegt die Übersetzung im Upstream-Adapter, den Rückweg zum
+  Client belegt `slice-tests-ueberlebende-mutanten-driving` (G4), und die Aufzeichnung der
+  zwei Felder belegt kein Test dieses Slice (kein Liefer-Punkt; der Fund hat dafür keinen
+  Mutanten).
+- **Ort in der Meldung** (Y2) — **entschieden** (Architect, 2026-10-24) in
+  `spec/spezifikation.md` `LH-FA-22.a`, Absatz *Ort in der Meldung (`yaml`)*: Die Meldung
+  `PGR-E3003` zu einem Fehler an einer Interaktion nennt Session und Interaktion. Gezählt
+  wird die Stellung; sie ist von der Nummer der Datei nicht zu trennen, denn weichen beide
+  ab, ist die Aufzeichnung beschädigt, und diese Prüfung geht der Form voraus (Reihenfolge
+  der Gründe: Nummer, dann Form). Der Liefer-Punkt 3 bleibt. Der Fall „Nummer“
+  (`geprueftFromDTO`, `Interaktion … trägt die Nummer`) hält die Zusage ebenso wie der der
+  Form; der Mutant `si+1` statt `sd.ID` bleibt gleichwertig (Review Y1).
 - **Zugang der Tests** — **entschieden** in `SPEC-049` Punkt 7: Die Tests liegen in den
   Paketen `<name>_test` und gehen über die exportierte Schnittstelle. Ein
   `RecordingRepository` und einen Server über TCP-Loopback stellt der Test, die Brücke
   wächst nicht.
-- **Was ein Test festhält** — **offen**. Ob ein Test dieses Slice von einer Meldung
-  nur Code, Exit-Code und die zugesagten Bestandteile des Textes vergleicht oder den
-  ganzen Text, entscheidet keine Stelle der Spezifikation und keine ADR. Die
-  Entscheidung des Architect zu F-463 in `slice-lint-bestand-kern-driven` (§6 dort)
-  entscheidet es auch nicht: Sie sagt, dass die Reihenfolge zweier gleichzeitiger
-  Fehler kein Vertrag ist, dass nach außen nur der Text geht (`PGR-E3003`, Exit-Code
-  3) und dass die Charakterisierungstests dort den Bestand festhalten, ohne etwas
-  zuzusagen; diese vergleichen bewusst den ganzen Text. Wie ein Test vergleicht, der
-  eine Zusage prüft, sagt sie nicht (Verifikation V-90 zu jenem Slice). Der Architect
-  entscheidet das vor dem ersten Code-Commit für die Tests aus Liefer-Punkt 1 und 3
-  und hält es fest; bis dahin entscheidet der Implementer es nicht (`AGENTS.md`
-  §3.12).
+- **Was ein Test festhält** — **entschieden** (Architect, 2026-10-24) in
+  `spec/spezifikation.md` `SPEC-038`, Absatz *Meldungstext in Tests*: Ein Test, der eine
+  Zusage prüft, vergleicht Code, Exit-Code (wo die Zusage ihn nennt) und die zugesagten
+  Textteile, nicht den ganzen Text. Für Liefer-Punkt 1: `PGR-E5001` und das SQL der
+  erwarteten Anweisung (`SELECT 1`) im Text, das der abgelehnten (`SELECT 2`) nicht; für
+  Liefer-Punkt 3: `PGR-E3003` und `Session 2` im Text (Exit-Code 3 misst ein Test über die
+  Schnittstelle des Pakets nicht und braucht ihn nicht). Der Wortlaut der Einordnung
+  (`Anweisung erwartet …`) ist nicht zugesagt und wird nicht verglichen. Die Tests des
+  Bestands bleiben stehen; sie beschreiben ihn und belegen keine Zusage.
 
 **Risiken:**
 
@@ -404,11 +410,11 @@ nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
   und mtime überträgt BuildKit nicht (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×). Die Mutationen laufen in einer frischen Kopie unter eigenem Pfad oder mit
   `go test` im Image der Stufe `deps`. — **Ausgang:** — (bei Closure)
-- **Das Replay ist am unbenannten Statement falsch** — bestätigt die Prüfung aus §6
-  *Abgelehntes parse* das Verhalten des Servers, nennt die Diagnose nach einem
-  gescheiterten `parse` auf das unbenannte Statement ein Statement, das der Server
-  nicht mehr kennt. Ausgang nach der Entscheidung des Architect: Grenze von v1 oder
-  eigener Slice. — **Ausgang:** — (bei Closure)
+- **Das Replay ist am unbenannten Statement falsch** — bestätigt (PostgreSQL 14 bis 18,
+  §6 *Abgelehntes parse*): Nach einem gescheiterten `parse` auf das unbenannte Statement
+  nennt die Diagnose ein Statement, das der Server nicht mehr kennt, in der Diagnose, nicht
+  in den Antworten. Empfehlung des Architect: Grenze von v1 (steht in `LH-FA-18.a`); der
+  Nutzer entscheidet, bei Ablehnung eigener Korrektur-Slice. — **Ausgang:** — (bei Closure)
 
 ## 7. Closure-Notiz
 
