@@ -13,7 +13,7 @@
 
 - `slice-homebrew-nachweis-macos-arm64` (Plan: §1 Ziel und Abgrenzung, §2 DoD, §3 Plan, §6 Risiken)
 - `LH-FA-19.a` (Absatz *Bericht je Kombination*) und `SPEC-067` Punkt 20 (6)
-- keine ADR im Commit genannt; ADR-0053 nur mittelbar (Homebrew)
+- keine ADR im Commit genannt; [ADR-0053](../plan/adr/0053-homebrew-tap-in-der-release-pipeline.md) nur mittelbar (Homebrew)
 - `LH-FA-19`
 - `AGENTS.md` (Hard Rules, besonders §3.9, §3.11)
 
