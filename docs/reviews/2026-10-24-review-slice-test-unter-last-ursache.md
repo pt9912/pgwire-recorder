@@ -12,7 +12,7 @@
 **Eingangs-Kontext:**
 
 - slice-test-unter-last-ursache (Plan, §7 Belege des Implementers)
-- keine aktive ADR; ADR-0055 (Zeitbudget der Gegenprobe) und ADR-0056 (Metrik) als Randbezug
+- keine aktive ADR; [ADR-0055](../plan/adr/0055-gegenproben-haben-ein-zeitbudget.md) (Zeitbudget der Gegenprobe) und [ADR-0056](../plan/adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) (Metrik) als Randbezug
 - `LH-FA-20.a` (nur als Hinweis: auf main in 36b6387c geschärft, nicht im Diff)
 - `AGENTS.md` §3.9, §3.11, §3.14 (Hard Rules)
 - gelesen zur Plausibilität: `internal/adapters/driven/postgres/einspielen.go` (`Anfrage`, `schliesse`), `internal/bootstrap/play_test.go` (`TestRunPlayZweitesSignal`)
