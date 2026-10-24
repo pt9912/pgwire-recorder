@@ -95,7 +95,11 @@ G1 entstand mit `pgwire.Listen(ctx, …)` in `78f28a1`.
    *Grenze:* Die Felder sind ein Durchreichen ohne Logik; der Test fängt das Vertauschen
    oder Weglassen eines Feldes, nicht dessen Bedeutung. G4 ist der Rückweg zum Client,
    den die Grenze von P8 und P2 in `slice-tests-ueberlebende-mutanten` als ungemessen
-   führt; gemessen ist er im Geber (T3, T5 grün).
+   führt; gemessen ist er im Geber (T3, T5 grün). Die Spezifikation sagt die Kette zum
+   Client **und** zur Aufzeichnung zu (`LH-FA-02.a` *Spalten-Metadaten*); die Übersetzung im
+   Upstream-Adapter hält `slice-tests-ueberlebende-mutanten` (P8, P2, geschlossen), den Rückweg
+   zum Client hält G4 hier. Die Aufzeichnung der zwei Felder (Schreiben in `yaml` und `sqlite`)
+   hält bisher kein Test; sie gehört nicht zu G4 (siehe *Ausdrücklich NICHT*).
 4. **G5 — Merken eines gescheiterten Versands im Replay** (X4; `replayZustellen`;
    Review F-466).
    *Verhalten:* Ohne `s.sendFailed(err)` wird ein Schreibfehler an den Client nicht als
@@ -170,7 +174,13 @@ Ergäbe das einen vierten Liefer-Punkt, schneidet er vor dem Start einen weitere
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Mutanten im Kern (`internal/hexagon/`) und in den Driven-Adaptern — übernimmt
-  `slice-tests-ueberlebende-mutanten` (M3, P8, P2, Y2); er liegt vor diesem Slice.
+  `slice-tests-ueberlebende-mutanten` (M3, P8, P2, Y2); er liegt seit seiner Closure in `done/`.
+- Die Aufzeichnung von Tabellen-OID und Spaltennummer (Verifikation F-2 zu
+  `slice-tests-ueberlebende-mutanten`) — Schicht-Abgrenzung: Der Test läge im Driven-Adapter
+  `recording`, mit PGWire-Adapter und Bootstrap die dritte Schicht. Es ist keine Adresse: Ein Mutant dort
+  ist nicht gemessen, und `slice-harness-mutation` schließt Tests für heute überlebende Mutanten aus.
+  Der Stand steht im Register (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`); ob ein eigener Slice
+  entsteht, entscheidet der Nutzer.
 - Das Ende einer Replay-Sitzung durch die Frist des Herunterfahrens und `PGR-E4006` —
   übernimmt `slice-v1-abschluss-herunterfahren` (§1 dort); G2 meint nur ein Ende, das der
   Client auslöst.
@@ -246,7 +256,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` | update (Architect, vor dem Code) | Die offenen Randformen aus §6, an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* nur, wenn er sie nicht mit der Entscheidung in `slice-tests-ueberlebende-mutanten` bestätigt |
+| `spec/spezifikation.md` | update (Architect, vor dem Code) | Die offenen Randformen aus §6, an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* steht seit `slice-tests-ueberlebende-mutanten` in `LH-FA-02.a` und braucht hier keinen Eintrag |
 | `internal/adapters/driving/pgwire/server_test.go` | update | G2, G3: Verbindungsende ohne `Terminate` und unlesbare Nachricht im Replay (Negative, LH-FA-03, LH-FA-05); G5: `TestReplaySent` um `FirstErrorCode()` erweitert, G6: nicht abbildbare Antwort, G7: Ende des Wächters (Negative, LH-FA-13) |
 | `internal/adapters/driving/pgwire/server_extended_test.go` | update | Frist beim Warten auf `conn.gesetzt` (Zeile 846 am Stand `893b54e`) und an weiteren Stellen dieser Schicht nach §6 *Warten auf einen Kanal* |
 | `internal/adapters/driving/pgwire/*_test.go` (Abbildung) | update | G4: `ToMessage` mit RowDescription, alle Felder verglichen (Happy, LH-FA-18) |
@@ -282,6 +292,14 @@ bekannt sind, und damit die Randform *Laufzeit* dort die Entscheidung *Warten au
 Kanal* von hier vorfindet. Vor `slice-v1-abschluss-herunterfahren` ist er nicht gebunden; nach der
 Reihenfolge vom 2026-10-08 liegt jener früher in `done/`, und der Architect prüft G2 gegen
 dessen Ende durch die Frist und jeden gesammelten Mutanten gegen den Code nach den Wellen.
+
+**Start-Trigger nach der Closure von `slice-tests-ueberlebende-mutanten`:** Der Nehmer liegt in
+`done/`, die Bedingung oben ist erfüllt. Der Start-Trigger von welle-gegenproben-und-mutanten
+(`welle-harness-regeln` in `done/`) ist es nicht; wie beim Geber (Drift-Log der Roadmap,
+2026-10-24) braucht ein Anspruch vor der Welle eine Entscheidung des Nutzers. Vor dem Code misst der
+Implementer jeden Mutanten G1 bis G7 gegen den Stand und nennt in §7, ob er überlebt: Beim Geber
+stimmte eine Aussage „überlebt alle Tests“ (Y2) nur zum Teil, weil sie am Code, nicht am
+Mutationslauf gesichtet war.
 
 Erster Schritt nach dem Start, vor jedem Code-Commit: Der Architect entscheidet die
 Randformen aus §6 und hält sie in der Spezifikation fest
@@ -345,11 +363,12 @@ nicht; er gibt es zurück.
   eine Zusage ist (etwa unter `SPEC-032`) oder eine Eigenschaft des Codes ohne Vertrag.
   Ohne Zusage bleibt G7 mit Grenze als äquivalent für Tests über die Schnittstelle
   geführt, und der Satz im Doc-Kommentar kehrt nicht zurück.
-- **Spalten-Metadaten** (G4) — **zu bestätigen**. Dieselbe Lesart wie in
-  `slice-tests-ueberlebende-mutanten` §6: Tabellen-OID und Spaltennummer einer
-  `RowDescription` sind Teil der Serverantwort und gehen unverändert an den Client
-  (`LH-FA-02.a` Schritt 4, `LH-FA-18.a` *Record*) und im Replay so, wie sie aufgezeichnet
-  sind (`LH-FA-03.a` *Ausgabe*). Der Architect entscheidet sie einmal für beide Slices.
+- **Spalten-Metadaten** (G4) — **entschieden** (Architect, 2026-10-24, bei
+  `slice-tests-ueberlebende-mutanten`) in `LH-FA-02.a`, Absatz *Spalten-Metadaten*: Tabellen-OID
+  und Spaltennummer einer `RowDescription` sind Teil der Serverantwort und gehen unverändert an
+  den Client, einfach wie Extended (`LH-FA-18.a` *Record*). Für das Replay (`LH-FA-03.a`
+  *Ausgabe*, so wie aufgezeichnet) steht der Satz nicht im selben Absatz; der Architect prüft
+  vor dem Code, ob G4 an `ToMessage` im Replay dort eine Zusage trägt, und ergänzt sie sonst.
 - **Signal vor dem Öffnen** (G1) — **offen**. Keine Stelle sagt, wie ein Lauf endet,
   dessen Kontext vor dem Öffnen des Listeners schon beendet ist: regulär mit Exit-Code 0
   (heute) oder als Startfehler `PGR-E4001` (`LH-FA-13.b` *Startfehler*,
@@ -372,8 +391,9 @@ nicht; er gibt es zurück.
 - **Zugang der Tests** — **entschieden** in `SPEC-049` Punkt 7: Die Tests liegen in
   `pgwire_test` und `bootstrap_test` und gehen über die exportierte Schnittstelle; die
   Brücke wächst nicht.
-- **Was ein Test festhält** — wie in `slice-tests-ueberlebende-mutanten` §6, dort
-  **offen**; die Entscheidung gilt für beide Slices.
+- **Was ein Test festhält** — **entschieden** (Architect, 2026-10-24, bei
+  `slice-tests-ueberlebende-mutanten`) in `SPEC-038`, Absatz *Meldungstext in Tests*: Code und
+  zugesagte Textteile, nicht der ganze Text; sie gilt für beide Slices.
 
 **Risiken:**
 
@@ -460,5 +480,14 @@ Einträge mit je zwei Belegen, beide aus dem Geber:
 
 Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein 3×; vor dem Code
 entsteht keine neue Lücke.
+
+**Nachzählung** (Planner, 2026-10-24, Closure von `slice-tests-ueberlebende-mutanten`): Liefer-Punkte 3
+(G2 und G3 · G5, G6 und G7 · G4 und G1), Schichten 2 (PGWire-Adapter, Bootstrap; Tests zählen als die
+Schicht ihres Codes). Fügt `make abdeckung` Zeilen unter `docs/user/abdeckung-*.md` hinzu, wären sie
+formal eine dritte Schicht; der Geber entschied das für sich als Einzelfall (§8 dort, Planner), der
+Nutzer hat den Satz für `AGENTS.md` §3.13 noch nicht entschieden. Hier gilt bis dahin dasselbe wie dort
+und wird beim Anspruch neu gelesen; die Zeilen kämen nur, wenn ein neuer Test eine Deklaration trägt,
+die die Tabelle noch nicht führt. Die Aufzeichnung der Spalten-Metadaten bleibt draußen (§1), sie
+wäre die dritte Schicht.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
