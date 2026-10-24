@@ -13,7 +13,7 @@
 
 - Slice-Plan `slice-tests-ueberlebende-mutanten` (§1, §2, §3, §6, §7 *Belege des Implementers*, §8 Zählung und Planner-Entscheidung)
 - `LH-FA-02.a`, `LH-FA-18.a`, `LH-FA-22.a`, `SPEC-038`, `SPEC-049` Punkt 7 (Spezifikation, Stand `772c62b3`); `LH-FA-02`, `LH-FA-07`, `LH-FA-10`, `LH-FA-18`, `LH-FA-22` (Lastenheft)
-- ADR-0034 (Black-Box-Tests über die exportierte Schnittstelle)
+- [ADR-0034](../plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) (Black-Box-Tests über die exportierte Schnittstelle)
 - `AGENTS.md` §3.9 bis §3.14 (Hard Rules)
 
 **Nicht erbracht:** Die Mutationen habe ich nicht nachgefahren. Auf dem Host liegt kein Go (Docker-only, `AGENTS.md` §3.1), und auf main lief ein voller `make gates`; Docker-Läufe waren ausgeschlossen. Die Mutationstabelle aus §7 habe ich stattdessen gegen den Test-Code und den Produkt-Code gelesen und je Zeile nachgerechnet (siehe Negativbefunde). Das ist Lesen, kein Lauf; das Nachfahren bleibt der Verifikation (§5 des Plans).
