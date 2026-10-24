@@ -306,6 +306,51 @@ func TestRunRecordStartfehlerJeStufe(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-13/Boundary — ein Signal, bevor der Prozess lauscht, ist kein
+// Startfehler: Mit schon beendetem Kontext endet der Lauf von record und replay mit
+// Exit-Code 0 und ohne PGR-E4001, auch mit einem Namen in --listen; ein Name, der nicht
+// auflöst, und ein belegter Port bleiben Startfehler mit Exit-Code 4 und PGR-E4001
+// (LH-FA-13.a Startphase). Geprüft nur unter Linux: dort löst die Hosts-Datei localhost
+// auf; für macOS und Windows steht die Grenze in LH-FA-13.a.
+func TestRunSignalVorDemOeffnen(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
+	belegt, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer belegt.Close()
+	for _, kommando := range []string{"record", "replay"} {
+		for _, f := range []struct {
+			name   string
+			listen string
+			exit   int
+		}{
+			{"Name localhost", "localhost:0", 0},
+			{"IP-Adresse", "127.0.0.1:0", 0},
+			{"Name löst nicht auf", "pgr-gibt-es-nicht.invalid:0", 4},
+			{"Port belegt", belegt.Addr().String(), 4},
+		} {
+			t.Run(kommando+" "+f.name, func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				var stdout, stderr bytes.Buffer
+				ende := make(chan int, 1)
+				go func() {
+					ende <- bootstrap.Run(ctx, nil, quelle(t, kommando, f.listen), "dev", &stdout, &stderr)
+				}()
+				select {
+				case code := <-ende:
+					if code != f.exit || strings.Contains(stderr.String(), "PGR-E4001") != (f.exit == 4) {
+						t.Fatalf("Exit-Code %d, erwartet %d; stderr %q", code, f.exit, stderr.String())
+					}
+				case <-time.After(30 * time.Second):
+					t.Fatalf("%s: Run endet nicht binnen 30 s\n%s", kommando, stderr.String())
+				}
+			})
+		}
+	}
+}
+
 // freieAdresse liefert eine Adresse auf 127.0.0.1, die gerade frei ist.
 func freieAdresse(t *testing.T) string {
 	t.Helper()
@@ -350,7 +395,12 @@ func TestRunRecordSchreibfehlerJeStufe(t *testing.T) {
 			t.Fatal(err)
 		}
 		cancel()
-		exit := <-ende
+		var exit int
+		select {
+		case exit = <-ende:
+		case <-time.After(30 * time.Second):
+			t.Fatalf("%s: Run endet nicht binnen 30 s nach dem Signal\n%s", stufe, stderr.String())
+		}
 		zeilen := strings.Split(strings.TrimSuffix(stderr.String(), "\n"), "\n")
 		letzte := zeilen[len(zeilen)-1]
 		einzig := stufe == "error" || stufe == "warn"

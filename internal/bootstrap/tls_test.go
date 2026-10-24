@@ -97,8 +97,13 @@ func TestRunReplayTLS(t *testing.T) {
 			}
 			c.Close()
 			cancel()
-			if code := <-ende; code != f.exitCode {
-				t.Fatalf("Exit-Code %d, erwartet %d, stderr:\n%s", code, f.exitCode, stderr.String())
+			select {
+			case code := <-ende:
+				if code != f.exitCode {
+					t.Fatalf("Exit-Code %d, erwartet %d, stderr:\n%s", code, f.exitCode, stderr.String())
+				}
+			case <-time.After(30 * time.Second):
+				t.Fatal("Run endet nicht binnen 30 s nach dem Signal")
 			}
 			if f.exitCode == 6 && !strings.Contains(stderr.String(), "PGR-E6003") {
 				t.Fatalf("stderr ohne PGR-E6003:\n%s", stderr.String())
@@ -181,7 +186,11 @@ func runTLSLogOhneSchluessel(t *testing.T, kommando string) {
 	c.Close()
 	time.Sleep(200 * time.Millisecond)
 	cancel()
-	<-ende
+	select {
+	case <-ende:
+	case <-time.After(30 * time.Second):
+		t.Fatal("Run endet nicht binnen 30 s nach dem Signal")
+	}
 	log := stderr.String()
 	if !strings.Contains(log, "PGR-W3002") || !strings.Contains(log, "PGR-E6003") {
 		t.Fatalf("Log ohne die erwarteten Zeilen:\n%s", log)
