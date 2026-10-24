@@ -19,7 +19,7 @@ Export-Test-Brücke).
 
 **Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-10.a` · `LH-FA-18.a` · `SPEC-001` · `SPEC-049` (Punkt 7, nur angewandt)
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-mut1)
 
 **Autor:** pt9912. **Datum:** 2026-10-07.
 
