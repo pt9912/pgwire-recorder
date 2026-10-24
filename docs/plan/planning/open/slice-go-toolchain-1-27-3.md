@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** [`SPEC-067`](../../../../harness/vertraege/SPEC-067-release.md) Punkt 16 (der Scan; gelesen, nicht geändert) · [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) (Bau und Summen der Binaries; gelesen, nicht geändert).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** Planner. **Datum:** 2026-10-24.
 
 ---
