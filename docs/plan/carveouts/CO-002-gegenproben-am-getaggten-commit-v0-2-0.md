@@ -1,6 +1,6 @@
 # CO-002: Die Pflicht zum vollen Lauf der Gegenproben am getaggten Commit ruht für `v0.2.0`
 
-**Status:** Proposed (Entwurf des Architect, 2026-10-24). Der Nutzer nimmt ihn an oder ändert ihn; erst seine Antwort macht ihn Aktiv, mit Datum und Wortlaut in diesem Absatz. Bis dahin sind die Punkte 2 und 3 der Freigabe von `v0.2.0` nicht ausgenommen, und der Slice `slice-release-v0-2-0` hält an (§4 Rückführung (i)). **Was der Nutzer bisher entschieden hat** (Angabe der Koordination, am 2026-10-24, nicht nachgefahren): Version `v0.2.0` und „Carveout wie `CO-001`“, das heißt nur der engste Fall je Gegenprobe mit `GP_MUT` als Ersatz, die Grenze im Eintrag genannt. Wortlaut und Annahme dieser Datei stehen aus.
+**Status:** Aktiv seit 2026-10-24. **Entscheidung des Nutzers vom 2026-10-24**, auf die Frage nach den Entscheidungen zu diesem Carveout wörtlich: „deine empfehlungen“. Das nimmt die Empfehlungen des Architect an: (1) neues `CO-002`, `CO-001` nicht verlängert, (2) kein dritter Ersatzbeleg, (3) kein Folge-Tag (`v0.2.1` ist nicht eingeschlossen), (4) damit Annahme dieses Carveouts mit dem Ersatz unten. Davor am selben Tag entschied der Nutzer die Version `v0.2.0` und das Ja zum Tag (Wortlaut „release“, Punkt 7 der Freigabe); den Tag setzt die Koordination erst nach grünem Trockenlauf und nochmaliger Bestätigung des Nutzers. Die Wiedergabe des Wortlauts stammt von der Koordination und ist nicht nachgefahren.
 
 **Datum angelegt:** 2026-10-24. **Letzte Prüfung:** 2026-10-24. **Nächste Prüfung:** mit der Closure von `slice-release-v0-2-0`, spätestens am 2027-01-22 (90 Tage, `modul-07-carveouts.md` §Carveout-Audit-Slice).
 
@@ -20,7 +20,7 @@ Regeln: Baseline-Regelwerk `modul-07-carveouts.md` §Ziel-Form: Carveout.
 
 Die Pflicht aus `SPEC-060` Punkt 14 verlangt vor dem Release den vollen Lauf beider Sammelziele; die Zeitgrenze aus [ADR-0055](../adr/0055-gegenproben-haben-ein-zeitbudget.md) (Entscheidung des Nutzers vom 2026-10-21, höchstens zehn Minuten je Gegenprobe) und `AGENTS.md` §6 (Entscheidung des Nutzers vom 2026-10-22: nur der engste Fall, auch beim Verifier) machen ihn unmöglich, solange `release-gegenprobe` und `test-container-gegenprobe` nicht aufgenommen sind und die übrigen Gegenproben nicht gemessen sind (Tabelle `SPEC-060` Punkt 16). Der Zustand hat sich seit `CO-001` nicht geändert; beide Slices liegen nicht in `done/`. Der Vertrag senkt die Schwelle nicht still (`AGENTS.md` §3.6), die Ausnahme steht hier mit Trigger. Der Nutzer wählte am 2026-10-24 die Form von `CO-001` statt des Wartens auf die beiden Slices.
 
-## Ersatz für `v0.2.0` (Entwurf des Architect, 2026-10-24)
+## Ersatz für `v0.2.0` (Festlegung des Architect, 2026-10-24, vom Nutzer angenommen)
 
 Der Eintrag belegt statt der vollen Läufe je Beleg mit Befehl, Hash `R` (der getaggte Commit, `releasing.md` §10), Datum, Dauer, Last (1-Minuten-Mittel, Kernzahl) und Ausgang.
 
@@ -39,9 +39,9 @@ Der Eintrag belegt statt der vollen Läufe je Beleg mit Befehl, Hash `R` (der ge
 
 Der Carveout ist verbraucht, wenn `slice-release-v0-2-0` schließt: der Tag `v0.2.0` gesetzt und der Eintrag `freigaben/0.2.0.md` geschlossen, oder der Slice ohne Tag zurückgeführt (dann ist die Ausnahme ungenutzt verfallen, und der Grund steht in §7 des Slice). Dann wandert er nach `done/` (reiner `git mv`; der Index `README.md` zieht im Commit davor nach). Ein weiterer Tag vor der Auflösung der Ursache (Tabelle `SPEC-060` Punkt 16, Trigger von `CO-001`) braucht einen neuen Carveout oder eine Verlängerung durch den Nutzer; löst `CO-001` vorher auf, fährt die Freigabe die Punkte 2 und 3 wieder voll, und dieser Carveout ist gegenstandslos. Prüf-Termin: mit der Closure des Slice und vor jedem weiteren Tag.
 
-## Was der Nutzer noch entscheiden kann (alles Empfehlung des Architect, keine Entscheidung des Nutzers)
+## Entscheidungen des Nutzers vom 2026-10-24 („deine empfehlungen“)
 
-- **Form:** Empfehlung ist dieses neue `CO-002` (Grund oben); die Alternative ist eine Verlängerung von `CO-001` um `v0.2.0`.
-- **Dritter Ersatzbeleg:** Empfehlung: keiner (Grund: Der Nutzer wählte „wie `CO-001`“, und die Läufe nach Ersatz 2 sind engster Fall). Wenn er einen verlangt, ist der kleinste ein Lauf von `GP_MUT='^$' GP_NUR=<Fall> make container-start-gegenprobe` am Host (`GP_NUR` wählt Fälle der unveränderten Kopie, `container-start-gegenprobe.sh` Kopf), der den Host-Zustand heute zeigt, soweit der Host Docker, `u-boot` und `devcontainer` hat; für die Container-Gegenproben gibt es keinen kleineren als Ersatz 2.
-- **Folge-Tag:** Das Ja zu `v0.2.0` schließt `v0.2.1` nicht ein (Standard, so im Plan geführt); will er es, sagt er es, und der Carveout wird dann um genau diesen Tag erweitert.
-- **`CO-001` selbst:** bleibt Aktiv als Träger der Ursache; der Architect empfiehlt, ihn nicht zu verändern.
+- **Form:** neues `CO-002`; `CO-001` bleibt Aktiv als Träger der Ursache und wird nicht verändert.
+- **Dritter Ersatzbeleg:** keiner. Ersatz 1 bis 3 oben sind der ganze Ersatz.
+- **Folge-Tag:** keiner. `v0.2.1` und jeder spätere Tag brauchen ein neues Ja des Nutzers und einen neuen Carveout oder eine Verlängerung durch ihn.
+- **Annahme:** dieser Carveout ist Aktiv; er trägt die Punkte 2 und 3 der Freigabe von `v0.2.0`.
