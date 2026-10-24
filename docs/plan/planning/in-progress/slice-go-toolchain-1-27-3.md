@@ -91,7 +91,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): Der Nutzer hat der Koordination den Auftrag gegeben (Trockenlauf rot, Befund beheben, kein Tag). Der Slice blockiert `slice-release-v0-2-0` (Scan ist dort DoD 6); er läuft vor dem Tag.
 
-**Marke 1500** (Metrik: `AGENTS.md` §3.14, dort der Befehl; Pfade des Plans: `Dockerfile harness/mk`; Basis: der Commit des Übergangs nach `in-progress/`, Hash beim Übergang eintragen: `(beim Übergang)`).
+**Marke 1500** (Metrik: `AGENTS.md` §3.14, dort der Befehl; Pfade des Plans: `Dockerfile harness/mk`; Basis: der Commit des Übergangs nach `in-progress/`, Hash beim Übergang eintragen: `7cfad5ab`).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
