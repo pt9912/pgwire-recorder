@@ -41,6 +41,8 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 - `make gates` grün.
 - Closure-Notiz in `welle-v1-nachtrag-results.md`.
 
+**Entscheidung des Nutzers vom 2026-10-24 zur Closure** (Option B, Wortlaut „Trigger unverändert, mit Grenze schließen“, so vom Koordinator übermittelt): Der Wortlaut der Bedingungen oben bleibt unverändert; Abnahmeszenario 11 ist nicht auf macOS und Linux nachgewiesen. Die Welle schließt mit der Grenze: Nachgewiesen ist Linux auf `amd64` (`slice-erster-release-homebrew-nachweis`); für macOS auf `arm64` liegt ein Bericht der Stufe *Bericht* vor (Installation und `version`; `LH-FA-19.a` in [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew), `SPEC-067` Punkt 20 (6), `slice-homebrew-nachweis-macos-arm64`), der Replay-Teil dort ohne Beleg; macOS auf `amd64` und Linux auf `arm64` sind Grenze. Die Closure-Notiz führt die Lücke als offen, nicht als erfüllt.
+
 ## 4. Slices in dieser Welle
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -101,5 +103,5 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-traceability.md`
 beiden Zeiger unten sind so zu schreiben, wie sie vom Ruheort `done/` auflösen,
 nicht vom Schreibort.
 
-Ergebnis: `welle-v1-nachtrag-results.md` als Geschwister im Ruheort `done/` (entsteht bei Closure).
+Ergebnis: [welle-v1-nachtrag-results](welle-v1-nachtrag-results.md) als Geschwister im Ruheort `done/`.
 Zähler: Beobachtungs-Register `../observations/README.md` (eine Ebene über dem Ruheort).
