@@ -66,14 +66,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] **Liefer-Punkt 2 (zweite Probe: Signalfall der Gegenprobe):** §7 trägt dasselbe für den Fall `p17-budget-sigint` der Gegenprobe `container-einrichten-gegenprobe`: der enge Lauf der Mutation `m-p17-signal-int` mit `GP_MUT` (nicht die volle Gegenprobe, [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md)) unter derselben Last, mit der Zahl der Läufe, der Zahl der roten und der Ursache oder dem Befund „nicht reproduziert“; ein Rot durch das Zeitbudget der Gegenprobe selbst ist von einem Rot des Falls getrennt (Randform 6). Die Gegenprobe wird nicht geändert.
 - [x] **Liefer-Punkt 3 (Zwischenregel):** `.claude/commands/implement-slice.md` trägt in Schritt 16 die Zwischenregel: Bei Rot von `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` oder `TestE2EPlayVergleichAlle/Umgebungsvariable` fährt der Implementer den Test allein und wiederholt `make gates` einmal, bevor er einen Befund schreibt; §7 des Plans nennt beide Läufe und die Last; das erste Rot bleibt ein Auftreten im Register; Rot von `TestRunPlayZweitesSignal` ist ein Befund, keine Wiederholung. Der Wortlaut ist vom Nutzer am 2026-10-24 bestätigt, vor dem Commit; Fundstelle in §7.
 - [x] Kein Code, keine Frist und kein Test im Repo ist geändert (Beleg: der Befehl aus §3.14 über `.claude internal test tools harness` liefert 1, die Regelzeile in `implement-slice.md`; unter `internal test tools harness` ist `numstat` leer; in §7 *Größe* genannt).
-- [ ] `make gates` grün (Stop-Hook verlangt den vollen Lauf, weil `.claude/` ändert).
+- [x] `make gates` grün (Stop-Hook verlangt den vollen Lauf, weil `.claude/` ändert).
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag (geschärfte Regel: `implement-slice.md`, `liegt in`, soweit aufgenommen; sonst benannte Spec-Lücke: die Ursache ist nicht reproduzierbar, mit den Läufen).
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `BEO-REPO/test-faellt-unter-cpu-last-aus` von `geplant` auf `verkörpert` (Zwischenregel: Zielort und Anker) mit der benannten Ursache oder dem Befund „nicht reproduziert“ im `state.md`; liegt die Ursache in Test oder Code, steht der Folge-Slice mit Kennung als Datei in `open/` (Planner, Closure); kein Zähler wird gesetzt.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo mit Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo mit Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -235,7 +235,7 @@ Last in den Serien K=32/48: 16 bis 32 bzw. 18 bis 48 (Lastzahl 1 min, 16 Kerne).
 4. *A und B, Ursache offen:* weiter offen → `BEO-REPO/test-faellt-unter-cpu-last-aus`; Stand des Eintrags `verkörpert` (Zwischenregel) mit der Ursache von C und dem Befund „nicht reproduziert“ für A und B im `state.md`.
 5. *Zusätze der Regelzeile in `implement-slice.md` Schritt 16, vom Nutzer **nicht ausdrücklich bestätigt**, vom Planner behalten:* (i) die Einleitung „(seit slice-test-unter-last-ursache, Entscheidung des Nutzers vom 2026-10-24)“ und (ii) der Schlusssatz „Die Regel gilt für den Implementer, nicht für Reviewer und Verifier.“ Bestätigt ist der Kern („Vorschlag 2 (Recommended)“); die Entscheidung des Nutzers deckt (i) und (ii) nur, wenn er sie bestätigt. **Zu bestätigen oder streichen lassen** (Bericht des Planners an den Koordinator); bis dahin gilt die Zeile, und kein weiterer Absatz entsteht (`AGENTS.md` §3.15).
 
-**Beleg `make gates`** (Endstand des Zweigs, vor dem Move nach `done/`): siehe Nachtrag in diesem Absatz.
+**Beleg `make gates`:** Exit 0, 5 min 5 s, am Endstand ea23a332 (Zweig impl-last1, nach dem Move nach `done/`, Host frei). Ein erster Lauf davor am Stand 12d087ed endete in `docs-check` rot (`target-missing`: der Link des Folge-Slice auf diese Datei in `done/`, die erst nach dem Move da ist); der Link ist unverändert, der zweite Lauf grün.
 
 **Lerneintrag (Steering Loop).**
 
