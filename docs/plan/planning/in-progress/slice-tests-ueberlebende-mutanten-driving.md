@@ -16,7 +16,7 @@ Slice eine dritte Schicht. Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Tests über die öffentliche Schnittstelle). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Black-Box-Tests über die Export-Test-Brücke).
 
-**Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-03.a` · `LH-FA-13.a` · `LH-FA-18.a` · `SPEC-038` · `SPEC-049` (Punkt 7, nur angewandt). Welche davon eine Zusage trägt und wo eine fehlt, entscheidet der Architect vor dem Code (§6).
+**Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-03.a` · `LH-FA-13.a` · `LH-FA-18.a` · `SPEC-032` · `SPEC-038` · `SPEC-049` (Punkt 7, nur angewandt). Welche davon eine Zusage trägt und wo eine fehlt, entscheidet der Architect vor dem Code (§6).
 
 **Verantwortlich:** pt9912
 
@@ -124,8 +124,9 @@ die Frist:
    (`runtime.NumGoroutine`) binnen einer Frist auf den Stand vor der Verbindung zurück.
    *Mutation, die rot werden muss:* `case <-fertig:` in `replayWaechter` entfernt.
    *Grenze:* über das Protokoll nicht beobachtbar, nur über die Zahl der Goroutinen des
-   Prozesses; der Test läuft nicht parallel zu anderen und braucht eine Frist. Ob das
-   eine Zusage ist, entscheidet der Architect (§6 *Ende des Wächters*).
+   Prozesses; der Test läuft nicht parallel zu anderen und braucht eine Frist. Der
+   Architect hat entschieden: keine Zusage (§6 *Ende des Wächters*, `SPEC-032`); der Test
+   entfällt.
 4. **G1 — `Listen` ohne `WithoutCancel`** (K4; `pgwire.Listen`, gerufen aus
    `internal/bootstrap`).
    *Verhalten:* Mit schon beendetem Kontext und einem Namen als Adresse bricht die
@@ -136,8 +137,8 @@ die Frist:
    *Mutation, die rot werden muss:* `context.WithoutCancel` in `pgwire.Listen` entfernt.
    *Grenze:* nur mit einem Namen als Adresse sichtbar, weil allein die Namensauflösung
    von `net` den Kontext liest; mit einer IP-Adresse bleibt der Mutant grün. Die Zusage
-   „ein Signal vor dem Öffnen ist kein Startfehler“ steht heute in keinem Stratum (§6
-   *Signal vor dem Öffnen*).
+   „ein Signal vor dem Öffnen ist kein Startfehler“ steht in `LH-FA-13.a` *Startphase* (§6
+   *Signal vor dem Öffnen*, vom Architect für die Namensauflösung ergänzt); geprüft nur unter Linux.
 
 **Entfallen als Gegenstand (Planner, 2026-10-24, nach der Messung oben):** G2, G3, G5 und
 G6 sind am Stand `f4ff9387` gefangen; ihre Tests entstanden nach der Anlage dieses Plans
@@ -208,8 +209,9 @@ entfallen nach §1 *Aktualität*). Der Beleg des Implementers steht in §7 als
 Mutationstabelle (Zusage · Mutation · roter Test, je Mutant dazu der Lauf ohne den neuen
 Test, in dem er grün bleibt), nicht im Bericht; vor dem Code misst er G1, G4 und G7 gegen den
 Stand und nennt, ob sie überleben. Entscheidet der Architect zu einem Mutanten, dass keine
-Zusage besteht (§6), entfällt dessen Test mit Begründung in §7, und der Mutant ist mit
-Invariante, Ort und Sonde als äquivalent geführt (`AGENTS.md` §3.10).
+Zusage besteht (§6; entschieden ist das nur für G7), entfällt dessen Test mit Begründung in §7; der Mutant
+ist ein akzeptiertes Negativ mit diesem Grund, nicht „äquivalent“: Er ändert das Verhalten, und
+Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
 
 - [ ] **Frist beim Warten (F-468):** Die Tests dieser beiden Schichten, die ohne Frist auf
       einen Kanal oder das Ende eines Laufs warten, tragen die Frist nach §6 *Warten auf
@@ -220,11 +222,11 @@ Invariante, Ort und Sonde als äquivalent geführt (`AGENTS.md` §3.10).
 - [ ] **Abbildung und Ende des Wächters (G4, G7):** Ein Test in `pgwire_test` über
       `pgwire.ToMessage` hält Tabellen-OID und Spaltennummer der Spaltenbeschreibung
       nach §6 *Spalten-Metadaten* (`LH-FA-02.a`, `LH-FA-03.a`, `LH-FA-18.a`) und wird
-      rot unter T3 und, je für sich, unter T5. Für G7 ein Test nach §6 *Ende des Wächters*,
-      rot ohne `case <-fertig:`, oder die Begründung in §7, dass keine Zusage besteht.
+      rot unter T3 und, je für sich, unter T5. Für G7 kein Test: §6 *Ende des Wächters*
+      entscheidet „keine Zusage“; §7 führt den Mutanten als akzeptiertes Negativ (nicht äquivalent) mit diesem Grund.
 - [ ] **Öffnen am Rand (G1):** Ein Test in `bootstrap_test` über `bootstrap.Run` hält die
-      Zusage nach §6 *Signal vor dem Öffnen* (Kandidat `LH-FA-13.a`) und wird rot ohne
-      `context.WithoutCancel` in `pgwire.Listen`, oder §7 begründet, dass keine Zusage besteht.
+      Zusage nach §6 *Signal vor dem Öffnen* (`LH-FA-13.a` *Startphase*) und wird rot ohne
+      `context.WithoutCancel` in `pgwire.Listen`; geprüft nur unter Linux (Grenze für macOS und Windows steht in `LH-FA-13.a`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -245,7 +247,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `spec/spezifikation.md` | update (Architect, vor dem Code) | Die offenen Randformen aus §6 (Ende des Wächters, Signal vor dem Öffnen, Spalten-Metadaten im Replay, Stellen der Frist), an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* für den Rückweg steht seit `slice-tests-ueberlebende-mutanten` in `LH-FA-02.a` |
 | `internal/adapters/driving/pgwire/server_extended_test.go` | update | Frist beim Warten auf `conn.gesetzt` (Zeile 848 am Stand `f4ff9387`) und an weiteren Stellen dieser Schicht nach §6 *Warten auf einen Kanal* (Kandidat `server_tls_test.go:54`) |
-| `internal/adapters/driving/pgwire/*_test.go` (Abbildung, Wächter) | update | G4: `ToMessage` mit RowDescription, alle Felder verglichen (Happy, LH-FA-18); G7: Ende des Wächters (Negative, LH-FA-13), falls der Architect es zusagt |
+| `internal/adapters/driving/pgwire/*_test.go` (Abbildung, Wächter) | update | G4: `ToMessage` mit RowDescription, alle Felder verglichen (Happy, LH-FA-18); G7: kein Test (keine Zusage, §6) |
 | `internal/bootstrap/bootstrap_test.go` | update | G1: `bootstrap.Run` mit beendetem Kontext und `--listen localhost:0` (Boundary, LH-FA-13); Frist beim Warten auf das Ende des Laufs (Kandidaten `bootstrap_test.go:353` und `tls_test.go:184`) |
 | `internal/adapters/driving/pgwire/server.go` | update (nur Kommentar) | Doc-Kommentar von `replayWaechter` (der gestrichene Satz, nur mit dem Test aus G7) und, wo ein benannter Test sie prüft, von `replayLesefehler` und `replayZustellen` |
 
@@ -317,7 +319,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
 DoD vollständig; jeder Mutant aus §1 *Gegenstand* ist in §7 mit seiner Mutation rot
-belegt oder mit Begründung als äquivalent geführt, die vier entfallenen (G2, G3, G5, G6)
+belegt oder (G7) als akzeptiertes Negativ mit Begründung geführt, die vier entfallenen (G2, G3, G5, G6)
 stehen mit ihrem Lauf am Endstand in §7, und die Verifikation hat das nachgefahren. `make gates` ist grün, die Closure-Notiz mit Lerneintrag ist geschrieben.
 
 ## 6. Risiken und offene Punkte
@@ -335,42 +337,59 @@ Verbindungsende, zur unlesbaren Nachricht und zum Versand im Replay (G2, G3, G5,
 entfallen mit ihren Mutanten (§1 *Aktualität*); die Bestandstests, die sie fangen, tragen
 ihre Zusagen.
 
-- **Ende des Wächters** (G7) — **offen**. Ob das Ende einer Goroutine mit ihrer Sitzung
-  eine Zusage ist (etwa unter `SPEC-032`) oder eine Eigenschaft des Codes ohne Vertrag.
-  Ohne Zusage bleibt G7 als äquivalent für Tests über die Schnittstelle geführt, nach
-  `AGENTS.md` §3.10 mit Invariante, Ort und Sonde in §7 (die Zusage selbst ist keine
-  Invariante, ein Kommentar kein Ort), und der Satz im Doc-Kommentar kehrt nicht zurück.
-- **Spalten-Metadaten** (G4) — **teilweise entschieden** (Architect, 2026-10-24, bei
-  `slice-tests-ueberlebende-mutanten`) in `LH-FA-02.a`, Absatz *Spalten-Metadaten*: Tabellen-OID
-  und Spaltennummer einer `RowDescription` sind Teil der Serverantwort und gehen unverändert an
-  den Client, einfach wie Extended (`LH-FA-18.a` *Record*). **Offen:** Für das Replay (`LH-FA-03.a`
-  *Ausgabe*, so wie aufgezeichnet) steht der Satz nicht im selben Absatz; der Architect prüft
-  vor dem Code, ob G4 an `ToMessage` im Replay dort eine Zusage trägt, und ergänzt sie sonst.
-- **Signal vor dem Öffnen** (G1) — **offen**. Keine Stelle sagt, wie ein Lauf endet,
-  dessen Kontext vor dem Öffnen des Listeners schon beendet ist: regulär mit Exit-Code 0
-  (heute) oder als Startfehler `PGR-E4001` (`LH-FA-13.b` *Startfehler*,
-  `LH-FA-13.a`). Ohne Zusage gibt es keinen Test, und G1 bleibt mit Grenze als
-  äquivalent geführt (Invariante, Ort, Sonde wie bei G7); der Doc-Kommentar von `Listen`
-  sagt dazu weiter nichts zu. Die Plattform gehört dazu: Der Test braucht die Namensauflösung
-  von `localhost`, die Stufe `test` des `Dockerfile` (Linux, ohne Netz) löst sie aus
-  `/etc/hosts`; der Architect nennt die Grenze, falls der Test sonst nirgends läuft.
+Stand der Randformen (Architect, 2026-10-24, vor dem ersten Code-Commit; Randform ·
+Entscheidung · Ort):
+
+- **Ende des Wächters** (G7) — **entschieden: keine Zusage** (`SPEC-032`, Absatz *Nicht
+  zugesichert ist, was eine beendete Verbindung im Prozess zurücklässt*). Der Wächter darf
+  nach dem Ende der Sitzung bis zum Ende des Prozesses weiterlaufen; eine Goroutine je
+  Replay-Verbindung kostet in einem Testwerkzeug nichts Messbares, und ein Test über
+  `runtime.NumGoroutine` wäre flatterhaft (kein Parallellauf, Frist) und belegte keine
+  Zusage. Es entfällt der Test aus G7. **Der Mutant ist nicht äquivalent**: Er ändert das
+  Verhalten (die Goroutine bleibt), `AGENTS.md` §3.10 verlangt Invariante, Ort und Sonde
+  nur für „äquivalent“, und die gibt es hier nicht. §7 führt ihn als **akzeptiertes
+  Negativ** mit dem Grund „keine Zusage in `SPEC-032`“, ohne Sonde. Der Satz im
+  Doc-Kommentar von `replayWaechter` kehrt nicht zurück.
+- **Spalten-Metadaten** (G4) — **entschieden**: Record in `LH-FA-02.a` (Absatz
+  *Spalten-Metadaten*), Replay in `LH-FA-03.a` (Absatz *Spalten-Metadaten*, neu): Tabellen-OID
+  und Spaltennummer einer aufgezeichneten `RowDescription` gehen unverändert an den Client,
+  einfach wie Extended. Der Test über `pgwire.ToMessage` trägt beide Zusagen (der Weg ist
+  für Record und Replay derselbe). Die Aufzeichnung der Felder bleibt ausgeschlossen (§1).
+- **Signal vor dem Öffnen** (G1) — **entschieden, eine Zusage bestand schon**: `LH-FA-13.a`
+  *Randfälle des Herunterfahrens*, *Startphase* („Ein Signal, bevor der Prozess lauscht,
+  bricht den Start nicht ab“; der Planner las „keine Stelle sagt es“, die Stelle sagt
+  Exit-Code `0` mit der Ausnahme, dass ein Startfehler seinen Code behält). Der Architect
+  hat dort ergänzt, dass das Öffnen des Listeners samt Namensauflösung zu den
+  Startprüfungen gehört: Exit-Code `0`, kein `PGR-E4001`; ein Name, der nicht auflöst, und
+  ein Port, der nicht zu öffnen ist, bleiben Startfehler. Der Test in `bootstrap_test` ist
+  Pflicht, der Ausgang „keine Zusage“ in §2 entfällt. Eine Änderung des Verhaltens ist
+  nicht vorgeschlagen und keine Entscheidung des Nutzers nötig. **Plattform** (`LH-QA-03`:
+  Linux, macOS, Windows je `amd64` und `arm64`): geprüft nur unter Linux, in der Stufe
+  `test` löst die Hosts-Datei `localhost` auf; macOS und Windows sind Grenze, im Text von
+  `LH-FA-13.a` an der Zusage genannt, kein Test dort (die Gates laufen nur im
+  Linux-Container). Der Implementer fährt die Mutation in einer Kopie und prüft, dass der
+  Test ohne `context.WithoutCancel` rot wird; löst `localhost` in der Stufe `test` nicht
+  auf, hält er an und gibt es zurück (kein anderer Name, keine Annahme).
 - **Warten auf einen Kanal** (Review F-468) — **entschieden** in `SPEC-038` *Warten in
-  Tests* (vom Architect bei der Prüfung von `slice-harness-integration-wait`): eigene
-  Frist als Literal, höchstens 60 s, rot mit einer Meldung, die das ausgebliebene
-  Ereignis nennt; ein Test-Double, das auf eine Freigabe des Tests wartet, fällt nicht
-  darunter. **Offen:** welche Stellen dieser beiden Schichten darunter fallen. Der Architect
-  entscheidet je Kandidat aus §1 (`server_extended_test.go:848`, `server_tls_test.go:54`,
-  `bootstrap_test.go:353`, `tls_test.go:184`), ob der Prüfling das Ereignis herbeiführt, und
-  für die beiden Stellen, die auf das Ende von `bootstrap.Run` warten, ob es „das Ende eines
-  gestarteten Prozesses“ im Sinn der Regel ist. Dieser Slice setzt die Regel im
-  PGWire-Adapter und im Bootstrap um, `slice-harness-integration-wait` in `test/integration`.
-  Im Kern warten `internal/hexagon/services/record_extended_test.go:529` und `:812` ohne
-  Frist auf `queryLaeuft`; dieser Slice setzt dort keine Frist. Ihre Adresse ist
-  `slice-harness-lint-warten-ohne-frist` (seit der Closure von
-  `slice-v1-abschluss-herunterfahren`, `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` 3×):
-  Er bringt nach diesem Slice die Prüfung in `make lint` und bereinigt den übrigen
-  Bestand. Die Zählung eines Mutanten, der nur über die Zeitüberschreitung rot wird, bleibt
-  die Randform *Laufzeit* von `slice-harness-mutation`.
+  Tests* (Regel, Absatz zum Lauf der Kommandozeile und zum Kanal des Testgeschirrs, neu).
+  Je Kandidat:
+
+  | Stelle | Entscheidung |
+  |---|---|
+  | `server_extended_test.go:848` (`<-conn.gesetzt`) | **Frist Pflicht.** Den Wert auf `gesetzt` führt der Prüfling herbei (Lesefrist durch Wächter oder Zwangsende); die Freigabe `close(conn.freigabe)` davor ist das Double und fällt nicht darunter. |
+  | `server_tls_test.go:54` (`server = <-angenommen`) | **Keine Pflicht, Frist erlaubt und zu setzen.** Das `Accept` auf dem Listener des Tests nach dessen eigenem `Dial` ist Testgeschirr, der Prüfling führt es nicht herbei. Der Implementer setzt dennoch eine Frist: `slice-harness-lint-warten-ohne-frist` meldet jeden Empfang im Rumpf einer Hilfsfunktion (§1 dort, Entscheidung des Nutzers) und kann das Geschirr nicht unterscheiden; zwei Zeilen jetzt sparen dort eine Ausnahme. |
+  | `bootstrap_test.go:353` (`exit := <-ende`) | **Frist Pflicht.** Der Lauf der Kommandozeile (`bootstrap.Run`) ist der Einstiegspunkt des Prozesses; der Test startet ihn in einer Goroutine und liest sein Ende über einen Kanal. Das ist ein gestarteter Prozess im Sinn der Regel und zugleich ein Wert, den der Prüfling auf einem Kanal liefert; beide Lesarten führen zur Frist. |
+  | `tls_test.go:184` (`<-ende`, Paket `bootstrap`) | **Frist Pflicht**, Gründe wie `bootstrap_test.go:353`. |
+
+  Für die zwei Stellen am Ende von `bootstrap.Run` gilt dazu „je Prozess genau eine Stelle
+  wartet, jeder weitere Leser liest ihr Ergebnis“: Liest ein Test das Ende desselben Laufs
+  an mehr als einer Stelle, wartet eine mit Frist und die andere liest ihr Ergebnis; findet
+  der Implementer eine solche Stelle, trägt er es in §7 ein. Die Entscheidung gilt für
+  beide Schichten dieses Slice. Im Kern (`record_extended_test.go:529`, `:812`) und in
+  `test/integration` setzt dieser Slice keine Frist (Adressen wie oben:
+  `slice-harness-lint-warten-ohne-frist`, `slice-harness-integration-wait`). Die Zählung
+  eines Mutanten, der nur über die Zeitüberschreitung rot wird, bleibt die Randform
+  *Laufzeit* von `slice-harness-mutation`.
 - **Zugang der Tests** — **entschieden** in `SPEC-049` Punkt 7: Die Tests liegen in
   `pgwire_test` und `bootstrap_test` und gehen über die exportierte Schnittstelle; die
   Brücke wächst nicht.
@@ -383,7 +402,7 @@ ihre Zusagen.
 - **Die Sammlung wächst über den Schnitt** — weitere Funde (§1 *Sammelregel*), etwa aus
   `slice-harness-lint`, heben die Liefer-Punkte über drei. Seit dem Anspruch bekommt
   ein neuer Fund einen eigenen Slice (§1 *Sammelregel*). — **Ausgang:** — (bei Closure)
-- **Ein Test hängt am Zeitverhalten** — G7 und die Frist aus F-468 beobachten über
+- **Ein Test hängt am Zeitverhalten** — die Frist aus F-468 (G7 entfällt, §6) beobachtet über
   eine Frist; zu knapp gesetzt macht sie den Test flatterhaft, zu weit lässt sie einen
   roten Lauf lange hängen (`BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`, 2×;
   `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients`, 1×, verwandt). Je Test mindestens 50 Läufe ohne Mutant grün, in §7. — **Ausgang:** — (bei
@@ -453,8 +472,8 @@ Dateien unter `evidence/`, neu gelesen beim Anspruch 2026-10-24). Treffer:
   dieser Slice ist die Adresse; §1 nennt den Geber, und die Sendung steht in §1 und DoD;
   die Berichtigung zu G2, G3, G5 und G6 steht ebenfalls dort.
 - `BEO-REPO/gruener-mutant-faelschlich-aequivalent` (11×, verkörpert in `AGENTS.md` §3.10) —
-  trifft G7 und G1, falls der Architect keine Zusage festhält: §7 führt sie dann nur mit
-  Invariante, Ort und Sonde als äquivalent (§6).
+  trifft G7: Der Architect hält keine Zusage fest (§6), §7 führt G7 als akzeptiertes
+  Negativ und nicht als äquivalent, weil Invariante, Ort und Sonde fehlen; G1 hat eine Zusage und einen Test.
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — der Slice ist wellenlos;
   §4 *Start* nennt den Architect-Schritt vor dem Code.
 - `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients` (1×) — G7 und die Frist aus

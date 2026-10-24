@@ -267,6 +267,12 @@ pgwire-recorder replay \
    Recorder die Verbindung zum Client, nachdem er ihre Antworten gesendet hat; die
    Session ist damit beendet, ohne Meldung und ohne Fehler.
 
+**Spalten-Metadaten.** Tabellen-OID und Spaltennummer jeder Spalte einer aufgezeichneten
+`RowDescription` sendet der Recorder unverändert an den Client, bei einer einfachen
+Anfrage wie bei einer Extended-Interaktion, so wie `LH-FA-02.a` (*Spalten-Metadaten*)
+sie im Record vom Server an den Client gibt: Er setzt keinen Wert ein und lässt keinen
+weg.
+
 ---
 
 ### LH-FA-03.b — Nicht verbrauchte Interaktionen
@@ -1061,7 +1067,13 @@ Frist sofort ablaufen.
 * *Startphase.* Ein Signal, bevor der Prozess lauscht, bricht den Start nicht ab:
   Die Startprüfungen laufen zu Ende, und ein Startfehler beendet den Prozess mit
   dem Exit-Code seiner Klasse (LH-FA-13.b). Sonst nimmt der Prozess keine
-  Verbindung an und endet wie ohne offene Verbindung. *Grenze:* Eine Verbindung,
+  Verbindung an und endet wie ohne offene Verbindung. Zu den Startprüfungen gehört das
+  Öffnen des Listeners samt der Auflösung eines Namens in `--listen` (zum Beispiel
+  `localhost:0`): Ein Signal davor macht daraus keinen Startfehler (`PGR-E4001`), der
+  Prozess endet mit dem Exit-Code `0`; ein Name, der nicht auflöst, und ein Port, der
+  nicht zu öffnen ist, bleiben Startfehler. Geprüft nur unter Linux (Auflösung von
+  `localhost` aus der Hosts-Datei; Grenze für macOS und Windows, `LH-QA-03`).
+  *Grenze:* Eine Verbindung,
   die das Betriebssystem zwischen dem Öffnen des Ports und dessen Schließen schon
   angenommen hat, kann der Prozess noch annehmen; sie zählt in `sessions` und
   endet, ohne eine Interaktion zu beginnen.
@@ -3461,6 +3473,11 @@ folgende Ziele:
 
 Für v1 werden keine harten Latenz- oder Durchsatz-SLAs zugesichert.
 
+Nicht zugesichert ist, was eine beendete Verbindung im Prozess zurücklässt: Ein
+Hilfsablauf (eine Goroutine), der zu einer Replay-Sitzung gehört, darf nach deren Ende
+bis zum Ende des Prozesses weiterlaufen. Der Speicher je Verbindung wird nicht gemessen;
+ein Test, der die Zahl der Hilfsabläufe zählt, belegt keine Zusage.
+
 ### SPEC-033 — Sicherheit
 
 - Das Tool wird nicht als Produktions-Sicherheitskomponente positioniert.
@@ -3570,6 +3587,13 @@ wartet, schon. Ebenso wenig fällt ein synchroner Aufruf des Prüflings ohne Fri
 darunter, etwa eine Hilfsfunktion, die eine Session über die Methoden eines Service
 aufbaut: Die Regel gilt nur für das Warten auf einen Wert auf einem Kanal oder dessen
 Schließen und auf das Ende eines gestarteten Prozesses.
+
+Der Lauf der Kommandozeile (der Einstiegspunkt des Prozesses), den ein Test in einer
+Goroutine ruft und dessen Ergebnis er über einen Kanal liest, ist ein gestarteter
+Prozess im Sinn dieser Regel, ebenso wie der Wert, den der Prüfling auf einem Kanal
+liefert. Ein Kanal, den nur das Testgeschirr füllt (ein `Accept` auf dem Listener des
+Tests nach dessen eigenem `Dial`), führt der Prüfling nicht herbei; die Regel verlangt
+dort keine Frist, verbietet sie aber nicht.
 
 ## 10. Nicht zugesichert in v1
 
@@ -3714,3 +3738,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-23 | Einspielen: Option `--diff-all` meldet je Interaktion alle Abweichungen statt der ersten (Umgebungsvariable, Schlüssel, ohne `--compare-responses` `PGR-E2001`, Zuordnung der Positionen, Folgen verschiedener Länge einzeln, Ende des Servers, Einzelheiten je Art beider Seiten, Obergrenze 20, Zähler unverändert); Standard bleibt die erste Abweichung (`LH-FA-24.a`, `LH-FA-17.a`, `LH-FA-20.a`) |
 | 2026-10-23 | `--diff-all`, Spaltenbeschreibung: weichen Name und Typ-OID einer Spalte ab, steht ein Eintrag mit beiden Feldern, die Grenze von 20 zählt Spalten (`LH-FA-24.a`) |
 | 2026-10-24 | Spalten-Metadaten: Tabellen-OID und Spaltennummer einer `RowDescription` unverändert an Client und Aufzeichnung, einfach wie Extended (`LH-FA-02.a`); Diagnose bei Extended-Mismatch: SQL je Nachrichtenart, angenommene Nachrichten als die ersten n einer Art nach den Bestätigungen, Grenze beim unbenannten Statement nach abgelehntem `Parse` (`LH-FA-18.a`, `LH-FA-10.a`); Ort in der Meldung eines beschädigten `yaml`-Recordings, Nummer der Session und der Interaktion (`LH-FA-22.a`); Meldungstext in Tests (`SPEC-038`) |
+| 2026-10-24 | Replay: Tabellen-OID und Spaltennummer einer aufgezeichneten `RowDescription` unverändert an den Client (`LH-FA-03.a`); Signal vor dem Öffnen des Listeners, auch bei einem Namen in `--listen`: kein Startfehler, Exit-Code `0`, geprüft nur unter Linux (`LH-FA-13.a`); Hilfsabläufe einer beendeten Verbindung nicht zugesichert (`SPEC-032`); Warten in Tests: Lauf der Kommandozeile in einer Goroutine ist ein gestarteter Prozess, Kanal des Testgeschirrs ohne Pflicht zur Frist (`SPEC-038`) |
