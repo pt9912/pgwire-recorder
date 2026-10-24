@@ -1,10 +1,10 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.12  
-Software-Version: `0.1.1` (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.1`)  
-Stand: 23.10.2026  
+Version: 0.13  
+Software-Version: `0.2.0` (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.2.0`)  
+Stand: 24.10.2026  
 Autor: Projektteam pgwire-recorder  
-Gültigkeitsbereich: gilt für das Binary `pgwire-recorder` der Software-Version 0.1.1 (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.1.1`); ein aus dem Repository gebautes Binary meldet `dev`
+Gültigkeitsbereich: gilt für das Binary `pgwire-recorder` der Software-Version 0.2.0 (Ausgabe von `pgwire-recorder version`: `pgwire-recorder 0.2.0`); ein aus dem Repository gebautes Binary meldet `dev`
 
 ## 1. Einleitung
 
@@ -107,8 +107,8 @@ brew install pt9912/pgwire-recorder/pgwire-recorder
 pgwire-recorder version
 ```
 
-`brew tap` meldet `Tapped 1 formula`, `brew install` lädt das Binary des Release `v0.1.1`
-und installiert es, und `version` gibt `pgwire-recorder 0.1.1` aus. Homebrew baut dabei
+`brew tap` meldet `Tapped 1 formula`, `brew install` lädt das Binary des Release `v0.2.0`
+und installiert es, und `version` gibt `pgwire-recorder 0.2.0` aus. Homebrew baut dabei
 nichts aus dem Quelltext und installiert kein weiteres Paket; die Formel trägt die höchste
 stabile Version.
 Gefahren ist diese Installation unter Linux auf `amd64`; für macOS (`amd64` und `arm64`)
@@ -117,7 +117,7 @@ dort nicht. Windows wird über Homebrew nicht bedient.
 
 ### Binary vom GitHub-Release
 
-Der Release `v0.1.1` (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.1.1>) trägt
+Der Release `v0.2.0` (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.2.0>) trägt
 sechs Binaries, für Linux, macOS und Windows, je `amd64` und `arm64`, und die Datei `SHA256SUMS`.
 Die Version steht nicht im Namen:
 
@@ -134,7 +134,7 @@ So laden Sie das Binary für Linux auf `amd64` und `SHA256SUMS` in das aktuelle 
 Summe und starten es:
 
 ```bash
-B=https://github.com/pt9912/pgwire-recorder/releases/download/v0.1.1
+B=https://github.com/pt9912/pgwire-recorder/releases/download/v0.2.0
 curl -fsSLO $B/SHA256SUMS
 curl -fsSLO $B/pgwire-recorder-linux-amd64
 sha256sum -c --ignore-missing SHA256SUMS
@@ -143,23 +143,23 @@ chmod +x pgwire-recorder-linux-amd64
 ```
 
 `sha256sum` gibt `pgwire-recorder-linux-amd64: OK` aus, `version` gibt
-`pgwire-recorder 0.1.1` aus. Für eine andere Plattform laden Sie die Datei mit dem passenden
+`pgwire-recorder 0.2.0` aus. Für eine andere Plattform laden Sie die Datei mit dem passenden
 Namen. Ohne `--ignore-missing` verlangt `sha256sum` alle sechs Dateien. Gestartet und geprüft ist das
 Binary für Linux auf `amd64`; die Binaries für macOS und Windows und das für Linux auf `arm64` sind
 gebaut, aber nicht ausgeführt.
 
 ### Container-Image aus der Registry
 
-Das Image für `linux/amd64` und `linux/arm64` liegt in zwei Registries, mit denselben Tags `0.1.1`
-und `latest` und demselben Digest `sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`:
+Das Image für `linux/amd64` und `linux/arm64` liegt in zwei Registries, mit denselben Tags `0.2.0`
+und `latest` und demselben Digest `sha256:1d50181235d6a0317aaf376c33c1f17b421fb25036dea3324946a652dd2ceee4`:
 
 ```bash
-docker pull ghcr.io/pt9912/pgwire-recorder:0.1.1
-docker pull docker.io/pt9912/pgwire-recorder:0.1.1
-docker run --rm ghcr.io/pt9912/pgwire-recorder:0.1.1 version
+docker pull ghcr.io/pt9912/pgwire-recorder:0.2.0
+docker pull docker.io/pt9912/pgwire-recorder:0.2.0
+docker run --rm ghcr.io/pt9912/pgwire-recorder:0.2.0 version
 ```
 
-Beide Registries geben das Image ohne Anmeldung heraus. `version` gibt `pgwire-recorder 0.1.1` aus.
+Beide Registries geben das Image ohne Anmeldung heraus. `version` gibt `pgwire-recorder 0.2.0` aus.
 `latest` zeigt in beiden Registries auf denselben Digest und gibt dieselbe Ausgabe. Gestartet ist
 das Image für `linux/amd64`; das für `linux/arm64` ist gebaut, aber nicht ausgeführt. Die Beispiele weiter unten, die `pgwire-recorder:dev` nennen,
 gelten für ein selbst gebautes Image; mit dem Image aus der Registry ersetzen Sie den Namen.

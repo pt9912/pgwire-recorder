@@ -83,11 +83,11 @@ Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 
-- Die Version 0.1.1 liegt als GitHub-Release (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.1.1>)
+- Die Version 0.2.0 liegt als GitHub-Release (<https://github.com/pt9912/pgwire-recorder/releases/tag/v0.2.0>)
   mit sechs Binaries ohne Version im Namen und `SHA256SUMS` und als Image
-  `ghcr.io/pt9912/pgwire-recorder:0.1.1` und `docker.io/pt9912/pgwire-recorder:0.1.1` vor;
+  `ghcr.io/pt9912/pgwire-recorder:0.2.0` und `docker.io/pt9912/pgwire-recorder:0.2.0` vor;
   das Benutzerhandbuch beschreibt Bezug und Prüfung.
-- Mit Homebrew installieren Sie die Version 0.1.1 aus dem Tap `pt9912/pgwire-recorder`:
+- Mit Homebrew installieren Sie die Version 0.2.0 aus dem Tap `pt9912/pgwire-recorder`:
   `brew tap pt9912/pgwire-recorder`, dann `brew install pt9912/pgwire-recorder/pgwire-recorder`.
   Gefahren ist das unter Linux auf `amd64`; für macOS (`amd64` und `arm64`) und für Linux auf
   `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation dort nicht. Die Befehle
