@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-19.a` (geändert: Absatz *Bericht je Kombination*, Entscheidung des Nutzers vom 2026-10-24, im Commit `4279f2b3` geliefert, nicht Teil dieses Slice) · `SPEC-067` (Punkt 20 (6), geändert: Bericht als Stufe, im selben Commit)
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-mac1)
 **Autor:** pt9912. **Datum:** 2026-10-24.
 
 ---
