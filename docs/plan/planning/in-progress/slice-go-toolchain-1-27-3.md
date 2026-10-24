@@ -51,18 +51,18 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 Liefer-Punkte:
 
 - [x] **(1) Pin an beiden Stellen.** `Dockerfile` (Stufe `deps`) und `harness/mk/build.mk` (`GO_IMAGE`) tragen `golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c`. Beleg: `grep -rn 'golang:1\.27' Dockerfile harness/mk` nennt genau diese zwei Zeilen mit demselben Text, und `grep -rn 'f92b6ef800e4' --exclude-dir=.git --exclude-dir=baseline .` findet im Baum keinen Pin mehr (Erwähnungen in Plänen und Belegen unter `docs/` sind Chronik und bleiben). Der Digest ist am Tag der Lieferung neu gegen die Registry gelesen: `docker buildx imagetools inspect golang:1.27.3-alpine` nennt den Index-Digest oben (Ausgabe im Bericht).
-- [ ] **(2) Der Scan-Befund ist weg.** Beleg ist der Trockenlauf des Release auf dem Stand dieses Slice (`workflow_dispatch`, ohne Tag; Auslöser und Push sind Handlung der Koordination, der Implementer pusht nicht): Lauf-Kennung, Hash, Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` im Log, und kein Befund `CVE-2026-111943` für `linux/amd64` und `linux/arm64`; Lauf-Kennung, Hash und Zeile stehen in §7. Lokal läuft kein Scanner (`SPEC-067` Punkt 16: Trivy nur in der Pipeline); die Gegenprobe der Pipeline belegt den Scan nicht (`harness/README.md` §Sensors, `release-gegenprobe`), nur der Lauf. Ist der Lauf rot aus einem anderen Grund, gilt §4 (`in-progress` → `open`), nicht ein Haken.
+- [x] **(2) Der Scan-Befund ist weg.** Beleg ist der Trockenlauf des Release auf dem Stand dieses Slice (`workflow_dispatch`, ohne Tag; Auslöser und Push sind Handlung der Koordination, der Implementer pusht nicht): Lauf-Kennung, Hash, Zeile `release: scan: 0 Befund(e) über der Schwelle, <m> ohne Behebung` im Log, und kein Befund `CVE-2026-111943` für `linux/amd64` und `linux/arm64`; Lauf-Kennung, Hash und Zeile stehen in §7. Lokal läuft kein Scanner (`SPEC-067` Punkt 16: Trivy nur in der Pipeline); die Gegenprobe der Pipeline belegt den Scan nicht (`harness/README.md` §Sensors, `release-gegenprobe`), nur der Lauf. Ist der Lauf rot aus einem anderen Grund, gilt §4 (`in-progress` → `open`), nicht ein Haken.
 
 Gates und Closure:
 
 - [x] `make gates` grün am Endstand (darin `make test-container`: zwei Builds der sechs Binaries mit gleichen Summen, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)); Hash, Datum, Exit, Dauer im Bericht.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: `evidence/slice-go-toolchain-1-27-3.md` in `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder/` (alternder Go-Pin, vierte Datei); **kein Zähler wird gesetzt**, er folgt aus den Dateien.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `evidence/slice-go-toolchain-1-27-3.md` in `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder/` (alternder Go-Pin, vierte Datei); **kein Zähler wird gesetzt**, er folgt aus den Dateien.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -126,11 +126,11 @@ dasteht.
 
 **Risiken:**
 
-- Der Trockenlauf meldet nach der Hebung einen weiteren Befund über der Schwelle (anderer CVE der Standardbibliothek, des Basis-Images `distroless` oder von `golang` selbst) — **Ausgang:** offen bis zur Closure.
-- Go 1.27.3 färbt ein Gate rot (`go vet`, Lint, Test) — **Ausgang:** offen bis zur Closure; erwartet gering (Patch-Stand), Folge wäre §4 (i).
-- Der Pin wird nur an einer der beiden Stellen gehoben, weil kein Sensor sie abgleicht — **Ausgang:** offen bis zur Closure; Gegenmittel ist DoD 1 (`grep`).
-- Der Pin altert wieder, und erst der Scan des nächsten Release meldet es (viertes Auftreten von `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder`, davon zweites mit dem Go-Pin) — **Ausgang:** weiter offen: → `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder` (dort `geplant`: `slice-harness-ci-freshness-images`, `open/`); die Datei `evidence/slice-go-toolchain-1-27-3.md` ist DoD.
-- Der Trockenlauf läuft auf einem Stand, der nicht der Stand des Tags ist (`slice-release-v0-2-0` Randform (c): `R` soll die Spitze von `main` sein) — **Ausgang:** eingetreten durch den Schnitt, wenn dieser Slice nach `R` landet; die Anpassung steht in `slice-release-v0-2-0` (Planner, nicht dieser Slice).
+- Der Trockenlauf meldet nach der Hebung einen weiteren Befund über der Schwelle (anderer CVE der Standardbibliothek, des Basis-Images `distroless` oder von `golang` selbst) — **Ausgang:** entfallen: Der Trockenlauf `40072517299` auf `32d0d84a` und der Lauf des Tags `40074219261` melden je `release: scan: 0 Befund(e) über der Schwelle, 0 ohne Behebung` (§7).
+- Go 1.27.3 färbt ein Gate rot (`go vet`, Lint, Test) — **Ausgang:** entfallen: `make gates` Exit 0 an `143e9994` (528 s, §7) und, vom Verifier selbst gefahren, an `6630a708` (283 s); kein Gate wurde rot, §4 (i) ist nicht ausgelöst.
+- Der Pin wird nur an einer der beiden Stellen gehoben, weil kein Sensor sie abgleicht — **Ausgang:** entfallen für diese Hebung: `git grep` an `32d0d84a` (Verifier) nennt beide Stellen mit demselben Text, der alte Digest `f92b6ef800e4` kommt außerhalb `docs/` nicht mehr vor; dass kein Sensor die Stellen abgleicht, bleibt Bestand (§1, Klasse 2) und trägt dieses Risiko für die nächste Hebung nicht weiter, sie hat dieselbe DoD-Zeile.
+- Der Pin altert wieder, und erst der Scan des nächsten Release meldet es (viertes Auftreten von `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder`, davon zweites mit dem Go-Pin) — **Ausgang:** weiter offen: → `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder` (dort `geplant`: `slice-harness-ci-freshness-images`, `open/`); die Datei `evidence/slice-go-toolchain-1-27-3.md` liegt dort, der Zähler steht bei 4.
+- Der Trockenlauf läuft auf einem Stand, der nicht der Stand des Tags ist (`slice-release-v0-2-0` Randform (c): `R` soll die Spitze von `main` sein) — **Ausgang:** entfallen: Der Tag liegt auf `32d0d84a` (Nachfahre von `R` mit dem Pin), und der Trockenlauf `40072517299` stand auf demselben Hash (`headSha` `32d0d84a`, vom Verifier gelesen); die Anpassung von Randform (c) steht in `slice-release-v0-2-0` §3 und §6.
 
 ## 7. Closure-Notiz
 
@@ -146,14 +146,34 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-(noch nicht geschlossen)
+**Closure (Planner, 2026-10-24).** Gegenstand geliefert: Der Pin steht an beiden Stellen auf `golang:1.27.3-alpine@sha256:b8c9…505e9c` (Commit `143e9994`).
+
+**Scan-Beleg (DoD 2; gelesen aus `freigaben/0.2.0.md` Punkte 5 und 6 und vom Verifier gegen `gh run view` nachgefahren, Bericht `docs/reviews/2026-10-24-verifikation-slice-release-v0-2-0.md`):**
+
+- Rot vorher: Lauf `40071373625` (`workflow_dispatch`, `main`, `d720e44f`), Schritt `Scan`, Zeile `schwachstelle: linux/amd64 CVE-2026-111943 stdlib v1.27.2 -> 1.26.10, 1.27.3 HIGH` (dieselbe Zeile für `linux/arm64`), danach `2 Befund(e) über der Schwelle, 0 ohne Behebung`, Exit 1.
+- Grün danach: Lauf `40072517299` (`workflow_dispatch`, `main`, Hash `32d0d84a`, 07:01:38Z bis 07:04:36Z, `success`), Zeile `release: scan: 0 Befund(e) über der Schwelle, 0 ohne Behebung`, keine Zeile `schwachstelle`. Derselbe Befund-Stand im Lauf des Tags `40074219261` (`32d0d84a`).
+- Der Verifier hat den Beleg bewusst gebrochen (Modul 11): Der rote Lauf war aus dem richtigen Grund rot (eingebaute Version `v1.27.2` in der Zeile des Befunds), der grüne lädt `golang:1.27.3-alpine@sha256:b8c9b82a…`; das veröffentlichte Binary `pgwire-recorder-linux-amd64` von `v0.2.0` trägt `go1.27.3`, das von `v0.1.1` `go1.27.2`.
+- Grenze: Es gibt keinen Lauf mit altem Pin auf dem neuen Stand; die Datenbank des Scanners ist zwischen den Läufen nicht protokolliert (Verifikation, Abschnitt „Bewusstes Brechen“).
+
+**Review und Verifikation:** Review `docs/reviews/2026-10-24-review-slice-release-v0-2-0.md` (ein Report für beide Slices): für diesen Slice F-4 (LOW, Satz zum Abgleich der zwei Pin-Stellen; nachgezogen, §1 führt ihn „nicht übernommen“) und F-9 (INFO, Scan-Beleg nicht in §7; mit diesem Abschnitt behoben); keine HIGH. Verifikation: bestanden, F-1 (MEDIUM, derselbe Punkt wie F-9) ist mit diesem Abschnitt und dem Register-Beleg erfüllt. F-10 (ein Report, ein Dateiname für zwei Slices) betrifft die Ablage, nicht diesen Slice.
+
+**Lerneintrag** (Form: neuer Sensor, geplant, plus benannte Spec-Lücke):
+
+- *Neuer Sensor, geplant:* Der Go-Pin alterte ein zweites Mal (erstes Mal `slice-erster-release-freigabe`), und wieder meldete es allein der Scan des Trockenlaufs, also erst beim Release. Das vierte Auftreten von `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder` (Datei `evidence/slice-go-toolchain-1-27-3.md`) liegt über der Schwelle; sein Ausgang `geplant` besteht: `slice-harness-ci-freshness-images` (`open/`) nimmt die Pins in `Dockerfile` und `harness/mk/` an und nennt die Kennung der Beobachtung in §1 (Paarung b, `grep` unten). Eine neue Sendung entsteht nicht: `Dockerfile` und `harness/mk/build.mk` stehen in der Pin-Liste von dessen Liefer-Punkt 2.
+- *Benannte Spec-Lücke (Adresse: derselbe Nehmer, beim Anspruch):* Der Plan von `slice-harness-ci-freshness-images` geht vom Floating-Tag `1.27-alpine` aus (Randformen 4 und 6, Frage 3: „Nebenversion gegen Nebenversion; Patch-Stände deckt die Digest-Achse“). Seit diesem Slice trägt der Pin die Patch-Version (`1.27.3-alpine`) mit festem Digest; ein neuer Patch (`1.27.4`) ändert den Digest dieses Tags nie, und die Digest-Achse meldet ihn nicht. Randform 6 (Vergleich der Go-Version) und Frage 3 gelten für diesen Pin nicht mehr wie geschrieben; der Planner zieht den Plan beim Anspruch nach (der Plan ist vor `slice-harness-regeln-rueckbau` angelegt, `AGENTS.md` §3.14 letzter Absatz), die Entscheidung über den Vergleich trifft der Architect. Hier nicht geändert: Der Vergleich ist Sache des Vertrags `SPEC-066`, kein Inhalt dieses Slice.
+- *Beobachtung zum Verfahren:* Eine DoD-Zeile, deren Beleg die Koordination erzeugt (Trockenlauf), verlangte den Eintrag in §7 dieses Slice; der Beleg stand in `freigaben/0.2.0.md` und in §6 des Release-Plans, nicht hier (Review F-9, Verifikation F-1). Das ist kein eigener Eintrag im Register: Die Zeile hat getragen, sobald der Planner sie gelesen und hierher gespiegelt hat.
+- Keine Regel in `AGENTS.md`, keine Änderung an einem Command; `liegt in` entfällt.
+
+**Paarungen** (Planner, 2026-10-24): (a) *Anker:* kein Steering-Loop-Eintrag trägt `liegt in`, nichts zu prüfen. (b) *Folge-Slice:* `slice-harness-ci-freshness-images` liegt in `open/`; `grep -n "release-pipeline-pin-und-werkzeug-altern-ohne-melder"` findet die Sendung in dessen §1 und DoD (Liefer-Punkt 2), die Kennung dieses Slice kommt dort nicht vor, weil keine neue Sendung entsteht (Dateien `Dockerfile`, `harness/mk/build.mk` standen schon in der Liste). (c) *Register:* `BEO-REPO/release-pipeline-pin-und-werkzeug-altern-ohne-melder` existiert, `evidence/` trägt vier Dateien.
+
+**§3.15 (Rate):** keine Rechnung. Dieser Slice ändert keine eigene Regel von `AGENTS.md`, und seit `slice-harness-regeln-rueckbau` sind erst sechs Slices geschlossen (`slice-v1-abschluss-verbindungsende-upstream-extended`, `slice-version-option`, `slice-play-feldvergleich`, `slice-play-feldvergleich-doku` und diese beiden), weniger als zehn: keine Rate, kein Vorschlag.
 
 **Belege des Implementers** (2026-10-24):
 
 - Digest neu gelesen: `docker buildx imagetools inspect golang:1.27.3-alpine` nennt `Digest: sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c`; gleich dem Plan.
 - Pin-Commit `143e9994`. `grep -rn 'golang:1\.27' Dockerfile harness/mk` nennt genau `Dockerfile:9` und `harness/mk/build.mk:15` mit demselben Text `golang:1.27.3-alpine@sha256:b8c9…505e9c`; `grep -rn 'f92b6ef800e4' --exclude-dir=.git --exclude-dir=baseline --exclude-dir=docs .` ohne Treffer (Exit 1); unter `docs/` nur dieser Plan (Chronik).
 - `make gates` am Stand `143e9994`: Start 2026-10-24T06:51:45Z, Ende 07:00:33Z, Dauer 528 s, Exit 0 (darin `test-container`, `test-integration`, `test-postgres-versionen`, `lint`, `workflows-check`).
-- Mutation: keine (Plan §6, Pin ist Text, `AGENTS.md` §3.10). DoD 2 (Scan) belegt die Koordination über den Trockenlauf; nicht abgehakt.
+- Mutation: keine (Plan §6, Pin ist Text, `AGENTS.md` §3.10). DoD 2 (Scan) belegte die Koordination über den Trockenlauf; der Beleg steht oben in der Closure.
 
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
