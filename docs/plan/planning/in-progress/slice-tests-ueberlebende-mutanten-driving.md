@@ -18,7 +18,7 @@ Slice eine dritte Schicht. Reihenfolge in §4 *Start*.
 
 **Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-03.a` · `LH-FA-13.a` · `LH-FA-18.a` · `SPEC-032` · `SPEC-038` · `SPEC-049` (Punkt 7, nur angewandt). Welche davon eine Zusage trägt und wo eine fehlt, entscheidet der Architect vor dem Code (§6).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-drv1)
 
 **Autor:** pt9912. **Datum:** 2026-10-07.
 
@@ -34,8 +34,8 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Jeder hier gesammelte Mutant im PGWire-Adapter und im Bootstrap, der das
-Verhalten ändert und am Stand `f4ff9387` alle Tests überlebt (G1, G4, G7), wird von einem
-Test über die exportierte Schnittstelle rot
+Verhalten ändert und am Stand `f4ff9387` alle Tests überlebt (G1, G4; G7 ist kein Test, siehe
+unten), wird von einem Test über die exportierte Schnittstelle rot
 ([`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 7),
 bevor `slice-harness-mutation` den Bestand misst. Dazu warten die Tests dieser beiden
 Schichten, die ohne Frist auf einen Kanal oder das Ende eines Laufs warten, künftig mit
@@ -80,8 +80,8 @@ Verifikation einen weiteren Mutanten an diese Adresse gesendet (Suche nach der K
 unter `docs/`: nur Pläne und das Register des Gebers).
 
 **Gegenstand — die gesammelten Mutanten.** Kennungen wie in §7 des Gebers; Mutation in
-dessen Mutationstabelle, am heutigen Code wie in der Tabelle oben. Drei sind übrig, dazu
-die Frist:
+dessen Mutationstabelle, am heutigen Code wie in der Tabelle oben. Zwei bekommen einen Test
+(G1, G4), G7 entfällt als Test (keine Zusage), dazu die Frist:
 
 1. **Frist beim Warten auf einen Kanal** (Review F-468). `TestReplayHerunterfahrenSpaeteFrist`
    wartet in `server_extended_test.go:848` ohne eigene Frist auf `<-conn.gesetzt`; unter dem
@@ -133,7 +133,11 @@ die Frist:
    Namensauflösung ab: Der Lauf endet mit `PGR-E4001` und Exit-Code 4 statt regulär mit
    Exit-Code 0.
    *Test-Idee* (Paket `bootstrap_test`, über `bootstrap.Run`): schon beendeter Kontext
-   und `record --listen localhost:0`; erwartet Exit-Code 0, kein `PGR-E4001`.
+   und `record --listen localhost:0`; erwartet Exit-Code 0, kein `PGR-E4001`. Der Test
+   führt auch `replay`, die IP-Adresse als Kontrolle und die beiden Startfehler, die
+   `LH-FA-13.a` *Startphase* im selben Satz behält (Name, der nicht auflöst, und belegter
+   Port: Exit-Code 4, `PGR-E4001`); ohne sie bliebe ein Mutant grün, der das Signal vor dem
+   Öffnen jeden Startfehler schlucken lässt.
    *Mutation, die rot werden muss:* `context.WithoutCancel` in `pgwire.Listen` entfernt.
    *Grenze:* nur mit einem Namen als Adresse sichtbar, weil allein die Namensauflösung
    von `net` den Kontext liest; mit einer IP-Adresse bleibt der Mutant grün. Die Zusage
@@ -219,7 +223,7 @@ Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
       `bootstrap_test.go:353`, `tls_test.go:184`; welche der Architect festlegt). Der Mutant W
       des Gebers wird in `TestReplayHerunterfahrenSpaeteFrist` rot, ohne dass das Paket die
       Zeit überschreitet.
-- [ ] **Abbildung und Ende des Wächters (G4, G7):** Ein Test in `pgwire_test` über
+- [ ] **Abbildung (G4) und Ende des Wächters (G7):** Ein Test in `pgwire_test` über
       `pgwire.ToMessage` hält Tabellen-OID und Spaltennummer der Spaltenbeschreibung
       nach §6 *Spalten-Metadaten* (`LH-FA-02.a`, `LH-FA-03.a`, `LH-FA-18.a`) und wird
       rot unter T3 und, je für sich, unter T5. Für G7 kein Test: §6 *Ende des Wächters*
@@ -248,7 +252,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` | update (Architect, vor dem Code) | Die offenen Randformen aus §6 (Ende des Wächters, Signal vor dem Öffnen, Spalten-Metadaten im Replay, Stellen der Frist), an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* für den Rückweg steht seit `slice-tests-ueberlebende-mutanten` in `LH-FA-02.a` |
 | `internal/adapters/driving/pgwire/server_extended_test.go` | update | Frist beim Warten auf `conn.gesetzt` (Zeile 848 am Stand `f4ff9387`) und an weiteren Stellen dieser Schicht nach §6 *Warten auf einen Kanal* (Kandidat `server_tls_test.go:54`) |
 | `internal/adapters/driving/pgwire/*_test.go` (Abbildung, Wächter) | update | G4: `ToMessage` mit RowDescription, alle Felder verglichen (Happy, LH-FA-18); G7: kein Test (keine Zusage, §6) |
-| `internal/bootstrap/bootstrap_test.go` | update | G1: `bootstrap.Run` mit beendetem Kontext und `--listen localhost:0` (Boundary, LH-FA-13); Frist beim Warten auf das Ende des Laufs (Kandidaten `bootstrap_test.go:353` und `tls_test.go:184`) |
+| `internal/bootstrap/bootstrap_test.go` | update | G1: `bootstrap.Run` mit beendetem Kontext und `--listen localhost:0` (Boundary, LH-FA-13), dazu die zwei Startfehler derselben Zusage; Frist beim Warten auf das Ende des Laufs (`bootstrap_test.go:353`, `tls_test.go:184` und, nach derselben Entscheidung des Architect für den Lauf der Kommandozeile, `tls_test.go:100`) |
 | `internal/adapters/driving/pgwire/server.go` | update (nur Kommentar) | Doc-Kommentar von `replayWaechter` (der gestrichene Satz, nur mit dem Test aus G7) und, wo ein benannter Test sie prüft, von `replayLesefehler` und `replayZustellen` |
 
 Die Abdeckungs-Deklarationen bleiben, wie sie sind: Die Tests decken neue Fälle
@@ -489,7 +493,7 @@ Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein 3×; vo
 entsteht keine neue Lücke.
 
 **Nachzählung** (Planner, 2026-10-24, Anspruch, Stand `f4ff9387`): Liefer-Punkte 3
-(Frist · G4 und G7 · G1), Schichten 2 (PGWire-Adapter, Bootstrap; Tests zählen als die
+(Frist · G4 · G1; G7 ist kein Liefer-Punkt, es gibt keinen Test), Schichten 2 (PGWire-Adapter, Bootstrap; Tests zählen als die
 Schicht ihres Codes; die Spezifikation schreibt der Architect vor dem Code). Gegenüber der
 Fassung vom 2026-10-07 entfallen vier Mutanten (§1 *Aktualität*), die Frist wird zu einem
 eigenen Punkt, der Plan wird kleiner, nicht größer. Fügt `make abdeckung` Zeilen unter
