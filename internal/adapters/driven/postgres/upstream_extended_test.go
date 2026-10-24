@@ -388,3 +388,36 @@ func TestCloseMitSchreibfrist(t *testing.T) {
 	s := postgres.NeueSession(a)
 	fertigBinnen(t, 2*time.Second, "Close", func() { _ = s.Close() })
 }
+
+// Abdeckung: LH-FA-18/Happy — Tabellen-OID und Spaltennummer jeder Spalte der
+// RowDescription einer Extended-Interaktion gehen unverändert in die Antwort
+// von Receive; eine Spalte ohne Tabelle trägt 0 (LH-FA-02.a, Spalten-Metadaten,
+// LH-FA-18.a Record). Geprüft ist die Übersetzung im Upstream-Adapter.
+func TestReceiveSpaltenMetadaten(t *testing.T) {
+	addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{
+		{&pgproto3.ParameterDescription{}, &pgproto3.RowDescription{Fields: spaltenMitTabelle()}},
+	})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer schliesse(t, s)
+	gruppe := []model.ClientMessage{
+		{Type: model.ClientDescribe, Target: model.TargetStatement, Name: "s1"},
+		{Type: model.ClientFlush},
+	}
+	if err := s.Send(ctx(t), gruppe); err != nil {
+		t.Fatal(err)
+	}
+	var out []model.Response
+	for len(out) < 2 {
+		rs, err := s.Receive(ctx(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, rs...)
+	}
+	if len(out) != 2 || out[1].Type != model.ResponseRowDescription || !reflect.DeepEqual(out[1].Columns, wantSpaltenMitTabelle()) {
+		t.Fatalf("Antworten: %#v", out)
+	}
+}

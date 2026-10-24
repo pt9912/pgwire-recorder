@@ -585,3 +585,38 @@ func TestReplayExtendedDiagnoseSpaeteBestaetigung(t *testing.T) {
 		t.Errorf("P5: %v", err)
 	}
 }
+
+// Abdeckung: LH-FA-10/Negative, LH-FA-18/Negative — folgt in einer Interaktion
+// auf ein bestätigtes parse eines benannten Statements ein abgelehntes parse
+// desselben Namens (42P05, späte Antwort in der zweiten Gruppe), bleibt das
+// bestehende SQL stehen: die Diagnose einer späteren Abweichung nennt es und
+// nicht das SQL des abgelehnten parse (LH-FA-18.a, Anweisung in der Diagnose).
+// Geprüft ist das benannte Statement; das unbenannte ist eine Grenze von v1.
+func TestReplayExtendedAbgelehntesParseLaesstStehen(t *testing.T) {
+	ctx := context.Background()
+	fehler := model.Response{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "42P05"}}
+	erste := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{
+		{
+			Client: []model.ClientMessage{parse("s1", "SELECT 1"), flushNachricht()},
+			Server: []model.Response{{Type: model.ResponseParseComplete}},
+		},
+		{
+			Client: []model.ClientMessage{parse("s1", "SELECT 2"), syncNachricht()},
+			Server: []model.Response{fehler, rfq()},
+		},
+	}}
+	sitzung := []model.Interaction{erste, ext(2, "I", bind("s1"))}
+	s, id := replayMit(t, sitzung)
+	for _, g := range erste.Groups {
+		sendeAlle(t, s, id, g.Client...)
+	}
+	abweichend := bind("s1")
+	abweichend.Portal = "p9"
+	_, err := s.ClientMessage(ctx, id, abweichend)
+	if code(err) != model.CodeReplayMismatch {
+		t.Fatalf("erwartet %s, erhalten %v", model.CodeReplayMismatch, err)
+	}
+	if !strings.Contains(err.Error(), "SELECT 1") || strings.Contains(err.Error(), "SELECT 2") {
+		t.Errorf("Diagnose nennt nicht allein das bestehende SQL: %v", err)
+	}
+}

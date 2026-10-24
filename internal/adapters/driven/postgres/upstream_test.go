@@ -498,3 +498,47 @@ func TestNichtLesbareServerantwort(t *testing.T) {
 		})
 	}
 }
+
+// spaltenMitTabelle sind zwei Felder einer RowDescription mit Tabellen-OID und
+// Spaltennummer ungleich 0 und voneinander verschieden, dazu eines ohne Tabelle.
+func spaltenMitTabelle() []pgproto3.FieldDescription {
+	return []pgproto3.FieldDescription{
+		{Name: []byte("a"), TableOID: 16384, TableAttributeNumber: 3, DataTypeOID: 23, DataTypeSize: 4, TypeModifier: -1, Format: 0},
+		{Name: []byte("b"), TableOID: 16999, TableAttributeNumber: 7, DataTypeOID: 25, DataTypeSize: -1, TypeModifier: 14, Format: 1},
+		{Name: []byte("c"), DataTypeOID: 23, DataTypeSize: 4, TypeModifier: -1},
+	}
+}
+
+// wantSpaltenMitTabelle sind die Spalten, die der Upstream-Adapter aus
+// spaltenMitTabelle bildet.
+func wantSpaltenMitTabelle() []model.Column {
+	return []model.Column{
+		{Name: "a", TableOID: 16384, ColumnNumber: 3, TypeOID: 23, TypeSize: 4, TypeModifier: -1, Format: 0},
+		{Name: "b", TableOID: 16999, ColumnNumber: 7, TypeOID: 25, TypeSize: -1, TypeModifier: 14, Format: 1},
+		{Name: "c", TypeOID: 23, TypeSize: 4, TypeModifier: -1},
+	}
+}
+
+// Abdeckung: LH-FA-02/Happy — Tabellen-OID und Spaltennummer jeder Spalte der
+// RowDescription einer einfachen Anfrage gehen unverändert in die Antwort; eine
+// Spalte ohne Tabelle trägt 0 (LH-FA-02.a, Spalten-Metadaten). Geprüft ist die
+// Übersetzung im Upstream-Adapter.
+func TestQuerySpaltenMetadaten(t *testing.T) {
+	addr := fakeServer(t, bereit(), []pgproto3.BackendMessage{
+		&pgproto3.RowDescription{Fields: spaltenMitTabelle()},
+		&pgproto3.CommandComplete{CommandTag: []byte("SELECT 0")},
+		&pgproto3.ReadyForQuery{TxStatus: 'I'},
+	})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer schliesse(t, s)
+	out, err := s.Query(ctx(t), "SELECT a, b, c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) == 0 || out[0].Type != model.ResponseRowDescription || !reflect.DeepEqual(out[0].Columns, wantSpaltenMitTabelle()) {
+		t.Fatalf("Antworten: %#v", out)
+	}
+}

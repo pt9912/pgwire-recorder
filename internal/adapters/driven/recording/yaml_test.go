@@ -607,3 +607,25 @@ func TestUnmarshalFehlerReihenfolge(t *testing.T) {
 		})
 	}
 }
+
+// Abdeckung: LH-FA-07/Negative — ein Fehler an einer Interaktion in Session 2,
+// die falsche Nummer der Interaktion oder ihre verletzte Form, ist PGR-E3003
+// und nennt die Session 2, nicht die Session 1 (LH-FA-22.a, Ort in der
+// Meldung). Session 1 ist gültig.
+func TestUnmarshalFehlerNenntSession(t *testing.T) {
+	kopf := "format: pgwire-recorder\nversion: 1\nsessions:\n" +
+		"  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n" +
+		"  - id: 2\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n"
+	cases := []struct{ name, zweite string }{
+		{"Nummer", "      - sequence: 3\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n"},
+		{"Form", "      - sequence: 2\n        request: {type: query, sql: x}\n        responses:\n          - {type: command_complete, tag: x}\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := recording.Unmarshal([]byte(kopf + c.zweite))
+			if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), "Session 2") {
+				t.Fatalf("erwartet %s mit \"Session 2\", erhalten %v", model.CodeRecordingBroken, err)
+			}
+		})
+	}
+}
