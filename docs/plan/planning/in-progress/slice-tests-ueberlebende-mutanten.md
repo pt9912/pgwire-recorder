@@ -467,6 +467,42 @@ Grüne Mutanten an Harness-Skripten (etwa V-67 an `abdeckung`, V-72 an der
 Why-Prüfung) betreffen Werkzeuge, nicht das Produkt. Beide sind in ihrem Slice behoben
 und gehören nicht zu dieser Sammlung.
 
+*Belege des Implementers* (Stand: Tests und Kommentar committet, `make gates` nicht gelaufen,
+`make abdeckung-check` rot, siehe Ende). Jede Mutation lief in einer frischen Kopie des
+Arbeitsbaums unter eigenem Pfad (ohne `.git`, `touch` auf die Datei), die Tests per
+Bind-Mount in `golang:1.27.3-alpine@sha256:b8c9…` (`go test -count=1`), nicht gegen den
+Build-Kontext. „Ohne neuen Test“ heißt `-skip` auf den neuen Test, sonst das ganze Paket.
+
+| Zusage | Mutation | roter Test (mit neuem Test) | Paket ohne den neuen Test |
+|---|---|---|---|
+| M3, `LH-FA-18.a`: nach einem bestätigten `parse` eines benannten Statements lässt ein abgelehntes `parse` (42P05, zweite Gruppe) das bestehende SQL stehen; die Diagnose nennt `SELECT 1`, nicht `SELECT 2` | Zeile `bestaetigt[m.Type]--` in `extendedNachspielen` entfernt | `TestReplayExtendedAbgelehntesParseLaesstStehen`: Diagnose `… Anweisung erwartet "SELECT 2", empfangen "SELECT 2"` | grün (`ok`, 0,75 s) |
+| P8, `LH-FA-02.a` / `LH-FA-18.a`: `TableOID` jeder Spalte unverändert (Simple- und Extended-Weg) | Zeile `TableOID:` in `spalten` entfernt | `TestQuerySpaltenMetadaten` (Simple) und `TestReceiveSpaltenMetadaten` (Extended): `TableOID:0x0` statt 16384 und 16999 | grün |
+| P2, dieselben Stellen: `ColumnNumber` jeder Spalte unverändert | Zeile `ColumnNumber:` in `spalten` entfernt | beide Tests: `ColumnNumber:0x0` statt 3 und 7 | grün |
+| Y2, `LH-FA-22.a`: Fehler der Nummer an einer Interaktion in Session 2 nennt Session 2 | `geprueftFromDTO(1, ii, id)` statt `(sd.ID, ii, id)` | `TestUnmarshalFehlerNenntSession/Nummer`: `Session 1: Interaktion 2 trägt die Nummer 3` | rot (siehe Fund) |
+| Y2, dieselbe Zusage für die Form | dieselbe Mutation | `…/Form`: `Session 1, Interaktion 2: endet nicht mit ready_for_query` | rot (siehe Fund) |
+| Y2, nur Nummer | Konstante `1` statt `sessionID` in der Meldung „trägt die Nummer“ | nur `…/Nummer` rot, `…/Form` grün | grün |
+| Y2, nur Form | Konstante `1` statt `sessionID` in der Meldung `Session %d, Interaktion %d` | nur `…/Form` rot, `…/Nummer` grün | rot (siehe Fund) |
+
+Die Tests vergleichen nach `SPEC-038` Code (`code(err)`), `SELECT 1` im Text und `SELECT 2`
+nicht (M3), `Session 2` (Y2); der Wortlaut der Einordnung wird nicht verglichen. Positiv und
+negativ: ohne Mutation sind alle neuen Tests grün (Lauf der drei Pakete, `ok`).
+
+**Fund (Y2, Abweichung von §1).** §1 sagt, kein Test erzeuge einen Fehler ab Session 2. Für
+`yaml` stimmt das, für `sqlite` nicht: Der Fall „unbekannte Art“ in
+`TestLesenMeldungOhneWertUndZeile` (`sqlite_lesen_inhalt_test.go:409`) erwartet
+`… beschädigt: Session 2, Interaktion 1` und geht durch `geprueftFromDTO`. Er färbt
+`geprueftFromDTO(1, …)` und die Konstante `1` in der Meldung der Form rot (Lauf ohne den
+neuen Test: `FAIL`, Meldung `Session 1, Interaktion 1`); grün bleibt ohne den neuen Test nur
+die Konstante in der Meldung „trägt die Nummer“. Der neue Test fängt alle drei an der
+`yaml`-Schnittstelle; ein Nachzug von §1 (Satz „überleben alle Tests“, Aktualität) liegt beim
+Planner. Das ist keine Randform.
+
+**Offen bei der Übergabe.** `make abdeckung-check` ist rot, denn die drei Tests tragen eine
+Abdeckungs-Deklaration, und `docs/user/abdeckung-unit.md` bräuchte fünf neue Zeilen laut
+`git diff --stat` nach `make abdeckung` (eine Tabellenzeile je Test unter `LH-FA-02`, `LH-FA-07`,
+`LH-FA-10` und `LH-FA-18`; das Ergebnis ist verworfen, die Datei unverändert). Das ist die dritte Schicht (§8, `AGENTS.md` §3.13); nicht
+geschrieben, an den Planner zurückgegeben. `make gates` ist deshalb nicht gelaufen.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
