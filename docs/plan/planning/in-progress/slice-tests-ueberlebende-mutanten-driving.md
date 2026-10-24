@@ -552,7 +552,7 @@ Vertrag geändert.
 
 **Größe und Gates nach der Nacharbeit:** Messung mit dem Befehl aus §3.14 am Kopf der Nacharbeit (Basis `7ed55a23`): 147 Zeilen,
 Marke 1500 nicht erreicht. `make gates` einmal am Stand der Code-Änderung (`TestTLSNacheinanderUndGleichzeitig`, Commit mit der
-Frist): `exit 0`, nichts parallel auf Docker. Der Lauf startete, als `make docs-check` im Review-Report noch `ADR-0034` ohne
+Frist): `exit 0`, nichts parallel auf Docker. Der Lauf startete, als `make docs-check` im Review-Report noch [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ohne
 Link meldete (Befund `id-unlinked`, der Report stammt aus dem Review-Commit `1361f558`); ich habe den Link im Report gesetzt
 (eigener Commit) und `make docs-check` danach einzeln grün gefahren (1455 Dateien, 0 Befunde); `make kopf-check` und
 `make abdeckung-check` grün. Änderungen seit dem Gate-Lauf liegen unter `docs/` (Report-Link, dieser Absatz).
