@@ -19,7 +19,7 @@ Export-Test-Brücke).
 
 **Berührte Spec-Stellen:** `LH-FA-02.a` · `LH-FA-10.a` · `LH-FA-18.a` · `SPEC-001` · `SPEC-049` (Punkt 7, nur angewandt)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-07.
 
@@ -101,13 +101,20 @@ Stand `a8b341e` und am Code vor dem Umbau grün.
    einen solchen Fehler ab Session 2.
    *Test-Idee* (Paket `recording_test`, über `Unmarshal`): eine Aufzeichnung mit zwei
    Sessions, Session 1 gültig; in Session 2 je ein Fall mit falscher
-   Interaktionsnummer, mit negativem `offset_ms` und mit verletzter Form. Erwartet wird
-   je `PGR-E3003` mit „Session 2“ im Text.
+   Interaktionsnummer und mit verletzter Form (die zwei Meldungen von
+   `geprueftFromDTO`). Erwartet wird je `PGR-E3003` mit „Session 2“ im Text.
+   *Berichtigt am 2026-10-24 (Planner, Stand `9f1cc263`):* Der Fall „negatives
+   `offset_ms`“ der ersten Fassung trifft `geprueftFromDTO` nicht; die Form von
+   `offset_ms` prüft `formVorpruefung` vorher (Stellung `si+1`), das Absteigen
+   `sessionFromDTO` mit `sd.ID`; beide nennen Session 2 auch im Mutanten, und
+   `zeitangaben_pruefen_test.go` hält „Session 2, Interaktion 3“ dafür schon. Der
+   Fall entfällt; die Test-Idee hat zwei Fälle, nicht drei.
    *Mutation, die rot werden muss:* `geprueftFromDTO(1, ii, id)` statt
    `geprueftFromDTO(sd.ID, ii, id)`; dazu je Meldung in `geprueftFromDTO` die
    Konstante 1 statt `sessionID`.
    *Grenze:* Die Kennung einer Session ist ihre Stellung, denn `sessionFromDTO`
-   prüft das vorher. `si+1` statt `sd.ID` ist deshalb gleichwertig (Review Y1), und
+   prüft das vorher (der Fall „Nummer vor Absteigen“ in `yaml_test.go` hält bisher nur
+   „Session 1: Interaktion 2 trägt die Nummer 3“, also Session 1). `si+1` statt `sd.ID` ist deshalb gleichwertig (Review Y1), und
    der Test kann beide nicht unterscheiden. Die Zusage steht heute in keinem Stratum
    (Randform *Ort in der Meldung* in §6).
 
@@ -125,6 +132,16 @@ Als Adresse nennt diesen Slice `slice-lint-bestand-driving` (§6, Risiko *Verhal
 `replaySitzung` ändert sich unbemerkt*). Seine Funde liegen im PGWire-Adapter und im
 Bootstrap, für diesen Slice eine dritte Schicht; nach dieser Regel nimmt sie der
 abgeschnittene `slice-tests-ueberlebende-mutanten-driving` an (Review F-469).
+
+**Aktualität** (Planner, 2026-10-24, Stand `9f1cc263`; Sichtung am Code, ohne
+Mutationslauf — den fährt der Implementer in §7): Alle vier Gegenstände stehen im Code.
+`bestaetigt[m.Type]--` steht in `extendedNachspielen` (`replay.go`, ohne Verschiebung
+der Aussage); `spalten` trägt `TableOID` und `ColumnNumber` (`upstream.go`); `geprueftFromDTO`
+trägt `sessionID` in beiden Meldungen und wird mit `sd.ID` gerufen (`yaml.go`). Kein Test
+in `postgres_test` nennt `TableOID` oder `TableAttributeNumber`, keiner in `services_test`
+setzt `42P05` in Gruppe 2 einer Interaktion; Pfade (`internal/…`) und Testdateien aus §3
+bestehen. Seit 2026-10-07 hat kein Review und keine Verifikation einen weiteren Mutanten
+an diese Adresse gesendet (Suche nach der Kennung unter `docs/`).
 
 **Sichtung früherer Funde** (am Stand `8d765ba`): Unter `docs/reviews/`, in den Plänen
 unter `done/` samt den drei Welle-Archiven und in den offenen Plänen steht kein
@@ -217,7 +234,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services/replay_extended_test.go` | update | M3: Diagnose nach bestätigtem und danach abgelehntem `parse` desselben benannten Statements (Negative, LH-FA-10) |
 | `internal/hexagon/services/replay.go` | update (nur Kommentar) | Doc-Kommentar von `extendedNachspielen`: die Zusage über die ersten n Nachrichten, so weit der Test sie prüft (F-460) |
 | `internal/adapters/driven/postgres/upstream_test.go`, `upstream_extended_test.go` | update | P8, P2: `RowDescription` mit `TableOID` und `TableAttributeNumber` ungleich 0, Spalte in allen Feldern verglichen, Simple- und Extended-Weg (Happy, LH-FA-02 und LH-FA-18) |
-| `internal/adapters/driven/recording/yaml_test.go` | update | Y2: Fehler an einer Interaktion in Session 2, je Nummer, `offset_ms` und Form (Negative, LH-QA-05) |
+| `internal/adapters/driven/recording/yaml_test.go` | update | Y2: Fehler an einer Interaktion in Session 2, je Nummer und Form (Negative, LH-QA-05) |
 
 Die Abdeckungs-Deklarationen bleiben, wie sie sind: Die Tests decken neue Fälle
 bestehender Anforderungen und Pfade ab. Ob eine Zeile in den Tabellen unter
@@ -228,6 +245,22 @@ denselben Commit.
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
+
+**Abweichung vom Start (2026-10-24).** Der Nutzer hat diesen Slice am 2026-10-24 als
+nächsten gewählt („Produkt zuerst“, so vom Koordinator übermittelt). Die Reihenfolge
+unten bleibt für alle übrigen Slices; für diesen gilt: `slice-harness-commit-struktur-id`
+bleibt in `open/` und ist damit ausdrücklich zurückgestellt, `welle-harness-regeln`
+ist nicht `done`, und der Start-Trigger von welle-gegenproben-und-mutanten ist für
+diesen Slice nicht erfüllt. Der Slice hängt technisch an keinem der Harness-Slices
+(siehe *Warum nach Coverage*); Drift-Log der Roadmap, 2026-10-24. Die Prüfung des
+Architect gegen den Code „nach den Wellen“ (Satz unten) ist für M3, P8, P2 und Y2 am
+Stand `9f1cc263` vom Planner vorweggenommen (§1 *Aktualität*), der Architect prüft
+sie vor dem Code erneut.
+
+**Rückführungs-Marke** (`AGENTS.md` §3.14): Marke 1500, Metrik und Befehl dort. Pfade
+des Plans: `internal/hexagon/services`, `internal/adapters/driven/postgres`,
+`internal/adapters/driven/recording`, `spec`, `docs/plan/adr`. Basis-Hash des Moves
+nach `in-progress/`: <beim Übergang einzutragen>.
 
 **Start** (`next` → `in-progress`): `slice-harness-coverage` und
 `slice-harness-commit-struktur-id` liegen in `done/` oder sind ausdrücklich zurückgestellt
@@ -363,6 +396,10 @@ nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
   (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, in Gegenrichtung). Je Test nur
   das, was der Architect nach §6 *Was ein Test festhält* entscheidet. — **Ausgang:**
   — (bei Closure)
+- **Der Test fängt den Mutanten nicht, weil der Fall `geprueftFromDTO` nicht trifft** —
+  die erste Fassung nannte „negatives `offset_ms`“; die Berichtigung steht in §1. Je
+  Fall prüft der Implementer in §7, dass der Mutant `geprueftFromDTO(1, …)` ihn rot
+  färbt. — **Ausgang:** — (bei Closure)
 - **Mutant kommt im Build-Kontext nicht an** — eine Mutation mit unveränderter Größe
   und mtime überträgt BuildKit nicht (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×). Die Mutationen laufen in einer frischen Kopie unter eigenem Pfad oder mit
@@ -466,5 +503,23 @@ Ausgang liegt beim Nutzer). Dieser Slice ist selbst eine Adresse: Nach der
 *Sammelregel* in §1 trägt der Planner jeden neuen Fund hier unter *Gegenstand* nach,
 die Annahme steht damit im Nehmer. Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein
 3×; vor dem Code entsteht keine neue Lücke.
+
+Sichtung am 2026-10-24 (Stand `9f1cc263`): 129 Verzeichnisse unter `BEO-REPO/`; die
+Klassen oben sind unverändert die einschlägigen, keine zweite Sub-Area ist berührt.
+
+**Zählung nach `AGENTS.md` §3.13** (Planner, 2026-10-24, Stand `9f1cc263`, mit den
+Berichtigungen dieses Commits):
+
+- Liefer-Punkte: 3 (M3 · P8 und P2 · Y2), höchstens 3. Der Kommentar von
+  `extendedNachspielen` ist Teil von Punkt 1; die Spezifikation schreibt der Architect
+  vor dem Code und zählt nicht.
+- Schichten: 2 — Kern (`internal/hexagon/services`, Test und Kommentar) und
+  Driven-Adapter (`postgres`, `recording`, nur Tests); Tests zählen als die Schicht
+  ihres Codes. Doku (`docs/user/`, `README.md`) und Bootstrap bleiben unberührt. Die
+  Abdeckungstabellen unter `docs/user/` kommen nur hinzu, wenn `make abdeckung-check`
+  es verlangt; sie sind nach §3.13 eine dritte Schicht, in diesem Fall geht der Punkt
+  an den Planner statt in den Slice.
+- Prüfbar in einer Review-Sitzung: nur Tests und ein Kommentar; die Sendung ist drei
+  Testdateien-Erweiterungen mit je einem Mutanten, weit unter der Marke 1500.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
