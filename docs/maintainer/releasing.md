@@ -269,7 +269,7 @@ Von diesen sechs zeigt das Werkzeug `make homebrew-nachweis` (Abnahmeszenario 11
 echten Tap, belegt für **Linux/amd64** mit den Formeln `0.1.1` und `0.2.0` (Beleg zu `0.2.0`: `docs/reviews/2026-10-24-nachweis-slice-release-v0-2-0.md`): Homebrew nimmt die Formel an (`brew install`, `brew test` ohne
 Befund), die Adresse des Anhangs ist erreichbar, der Klon trägt die Form (`brew tap` leitet `pt9912/pgwire-recorder` auf
 `pt9912/homebrew-pgwire-recorder` ab), und das Binary läuft unter Linux/amd64. **Die drei übrigen zeigt es nicht:** das Binary
-auf macOS auf `amd64` und auf Linux auf `arm64` (Grenze in `LH-FA-19.a`; das Handbuch nennt nur die geprüfte Kombination; für macOS auf `arm64` liegt ein Bericht des Nutzers vom 2026-10-24 vor, berichtet sind Installation und `version` mit Homebrew 7.0.10 und Version `0.2.0`, kein Beleg für `replay`, `brew test` und Exit-Codes), das Schreibrecht des
+auf macOS auf `amd64` und auf Linux auf `arm64` (Grenze in `LH-FA-19.a`; das Handbuch nennt die geprüfte Kombination und den Bericht; für macOS auf `arm64` liegt ein Bericht des Nutzers vom 2026-10-24 vor, berichtet sind Installation und `version` mit Homebrew 7.0.10 und Version `0.2.0`, kein Beleg für `replay`, `brew test` und Exit-Codes), das Schreibrecht des
 Tap-Tokens ohne Eingriff des Betreibers (es zeigte sich im vierten Versuch des Jobs im Lauf `39551891874`, nach zwei
 Eingriffen; `BEO-REPO/vorbedingung-geheimnis-nur-existenz-geprueft`) und den Wortlaut von `gh release download` auf dem Runner
 (den zeigt allein ein Lauf des Jobs). Die Installation aus dem Tap und der Abschnitt im Benutzerhandbuch liegen beim Nachweis.

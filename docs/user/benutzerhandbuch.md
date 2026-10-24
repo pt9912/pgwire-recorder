@@ -152,7 +152,7 @@ chmod +x pgwire-recorder-linux-amd64
 `pgwire-recorder 0.2.0` aus. Für eine andere Plattform laden Sie die Datei mit dem passenden
 Namen. Ohne `--ignore-missing` verlangt `sha256sum` alle sechs Dateien. Gestartet und geprüft ist das
 Binary für Linux auf `amd64`; die Binaries für macOS und Windows und das für Linux auf `arm64` sind
-gebaut, aber nicht von uns ausgeführt; für das Binary für macOS auf `arm64` steht ein Bericht unter
+gebaut, aber nicht ausgeführt; für das Binary für macOS auf `arm64` steht ein Bericht unter
 [Mit Homebrew installieren](#mit-homebrew-installieren).
 
 ### Container-Image aus der Registry

@@ -56,7 +56,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Nutzer- und Wartungs-Doku (eine Schicht, `AGENTS.md` §3.13): Handbuch §2 *Installation* (Satz „Gefahren ist diese Installation …“, die Sätze zu den Binaries für macOS und `arm64`), `README.md` (Zeile zu Homebrew, Satz zu den Binaries) und `docs/maintainer/releasing.md` §1, §7 und Änderungshistorie nennen macOS auf `arm64`, Version `0.2.0`, als **berichtet** (nicht gefahren, nicht belegt, ohne Replay-Aussage) und führen macOS auf `amd64` und Linux auf `arm64` weiter als Grenze, Linux auf `amd64` weiter als gefahren (§3.11: jeder Satz gegen `LH-FA-19.a` und `SPEC-067` Punkt 20 (6) gelesen; das Handbuch ohne Verweis auf Spezifikation, Slice oder Review, ohne Chronik).
+- [ ] Nutzer- und Wartungs-Doku (eine Schicht, `AGENTS.md` §3.13): Handbuch §2 *Installation* (Satz „Gefahren ist diese Installation …“, die Sätze zu den Binaries für macOS und `arm64`), `README.md` (Zeile zu Homebrew, Satz zu den Binaries) und `docs/maintainer/releasing.md` §1, §7, §10 (Satz zu `darwin` und `windows`) und Änderungshistorie nennen macOS auf `arm64`, Version `0.2.0`, als **berichtet** (nicht gefahren, nicht belegt, ohne Replay-Aussage) und führen macOS auf `amd64` und Linux auf `arm64` weiter als Grenze, Linux auf `amd64` weiter als gefahren (§3.11: jeder Satz gegen `LH-FA-19.a` und `SPEC-067` Punkt 20 (6) gelesen; das Handbuch ohne Verweis auf Spezifikation, Slice oder Review, ohne Chronik).
 - [ ] Zitat und Merkmale des Berichts stehen in §1 oder §7 dieses Plans (Datum, Wortlaut, `uname`, Homebrew, Befehl, Versionszeile); keine Beleg-Datei, keine Summe.
 - [ ] `make docs-check` und `make kopf-check` grün; `make gates` grün (kein Code berührt; der Stop-Hook liest Positivliste und schnelle Kette).
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -75,7 +75,7 @@ nicht die Antwort.
 |---|---|---|
 | `docs/user/benutzerhandbuch.md` | update | Installation: macOS `arm64` berichtet (Version 0.2.0); nur was Punkt 20 (6) trägt (§3.11) |
 | `README.md` | update | Zeile zu Homebrew und Satz zu den Binaries, wie das Handbuch |
-| `docs/maintainer/releasing.md` | update | §1, §7 (Grenze „macOS“ wird „macOS `amd64`“, `arm64` berichtet), Änderungshistorie mit neuer Zeile und Kopf-Version |
+| `docs/maintainer/releasing.md` | update | §1, §7 (Grenze „macOS“ wird „macOS `amd64`“, `arm64` berichtet), §10 (Satz zu `darwin` und `windows`), Änderungshistorie mit neuer Zeile und Kopf-Version |
 
 - Eingabe: das Zitat in §1 (kein Lauf, keine Datei). Spezifikation und Lastenheft bleiben in diesem Slice unberührt (§1). Kein Eintrag in `docs/user/abdeckung-*.md`.
 
