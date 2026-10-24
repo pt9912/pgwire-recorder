@@ -36,7 +36,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md` §Wellen-Closure
 - `slice-erster-release-homebrew-nachweis`: der Nachweis für Linux `amd64` (Tabelle oben).
 - `slice-homebrew-nachweis-macos-arm64`: Doku der Stufe *Bericht* für macOS `arm64` (Tabelle oben).
 - `slice-v1-abschluss-verbindungsende-upstream-extended`: das Ende einer Extended-Interaktion durch den Server ist gegen PostgreSQL 17.11 belegt, Fixtures mit Sync und mit Flush, vier Aufzeichnungs- und Replay-Tests und zwei ohne PostgreSQL; nur Tests und Testdaten (`LH-FA-25`, `LH-FA-18`); 280 Zeilen gegen Marke 1500.
-- Mit `v0.2.0` (wellenlos, `slice-release-v0-2-0`) und `slice-version-option` liegt Produktstand über dieser Welle hinaus; sie sind nicht ihre Mitglieder.
+- Nicht Mitglieder, vom Werkzeug dennoch mit archiviert (Archivierung unten): `slice-release-v0-2-0`, `slice-version-option`, `slice-play-feldvergleich`, `slice-go-toolchain-1-27-3`, `slice-harness-gegenproben-umzug-dev`, `slice-harness-regeln-rueckbau` (wellenlos seit der letzten Closure oder mit Nennung der Welle im Text, Zählung des Werkzeugs: 9 Mitglieder, 4 wellenlos).
 
 Die Anforderungen (MUSS und SOLL) sind nach dem Stand der Slices umgesetzt; die Anforderung `LH-FA-19` ist es mit der Grenze oben (die Formel liegt im Tap und installiert unter Linux `amd64` und, berichtet, unter macOS `arm64`).
 
@@ -114,7 +114,8 @@ Paarungen: (a) *Anker* — der Lerneintrag verkörpert keine Regel mit `liegt in
 
 ## Archivierung
 
-Eintrag folgt mit der Archivierung (Schritt 4).
+- `make archive-welle WELLE=welle-v1-nachtrag` (Träger `.harness/state/bin/ai-harness-init`) hat 13 Slice-Dateien und den Welle-Plan nach `done/welle-v1-nachtrag/archiv.zip` (226195 Bytes) archiviert, 14 Stubs daneben, 0 Review-Reports; zwei Commits (reiner Move, dann Archiv, Stubs und Verweis-Nachzug). Die Zeile `Bezug` der Stubs schrieb `make archiv-bezug WELLE=welle-v1-nachtrag` (13 Stubs, eigener Commit); weitere Verweise auf den Welle-Plan zog der Planner nach (zehn Dateien, ein eigener Commit).
+- **Nicht archiviert:** `slice-play-feldvergleich-doku` bleibt als Volltext in `done/`: Sein Feld `Welle:` lautet „— (wellenlos), wie `slice-play-feldvergleich`“, das Werkzeug zählte ihn weder als Mitglied noch als wellenlos. Feststellung für den Nutzer, kein Eingriff in das Werkzeug; die nächste Closure sammelt ihn, wenn sein Feld es zulässt.
 
 ## Verifikation
 

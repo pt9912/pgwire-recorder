@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- [welle-gegenproben-und-mutanten](welle-gegenproben-und-mutanten.md) ist `done` (Neuschnitt der Wellen 2 und 3, Entscheidung des Nutzers vom 2026-10-18; die Wellen laufen strikt nacheinander und `slice-harness-lh-links-pflicht` steht in der Harness-Reihe hinter `slice-harness-mutation`, Drift-Log der Roadmap vom 2026-10-09). Damit sind auch [welle-harness-regeln](welle-harness-regeln.md), [welle-erster-release](done/welle-erster-release/welle-erster-release.md) und [welle-v1-nachtrag](welle-v1-nachtrag.md) `done`.
+- [welle-gegenproben-und-mutanten](welle-gegenproben-und-mutanten.md) ist `done` (Neuschnitt der Wellen 2 und 3, Entscheidung des Nutzers vom 2026-10-18; die Wellen laufen strikt nacheinander und `slice-harness-lh-links-pflicht` steht in der Harness-Reihe hinter `slice-harness-mutation`, Drift-Log der Roadmap vom 2026-10-09). Damit sind auch [welle-harness-regeln](welle-harness-regeln.md), [welle-erster-release](done/welle-erster-release/welle-erster-release.md) und [welle-v1-nachtrag](done/welle-v1-nachtrag/welle-v1-nachtrag.md) `done`.
 
 ## 3. Closure-Trigger (Welle schließt)
 

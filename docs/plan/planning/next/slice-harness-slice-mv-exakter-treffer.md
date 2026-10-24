@@ -131,7 +131,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): Der Slice steht in der wellenlosen Reihe der fünf Harness-Slices an erster Stelle, hinter
-[welle-v1-nachtrag](../welle-v1-nachtrag.md) (in `done/`; Voraussetzung der Stelle, nicht der Technik) und vor
+[welle-v1-nachtrag](../done/welle-v1-nachtrag/welle-v1-nachtrag.md) (in `done/`; Voraussetzung der Stelle, nicht der Technik) und vor
 `slice-harness-regeln-nach-v1-abschluss`, `slice-harness-regeln-spezifikation-satzabgleich`,
 `slice-harness-schaetzung-planner-faktor` und `slice-harness-gegenprobe-matrix-p7-flanke`. Er stand bis zum 2026-10-16
 unmittelbar hinter `slice-v1-abschluss-verbindungsende-doku` (Schritt 42 von welle-v1-abschluss, Empfehlung des Planners vom 2026-10-15)

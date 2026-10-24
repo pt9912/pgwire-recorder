@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 2. `slice-harness-ci-freshness` — `upstream-drift.yml`, Audit der Baseline und von d-check (setzt `slice-harness-ci` voraus).
 3. `slice-harness-ci-freshness-images` — Image-Pins im Nachtlauf (setzt 2 voraus).
 
-Die Stellung der Welle gegenüber [welle-v1-nachtrag](welle-v1-nachtrag.md) und den Harness-Wellen ist nicht entschieden: Beide folgen auf welle-erster-release; keine Kante zwischen ihnen und dieser Welle (Frage an den Nutzer).
+Die Stellung der Welle gegenüber [welle-v1-nachtrag](done/welle-v1-nachtrag/welle-v1-nachtrag.md) und den Harness-Wellen ist nicht entschieden: Beide folgen auf welle-erster-release; keine Kante zwischen ihnen und dieser Welle (Frage an den Nutzer).
 
 ## 6. Out-of-Scope für diese Welle
 

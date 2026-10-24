@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- [welle-erster-release](done/welle-erster-release/welle-erster-release.md) und [welle-v1-nachtrag](welle-v1-nachtrag.md) sind `done` (Wellen vor Harness, Entscheidung des Nutzers vom 2026-10-08 und vom 2026-10-16: die Harness-Reihe steht hinter beiden).
+- [welle-erster-release](done/welle-erster-release/welle-erster-release.md) und [welle-v1-nachtrag](done/welle-v1-nachtrag/welle-v1-nachtrag.md) sind `done` (Wellen vor Harness, Entscheidung des Nutzers vom 2026-10-08 und vom 2026-10-16: die Harness-Reihe steht hinter beiden).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -78,7 +78,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - **Pausiert** (Entscheidung des Nutzers vom 2026-10-22, „ja“ auf die Entscheidungen 1 bis 4 im Bericht des Planners, so vom Koordinator übermittelt, Punkt 2): Kein Slice dieser Welle geht von `next/` nach `in-progress/`, bis `slice-harness-regeln-rueckbau` in `done/` liegt und der Nutzer die Wiederaufnahme entscheidet. Die Pause trifft alle Slices der Tabelle in §4 (auch die Wächter der Stunde, `slice-harness-rollenlauf-zeitgrenze`, `-haertung` und `-wiederholungsgrenze`; **entschieden** am 2026-10-22, wörtlich „1. ja“, so vom Koordinator übermittelt, alle sechs Empfehlungen des Planners: Sie pausieren mit der Welle) und, außerhalb der Welle, `slice-harness-regeln-gate-konfiguration` (`AGENTS.md` §3.10). Der Rückbau ändert `AGENTS.md` §3.9 bis §3.14, dazu `implement-slice.md`, `plan-welle.md`, `architect.md`, `close-welle.md` und den Reviewer-Skill, also dieselben Stellen, an denen die pausierten Slices schreiben. **Wiederaufnahme:** Der Planner prüft vor dem Anspruch jeden pausierten Plan gegen den Wortlaut nach dem Rückbau (Marke statt Schätzung und Meldeschwelle, kein Retirement-Check-Satz, Geltungsbereich von §3.10 und §3.12, die Nummer §3.15 für die Rate) und zieht ihn nach; Closure-Trigger und Reihenfolge unten bleiben.
 - Blockiert: Welle [welle-gegenproben-und-mutanten](welle-gegenproben-und-mutanten.md) (deren Start-Trigger verlangt diese Welle in `done/`). Die Bindung auf Slice-Ebene `slice-tests-ueberlebende-mutanten` setzt `slice-harness-commit-struktur-id` voraus ergibt sich damit aus der Reihenfolge der Wellen; sie bleibt im Plan des Slice stehen und ändert sich nicht.
-- Wird blockiert von: Welle [welle-v1-nachtrag](welle-v1-nachtrag.md) (Start-Trigger).
+- Wird blockiert von: Welle [welle-v1-nachtrag](done/welle-v1-nachtrag/welle-v1-nachtrag.md) (Start-Trigger).
 - Innerhalb der Welle: keine Abhängigkeit zwischen den Slices außer der Reihenfolge unten.
 
 **Reihenfolge** (nach den Start-Triggern der Slices; WIP-Limit 1; die Welle ordnet nicht neu; Reihenfolge der drei Wellen strikt: diese, [welle-gegenproben-und-mutanten](welle-gegenproben-und-mutanten.md), [welle-lh-links](welle-lh-links.md), Entscheidung des Nutzers vom 2026-10-18):
