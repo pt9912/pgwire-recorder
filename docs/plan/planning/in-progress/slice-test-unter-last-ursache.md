@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-last1)
 
 **Autor:** Planner. **Datum:** 2026-10-22; nachgezogen 2026-10-24 (siebtes Auftreten, Marke nach `AGENTS.md` §3.14, Anspruch).
 
@@ -104,7 +104,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): Der Slice lag in `open/`, bis er am 2026-10-24 auf Auftrag des Koordinators priorisiert wurde (`open` → `next`, `Verantwortlich: pt9912`); der Anspruch ist der reine Move nach `in-progress/` auf `main`, `Verantwortlich:` trägt dann den Zweig (`pt9912 (Zweig impl-last1)`). Kein anderer Slice ist Start-Trigger. **Voraussetzung der Messung (Punkte 1 und 2):** Der Host ist frei — kein anderer Rollenlauf, keine Gegenprobe und kein `make gates` zur selben Zeit auf demselben Host und Docker-Daemon; die künstliche Last verfälscht fremde Läufe, und fremde Läufe verfälschen die Messung (`BEO-REPO/lastabhaengige-zaehlung`). Der Nutzer gibt den Host frei; §7 nennt, dass kein anderer Lauf lief. WIP-Limit 1. Der Implementer legt den Wortlaut der Zwischenregel dem Koordinator vor (dieser dem Nutzer) und committet `implement-slice.md` erst nach der Bestätigung; bis dahin ruht Punkt 3, nicht der Slice.
 
-**Größe.** Metrik und Befehl stehen in `AGENTS.md` §3.14 (einmal, dort); gilt der Befehl von dort. **Pfade des Plans:** `.claude internal test tools harness` (mit den zwei Ausschlüssen des Befehls). **Marke 1500** (`AGENTS.md` §3.14, Entscheidung des Nutzers vom 2026-10-22); der Plan nennt keine Meldeschwelle und keine Schätzung (§3.14, Nachzug beim Anspruch 2026-10-24; die frühere Marke 100 mit Meldeschwelle 80 entfällt). **Basis:** der Commit, der diese Datei nach `in-progress/` bewegt; sein Hash steht hier: *wird im Commit nach dem Move eingetragen* (Basis: `BASIS-HASH`). Die Zeilenmarke misst diesen Slice schlecht — sein Umfang ist die Messung in §7 —, deshalb trägt die zweite Rückführung eine Zeitbedingung.
+**Größe.** Metrik und Befehl stehen in `AGENTS.md` §3.14 (einmal, dort); gilt der Befehl von dort. **Pfade des Plans:** `.claude internal test tools harness` (mit den zwei Ausschlüssen des Befehls). **Marke 1500** (`AGENTS.md` §3.14, Entscheidung des Nutzers vom 2026-10-22); der Plan nennt keine Meldeschwelle und keine Schätzung (§3.14, Nachzug beim Anspruch 2026-10-24; die frühere Marke 100 mit Meldeschwelle 80 entfällt). **Basis:** der Commit, der diese Datei nach `in-progress/` bewegt; sein Hash steht hier: `ffdacf7d41a3d551a8d164470e070a8a0d2791e0` (Move nach `in-progress/`, 2026-10-24). Die Zeilenmarke misst diesen Slice schlecht — sein Umfang ist die Messung in §7 —, deshalb trägt die zweite Rückführung eine Zeitbedingung.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
