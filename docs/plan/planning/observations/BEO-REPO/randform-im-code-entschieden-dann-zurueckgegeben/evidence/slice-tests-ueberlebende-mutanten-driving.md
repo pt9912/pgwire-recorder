@@ -1,0 +1,2 @@
+**Vorgang:** slice-tests-ueberlebende-mutanten-driving
+**Fund:** Der Implementer setzte die Frist an zwei Stellen, die §6 nicht nannte (`tls_test.go` `TestRunReplayTLS`, Ende von `Serve` in `TestTLSNacheinanderUndGleichzeitig`), im Code-Commit und trug sie danach als „vom Implementer ergänzt“ in den Plan ein; der Architect bestätigte beide erst nach dem Review (`0950edcc`, Review F-1, F-2, LOW: Randform erst im Code-Commit im Plan genannt). Dieselbe Form wie beim Anker der Regel: Die Entscheidung stand im Code, bevor die Spezifikation sie trug.

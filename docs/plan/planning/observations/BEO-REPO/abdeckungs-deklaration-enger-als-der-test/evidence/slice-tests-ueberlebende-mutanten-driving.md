@@ -1,0 +1,2 @@
+**Vorgang:** slice-tests-ueberlebende-mutanten-driving
+**Fund:** `TestRunSignalVorDemOeffnen` in `internal/bootstrap/bootstrap_test.go` deklariert `// Abdeckung: LH-FA-13/Boundary`; die Fälle `Name löst nicht auf` und `Port belegt` (je `record` und `replay`) sind Negativpfade derselben Zusage und stehen in keiner Zeile von `docs/user/abdeckung-unit.md` als `Negative` (Review F-4, INFO; Verifikation V-3, INFO). `make abdeckung-check` grün; nicht behoben, nur vermerkt.
