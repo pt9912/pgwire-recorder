@@ -204,31 +204,31 @@ Je Liefer-Punkt ein Mutant oder ein Paar aus §1 *Gegenstand*. Der Beleg des
 Implementers steht in §7 als Mutationstabelle (Zusage · Mutation · roter Test, je
 Mutant dazu der Lauf ohne den neuen Test, in dem er grün bleibt), nicht im Bericht.
 
-- [ ] **Diagnose nach abgelehntem `parse` (M3):** Ein Test in `services_test` über
+- [x] **Diagnose nach abgelehntem `parse` (M3):** Ein Test in `services_test` über
       `NewReplayService` und `ClientMessage` hält die Zusage, die der Architect nach §6
       *Abgelehntes parse* in `LH-FA-18.a` (*Anweisung in der Diagnose*) festgehalten hat; er
       vergleicht `PGR-E5001` und das SQL der erwarteten Anweisung, nicht den ganzen Text. Er wird
       rot ohne `bestaetigt[m.Type]--` und ist ohne Mutation grün. Der Doc-Kommentar
       von `extendedNachspielen` nennt die Zusage über die ersten n Nachrichten wieder,
       und zwar nur so weit, wie der Test sie prüft (`AGENTS.md` §3.11).
-- [ ] **Spalten-Metadaten der `RowDescription` (P8, P2):** Ein Test in `postgres_test`
+- [x] **Spalten-Metadaten der `RowDescription` (P8, P2):** Ein Test in `postgres_test`
       über `Open` und `Query` sowie `Send` und `Receive` hält die Zusage aus
       `LH-FA-02.a` (Schritt 4) und `LH-FA-18.a` (*Record*: unverändert weitergeleitet)
       für `TableOID` und `ColumnNumber`, nach der Lesart aus §6 *Spalten-Metadaten*. Er
       wird rot ohne `TableOID:` und, je für sich, ohne `ColumnNumber:` in `spalten`.
-- [ ] **Session in der Meldung eines beschädigten Recordings (Y2):** Ein Test in
+- [x] **Session in der Meldung eines beschädigten Recordings (Y2):** Ein Test in
       `recording_test` über `Unmarshal` hält die Zusage, die der Architect nach §6
       *Ort in der Meldung* in `LH-FA-22.a` festgehalten hat; er vergleicht `PGR-E3003`
       und `Session 2` im Text. Für jeden Fehler an einer Interaktion in Session 2, den
       `geprueftFromDTO` meldet (Nummer, Form), wird er rot, wenn sie die Session 1 nennt.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -399,31 +399,30 @@ nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
 
 - **Die Sammlung wächst über den Schnitt** — weitere Funde (§1 *Sammelregel*) heben
   die Zahl der Liefer-Punkte über drei oder ziehen eine dritte Schicht hinein. Der
-  Planner schneidet vor `open` → `next` (§4). — **Ausgang:** — (bei Closure)
+  Planner schneidet vor `open` → `next` (§4). — **Ausgang:** *entfallen* — kein weiterer Fund wurde nachgetragen (Suche nach der Kennung unter `docs/`, 2026-10-24); der Slice schließt mit 3 Liefer-Punkten und 2 Schichten, Zählung in §8, Diff 191 Zeilen.
 - **Der Rückweg im PGWire-Adapter ist ungemessen** — ob ein Mutant, der `TableOID`
   oder `ColumnNumber` auf dem Weg zum Client fallen lässt, dort überlebt. Der Test aus
   Liefer-Punkt 2 fängt ihn nicht. Gemessen hat ihn `slice-lint-bestand-driving` (T3, T5
   grün, §7 dort G4); er ist ein Fund nach der Sammelregel in einer dritten Schicht und
   liegt bei `slice-tests-ueberlebende-mutanten-driving`. Der Implementer fährt die
-  Mutation hier nicht mehr. — **Ausgang:** — (bei Closure)
+  Mutation hier nicht mehr. — **Ausgang:** *eingetreten* → Folge-Slice `slice-tests-ueberlebende-mutanten-driving`; er nimmt an (G4 in §1 *Gegenstand* 3 und in DoD 3, mit Grenze zu P8 und P2). Die Aufzeichnung der zwei Felder fängt auch er nicht; sie steht als Beobachtung im Register (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, Verifikation F-2).
 - **Der Test hält den Bestand statt der Zusage fest** — ein Vergleich des ganzen
   Meldungstextes machte jede Umformulierung rot, ohne dass eine Zusage bricht
   (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, in Gegenrichtung). Je Test nur
-  das, was der Architect nach §6 *Was ein Test festhält* entscheidet. — **Ausgang:**
-  — (bei Closure)
+  das, was der Architect nach §6 *Was ein Test festhält* entscheidet. — **Ausgang:** *entfallen* — die drei Tests vergleichen Code und zugesagte Textteile (Review F-5 und F-6, Verifikation §4); keiner den Wortlaut der Einordnung.
 - **Der Test fängt den Mutanten nicht, weil der Fall `geprueftFromDTO` nicht trifft** —
   die erste Fassung nannte „negatives `offset_ms`“; die Berichtigung steht in §1. Je
   Fall prüft der Implementer in §7, dass der Mutant `geprueftFromDTO(1, …)` ihn rot
-  färbt. — **Ausgang:** — (bei Closure)
+  färbt. — **Ausgang:** *entfallen* — jeder Fall färbt `geprueftFromDTO(1, …)` rot (Mutationstabelle in §7, von der Verifikation nachgefahren: Y2a, Y2n, Y2f).
 - **Mutant kommt im Build-Kontext nicht an** — eine Mutation mit unveränderter Größe
   und mtime überträgt BuildKit nicht (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×). Die Mutationen laufen in einer frischen Kopie unter eigenem Pfad oder mit
-  `go test` im Image der Stufe `deps`. — **Ausgang:** — (bei Closure)
+  `go test` im Image der Stufe `deps`. — **Ausgang:** *entfallen* — Implementer und Verifikation fuhren jede Mutation in einer frischen Kopie unter eigenem Pfad mit Bind-Mount (§7, Verifikation §1); kein Auftreten, das Register führt die Klasse unverändert (1×).
 - **Das Replay ist am unbenannten Statement falsch** — bestätigt (PostgreSQL 14 bis 18,
   §6 *Abgelehntes parse*): Nach einem gescheiterten `parse` auf das unbenannte Statement
   nennt die Diagnose ein Statement, das der Server nicht mehr kennt, in der Diagnose, nicht
   in den Antworten. Empfehlung des Architect: Grenze von v1 (steht in `LH-FA-18.a`); der
-  Nutzer entscheidet, bei Ablehnung eigener Korrektur-Slice. — **Ausgang:** — (bei Closure)
+  Nutzer entscheidet, bei Ablehnung eigener Korrektur-Slice. — **Ausgang:** *weiter offen* → Register `BEO-REPO/replay-diagnose-nach-gescheitertem-parse-auf-unbenanntes-statement` (Beleg `evidence/slice-tests-ueberlebende-mutanten.md`); die Entscheidung des Nutzers steht aus.
 
 ## 7. Closure-Notiz
 
@@ -439,12 +438,16 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Gegenstand:** geliefert (kein Fall von „übernommen“ oder „entfallen“).
+- **Was hat funktioniert:** Der Architect entschied alle Randformen vor dem ersten Code-Commit (§6, `spec/spezifikation.md`), und der Implementer musste keine zurückgeben. Je Zusage ein Test mit einer Mutation, die nur ihn rot färbt, und der Lauf ohne den neuen Test dazu (Tabelle unten); die Verifikation fuhr M3, P8, P2, Y2 und zwei Teil-Mutanten selbst nach, alle wie unten gesagt (Urteil bestanden, 0 HIGH und 0 MEDIUM). Das Muster „Test über die exportierte Schnittstelle, Mutante in frischer Kopie“ (`SPEC-049` Punkt 7) trug ohne Erweiterung der Export-Test-Brücke. Diff 191 Zeilen bei Marke 1500, drei Liefer-Punkte, zwei Schichten.
+- **Was ging anders als geplant:** (1) §1 sagte, kein Test erzeuge einen Fehler ab Session 2; ein Bestandstest im Paket `sqlite` tut es und färbt zwei der drei Y2-Mutanten rot; die Sichtung des Planners lief ohne Mutationslauf (Fund des Implementers, Berichtigung vom 2026-10-24). (2) Die fünf erzeugten Zeilen in `abdeckung-unit.md` brachten die Frage nach der dritten Schicht (Planner-Entscheidung im Einzelfall, §8; Review F-3). (3) Der Review fand Kopf, Kommentar und §3 des Plans nicht dem Diff folgend (F-1, F-2, F-4, alle behoben); die Verifikation fand zwei weitere niedrige Befunde (unten).
+- **Steering-Loop-Eintrag:** *benannte Spec-Lücke* — `LH-FA-02.a` *Spalten-Metadaten* sagt zu, der Recorder „zeichnet unverändert auf“, und kein Test hält die Aufzeichnung von Tabellen-OID und Spaltennummer (Verifikation F-2); der Rückweg zum Client hat in `slice-tests-ueberlebende-mutanten-driving` (G4) eine Adresse, die Aufzeichnung keine, weil sie dort die dritte Schicht wäre. Dazu zwei Vorschläge des Planners, **nicht umgesetzt, `AGENTS.md` bleibt unberührt** (offene Nutzerpunkte): (a) ein Satz in `AGENTS.md` §3.13 *Schichten zählen alle Pläne gleich*: „Eine Zeile einer von `make abdeckung` erzeugten Tabelle unter `docs/user/abdeckung-*.md` zählt nicht als Schicht.“ (zu F-3); (b) eine Aussage „überlebt alle Tests“ in §1 eines Plans wird beim Planen gemessen oder als „ungemessen“ geführt (zu Y2). Kein `liegt in`: Es wurde nichts verkörpert.
+- **Beobachtungs-Register (`../observations/`):** drei weitere Belege unter `evidence/slice-tests-ueberlebende-mutanten.md` und ein neuer Eintrag. `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Review F-2, Verifikation F-1 und F-2), `BEO-REPO/plan-folgt-korrektur-nicht` (Review F-1 und F-4, Berichtigung zu Y2), `BEO-REPO/schichtteilung-je-plan-verschieden` (Review F-3; Nutzerpunkt (a) steht in seinem `state.md`); neu `BEO-REPO/replay-diagnose-nach-gescheitertem-parse-auf-unbenanntes-statement` (Risiko aus §6, *weiter offen*). Die drei bestehenden Einträge liegen über der Schwelle und tragen ihren Ausgang (verkörpert; bei der ersten ist der Sensor mit `slice-harness-mutation` geplant); der Lese-Schritt gibt keinem von ihnen einen neuen. `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: kein Auftreten, G4 steht im Nehmer (siehe Paarungen), kein Beleg. §3.15: keine Rate; seit `slice-harness-regeln-rueckbau` sind mit diesem sieben Slices geschlossen, weniger als zehn.
+- **Folge-Slices:** `slice-tests-ueberlebende-mutanten-driving` (G4, Rückweg zum Client). Nach dem Lifecycle beanspruchbar (der Nehmer liegt hinter diesem Slice, das WIP-Limit ist frei); der Start-Trigger von welle-gegenproben-und-mutanten ist nicht erfüllt, er braucht eine Entscheidung des Nutzers wie beim Anspruch dieses Slice. Ein Slice für die Aufzeichnung der zwei Felder ist nicht angelegt; ob er entsteht, entscheidet der Nutzer.
+- **Risiken aus §6:** je ein Ausgang an jedem Risiko in §6: *entfallen* (Sammlung wächst, Bestand statt Zusage, Fall trifft nicht, Build-Kontext), *eingetreten* → `slice-tests-ueberlebende-mutanten-driving` (Rückweg im PGWire-Adapter), *weiter offen* → Register (unbenanntes Statement).
+- **Offen aus der Verifikation (LOW, kein Mutant grün):** F-1 — der Satz „ein weiteres `parse` auf dasselbe Statement in der Interaktion“ im Kommentar von `extendedNachspielen` (`replay.go`) reicht über den geprüften Fall (abgelehntes `parse` in einer späteren Gruppe) hinaus; der Planner ändert keinen Produktcode: Beleg im Register (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`), kleiner Nachtrag für den nächsten Lauf an dieser Datei („zweite Gruppe, abgelehnt“ in den Satz oder ein Fall für dieselbe Gruppe). F-2 — siehe Steering-Loop-Eintrag.
+- **Drei Paarungen:** (a) *Anker*: kein Steering-Loop-Eintrag trägt `liegt in`, nichts ist verkörpert; leer, nicht verletzt. (b) *Folge-Slice*: `slice-tests-ueberlebende-mutanten-driving` liegt als Datei in `open/`, und `grep -n "slice-tests-ueberlebende-mutanten"` findet die Kennung dieses Gebers in seinem §1 (Gegenstand 3, G4, mit Grenze zu P8 und P2) und dazu G4 in seiner DoD 3 (`AGENTS.md` §3.13); nachgezogen in `baab3120` (Randformen entschieden, Grenze der Aufzeichnung, Nachzählung 3 Punkte, 2 Schichten). Ob er G4 inhaltlich führt: ja, `ToMessage`, jedes Feld, Mutation `TableOID` und `TableAttributeNumber` je für sich. (c) *Register*: die vier genannten Verzeichnisse existieren, jedes trägt `evidence/` mit einer Datei dieses Slice.
+- **Verifikation:** Bericht `docs/reviews/2026-10-24-verifikation-slice-tests-ueberlebende-mutanten.md` (Stand main `48228da4`): bestanden. Voller `make gates` am Endstand `32fe4711` (unten); ein weiterer Lauf auf main mit demselben Code lag bei der Closure noch ohne Ergebnis und ist hier nicht behauptet.
 
 *Belege der Planung* (Planner, 2026-10-07, Stand `8d765ba`). Gesichtet wurden die
 Reports unter `docs/reviews/`, die Pläne unter `done/` samt den Archiven der drei
@@ -623,3 +626,8 @@ unter `docs/user/abdeckung-*.md` zählt nicht als Schicht.“ Dann entfiele die 
 Entscheidung; sie ist nach F-3 (Klarstellung der Spezifikation) die zweite Stelle, an der der
 Wortlaut des Schichtbegriffs zum Zweck der Größenregel nicht passt. Ob das dieselbe Register-
 Klasse ist, entscheidet der Nutzer bei der Closure.
+
+**Zu Review F-3 bei der Closure (Planner, 2026-10-24):** Die Entscheidung des Planners bleibt für diesen Slice
+stehen (2 Schichten, mit den erzeugten Zeilen formal 3, kein Schnitt; die Verifikation fand den Slice in einer
+Sitzung prüfbar). Der Vorschlag zu `AGENTS.md` §3.13 ist offener Nutzerpunkt, nicht umgesetzt; die Klasse ist
+`BEO-REPO/schichtteilung-je-plan-verschieden` (sechstes Auftreten, `state.md` trägt den Wortlaut).
