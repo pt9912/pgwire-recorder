@@ -62,10 +62,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1 (Ursache der Go-Tests, drei Tests der Belege):** §7 trägt unter *Belege des Implementers* (a) den Aufruf der künstlichen Last wörtlich und wiederholbar (Erzeuger, Anzahl, Dauer, Messung der Last vor und nach dem Lauf; Sendung von `slice-harness-randform-umgebung-der-gegenprobe`), (b) je Test (`TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild`, `TestE2EPlayVergleichAlle/Umgebungsvariable`, `TestRunPlayZweitesSignal`) den Lauf allein (Dauer) und die Läufe unter Last (Anzahl, Zahl der roten Läufe), (c) die Proben in einer Kopie außerhalb des Repos, die Frist, Reihenfolge und Wettlauf trennen (der Implementer wählt sie und nennt je Probe, was sie trennt), mit ihrem Ergebnis, und (d) die Ursache je Test als *Frist*, *Reihenfolge* oder *Wettlauf im Code* oder, wenn das Rot nicht entsteht, den Befund „nicht reproduziert in N Läufen bei Last L“ (Randform 3). Die Tests laufen über das Docker-Gerüst des Repos (`AGENTS.md` §3.1); der Aufruf steht wörtlich in §7.
-- [ ] **Liefer-Punkt 2 (zweite Probe: Signalfall der Gegenprobe):** §7 trägt dasselbe für den Fall `p17-budget-sigint` der Gegenprobe `container-einrichten-gegenprobe`: der enge Lauf der Mutation `m-p17-signal-int` mit `GP_MUT` (nicht die volle Gegenprobe, [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md)) unter derselben Last, mit der Zahl der Läufe, der Zahl der roten und der Ursache oder dem Befund „nicht reproduziert“; ein Rot durch das Zeitbudget der Gegenprobe selbst ist von einem Rot des Falls getrennt (Randform 6). Die Gegenprobe wird nicht geändert.
+- [x] **Liefer-Punkt 1 (Ursache der Go-Tests, drei Tests der Belege):** §7 trägt unter *Belege des Implementers* (a) den Aufruf der künstlichen Last wörtlich und wiederholbar (Erzeuger, Anzahl, Dauer, Messung der Last vor und nach dem Lauf; Sendung von `slice-harness-randform-umgebung-der-gegenprobe`), (b) je Test (`TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild`, `TestE2EPlayVergleichAlle/Umgebungsvariable`, `TestRunPlayZweitesSignal`) den Lauf allein (Dauer) und die Läufe unter Last (Anzahl, Zahl der roten Läufe), (c) die Proben in einer Kopie außerhalb des Repos, die Frist, Reihenfolge und Wettlauf trennen (der Implementer wählt sie und nennt je Probe, was sie trennt), mit ihrem Ergebnis, und (d) die Ursache je Test als *Frist*, *Reihenfolge* oder *Wettlauf im Code* oder, wenn das Rot nicht entsteht, den Befund „nicht reproduziert in N Läufen bei Last L“ (Randform 3). Die Tests laufen über das Docker-Gerüst des Repos (`AGENTS.md` §3.1); der Aufruf steht wörtlich in §7.
+- [x] **Liefer-Punkt 2 (zweite Probe: Signalfall der Gegenprobe):** §7 trägt dasselbe für den Fall `p17-budget-sigint` der Gegenprobe `container-einrichten-gegenprobe`: der enge Lauf der Mutation `m-p17-signal-int` mit `GP_MUT` (nicht die volle Gegenprobe, [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md)) unter derselben Last, mit der Zahl der Läufe, der Zahl der roten und der Ursache oder dem Befund „nicht reproduziert“; ein Rot durch das Zeitbudget der Gegenprobe selbst ist von einem Rot des Falls getrennt (Randform 6). Die Gegenprobe wird nicht geändert.
 - [ ] **Liefer-Punkt 3 (Zwischenregel):** `.claude/commands/implement-slice.md` trägt in Schritt 16 die Zwischenregel: Bei Rot dieses Unterfalls fährt der Implementer den Test allein und wiederholt `make gates` einmal, bevor er einen Befund schreibt; §7 des Plans nennt beide Läufe und die Last; das erste Rot bleibt ein Auftreten im Register. Der Wortlaut ist vom Nutzer bestätigt, **bevor** der Commit entsteht; Datum und Fundstelle stehen in §7.
-- [ ] Kein Code, keine Frist und kein Test im Repo ist geändert (Beleg: `git diff --numstat <Basis>..<letzter Commit> -- internal test tools harness` ist leer, in §7).
+- [x] Kein Code, keine Frist und kein Test im Repo ist geändert (Beleg: `git diff --numstat <Basis>..<letzter Commit> -- internal test tools harness` ist leer, in §7: Summe nach dem Befehl aus §3.14 = 0).
 - [ ] `make gates` grün (Stop-Hook verlangt den vollen Lauf, weil `.claude/` ändert).
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -164,6 +164,64 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`). Hier stehen: *Belege des Implementers* (die Last wörtlich, je Test die Läufe allein und unter Last, die Proben und ihr Ergebnis, die Ursache oder der Befund „nicht reproduziert“; dasselbe für den Signalfall; dass kein anderer Lauf auf dem Host war), die Bestätigung des Wortlauts der Zwischenregel durch den Nutzer (Datum, Fundstelle) oder „nicht aufgenommen“, die Größe in der Metrik von §4 (Basis, letzter Commit, Summe; kein Faktor, keine Schätzung), und der Ausgang des Registers.
+
+### Belege des Implementers (2026-10-24, Zweig impl-last1)
+
+**Host und Voraussetzung.** Linux, 16 Kerne (`nproc`; der Plan nennt 20 aus den Belegen anderer Hosts), Docker; vor der Messung kein Container, Last 1,2 (`uptime` nach dem Start). Kein anderer Rollenlauf, keine Gegenprobe und kein `make gates` auf dem Host oder Daemon während der Messung (Voraussetzung §4). Zahl der Auftreten im Register zum Messzeitpunkt: 7×.
+
+**(a) Die Last, wörtlich.** Je Lastlauf K Container, jeder mit einer Rechenschleife, im gepinnten Image des Repos (`postgres:17-alpine@sha256:b0f9560a…`, bereits vorhanden), ohne Netz, bis zum Ende der Serie:
+
+```
+for k in $(seq K); do docker run -d --name ml-<serie>-last-$k --network none \
+  postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24 \
+  sh -c 'while :; do :; done' >/dev/null; done; sleep 5
+```
+
+K = 32 (zweimal die Kerne) und K = 48 (dreimal). Last gemessen mit `cut -d' ' -f1-3 /proc/loadavg` vor, nach und nach jedem Lauf. Wichtig: **Eine Schleife je Container ist nötig.** Ein erster Versuch mit 32 und 48 Schleifen in *einem* Container (`sh -c 'for i in $(seq K); do (while :; do :; done) & done; wait'`) belastete die Tests nicht (Läufe 0,9 bis 1,3 s wie allein): Der Scheduler teilt die Kerne zwischen Container-cgroups, nicht zwischen Threads, und ein Container mit 48 Schleifen bekommt nicht mehr als ein Test-Container. Die Läufe dieses Versuchs zählen nicht (eine Rotung darin, Test C, Last 35 bis 42, fiel mit derselben Meldung wie unten).
+
+**Aufruf der Tests** (Image `docker build --target integration -t pgwire-recorder:integration .`, PostgreSQL wie `make test-integration`: `postgres:17-alpine@sha256:b0f9560a…` mit `POSTGRES_HOST_AUTH_METHOD=trust` in einem `--internal`-Netz; je Lauf ein frischer Container des Testimages):
+
+```
+docker run --rm --network <netz> -e PGR_UPSTREAM=<pg>:5432 pgwire-recorder:integration \
+  -test.run '^TestE2EPlayVergleichAbweichung$/^Serverfehler_ohne_Vorbild$'   # Test A
+  -test.run '^TestE2EPlayVergleichAlle$/^Umgebungsvariable$'                  # Test B
+```
+
+Test C (`TestRunPlayZweitesSignal`) ist ein Unit-Test und braucht kein PostgreSQL: das Testbinary einmal gebaut (`go test -c -trimpath -buildvcs=false -o bootstrap.test ./internal/bootstrap` im Image der Stufe `source`), je Lauf `docker run --rm --network none -v <dir>:/t:ro -w /t <source-image> /t/bootstrap.test -test.count=1 -test.v -test.run '^TestRunPlayZweitesSignal$'`. Die Skripte liegen außerhalb des Repos (Scratchpad der Sitzung) und sind nicht committet (§1: kein Werkzeug für Last).
+
+**(b) Läufe allein und unter Last** (Dauer je Lauf; rot = Exit ungleich 0):
+
+| Test | allein | K=32 | K=48 |
+|---|---|---|---|
+| A `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` | 5 Läufe, 0,82 bis 0,98 s, 0 rot | 15 Läufe, 1,2 bis 1,6 s, 0 rot | 15 Läufe, 0 rot |
+| B `TestE2EPlayVergleichAlle/Umgebungsvariable` | 5 Läufe, 0,91 bis 1,16 s, 0 rot | 15 Läufe, 1,3 bis 2,1 s, 0 rot | 15 Läufe, 0 rot |
+| C `TestRunPlayZweitesSignal` | 5 Läufe, 0,29 bis 0,35 s, 0 rot | 20 Läufe, **8 rot** | 20 Läufe, **9 rot** |
+
+Last in den Serien K=32/48: 16 bis 32 bzw. 18 bis 48 (Lastzahl 1 min, 16 Kerne). Dazu die Läufe aus dem ersten Versuch (ein Container, 32 und 48 Schleifen: je 15 Läufe, A und B 0 rot, C 0 rot bei 32 und 1 rot bei 48).
+
+**Rotes Bild von C**, in allen 18 roten Läufen gleich: `play_test.go:341: binnen 30 s keine Client-Nachricht 'X', bisher ""`, `--- FAIL: TestRunPlayZweitesSignal (30.04s)`. Die erste Wartefrist (`play` endet binnen 30 s nach dem zweiten Signal) wird *nicht* gerissen — `Run` kehrt mit Exit-Code 0 zurück, der Lauf dauert 0,5 s, danach wartet `typenBis` 30 s auf `X`, und es kommt keine Nachricht: Der Server sieht nach `Q` kein `Terminate`.
+
+**(c) Proben in einer Kopie außerhalb des Repos** (Kopie von `go.mod`, `go.sum`, `cmd`, `internal`, `test` im Scratchpad; Testbinary dort gebaut; der Arbeitsbaum des Repos blieb unberührt):
+
+| Probe | trennt | Ergebnis |
+|---|---|---|
+| P1: in `einspielSession.Anfrage` (`internal/adapters/driven/postgres/einspielen.go`) 300 ms `time.Sleep` zwischen `Flush` und dem Ende der Funktion, also die Sperre `schreiben` nach dem Senden gehalten; Test C allein, ohne Last | Wettlauf im Code (Sperre noch gehalten, wenn das Signal kommt) von Frist | 5 Läufe, **5 rot**, dieselbe Meldung wie unter Last |
+| P2: wie P1, zusätzlich `s.schreiben.TryLock()` in `schliesse` durch `Lock()` ersetzt | dass `TryLock` der Mechanismus ist | 5 Läufe, 0 rot |
+| P3: `DROP DATABASE` auf eine Datenbank, zu der eine Sitzung noch verbunden ist (`psql` mit `pg_sleep(60)`), im Image des Repos | Vermutung des Planners zu A und B: wartet `DROP DATABASE` bis zur Frist von 30 s? | Fehler `database "vgl_abw" is being accessed by other users` nach 5,16 s; kein 30-s-Warten |
+| P4: `DROP DATABASE IF EXISTS` und `CREATE DATABASE` je 8-mal, allein und neben 8 Containern mit `dd … oflag=dsync` | Frist durch E/A-Last | 0,21 s allein, 0,12 s mit E/A-Last (dominiert vom `docker exec`): kein Unterschied |
+
+**(d) Ursache.**
+
+- **C `TestRunPlayZweitesSignal`: Wettlauf im Code.** `schliesse` sendet `Terminate` nur, wenn `s.schreiben.TryLock()` gelingt (`einspielen.go`, „sendet Terminate nur, wenn gerade nichts sendet“); `Anfrage` hält `schreiben` bis nach `Flush` (`defer Unlock`). Der Test wartet, bis der Server `Q` gelesen hat, und löst dann beide Signale aus; zwischen dem Schreiben auf den Socket und dem `Unlock` des Sendenden kann der Scheduler ihn lange genug aufhalten, dass `Schliesse` die Sperre gehalten findet und die Verbindung ohne `Terminate` schließt. Das Rot ist reproduzierbar ohne Last (P1), die Last erhöht nur die Wahrscheinlichkeit des Fensters (8 und 9 von 20). Es ist keine Frist: 30 s sind für die Arbeit des Tests ausreichend (0,3 s). Ob der Code die Zusage der Spezifikation („Das zweite Signal sendet `Terminate`, soweit die Verbindung es sofort annimmt“) bricht oder der Test die Lesart überdehnt (er geht davon aus, dass nach `Q` beim Server nichts mehr sendet), entscheide ich nicht: Das ist eine Randform der Spezifikation (Stelle des zweiten Signals nach dem Senden) und geht an den Architect; behoben wird hier nichts (§1).
+- **A `…/Serverfehler_ohne_Vorbild` und B `…/Umgebungsvariable`: nicht reproduziert** in je 5 Läufen allein und je 60 Läufen unter Last (K=32 und K=48 mit je einer Schleife je Container sowie im ersten Versuch), Last bis 48 auf 16 Kernen. Die Läufe unter Last dauern höchstens 2,1 s, das 30-s-Gebot liegt um den Faktor 15 darüber; Last allein auf der CPU erzeugt das Rot nicht. Die Vermutung des Planners (`DROP DATABASE` wartet auf die Verbindung der Vorgänger-Unterfälle) ist für die beobachtete Meldung nicht tragend: P3 zeigt 5 s und eine Fehlermeldung statt 30 s und „context deadline exceeded“. Ursache bleibt offen.
+
+**Weiter offen für A und B:** das Rot der Belege (Last auf einem Host, der zugleich `docker build` und ein volles `make gates` fährt) ist mit reiner CPU-Last nicht herzustellen; eine Messung neben einem laufenden `make gates` wäre die nächste Probe und hätte den Host belegt (Voraussetzung §4 verbietet es hier).
+
+**Signalfall der Gegenprobe (Punkt 2).** `GP_MUT=m-p17-signal-int make container-einrichten-gegenprobe`: allein 1 Lauf, 30 s, grün. Unter K=32 Containern mit je einer Schleife: 8 Läufe, 26 bis 27 s je Lauf, Zeile „Zeit 27 s, Last 16,6 bis 32,0“, 0 rot. **Nicht reproduziert in 8 Läufen bei Last 16 bis 32 auf 16 Kernen.** Einschränkung: Die Gegenprobe läuft als Prozesse des Hosts, nicht in einer Container-cgroup; die Schleifen in Containern nehmen ihnen nicht denselben Anteil, die Läufe wurden nicht langsamer (27 s statt 30 s). Ein Rot durch das Zeitbudget ist nicht aufgetreten (mit `GP_MUT` wird es nicht geprüft, SPEC-060 Punkt 16 (4)); die 21 Läufe aus `slice-harness-devcontainer-einrichten` bleiben der einzige Beleg. Die Gegenprobe wurde nicht geändert.
+
+**Zwischenregel (Punkt 3).** `implement-slice.md` ist unverändert. Der Wortlaut des Planners nennt `TestRunPlayZweitesSignal` mit; die Messung zeigt dort einen Wettlauf, den „einmal wiederholen“ verdeckt (§6, Risiko 4; den Ausgang setzt die Closure). **Vorschlag für den Wortlaut, den der Koordinator dem Nutzer vorlegt:** (1) die Regel auf die zwei Unterfälle von A und B beschränken (ihr Rot ist nicht erklärt); (2) `TestRunPlayZweitesSignal` aus der Liste nehmen und stattdessen im Satz sagen: „Rot von `TestRunPlayZweitesSignal` ist ein Befund (Wettlauf, reproduzierbar), keine Wiederholung“, bis ein Folge-Slice es behebt. Bestätigung des Nutzers: ausstehend (Datum und Fundstelle nach der Antwort); bis dahin steht die Regel nicht in der Datei.
+
+**Größe** (`AGENTS.md` §3.14, Basis `ffdacf7d41a3d551a8d164470e070a8a0d2791e0`, Pfade `.claude internal test tools harness`): der Befehl aus §3.14 lieferte am letzten Commit vor diesem Eintrag 0 (kein Eintrag in diesen Pfaden; Marke 1500 nicht erreicht).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
