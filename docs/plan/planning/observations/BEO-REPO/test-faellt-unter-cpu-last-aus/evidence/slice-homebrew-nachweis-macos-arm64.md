@@ -1,0 +1,3 @@
+**Vorgang:** slice-homebrew-nachweis-macos-arm64
+**Größe:** Last (Messwert nicht festgehalten).
+**Fund:** Der erste volle Lauf von `make gates` des Implementers war rot: `TestE2EPlayVergleichAlle/Umgebungsvariable` überschritt die Frist unter Last; der Slice berührt keinen Code (nur Handbuch, `README.md`, `releasing.md`). Der zweite volle Lauf am selben Stand war grün, das Rot ist nicht reproduziert und die Ursache nicht untersucht. Anderer Unterfall als bisher (`Serverfehler_ohne_Vorbild`, Signalfall einer Gegenprobe), selbe Form: Rot nur unter Last, ohne Ursache im Diff. Quelle: Bericht des Implementers an die Closure (Planner, 2026-10-24).

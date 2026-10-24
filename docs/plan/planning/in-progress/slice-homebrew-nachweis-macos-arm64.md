@@ -56,14 +56,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Nutzer- und Wartungs-Doku (eine Schicht, `AGENTS.md` §3.13): Handbuch §2 *Installation* (Satz „Gefahren ist diese Installation …“, die Sätze zu den Binaries für macOS und `arm64`), `README.md` (Zeile zu Homebrew, Satz zu den Binaries) und `docs/maintainer/releasing.md` §1, §7, §10 (Satz zu `darwin` und `windows`) und Änderungshistorie nennen macOS auf `arm64`, Version `0.2.0`, als **berichtet** (nicht gefahren, nicht belegt, ohne Replay-Aussage) und führen macOS auf `amd64` und Linux auf `arm64` weiter als Grenze, Linux auf `amd64` weiter als gefahren (§3.11: jeder Satz gegen `LH-FA-19.a` und `SPEC-067` Punkt 20 (6) gelesen; das Handbuch ohne Verweis auf Spezifikation, Slice oder Review, ohne Chronik).
-- [ ] Zitat und Merkmale des Berichts stehen in §1 oder §7 dieses Plans (Datum, Wortlaut, `uname`, Homebrew, Befehl, Versionszeile); keine Beleg-Datei, keine Summe.
-- [ ] `make docs-check` und `make kopf-check` grün; `make gates` grün (kein Code berührt; der Stop-Hook liest Positivliste und schnelle Kette).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: Der Eintrag `BEO-REPO/homebrew-nachweis-ohne-macos-und-arm64` bekommt seinen Ausgang (*geplant* mit dieser Kennung, bei Closure: Bericht für macOS/arm64 geliefert; offen bleiben der Replay-Teil dort und die zwei Kombinationen ohne Angabe; Urteil des Planners, vorgemerkt am 2026-10-24).
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen (im Repo mit Wellen von der Welle-Closure geprüft).
+- [x] Nutzer- und Wartungs-Doku (eine Schicht, `AGENTS.md` §3.13): Handbuch §2 *Installation* (Satz „Gefahren ist diese Installation …“, die Sätze zu den Binaries für macOS und `arm64`), `README.md` (Zeile zu Homebrew, Satz zu den Binaries) und `docs/maintainer/releasing.md` §1, §7, §10 (Satz zu `darwin` und `windows`) und Änderungshistorie nennen macOS auf `arm64`, Version `0.2.0`, als **berichtet** (nicht gefahren, nicht belegt, ohne Replay-Aussage) und führen macOS auf `amd64` und Linux auf `arm64` weiter als Grenze, Linux auf `amd64` weiter als gefahren (§3.11: jeder Satz gegen `LH-FA-19.a` und `SPEC-067` Punkt 20 (6) gelesen; das Handbuch ohne Verweis auf Spezifikation, Slice oder Review, ohne Chronik).
+- [x] Zitat und Merkmale des Berichts stehen in §1 oder §7 dieses Plans (Datum, Wortlaut, `uname`, Homebrew, Befehl, Versionszeile); keine Beleg-Datei, keine Summe.
+- [x] `make docs-check` und `make kopf-check` grün; `make gates` grün (kein Code berührt; der Stop-Hook liest Positivliste und schnelle Kette).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: Der Eintrag `BEO-REPO/homebrew-nachweis-ohne-macos-und-arm64` bekommt seinen Ausgang (*geplant* mit dieser Kennung, bei Closure: Bericht für macOS/arm64 geliefert; offen bleiben der Replay-Teil dort und die zwei Kombinationen ohne Angabe; Urteil des Planners, vorgemerkt am 2026-10-24).
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen (im Repo mit Wellen von der Welle-Closure geprüft).
 
 ## 3. Plan (vor Code)
 
@@ -127,7 +127,31 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-traceability.md`
 §Herkunfts-Anker für Steering-Loop-Regeln — dort die **Ruheort-Regel**: Die
 Zeiger sind so zu schreiben, wie sie vom Ruheort `done/` auflösen.
 
-(entsteht bei Closure)
+**Belege des Implementers (Zweig `impl-mac1`, Stand `a6bffa1a`):**
+
+- `make docs-check`: 0 Befunde (1467 Dateien); `make kopf-check`: Exit 0.
+- `make gates`: der erste volle Lauf war rot, `TestE2EPlayVergleichAlle/Umgebungsvariable` überschritt die Frist unter Last; der Diff berührt keinen Code, das Rot ist nicht reproduziert und die Ursache nicht untersucht (Register: `BEO-REPO/test-faellt-unter-cpu-last-aus`, siebtes Auftreten). Der zweite volle Lauf am selben Stand war grün. Der Endstand ist grün, ein Carveout entfällt.
+- Marke 1500 (`AGENTS.md` §3.14, Basis `34a8cf11`, Pfade `docs/user docs/maintainer README.md`): Summe **41**.
+- Review (`docs/reviews/2026-10-24-review-slice-homebrew-nachweis-macos-arm64.md`, Stand `34962d3c`): 0 HIGH, 0 MEDIUM, 3 LOW (F-1 bis F-3, behoben in `5dae30d9`), 3 INFO. Verifikation (`docs/reviews/2026-10-24-verifikation-slice-homebrew-nachweis-macos-arm64.md`, Stand `a6bffa1a`): konform. Validation: n/a — der Slice liefert Doku zu einem Bericht, kein neues Nutzerverhalten.
+- Zitat und Merkmale des Berichts: §1 (Datum 2026-10-24, `Darwin arm64`, Homebrew 7.0.10, Befehl, Versionszeile `pgwire-recorder 0.2.0`); keine Beleg-Datei, keine Summe.
+
+**Gegenstand:** geliefert (Liefer-Punkte der DoD abgehakt).
+
+**Risiko-Ausgänge (aus §6):**
+
+1. Die Doku sagt mehr, als der Bericht trägt — *entfallen:* Review und Verifikation lasen jeden geänderten Satz gegen `LH-FA-19.a` und `SPEC-067` Punkt 20 (6); `grep` nach „gefahren“, „belegt“ und „geprüft“ findet für macOS/`arm64` nur Verneinungen. Die drei LOW des Reviews betrafen Wortlaut, nicht diese Aussage.
+2. Änderung an `LH-FA-19.a` oder `SPEC-067` nötig — *eingetreten:* geliefert mit Commit `4279f2b3` (Entscheidung des Nutzers vom 2026-10-24); der Plan ist nachgezogen.
+3. Replay-Teil ohne Beleg, Closure-Trigger von `welle-v1-nachtrag` nicht erreicht — *eingetreten:* Entscheidung des Nutzers vom 2026-10-24, Option B „Trigger unverändert, mit Grenze schließen“ (so vom Koordinator übermittelt); die Welle schließt mit der Grenze für den Replay-Teil auf macOS `arm64`, für macOS auf `amd64` und Linux auf `arm64`; ihr Plan bleibt unverändert, ihre Closure ist nicht Teil dieses Slice. Kein Folge-Slice, solange der Nutzer keine Ausgabe liefert (§1, Abgrenzung); ein Nachweis löst den Bericht ab.
+4. Die Angabe des Nutzers ist unvollständig oder falsch — *weiter offen:* → `BEO-REPO/homebrew-nachweis-ohne-macos-und-arm64` im Register; die Rückführung nach `open/` entfällt, da der Slice geschlossen ist, ein Widerruf wäre ein Auftreten dort.
+5. macOS-Eigenheiten (bash 3.2, Gatekeeper) — *entfallen:* Der Bericht trägt nur Installation und Versionszeile; für `replay` und Paket-Test sagt der Slice nichts.
+
+**Lerneintrag (benannte Spec-Lücke, als Grenze geschlossen):** Die Aussage, die Angabe des Nutzers trage als Nachweis, war falsch: `SPEC-067` Punkt 20 verlangte die Ausgabe des Laufs, und eine Angabe ohne Ausgabe ist ein Bericht. Die Stufe *Bericht* (`LH-FA-19.a`, `SPEC-067` Punkt 20 (6), `4279f2b3`) schließt die Lücke nur als Grenze: Sie trägt die Schritte (1) und (2) als berichtet, nicht den Replay-Teil, sie löst den Nachweis nicht ab, und ihre Wirkung ist allein das Wort „berichtet“ mit Kombination und Version. Offen bleibt die Lücke für den Replay-Teil auf macOS `arm64` und für zwei Kombinationen ohne Angabe.
+
+**Register (Schritt 25):** `BEO-REPO/homebrew-nachweis-ohne-macos-und-arm64` Zähler 3, Ausgang `geplant` mit dieser Kennung (der Rest bleibt Grenze, siehe seine `state.md`); `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` 98 (Review F-1, F-3); `BEO-REPO/plan-folgt-korrektur-nicht` 85 (Review F-2); `BEO-REPO/test-faellt-unter-cpu-last-aus` 7 (erster roter Lauf). Review F-4 bis F-6 (INFO) sind keine Pflicht und führen keinen Beleg.
+
+**Lese-Schritt und Rate (`AGENTS.md` §3.15, ohne Welle bei der Slice-Closure):** Neu mit einer Datei unter `evidence/` sind `zusage-im-kommentar-weiter-als-pruefung` (§3.11) und `plan-folgt-korrektur-nicht` (§3.9). Seit `slice-harness-regeln-rueckbau` sind mit diesem Slice neun geschlossen (`slice-v1-abschluss-verbindungsende-upstream-extended`, `slice-version-option`, `slice-play-feldvergleich`, `slice-play-feldvergleich-doku`, `slice-go-toolchain-1-27-3`, `slice-release-v0-2-0`, `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, dieser; Reihenfolge nach `git log` der Moves nach `done/`): **keine Rate und kein Vorschlag**, es sind weniger als zehn. Die Rate rechnet die Closure des zehnten Slice dahinter. Neu bei 3 oder mehr ist allein `homebrew-nachweis-ohne-macos-und-arm64` (Ausgang oben); sie hat keine Regel in `AGENTS.md`.
+
+**Paarungen:** Anker — keine Regel verkörpert, entfällt. Folge-Slice — keiner zugewiesen (Risiko 3 ohne Folge-Slice, Begründung dort; der Register-Ausgang `geplant` zeigt auf diesen Slice selbst). Register — fortgeschrieben. Die Prüfung der drei Paarungen im Repo mit Wellen trägt die Welle-Closure von `welle-v1-nachtrag`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
