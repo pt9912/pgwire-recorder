@@ -17,7 +17,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Entscheidung:** [ADR-0051](../../adr/0051-veroeffentlichung-auf-github-actions.md) · [ADR-0053](../../adr/0053-homebrew-tap-in-der-release-pipeline.md) · [ADR-0054](../../adr/0054-binaries-ohne-version-im-dateinamen.md) · [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md). **Entscheidung des Nutzers vom 2026-10-24** (Angabe der Koordination, nicht nachgefahren; der Wortlaut des Ja steht beim Beleg zu Punkt 7 im Eintrag, sobald die Koordination ihn nennt): Der Nutzer sagte „release“ und bestätigte auf Rückfrage die Version **v0.2.0** und einen **Carveout wie `CO-001`** für die Punkte 2 und 3 der Freigabe (nur der engste Fall je Gegenprobe mit `GP_MUT`, die Grenze im Eintrag genannt). Das Wort „release“ gilt als das ausdrückliche Ja zum Tag (Punkt 7 der Checkliste, `SPEC-067` Punkt 18). Es nennt weder den Carveout als Datei noch Secrets: **Der Carveout `CO-002` entsteht erst, wenn der Architect ihn vorbereitet und der Nutzer ihn annimmt** (nicht der Planner, nicht der Implementer); bis dahin sind die Punkte 2 und 3 nicht ausgenommen. Secrets setzt allein der Nutzer; sie sind laut Nutzer seit `v0.1.1` hinterlegt, ob sie noch tragen (Ablaufdatum, Rechte), zeigt erst der Lauf (§6).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-rel-v020)
 **Autor:** Planner. **Datum:** 2026-10-24.
 
 ---
