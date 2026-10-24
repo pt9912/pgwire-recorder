@@ -89,14 +89,15 @@ Benutzerhandbuch.
   das Benutzerhandbuch beschreibt Bezug und Prüfung.
 - Mit Homebrew installieren Sie die Version 0.2.0 aus dem Tap `pt9912/pgwire-recorder`:
   `brew tap pt9912/pgwire-recorder`, dann `brew install pt9912/pgwire-recorder/pgwire-recorder`.
-  Gefahren ist das unter Linux auf `amd64`; für macOS (`amd64` und `arm64`) und für Linux auf
-  `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation dort nicht. Die Befehle
+  Gefahren ist das unter Linux auf `amd64`; für macOS auf `arm64` berichtet ein Nutzer
+  Installation und `version` (Homebrew 7.0.10, Version 0.2.0); für macOS auf `amd64` und für
+  Linux auf `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation dort nicht. Die Befehle
   stehen im [Benutzerhandbuch](docs/user/benutzerhandbuch.md).
 - `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make binaries` baut
   die Binaries für Linux, macOS und Windows, je `amd64` und `arm64`, mit `SHA256SUMS` nach
   `dist/`; `make gates` führt die Gates aus, `make help` zeigt alle Targets. Das Image für
   `linux/amd64` ist in `make test-container` gestartet und mit Aufzeichnen und Wiedergeben
-  geprüft; die fünf Binaries außer dem für Linux auf `amd64` und das Image für `linux/arm64` sind gebaut, nicht ausgeführt.
+  geprüft; die fünf Binaries außer dem für Linux auf `amd64` und das Image für `linux/arm64` sind gebaut, von den Prüfungen nicht ausgeführt (für macOS auf `arm64` steht oben ein Bericht).
 - Das [Benutzerhandbuch](docs/user/benutzerhandbuch.md) beschreibt Bau, Aufruf und
   Verhalten des Binaries.
 

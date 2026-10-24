@@ -66,15 +66,19 @@ CI-Systemen ausführen.
   [Installation](#2-installation)).
 * Zum Installieren mit Homebrew: Homebrew auf macOS oder Linux (siehe
   [Mit Homebrew installieren](#mit-homebrew-installieren)). Gefahren ist die Installation
-  aus dem Tap unter Linux auf `amd64`; für macOS (`amd64` und `arm64`) und für Linux auf
-  `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation dort nicht.
+  aus dem Tap unter Linux auf `amd64`. Für macOS auf `arm64` berichtet ein Nutzer die
+  Installation und die Ausgabe von `version` (Homebrew 7.0.10, Version 0.2.0); für macOS auf
+  `amd64` und für Linux auf `arm64` nennt die Formel die Dateien, ausgeführt ist die
+  Installation dort nicht.
 * Das Werkzeug lässt sich für sechs Plattformen bauen: Linux, macOS (`darwin`) und Windows,
   je für `amd64` und `arm64`. Das Image baut das `Dockerfile` für `linux/amd64` und
   `linux/arm64`. Gestartet und mit Aufzeichnen und Wiedergeben geprüft ist nur das Image
   für `linux/amd64`, auf einem Docker-Server mit `amd64`. Von den fünf Binaries außer dem für
   Linux auf `amd64` und vom Image für `linux/arm64` ist geprüft, dass sie gebaut sind: bei einem
   Binary zeigt der Dateikopf Format und Architektur seiner Plattform, beim Image nennen die
-  Metadaten Betriebssystem und Architektur. Ausgeführt sind sie nicht.
+  Metadaten Betriebssystem und Architektur. Die Prüfungen dieses Werkzeugs führen sie nicht aus;
+  für das Binary für macOS auf `arm64` steht ein Bericht unter
+  [Mit Homebrew installieren](#mit-homebrew-installieren).
 * Die Verbindung Ihrer Anwendung zum Werkzeug läuft ohne Verschlüsselung, solange Sie
   `record` oder `replay` ohne `--tls-cert` starten: Sie lehnen eine Anfrage nach
   Verschlüsselung dann ab. Ein Treiber mit `sslmode=prefer` verbindet sich dann
@@ -111,9 +115,11 @@ pgwire-recorder version
 und installiert es, und `version` gibt `pgwire-recorder 0.2.0` aus. Homebrew baut dabei
 nichts aus dem Quelltext und installiert kein weiteres Paket; die Formel nennt die Adresse
 des Binaries von `v0.2.0`.
-Gefahren ist diese Installation unter Linux auf `amd64`; für macOS (`amd64` und `arm64`)
-und für Linux auf `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation
-dort nicht. Windows wird über Homebrew nicht bedient.
+Gefahren ist diese Installation unter Linux auf `amd64`. Für macOS auf `arm64` berichtet ein
+Nutzer die Installation mit `brew install pt9912/pgwire-recorder/pgwire-recorder`
+und die Ausgabe `pgwire-recorder 0.2.0` von `version`, mit Homebrew 7.0.10; das ist ein
+Bericht, nicht gefahren. Für macOS auf `amd64` und für Linux auf `arm64` nennt die Formel die
+Dateien, ausgeführt ist die Installation dort nicht. Windows wird über Homebrew nicht bedient.
 
 ### Binary vom GitHub-Release
 
@@ -146,7 +152,8 @@ chmod +x pgwire-recorder-linux-amd64
 `pgwire-recorder 0.2.0` aus. Für eine andere Plattform laden Sie die Datei mit dem passenden
 Namen. Ohne `--ignore-missing` verlangt `sha256sum` alle sechs Dateien. Gestartet und geprüft ist das
 Binary für Linux auf `amd64`; die Binaries für macOS und Windows und das für Linux auf `arm64` sind
-gebaut, aber nicht ausgeführt.
+gebaut, aber nicht von uns ausgeführt; für das Binary für macOS auf `arm64` steht ein Bericht unter
+[Mit Homebrew installieren](#mit-homebrew-installieren).
 
 ### Container-Image aus der Registry
 

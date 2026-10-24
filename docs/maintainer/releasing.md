@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.17
+Version: 0.18
 Stand: 2026-10-24
 
 ## 1. Zweck und Zielgruppe
@@ -27,8 +27,10 @@ liegt in `ghcr.io` und `docker.io` unter den Tags `0.2.0` und `latest` mit demse
 `sha256:1d50181235d6a0317aaf376c33c1f17b421fb25036dea3324946a652dd2ceee4`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); im Lauf des
 Tags `v0.2.0` endet er im ersten Versuch grün und meldet `Formel 0.2.0 im Tap abgelegt` (bei `v0.1.1` im vierten). Was im
 echten Tap liegt und ob Homebrew es annimmt, prüft kein Gate dieses Repos; belegt hat es das Werkzeug
-`make homebrew-nachweis` (§7) für **Linux/amd64** mit den Formeln `0.1.1` und `0.2.0`, und für die übrigen
-Kombinationen aus Betriebssystem und Architektur steht die Grenze in `LH-FA-19.a`. Die Belege je Punkt der Freigabe stehen für `v0.2.0` in [`freigaben/0.2.0.md`](freigaben/0.2.0.md), für `v0.1.1` in
+`make homebrew-nachweis` (§7) für **Linux/amd64** mit den Formeln `0.1.1` und `0.2.0`. Für **macOS/arm64** liegt ein
+Bericht des Nutzers vom 2026-10-24 vor (Installation und `version`, Homebrew 7.0.10, Version `0.2.0`; berichtet, nicht
+gefahren und nicht belegt), und für die übrigen Kombinationen aus Betriebssystem und Architektur steht die Grenze in
+`LH-FA-19.a`. Die Belege je Punkt der Freigabe stehen für `v0.2.0` in [`freigaben/0.2.0.md`](freigaben/0.2.0.md), für `v0.1.1` in
 [`freigaben/0.1.1.md`](freigaben/0.1.1.md), für `v0.1.0` in der Closure von `welle-erster-release`.
 Was ein Slice erst liefert, nennt dieses Dokument mit seiner Kennung („liefert `slice-…`“), nicht als
 Zusage.
@@ -267,7 +269,7 @@ Von diesen sechs zeigt das Werkzeug `make homebrew-nachweis` (Abnahmeszenario 11
 echten Tap, belegt für **Linux/amd64** mit den Formeln `0.1.1` und `0.2.0` (Beleg zu `0.2.0`: `docs/reviews/2026-10-24-nachweis-slice-release-v0-2-0.md`): Homebrew nimmt die Formel an (`brew install`, `brew test` ohne
 Befund), die Adresse des Anhangs ist erreichbar, der Klon trägt die Form (`brew tap` leitet `pt9912/pgwire-recorder` auf
 `pt9912/homebrew-pgwire-recorder` ab), und das Binary läuft unter Linux/amd64. **Die drei übrigen zeigt es nicht:** das Binary
-auf macOS und auf `arm64` (Grenze in `LH-FA-19.a`; das Handbuch nennt nur die geprüfte Kombination), das Schreibrecht des
+auf macOS auf `amd64` und auf Linux auf `arm64` (Grenze in `LH-FA-19.a`; das Handbuch nennt nur die geprüfte Kombination; für macOS auf `arm64` liegt ein Bericht des Nutzers vom 2026-10-24 vor, berichtet sind Installation und `version` mit Homebrew 7.0.10 und Version `0.2.0`, kein Beleg für `replay`, `brew test` und Exit-Codes), das Schreibrecht des
 Tap-Tokens ohne Eingriff des Betreibers (es zeigte sich im vierten Versuch des Jobs im Lauf `39551891874`, nach zwei
 Eingriffen; `BEO-REPO/vorbedingung-geheimnis-nur-existenz-geprueft`) und den Wortlaut von `gh release download` auf dem Runner
 (den zeigt allein ein Lauf des Jobs). Die Installation aus dem Tap und der Abschnitt im Benutzerhandbuch liegen beim Nachweis.
@@ -358,7 +360,7 @@ in einem eigenen Commit, der nur `docs/user/`, `README.md` und Planung ändert, 
 *Installation* bekommt die Abschnitte zum Bezug der Binaries (Plattformen, `SHA256SUMS`, Prüfung mit `sha256sum -c`) und der Images
 (`<Registry>/pt9912/pgwire-recorder:<Version>` aus beiden Registries) mit nur den Befehlen, die nach dem Tag einmal gelaufen sind. Ein Befehl
 ohne diesen Lauf steht nicht im Handbuch. `latest` wird genannt, weil der Lauf es gesetzt und der Smoke es belegt hat. `darwin` und
-`windows` sind gebaut, nicht ausgeführt (§2); das Handbuch sagt nur das.
+`windows` sind gebaut, nicht ausgeführt (§2); für `darwin` auf `arm64` nennt das Handbuch zusätzlich den Bericht (§7), sonst nur das.
 
 ## 11. Fehler, Wiederanlauf, Rollback
 
@@ -404,3 +406,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.15 | 2026-10-21 | Zeile nachgetragen (der Kopf trug 0.15 ohne Zeile): Stand und §7 nennen den Nachweis der Installation aus dem Tap für Linux/amd64 (`make homebrew-nachweis`) |
 | 0.16 | 2026-10-24 | Stand: der veröffentlichte Tag `v0.2.0` mit Binaries, Image in beiden Registries (Digest) und der Formel `0.2.0` im Tap; Verweis auf `freigaben/0.2.0.md` (§1) |
 | 0.17 | 2026-10-24 | §7: Nachweis der Installation aus dem Tap für Linux/amd64 mit den Formeln `0.1.1` und `0.2.0`, wie §1 (Review-Befund F-5) |
+| 0.18 | 2026-10-24 | §1 und §7: macOS/arm64 als berichtet (Installation und `version`, Homebrew 7.0.10, Version `0.2.0`), nicht gefahren und nicht belegt |
