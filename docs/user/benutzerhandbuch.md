@@ -109,8 +109,8 @@ pgwire-recorder version
 
 `brew tap` meldet `Tapped 1 formula`, `brew install` lädt das Binary des Release `v0.2.0`
 und installiert es, und `version` gibt `pgwire-recorder 0.2.0` aus. Homebrew baut dabei
-nichts aus dem Quelltext und installiert kein weiteres Paket; die Formel trägt die höchste
-stabile Version.
+nichts aus dem Quelltext und installiert kein weiteres Paket; die Formel nennt die Adresse
+des Binaries von `v0.2.0`.
 Gefahren ist diese Installation unter Linux auf `amd64`; für macOS (`amd64` und `arm64`)
 und für Linux auf `arm64` nennt die Formel die Dateien, ausgeführt ist die Installation
 dort nicht. Windows wird über Homebrew nicht bedient.
