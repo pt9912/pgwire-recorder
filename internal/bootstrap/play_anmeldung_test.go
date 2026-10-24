@@ -168,8 +168,13 @@ func TestRunPlayPasswort(t *testing.T) {
 				t.Fatalf("stderr ohne PGR-E4005 und SQLSTATE: %q", stderr.String())
 			}
 			if f.code == 0 {
-				if got := <-danach; got != "QX" {
-					t.Fatalf("Client-Nachrichten %q, erwartet QX", got)
+				select {
+				case got := <-danach:
+					if got != "QX" {
+						t.Fatalf("Client-Nachrichten %q, erwartet QX", got)
+					}
+				case <-time.After(30 * time.Second):
+					t.Fatal("der Fake-Server sieht binnen 30 s kein Ende der Verbindung")
 				}
 			}
 		})
@@ -239,8 +244,13 @@ func TestRunPlayErstesSignalInAnmeldung(t *testing.T) {
 	case <-time.After(30 * time.Second):
 		t.Fatal("play endet binnen 30 s nach der Antwort des Servers nicht")
 	}
-	if got := <-danach; got != "X" {
-		t.Fatalf("Client-Nachrichten %q, erwartet nur Terminate", got)
+	select {
+	case got := <-danach:
+		if got != "X" {
+			t.Fatalf("Client-Nachrichten %q, erwartet nur Terminate", got)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("der Fake-Server sieht binnen 30 s kein Ende der Verbindung")
 	}
 }
 
