@@ -420,9 +420,9 @@ func (c *cursor) objekte() objekte {
 //
 // Die Bestätigungen einer Art zählt es über die ganze Interaktion, weil eine
 // späte Bestätigung in der folgenden Gruppe steht (LH-FA-18.a); eine Art ohne
-// Bestätigung in der Interaktion wird nicht nachgespielt. Sind n Bestätigungen
-// einer Art aufgezeichnet, sind die ersten n Nachrichten dieser Art angenommen;
-// ein weiteres parse auf ein benanntes Statement ändert dieses nicht.
+// Bestätigung in der Interaktion wird nicht nachgespielt. Ist ein parse auf ein
+// benanntes Statement bestätigt, ändert ein weiteres parse auf dasselbe Statement
+// in der Interaktion dieses nicht.
 func (o objekte) extendedNachspielen(in model.Interaction, halt func(gi, ni int) bool) bool {
 	bestaetigt := map[model.ClientMessageType]int{}
 	for _, g := range in.Groups {
