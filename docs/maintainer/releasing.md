@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.16
+Version: 0.17
 Stand: 2026-10-24
 
 ## 1. Zweck und Zielgruppe
@@ -264,7 +264,7 @@ das Tap-Token das Schreibrecht hat, dass `https://github.com/pt9912/homebrew-pgw
 trägt und den Wortlaut von `gh release download` auf dem Runner.
 
 Von diesen sechs zeigt das Werkzeug `make homebrew-nachweis` (Abnahmeszenario 11, Vertrag `SPEC-067` Punkt 20) vier gegen den
-echten Tap, belegt für **Linux/amd64** mit der Formel `0.1.1`: Homebrew nimmt die Formel an (`brew install`, `brew test` ohne
+echten Tap, belegt für **Linux/amd64** mit den Formeln `0.1.1` und `0.2.0` (Beleg zu `0.2.0`: `docs/reviews/2026-10-24-nachweis-slice-release-v0-2-0.md`): Homebrew nimmt die Formel an (`brew install`, `brew test` ohne
 Befund), die Adresse des Anhangs ist erreichbar, der Klon trägt die Form (`brew tap` leitet `pt9912/pgwire-recorder` auf
 `pt9912/homebrew-pgwire-recorder` ab), und das Binary läuft unter Linux/amd64. **Die drei übrigen zeigt es nicht:** das Binary
 auf macOS und auf `arm64` (Grenze in `LH-FA-19.a`; das Handbuch nennt nur die geprüfte Kombination), das Schreibrecht des
@@ -403,3 +403,4 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.14 | 2026-10-21 | Stand: der veröffentlichte Tag `v0.1.1` mit Binaries ohne Version im Namen, Image in beiden Registries und die Formel `0.1.1` im Tap (§1) |
 | 0.15 | 2026-10-21 | Zeile nachgetragen (der Kopf trug 0.15 ohne Zeile): Stand und §7 nennen den Nachweis der Installation aus dem Tap für Linux/amd64 (`make homebrew-nachweis`) |
 | 0.16 | 2026-10-24 | Stand: der veröffentlichte Tag `v0.2.0` mit Binaries, Image in beiden Registries (Digest) und der Formel `0.2.0` im Tap; Verweis auf `freigaben/0.2.0.md` (§1) |
+| 0.17 | 2026-10-24 | §7: Nachweis der Installation aus dem Tap für Linux/amd64 mit den Formeln `0.1.1` und `0.2.0`, wie §1 (Review-Befund F-5) |
