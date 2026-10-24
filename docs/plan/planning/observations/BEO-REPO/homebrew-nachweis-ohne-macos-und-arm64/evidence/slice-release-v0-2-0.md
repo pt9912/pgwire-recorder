@@ -1,0 +1,2 @@
+**Vorgang:** slice-release-v0-2-0
+**Fund:** Der Nachweis für `0.2.0` läuft wieder allein unter Linux/`amd64` (`docs/reviews/2026-10-24-nachweis-slice-release-v0-2-0.md`); der Plan hatte macOS und `arm64` zuerst dem geschlossenen `slice-erster-release-homebrew-nachweis` zugewiesen (Review F-3) und führt sie seit der Nacharbeit als „nicht übernommen“, keine Adresse. Quelle: Review-Report vom 2026-10-24, F-3, Verifikationsbericht, Offene Closure-Punkte 3 (Planner, Closure, 2026-10-24).

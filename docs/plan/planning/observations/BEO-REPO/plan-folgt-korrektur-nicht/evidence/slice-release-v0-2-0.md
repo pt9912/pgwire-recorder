@@ -1,0 +1,2 @@
+**Vorgang:** slice-release-v0-2-0
+**Fund:** Der Plan folgte der Korrektur „`make homebrew-nachweis` nach dem Tag gefahren, Beleg als Datei“ nur in §1 (Abgrenzung), DoD 2 und §7: Rollen-Tabelle in §1, Tabelle und Zeile zu Punkt 11 in §3, Reihenfolge Schritt 5 und Randform (h) in §6 nannten ihn nicht, und §7 sagte „§1 schloss ihn aus“, was §1 nicht mehr sagte (Review F-2, MEDIUM; `AGENTS.md` §3.9). Behoben mit der Nacharbeit (§1, §3, §6 (h), §7 nachgezogen); Verifikation bestätigt. Quelle: Review-Report und Verifikationsbericht vom 2026-10-24 (Planner, Closure, 2026-10-24).
