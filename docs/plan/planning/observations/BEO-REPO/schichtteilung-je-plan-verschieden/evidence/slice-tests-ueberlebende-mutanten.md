@@ -1,0 +1,2 @@
+**Vorgang:** slice-tests-ueberlebende-mutanten
+**Fund:** Fünf von `make abdeckung` erzeugte Zeilen in `docs/user/abdeckung-unit.md` zählte der Planner nach Rückgabe des Implementers nicht als dritte Schicht („Einzelfall-Entscheidung“, §8 dort); `AGENTS.md` §3.13 nennt `docs/user/` als Schicht und nimmt Erzeugtes nicht aus, der Plan räumt die Gegenlesart ein (Review F-3, LOW; Verifikation: kein Schnitt nötig, 191 Zeilen bei Marke 1500). Die Entscheidung über den Schichtbegriff liegt sonst beim Nutzer.
