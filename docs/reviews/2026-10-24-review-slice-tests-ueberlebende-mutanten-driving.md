@@ -12,7 +12,7 @@
 **Eingangs-Kontext:**
 
 - Slice-Plan `slice-tests-ueberlebende-mutanten-driving` (§1 bis §8, darin §7 *Belege des Implementers*)
-- ADR-0034 (Black-Box-Tests über die Export-Test-Brücke)
+- [ADR-0034](../plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) (Black-Box-Tests über die Export-Test-Brücke)
 - `LH-FA-02`, `LH-FA-03`, `LH-FA-13`, `LH-FA-18`, `LH-QA-07`; Spezifikation `LH-FA-02.a`, `LH-FA-03.a`, `LH-FA-13.a`, `SPEC-032`, `SPEC-038` (*Warten in Tests*), `SPEC-049` Punkt 7
 - `AGENTS.md` (Hard Rules, §3.9 bis §3.14)
 
