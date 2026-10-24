@@ -1,7 +1,7 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.15
-Stand: 2026-10-21
+Version: 0.16
+Stand: 2026-10-24
 
 ## 1. Zweck und Zielgruppe
 
@@ -21,14 +21,14 @@ Binaries mit `make binaries`, baut das Image einmal für beide Plattformen, scan
 veröffentlicht es in `ghcr.io` und `docker.io`, vergleicht die Digests, startet das Image aus beiden Registries,
 setzt bei einem stabilen Tag `latest` und legt zuletzt den GitHub-Release mit den Binaries und
 `SHA256SUMS` an (§6); `make release-gegenprobe` prüft sie mit Attrappen für `make`, `docker`,
-`skopeo`, `gh`, den Scanner und den Smoke. Der jüngste veröffentlichte Tag ist `v0.1.1`: Sein
+`skopeo`, `gh`, den Scanner und den Smoke. Der jüngste veröffentlichte Tag ist `v0.2.0`: Sein
 GitHub-Release trägt die sechs Binaries `pgwire-recorder-<os>-<arch>` und `SHA256SUMS`, und das Image
-liegt in `ghcr.io` und `docker.io` unter den Tags `0.1.1` und `latest` mit demselben Index-Digest
-`sha256:624c099b63e838e803a812108ca94f31a06bb19297e1952e8bc89f9e2f2e9b15`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); im Lauf des
-Tags `v0.1.1` endet er im vierten Versuch grün und meldet `Formel 0.1.1 im Tap abgelegt`. Was im
+liegt in `ghcr.io` und `docker.io` unter den Tags `0.2.0` und `latest` mit demselben Index-Digest
+`sha256:1d50181235d6a0317aaf376c33c1f17b421fb25036dea3324946a652dd2ceee4`. Der Job `homebrew` legt bei einem stabilen Tag die Formel im Tap ab (§6, §7); im Lauf des
+Tags `v0.2.0` endet er im ersten Versuch grün und meldet `Formel 0.2.0 im Tap abgelegt` (bei `v0.1.1` im vierten). Was im
 echten Tap liegt und ob Homebrew es annimmt, prüft kein Gate dieses Repos; belegt hat es das Werkzeug
-`make homebrew-nachweis` (§7) für **Linux/amd64** mit der Formel `0.1.1`, und für die übrigen
-Kombinationen aus Betriebssystem und Architektur steht die Grenze in `LH-FA-19.a`. Die Belege je Punkt der Freigabe stehen für `v0.1.1` in
+`make homebrew-nachweis` (§7) für **Linux/amd64** mit den Formeln `0.1.1` und `0.2.0`, und für die übrigen
+Kombinationen aus Betriebssystem und Architektur steht die Grenze in `LH-FA-19.a`. Die Belege je Punkt der Freigabe stehen für `v0.2.0` in [`freigaben/0.2.0.md`](freigaben/0.2.0.md), für `v0.1.1` in
 [`freigaben/0.1.1.md`](freigaben/0.1.1.md), für `v0.1.0` in der Closure von `welle-erster-release`.
 Was ein Slice erst liefert, nennt dieses Dokument mit seiner Kennung („liefert `slice-…`“), nicht als
 Zusage.
@@ -401,3 +401,5 @@ Die Tabelle nennt die Schritte der Pipeline.
 | 0.12 | 2026-10-20 | Formel im Tap: Job `homebrew` nach dem GitHub-Release, Geheimnis `HOMEBREW_TAP_GITHUB_TOKEN` als Vorbedingung (§4), Probe-Tap statt Probe-Tag (§3), Verfahren und Nachtrag von Hand (§7), Zeile der Fehlertabelle (§11) |
 | 0.13 | 2026-10-21 | Freigabe-Checkliste: Eintrag unter `freigaben/<Version>.md` für jeden späteren Release, Job `homebrew` als Zeile unter Punkt 8, Belege eines Punkts, den ein aktiver Carveout ausnimmt (§10) |
 | 0.14 | 2026-10-21 | Stand: der veröffentlichte Tag `v0.1.1` mit Binaries ohne Version im Namen, Image in beiden Registries und die Formel `0.1.1` im Tap (§1) |
+| 0.15 | 2026-10-21 | Zeile nachgetragen (der Kopf trug 0.15 ohne Zeile): Stand und §7 nennen den Nachweis der Installation aus dem Tap für Linux/amd64 (`make homebrew-nachweis`) |
+| 0.16 | 2026-10-24 | Stand: der veröffentlichte Tag `v0.2.0` mit Binaries, Image in beiden Registries (Digest) und der Formel `0.2.0` im Tap; Verweis auf `freigaben/0.2.0.md` (§1) |
