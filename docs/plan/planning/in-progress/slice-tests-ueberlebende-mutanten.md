@@ -97,8 +97,15 @@ Stand `a8b341e` und am Code vor dem Umbau grün.
 4. **Y2 — `geprueftFromDTO` mit Session-Nummer 1 statt der echten**
    (`internal/adapters/driven/recording/yaml.go`; Review Y2, Y2alt, Y2alt2, F-461).
    *Verhalten:* Die Meldung eines beschädigten Recordings (`PGR-E3003`) nennt bei
-   einem Fehler an einer Interaktion ab Session 2 die Session 1. Kein Test erzeugt
-   einen solchen Fehler ab Session 2.
+   einem Fehler an einer Interaktion ab Session 2 die Session 1. An der Schnittstelle
+   von `yaml` erzeugt kein Test einen solchen Fehler ab Session 2; an der von `sqlite`
+   einer (*Berichtigt am 2026-10-24, Planner, nach dem Fund des Implementers in §7*:
+   der Fall „unbekannte Art“ in `TestLesenMeldungOhneWertUndZeile`,
+   `sqlite_lesen_inhalt_test.go:409`, geht über `geprueftFromDTO` und färbt zwei der drei
+   Mutanten unten rot, nämlich `geprueftFromDTO(1, …)` und die Konstante `1` in der
+   Meldung der Form). Ohne neuen Test überleben nur die Konstante `1` in der Meldung
+   „trägt die Nummer“ und der Weg über `yaml`; diese zwei bleiben der Gegenstand des
+   Liefer-Punkts 3.
    *Test-Idee* (Paket `recording_test`, über `Unmarshal`): eine Aufzeichnung mit zwei
    Sessions, Session 1 gültig; in Session 2 je ein Fall mit falscher
    Interaktionsnummer und mit verletzter Form (die zwei Meldungen von
@@ -141,7 +148,8 @@ trägt `sessionID` in beiden Meldungen und wird mit `sd.ID` gerufen (`yaml.go`).
 in `postgres_test` nennt `TableOID` oder `TableAttributeNumber`, keiner in `services_test`
 setzt `42P05` in Gruppe 2 einer Interaktion; Pfade (`internal/…`) und Testdateien aus §3
 bestehen. Seit 2026-10-07 hat kein Review und keine Verifikation einen weiteren Mutanten
-an diese Adresse gesendet (Suche nach der Kennung unter `docs/`).
+an diese Adresse gesendet (Suche nach der Kennung unter `docs/`). Für Y2 gilt der
+Nachzug aus Gegenstand 4 (2026-10-24, nach §7): Der Mutant lebt nur noch zum Teil.
 
 **Sichtung früherer Funde** (am Stand `8d765ba`): Unter `docs/reviews/`, in den Plänen
 unter `done/` samt den drei Welle-Archiven und in den offenen Plänen steht kein
@@ -237,10 +245,11 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driven/postgres/upstream_test.go`, `upstream_extended_test.go` | update | P8, P2: `RowDescription` mit `TableOID` und `TableAttributeNumber` ungleich 0, Spalte in allen Feldern verglichen, Simple- und Extended-Weg (Happy, LH-FA-02 und LH-FA-18) |
 | `internal/adapters/driven/recording/yaml_test.go` | update | Y2: Fehler an einer Interaktion in Session 2, je Nummer und Form (Negative, LH-QA-05) |
 
-Die Abdeckungs-Deklarationen bleiben, wie sie sind: Die Tests decken neue Fälle
-bestehender Anforderungen und Pfade ab. Ob eine Zeile in den Tabellen unter
-`docs/user/` hinzukommt, entscheidet `make abdeckung-check`; wenn ja, gehört sie in
-denselben Commit.
+Die neuen Tests tragen Abdeckungs-Deklarationen (`LH-FA-10`/Negative, `LH-FA-02`/Happy,
+`LH-FA-18`/Happy, `LH-FA-07`/Negative); `make abdeckung-check` verlangt dafür fünf
+Tabellenzeilen in `docs/user/abdeckung-unit.md`. Der Implementer schreibt sie mit
+`make abdeckung` (nie von Hand) und committet sie; Entscheidung des Planners vom
+2026-10-24 in §8: Sie zählen nicht als dritte Schicht.
 
 ## 4. Trigger
 
@@ -500,8 +509,11 @@ Planner. Das ist keine Randform.
 **Offen bei der Übergabe.** `make abdeckung-check` ist rot, denn die drei Tests tragen eine
 Abdeckungs-Deklaration, und `docs/user/abdeckung-unit.md` bräuchte fünf neue Zeilen laut
 `git diff --stat` nach `make abdeckung` (eine Tabellenzeile je Test unter `LH-FA-02`, `LH-FA-07`,
-`LH-FA-10` und `LH-FA-18`; das Ergebnis ist verworfen, die Datei unverändert). Das ist die dritte Schicht (§8, `AGENTS.md` §3.13); nicht
-geschrieben, an den Planner zurückgegeben. `make gates` ist deshalb nicht gelaufen.
+`LH-FA-10` und `LH-FA-18`; das Ergebnis ist verworfen, die Datei unverändert). Das hielt der Implementer für die dritte Schicht (§8, `AGENTS.md` §3.13), schrieb sie nicht
+und gab sie an den Planner zurück. **Entscheidung des Planners, 2026-10-24: die Zeilen zählen
+nicht als Schicht (Begründung in §8); der Implementer fährt `make abdeckung`, committet die
+fünf Zeilen, dann `make abdeckung-check` und am Endstand `make gates`.** `make gates` ist bis
+dahin nicht gelaufen.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -558,10 +570,44 @@ Berichtigungen dieses Commits):
 - Schichten: 2 — Kern (`internal/hexagon/services`, Test und Kommentar) und
   Driven-Adapter (`postgres`, `recording`, nur Tests); Tests zählen als die Schicht
   ihres Codes. Doku (`docs/user/`, `README.md`) und Bootstrap bleiben unberührt. Die
-  Abdeckungstabellen unter `docs/user/` kommen nur hinzu, wenn `make abdeckung-check`
-  es verlangt; sie sind nach §3.13 eine dritte Schicht, in diesem Fall geht der Punkt
-  an den Planner statt in den Slice.
+  fünf Zeilen in `docs/user/abdeckung-unit.md`, die `make abdeckung` aus den
+  Deklarationen der neuen Tests schreibt, zählen **nicht** als Schicht
+  (**Entscheidung des Planners, 2026-10-24**, nach Rückgabe des Implementers; Gründe
+  unten). Schichten bleiben 2.
 - Prüfbar in einer Review-Sitzung: nur Tests und ein Kommentar; die Sendung ist drei
   Testdateien-Erweiterungen mit je einem Mutanten, weit unter der Marke 1500.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Entscheidung des Planners, 2026-10-24 (Rückgabe des Implementers; Gegenstand: zählt eine
+von `make abdeckung` erzeugte Tabellenzeile unter `docs/user/abdeckung-*.md` als dritte
+Schicht, `AGENTS.md` §3.13?).** **Sie zählt nicht.** Entscheidung des Planners über den
+eigenen Plan; keine des Nutzers, keine Regeländerung. Der Wortlaut von §3.13 nennt
+`docs/user/` als Schicht und nimmt Erzeugtes nicht aus; ich lese ihn nach dem Zweck der
+Größenregel (Schnitt nach Lieferwert, prüfbar in einer Sitzung), wie im Präzedenzfall
+`slice-play-feldvergleich` F-3. Gründe:
+
+1. Die Zeilen sind Ausgabe eines Gates (`make abdeckung`), ohne eigenes Verhalten und ohne
+   Inhalt über die Deklaration im Test hinaus; der Reviewer prüft die Deklaration, nicht die
+   Zeile. Fünf Zeilen ändern Größe und Prüfbarkeit nicht (Marke 1500).
+2. Präzedenz: `slice-v1-abschluss-verbindungsende-upstream-extended` führte dieselbe Tabelle
+   (`abdeckung-e2e.md`) als „Markierung“ getrennt von der Schichtzahl („eine, mit der
+   Markierung … zwei“); `slice-version-option`, `slice-play-feldvergleich-doku` und
+   `slice-v1-abschluss-cancel-ohne-schluessel` führten die Tabellen als „update (erzeugt)“.
+   Kein früherer Slice musste wegen erzeugter Zeilen schneiden. Hier: **2 Schichten, mit der
+   Markierung der erzeugten Tabelle formal 3, kein Schnitt.** Ehrlich gesagt trägt der Wortlaut
+   von §3.13 die Gegenlesart ebenso; es ist eine Einzelfall-Entscheidung, kein Befund des Textes.
+3. Ein Schnitt für fünf erzeugte Zeilen ist nicht möglich, ohne den Zweig bis dahin mit rotem
+   `abdeckung-check` stehen zu lassen, und kostete Plan, Review, Verifikation und Gate-Lauf.
+
+**Der Implementer** fährt `make abdeckung`, committet genau die fünf neuen Zeilen in
+`docs/user/abdeckung-unit.md` (nichts von Hand, kein anderer Teil der Datei, kein Handbuch,
+keine README), fährt `make abdeckung-check` und am Endstand `make gates`. Weicht die Ausgabe
+von `make abdeckung` ab (andere Dateien oder mehr als fünf Zeilen), hält er an und gibt es zurück.
+
+**Vorschlag an den Nutzer (keine Änderung von `AGENTS.md`):** In §3.13 *Schichten zählen alle
+Pläne gleich* einen Satz ergänzen: „Eine Zeile einer von `make abdeckung` erzeugten Tabelle
+unter `docs/user/abdeckung-*.md` zählt nicht als Schicht.“ Dann entfiele die Einzelfall-
+Entscheidung; sie ist nach F-3 (Klarstellung der Spezifikation) die zweite Stelle, an der der
+Wortlaut des Schichtbegriffs zum Zweck der Größenregel nicht passt. Ob das dieselbe Register-
+Klasse ist, entscheidet der Nutzer bei der Closure.
