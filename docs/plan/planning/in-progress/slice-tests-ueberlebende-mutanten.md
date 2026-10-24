@@ -476,8 +476,7 @@ Grüne Mutanten an Harness-Skripten (etwa V-67 an `abdeckung`, V-72 an der
 Why-Prüfung) betreffen Werkzeuge, nicht das Produkt. Beide sind in ihrem Slice behoben
 und gehören nicht zu dieser Sammlung.
 
-*Belege des Implementers* (Stand: Tests und Kommentar committet, `make gates` nicht gelaufen,
-`make abdeckung-check` rot, siehe Ende). Jede Mutation lief in einer frischen Kopie des
+*Belege des Implementers* (Stand: Endstand `144c15e7`, Läufe am Ende). Jede Mutation lief in einer frischen Kopie des
 Arbeitsbaums unter eigenem Pfad (ohne `.git`, `touch` auf die Datei), die Tests per
 Bind-Mount in `golang:1.27.3-alpine@sha256:b8c9…` (`go test -count=1`), nicht gegen den
 Build-Kontext. „Ohne neuen Test“ heißt `-skip` auf den neuen Test, sonst das ganze Paket.
@@ -506,14 +505,12 @@ die Konstante in der Meldung „trägt die Nummer“. Der neue Test fängt alle 
 `yaml`-Schnittstelle; ein Nachzug von §1 (Satz „überleben alle Tests“, Aktualität) liegt beim
 Planner. Das ist keine Randform.
 
-**Offen bei der Übergabe.** `make abdeckung-check` ist rot, denn die drei Tests tragen eine
-Abdeckungs-Deklaration, und `docs/user/abdeckung-unit.md` bräuchte fünf neue Zeilen laut
-`git diff --stat` nach `make abdeckung` (eine Tabellenzeile je Test unter `LH-FA-02`, `LH-FA-07`,
-`LH-FA-10` und `LH-FA-18`; das Ergebnis ist verworfen, die Datei unverändert). Das hielt der Implementer für die dritte Schicht (§8, `AGENTS.md` §3.13), schrieb sie nicht
-und gab sie an den Planner zurück. **Entscheidung des Planners, 2026-10-24: die Zeilen zählen
-nicht als Schicht (Begründung in §8); der Implementer fährt `make abdeckung`, committet die
-fünf Zeilen, dann `make abdeckung-check` und am Endstand `make gates`.** `make gates` ist bis
-dahin nicht gelaufen.
+**Läufe am Endstand `144c15e7`** (2026-10-24). `make abdeckung` schrieb nur `docs/user/abdeckung-unit.md`,
+genau fünf neue Zeilen (je eine unter `LH-FA-02` Happy, `LH-FA-07` Negative, `LH-FA-10` Negative,
+`LH-FA-18` Happy und `LH-FA-18` Negative), committet in `144c15e7`. `make abdeckung-check` Exit 0,
+`make docs-check` 0 Befunde, `make kopf-check` Exit 0. `make gates`: Exit 0, Start 11:14:06, Ende
+11:21:57 (7 min 51 s), allein auf Docker. Marke 1500 (§3.14, Pfade aus §4, Basis `83eb9993`): 191 Zeilen
+(mit `docs/user/` 196).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
