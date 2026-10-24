@@ -235,13 +235,13 @@ Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
       Zusage nach §6 *Signal vor dem Öffnen* (`LH-FA-13.a` *Startphase*) und wird rot ohne
       `context.WithoutCancel` in `pgwire.Listen`; geprüft nur unter Linux (Grenze für macOS und Windows steht in `LH-FA-13.a`).
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Reports: `docs/reviews/2026-10-24-review-slice-tests-ueberlebende-mutanten-driving.md` (0 HIGH, 0 MEDIUM, 2 LOW, 4 INFO) und das Delta `…-delta.md` (0 HIGH, 0 MEDIUM, 2 LOW, 2 INFO); Verifikation `docs/reviews/2026-10-24-verifikation-slice-tests-ueberlebende-mutanten-driving.md` (bestanden).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -412,25 +412,23 @@ Entscheidung · Ort):
 
 - **Die Sammlung wächst über den Schnitt** — weitere Funde (§1 *Sammelregel*), etwa aus
   `slice-harness-lint`, heben die Liefer-Punkte über drei. Seit dem Anspruch bekommt
-  ein neuer Fund einen eigenen Slice (§1 *Sammelregel*). — **Ausgang:** — (bei Closure)
+  ein neuer Fund einen eigenen Slice (§1 *Sammelregel*). — **Ausgang:** *entfallen* — kein Fund ist nach dem Anspruch eingetroffen; die Fristen der Review- und Verifikationsfunde (Serve, `<-danach`) liegen im Liefer-Punkt *Frist beim Warten*, die Zählung bleibt bei drei Punkten und zwei Schichten (§8, beide *Nachzählung*), die Größe bei 169 Zeilen (Marke 1500).
 - **Ein Test hängt am Zeitverhalten** — die Frist aus F-468 (G7 entfällt, §6) beobachtet über
   eine Frist; zu knapp gesetzt macht sie den Test flatterhaft, zu weit lässt sie einen
   roten Lauf lange hängen (`BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`, 2×;
-  `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients`, 1×, verwandt). Je Test mindestens 50 Läufe ohne Mutant grün, in §7. — **Ausgang:** — (bei
-  Closure)
+  `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients`, 1×, verwandt). Je Test mindestens 50 Läufe ohne Mutant grün, in §7. — **Ausgang:** *entfallen* — je Paket 50 Läufe grün (`pgwire` 125,9 s, `bootstrap` 43,6 s, `TestRunPlay…` 27,8 s), vom Verifier mit 20 Läufen nachgefahren, die Fristen stehen als Literale (10 s, 30 s) unter der Grenze von 60 s; kein flatternder Fall beobachtet. Grenze, nicht Risiko: Unter CPU-Last gilt die Klasse `BEO-REPO/test-faellt-unter-cpu-last-aus` wie für jeden Test mit Frist.
 - **Der Test hält den Bestand statt der Zusage fest** — ein Vergleich des ganzen
   Meldungstextes machte jede Umformulierung rot, ohne dass eine Zusage bricht. Je Test
   nur das, was der Architect nach §6 *Was ein Test festhält* entscheidet. —
-  **Ausgang:** — (bei Closure)
+  **Ausgang:** *entfallen* — Review und Verifikation fanden keinen Test, der den ganzen Text festhält; die roten Meldungen der Mutationstabelle nennen Code und zugesagte Textteile (`PGR-E4001`, Exit-Code), und `TestToMessageSpaltenMetadaten` vergleicht Felder, keinen Text.
 - **Die Aktualität steht auf einem Lauf je Mutant** — §1 *Aktualität* misst G1, G4 und G7
   grün und G2, G3, G5, G6 rot mit je einem Lauf; ein flatternder Test könnte eine Zeile
   verfälschen (Y2 des Gebers: gesichtet statt gemessen). Der Implementer misst G1, G4, G7
-  vor dem Code und die vier entfallenen am Endstand erneut, in §7. — **Ausgang:** — (bei
-  Closure)
+  vor dem Code und die vier entfallenen am Endstand erneut, in §7. — **Ausgang:** *entfallen* — der Implementer maß G1, G4, G7 vor dem Code (alle grün) und die vier entfallenen am Endstand (alle rot); der Verifier fuhr sie nach (G4 T3/T5, G1 K4 und drei Startfehler-Mutanten, G2/G3/G5/G6 rot, G7 grün); keine Zeile der Aktualität erwies sich als verfälscht.
 - **Mutant kommt im Build-Kontext nicht an** — eine Mutation mit unveränderter Größe und
   mtime überträgt BuildKit nicht (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×). Die Mutationen laufen in einer frischen Kopie unter eigenem Pfad. —
-  **Ausgang:** — (bei Closure)
+  **Ausgang:** *entfallen* — jede Mutation lief in einer frischen Kopie mit `touch` nach der Ersetzung; jede rote Zeile nennt den Test und seinen Grund, und die Läufe des Verifiers in eigenen Kopien bestätigen sie; das Risiko trat nicht ein (kein grüner Lauf, der eine Mutation nicht trug).
 
 ## 7. Closure-Notiz
 
@@ -580,13 +578,19 @@ Test-Doubles, die auf eine Freigabe des Tests warten und nach `SPEC-038` nicht u
 129, 154/155, 182/183, 197, 217, 233, 246, 730 im Double `fakeRecorder` und seinen Hilfen) und `server_extended_test.go:790`
 (`<-c.freigabe`); nicht dazu gehört `play_anmeldung_test.go`: Dessen `<-danach` trägt seit `9d4ddda9` die Frist (Architect `0950edcc`, V-2), und der Fund steht oben unter *Nacharbeit zur Verifikation*. Alle anderen `case`-Empfänge tragen einen `time.After`-Zweig.
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+Gegenstand geliefert (G7 als akzeptiertes Negativ, G2, G3, G5, G6 entfallen nach Messung); die Liefer-Punkte der DoD sind abgehakt.
+
+- **Was hat funktioniert:** Der Architect entschied vor dem Code alle Randformen (§6), und der Implementer musste keine zurückgeben, außer den zwei Wartestellen, die er mit Frist versah und nachträglich bestätigen ließ (Review F-1, F-2). Je Zusage ein Test mit einer Mutation, die nur ihn färbt, und der Lauf ohne den neuen Test (Mutationstabelle in den Belegen). Die Messung vor dem Code (Y2) bestätigte G1, G4, G7 als grün und W als hängend; die vier entfallenen Mutanten fingen die Tests des Bestands (Berichtigung gegen den Plan vom 2026-10-07). Der Verifier fuhr die Mutationen am Endstand selbst nach und fand alle rot, G7 grün wie gesagt.
+- **Was ging anders als geplant:** (1) Die Kandidatenliste der Wartestellen (vier vor dem Code) war unvollständig: Der Implementer fand `tls_test.go:100` und das Ende von `Serve`, die Verifikation `<-danach` in `play_anmeldung_test.go`; sieben Stellen am Ende, drei davon nach dem Anspruch ergänzt, jede vom Architect nachträglich entschieden (`0950edcc`). Die Namenssuche vor dem Code fand sie nicht; die vollständige Durchsicht in §7 fand sie. (2) Das Delta nach `0950edcc` fand nur noch den Plan: §3 ohne Zeile für `play_anmeldung_test.go`, die Durchsicht in §7 mit der veralteten Zuordnung, Zeilennummern, die der Commit der Frist verschoben hatte (Delta F-1, F-2, F-3); bei der Closure behoben (`edce1542`, Anker sind jetzt Namen von Tests). (3) Der erste `make gates` lief rot an `contextcheck` in `bootstrap_test.go` (behoben in `0752b3ec`).
+- **Steering-Loop-Eintrag:** *benannte Spec-Lücke*, am Slice geschlossen vom Architect: `SPEC-038` *Warten in Tests* nannte weder den Lauf der Kommandozeile in einer Goroutine noch den Kanal des Testgeschirrs, dessen Wert der Prüfling bestimmt (Nachrichtentypen eines Fake-Servers, Ende der Verbindung); beide stehen seit `0950edcc` in `SPEC-038`. Die Lücke hing an einer Kandidatenliste aus Namenssuche, die in drei Runden wuchs (vier, sechs, sieben Stellen); `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` erreicht damit 4×, sein Ausgang *geplant* (`slice-harness-lint-warten-ohne-frist`) besteht. Eine geschärfte Regel entsteht nicht, ein Herkunfts-Anker (`liegt in`) auch nicht: Der Absatz in `SPEC-038` ist Text des Architect, kein Planner-Eintrag, und kein Satz in `AGENTS.md` oder `.claude/` ändert sich. Zweiter Befund, kein Eintrag: Die Mutationen der Frist färben nach ihrem Ablauf rot (30 bis 90 s); das ist 2× `BEO-REPO/rot-erst-nach-frist-des-fake-servers`, unter der Schwelle.
+- **Beobachtungs-Register (`../observations/`):** vier Belege unter `evidence/slice-tests-ueberlebende-mutanten-driving.md` und ein neuer Eintrag (`d7a95111`): `BEO-REPO/plan-folgt-korrektur-nicht` (Delta F-1 bis F-3, Review F-6; Zähler 84), `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` (Review F-1, Verifikation V-2; 4×, geplant), `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (Review F-1, F-2; 29×, verkörpert, Regel bleibt), `BEO-REPO/rot-erst-nach-frist-des-fake-servers` (2×, Urteil des Planners), neu `BEO-REPO/abdeckungs-deklaration-enger-als-der-test` (Review F-4, Verifikation V-3; 1×, offen). Kein Beleg für `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: Die Sätze der Kommentare von `replayLesefehler`, `replayZustellen` und `replayWaechter` kehrten nicht zurück, der Kommentar des neuen Tests sagt nur zu, was er prüft, und kein Review fand einen Satz darüber hinaus. Kein Beleg für `BEO-REPO/gruener-mutant-faelschlich-aequivalent` oder `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: G7 steht als akzeptiertes Negativ mit Grund, und die Sendung `<-danach` an `slice-harness-lint-warten-ohne-frist` ist begründet verneint (dessen §1 schließt Stellen im Bootstrap aus).
+- **Folge-Slices:** keine neue Sendung. Der Sensor für Warten ohne Frist bleibt `slice-harness-lint-warten-ohne-frist` (`open/`); seine Liste *Bestand* (Zeilen 848 und 353) ist durch diesen Slice überholt, der Implementer dort misst sie beim Start neu (dessen DoD *Bestand*). Die Aufzeichnung von Tabellen-OID und Spaltennummer (Verifikation F-2 zu `slice-tests-ueberlebende-mutanten`, §1 *Ausdrücklich NICHT*) hat keine Adresse; ob ein eigener Slice entsteht, entscheidet der Nutzer.
+- **Risiken aus §6:** je ein Ausgang an jedem der fünf Risiken (§6): alle *entfallen* mit Begründung; keines *eingetreten*, keines *weiter offen*.
+- **Grenze der Verifikation (offen):** Das Delta (Frist an `<-danach`, `9d4ddda9`) hat nur der Implementer gefahren, die Mutation „Double füllt `danach` nie“ (rot nach 30,03 s und 30,54 s, Meldung der Frist); der Delta-Review hat sie gegen den Code gelesen, nicht gefahren. Die Verifikation (bestanden) lief davor. Ein Nachfahren der Mutation durch den Verifier steht aus und ist ein offener Punkt der Closure; er blockiert nicht, weil der Code des Deltas zwei Fristen in Tests betrifft, kein Produktverhalten. Delta F-4 (INFO): Die Deadline des Fake-Servers (30 s ab Accept) läuft vor der Frist des Tests ab, wenn `play` die Verbindung offen hält; die Frist greift nur, wenn der Double nie füllt; keine Aktion.
+- **Akzeptiertes Negativ G7:** `case <-fertig:` in `replayWaechter` entfernt bleibt grün (am Stand `44cb42c3`, am Endstand und beim Verifier). Grund: keine Zusage in `SPEC-032` (Absatz *Nicht zugesichert ist, was eine beendete Verbindung im Prozess zurücklässt*), eine Goroutine je Replay-Verbindung kostet im Testwerkzeug nichts Messbares. Der Mutant ändert das Verhalten und ist nicht äquivalent: Invariante, Ort und Sonde (`AGENTS.md` §3.10) werden nicht behauptet; kein Test.
+- **§3.15 (Rate):** keine Rechnung. Der Slice ändert keine eigene Regel von `AGENTS.md`, und seit `slice-harness-regeln-rueckbau` sind mit diesem erst acht Slices geschlossen (Angabe des Auftraggebers dieser Closure, nicht neu gezählt), weniger als zehn: keine Rate, kein Vorschlag.
+- **Größe** (`AGENTS.md` §3.14, Basis `7ed55a23`, Pfade `internal/adapters/driving/pgwire`, `internal/bootstrap`, `spec`): 169 Zeilen am Kopf `2d3b2ae9`, Marke 1500 nicht erreicht.
+- **Drei Paarungen:** (a) *Anker*: kein Steering-Loop-Eintrag trägt `liegt in`, nichts ist verkörpert, was der Planner eintrüge; leer, nicht verletzt. (b) *Folge-Slice*: Es entsteht keine neue Sendung; die bestehende Adresse `slice-harness-lint-warten-ohne-frist` liegt als Datei in `open/`, und `grep -n "roter-lauf-haengt-bis-zum-zeitlimit"` findet die Kennung der Beobachtung in dessen §1 (Herkunft) und §2; dessen §1 *Ausdrücklich NICHT* schließt die Stellen in PGWire-Adapter und Bootstrap als Gegenstand aus und verweist auf diesen Slice, nimmt also keine Stelle an, die hier fehlte. Die Aufzeichnung der Spalten-Metadaten hat keine Adresse (Nutzerpunkt, siehe Folge-Slices). (c) *Register*: die fünf Pfade oben existieren; `evidence/slice-tests-ueberlebende-mutanten-driving.md` liegt in jedem der fünf Verzeichnisse (`ls BEO-REPO/*/evidence/slice-tests-ueberlebende-mutanten-driving.md`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
