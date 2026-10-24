@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (Review F-459 und F-461 zu `slice-lint-bestand-kern-driven`); Reihenfolge in §4
 *Start*.
 
-**Bezug:** [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Tests über die öffentliche Schnittstelle). Bindung an Entscheidungen:
+**Bezug:** [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Tests über die öffentliche Schnittstelle). Bindung an Entscheidungen:
 [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Black-Box-Tests über die
 Export-Test-Brücke).
 
@@ -243,10 +243,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services/replay_extended_test.go` | update | M3: Diagnose nach bestätigtem und danach abgelehntem `parse` desselben benannten Statements (Negative, LH-FA-10) |
 | `internal/hexagon/services/replay.go` | update (nur Kommentar) | Doc-Kommentar von `extendedNachspielen`: die Zusage über die ersten n Nachrichten, so weit der Test sie prüft (F-460) |
 | `internal/adapters/driven/postgres/upstream_test.go`, `upstream_extended_test.go` | update | P8, P2: `RowDescription` mit `TableOID` und `TableAttributeNumber` ungleich 0, Spalte in allen Feldern verglichen, Simple- und Extended-Weg (Happy, LH-FA-02 und LH-FA-18) |
-| `internal/adapters/driven/recording/yaml_test.go` | update | Y2: Fehler an einer Interaktion in Session 2, je Nummer und Form (Negative, LH-QA-05) |
+| `internal/adapters/driven/recording/yaml_test.go` | update | Y2: Fehler an einer Interaktion in Session 2, je Nummer und Form (Negative, LH-FA-07, LH-FA-22.a) |
 
-Die neuen Tests tragen Abdeckungs-Deklarationen (`LH-FA-10`/Negative, `LH-FA-02`/Happy,
-`LH-FA-18`/Happy, `LH-FA-07`/Negative); `make abdeckung-check` verlangt dafür fünf
+Die neuen Tests tragen Abdeckungs-Deklarationen (`LH-FA-10`/Negative und `LH-FA-18`/Negative am
+M3-Test, `LH-FA-02`/Happy und `LH-FA-18`/Happy an den zwei Spalten-Tests, `LH-FA-07`/Negative am Y2-Test); `make abdeckung-check` verlangt dafür fünf
 Tabellenzeilen in `docs/user/abdeckung-unit.md`. Der Implementer schreibt sie mit
 `make abdeckung` (nie von Hand) und committet sie; Entscheidung des Planners vom
 2026-10-24 in §8: Sie zählen nicht als dritte Schicht.
