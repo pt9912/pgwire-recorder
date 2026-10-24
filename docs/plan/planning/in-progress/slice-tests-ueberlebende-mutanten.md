@@ -512,6 +512,21 @@ genau fünf neue Zeilen (je eine unter `LH-FA-02` Happy, `LH-FA-07` Negative, `L
 11:21:57 (7 min 51 s), allein auf Docker. Marke 1500 (§3.14, Pfade aus §4, Basis `83eb9993`): 191 Zeilen
 (mit `docs/user/` 196).
 
+**Nacharbeit zum Review** (2026-10-24, Report `2026-10-24-review-slice-tests-ueberlebende-mutanten`,
+Stand nach `32fe4711`). F-1 behoben (Kopf `Bezug` führt `LH-FA-07` und `LH-FA-22`; die Kennungen
+der übrigen berührten Stellen und Deklarationen, `LH-FA-02`, `LH-FA-10`, `LH-FA-18`, stehen dort).
+F-2 behoben (Doc-Kommentar von `extendedNachspielen` sagt nur noch: ein bestätigtes `parse` auf ein
+benanntes Statement ändert ein weiteres `parse` desselben Namens in der Interaktion nicht; die
+Allgemeinaussage über „n Bestätigungen einer Art“ entfällt, denn der Test hält `parse`, benanntes
+Statement, n = 1). F-4 behoben (§3 nennt fünf Deklarationen). F-6: Hinweis, die Interaktionsnummer
+in den Meldungen halten Bestandstests (`yaml_test.go`, `sqlite_lesen_inhalt_test.go`); der neue Test
+vergleicht nur die Session, wie DoD 3 es verlangt. F-7: Hinweis, die Mutationen hat der Reviewer nicht
+gefahren, sie fährt der Verifier nach. F-3 liegt bei Closure und Nutzer, offen. Zusätzlich war
+`docs-check` am Review-Report rot (`ADR-0034` ohne Link, Zeile 16); der Link steht jetzt dort, sonst
+nichts am Report geändert (`32fe4711`).
+Läufe am Endstand `32fe4711`: `make docs-check` 0 Befunde, `make kopf-check` Exit 0, `make gates` Exit 0,
+11:32:11 bis 11:41:13 (9 min 1 s), allein auf Docker.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
