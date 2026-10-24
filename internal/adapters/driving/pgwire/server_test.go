@@ -627,6 +627,39 @@ func TestToMessageErfindetNichts(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-02/Happy, LH-FA-03/Happy — Tabellen-OID und Spaltennummer jeder
+// Spalte einer RowDescription gehen unverändert an den Client (LH-FA-02.a, LH-FA-03.a
+// Spalten-Metadaten): keines der beiden Felder fehlt, und eine Spalte ohne Tabelle
+// behält `0`. Der Weg ist für Record und Replay und für einfache und Extended-Anfragen
+// derselbe.
+func TestToMessageSpaltenMetadaten(t *testing.T) {
+	cols := []model.Column{
+		{Name: "id", TableOID: 16384, ColumnNumber: 1, TypeOID: 23, TypeSize: 4, TypeModifier: -1, Format: 0},
+		{Name: "name", TableOID: 16390, ColumnNumber: 7, TypeOID: 25, TypeSize: -1, TypeModifier: 14, Format: 1},
+		{Name: "n", TableOID: 0, ColumnNumber: 0, TypeOID: 20, TypeSize: 8, TypeModifier: -1, Format: 0},
+	}
+	msg, err := pgwire.ToMessage(model.Response{Type: model.ResponseRowDescription, Columns: cols})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rd, ok := msg.(*pgproto3.RowDescription)
+	if !ok || len(rd.Fields) != len(cols) {
+		t.Fatalf("Abbildung %#v", msg)
+	}
+	for i, c := range cols {
+		f := rd.Fields[i]
+		if f.TableOID != c.TableOID {
+			t.Errorf("Spalte %s: Tabellen-OID %d, erwartet %d", c.Name, f.TableOID, c.TableOID)
+		}
+		if f.TableAttributeNumber != c.ColumnNumber {
+			t.Errorf("Spalte %s: Spaltennummer %d, erwartet %d", c.Name, f.TableAttributeNumber, c.ColumnNumber)
+		}
+		if string(f.Name) != c.Name || f.DataTypeOID != c.TypeOID || f.DataTypeSize != c.TypeSize || f.TypeModifier != c.TypeModifier || f.Format != c.Format {
+			t.Errorf("Spalte %s: übrige Felder %+v", c.Name, f)
+		}
+	}
+}
+
 type fakeReplayer struct {
 	mu       sync.Mutex
 	closed   int

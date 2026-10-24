@@ -845,7 +845,11 @@ func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
 	// Stand oder nach 200 ms.
 	bis(200*time.Millisecond, conn.liest.Load)
 	close(conn.freigabe)
-	<-conn.gesetzt
+	select {
+	case <-conn.gesetzt:
+	case <-time.After(10 * time.Second):
+		t.Fatal("der Prüfling setzt die Lesefrist nicht binnen 10 s")
+	}
 	sende(&pgproto3.Execute{}, &pgproto3.Sync{})
 	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
 		t.Fatalf("an den Client: %s", got)

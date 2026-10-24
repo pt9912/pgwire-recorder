@@ -51,7 +51,11 @@ func paar(t *testing.T, pipe bool) (client, server net.Conn) {
 		if client, err = net.Dial("tcp", l.Addr().String()); err != nil {
 			t.Fatal(err)
 		}
-		server = <-angenommen
+		select {
+		case server = <-angenommen:
+		case <-time.After(10 * time.Second):
+			t.Fatal("der Listener nimmt die Verbindung nicht binnen 10 s an")
+		}
 	}
 	t.Cleanup(func() { client.Close(); server.Close() })
 	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
