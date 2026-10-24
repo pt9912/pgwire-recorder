@@ -217,21 +217,21 @@ Zusage besteht (§6; entschieden ist das nur für G7), entfällt dessen Test mit
 ist ein akzeptiertes Negativ mit diesem Grund, nicht „äquivalent“: Er ändert das Verhalten, und
 Invariante, Ort und Sonde (`AGENTS.md` §3.10) gibt es nicht.
 
-- [ ] **Frist beim Warten (F-468):** Die Tests dieser beiden Schichten, die ohne Frist auf
+- [x] **Frist beim Warten (F-468):** Die Tests dieser beiden Schichten, die ohne Frist auf
       einen Kanal oder das Ende eines Laufs warten, tragen die Frist nach §6 *Warten auf
       einen Kanal* (Kandidaten: `server_extended_test.go:848`, `server_tls_test.go:54`,
       `bootstrap_test.go:353`, `tls_test.go:184`; welche der Architect festlegt). Der Mutant W
       des Gebers wird in `TestReplayHerunterfahrenSpaeteFrist` rot, ohne dass das Paket die
       Zeit überschreitet.
-- [ ] **Abbildung (G4) und Ende des Wächters (G7):** Ein Test in `pgwire_test` über
+- [x] **Abbildung (G4) und Ende des Wächters (G7):** Ein Test in `pgwire_test` über
       `pgwire.ToMessage` hält Tabellen-OID und Spaltennummer der Spaltenbeschreibung
       nach §6 *Spalten-Metadaten* (`LH-FA-02.a`, `LH-FA-03.a`, `LH-FA-18.a`) und wird
       rot unter T3 und, je für sich, unter T5. Für G7 kein Test: §6 *Ende des Wächters*
       entscheidet „keine Zusage“; §7 führt den Mutanten als akzeptiertes Negativ (nicht äquivalent) mit diesem Grund.
-- [ ] **Öffnen am Rand (G1):** Ein Test in `bootstrap_test` über `bootstrap.Run` hält die
+- [x] **Öffnen am Rand (G1):** Ein Test in `bootstrap_test` über `bootstrap.Run` hält die
       Zusage nach §6 *Signal vor dem Öffnen* (`LH-FA-13.a` *Startphase*) und wird rot ohne
       `context.WithoutCancel` in `pgwire.Listen`; geprüft nur unter Linux (Grenze für macOS und Windows steht in `LH-FA-13.a`).
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -438,6 +438,101 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+### Belege des Implementers
+
+Stand: Zweig `impl-drv1`, Endstand der Tests `0752b3ec`. Alle Läufe: `go test -count=1` im Image
+`golang:1.27.3-alpine@sha256:b8c9b82a…` (das Image der Stufe `test`) mit Bind-Mount, `--network=none`,
+je Mutation eine frische Kopie des Arbeitsbaums unter eigenem Pfad (eine Textersetzung, vorher auf genau
+einen Treffer geprüft, danach `touch`), nichts parallel zu einem Gate-Lauf auf Docker.
+
+**Messung vor dem Code (Y2)** am Stand `44cb42c3` (Tests ohne die neuen), je ein Lauf der Pakete:
+
+| Mutant | Mutation | Ergebnis |
+|---|---|---|
+| G4 / T3 | `TableOID: c.TableOID` → `0` in `rowDescription` | grün (`pgwire`, 20,9 s) — überlebt |
+| G4 / T5 | `TableAttributeNumber: c.ColumnNumber` → `0` | grün (`pgwire`, 20,9 s) — überlebt |
+| G7 / V13 | `case <-fertig:` in `replayWaechter` entfernt | grün (`pgwire` und `bootstrap`) — überlebt |
+| G1 / K4 | `context.WithoutCancel` in `pgwire.Listen` entfernt | grün (`bootstrap` 6,3 s, `pgwire` 20,9 s) — überlebt |
+| W | `_ = conn.SetReadDeadline(time.Now())` in `replayWaechter` entfernt | `TestReplayHerunterfahrenSpaeteFrist` hängt; rot erst durch `-timeout 40s` mit Goroutinen-Dump, `FAIL … 40.019s` |
+
+**Mutationstabelle (Zusage · Mutation · roter Test)**
+
+| Zusage | Mutation | roter Test, und warum |
+|---|---|---|
+| `LH-FA-02.a`/`LH-FA-03.a` Spalten-Metadaten: die Tabellen-OID geht nicht verloren | T3: `TableOID: c.TableOID` → `0` | `TestToMessageSpaltenMetadaten`: „Spalte id: Tabellen-OID 0, erwartet 16384“ (und `name`) |
+| dieselbe: die Spaltennummer geht nicht verloren | T5: `TableAttributeNumber: c.ColumnNumber` → `0` | `TestToMessageSpaltenMetadaten`: „Spalte id: Spaltennummer 0, erwartet 1“ (und `name`) |
+| dieselbe, „der Recorder setzt keinen Wert ein“: Spalte ohne Tabelle behält 0 (Tabellen-OID) | `max(c.TableOID, 1)` | `TestToMessageSpaltenMetadaten`: „Spalte n: Tabellen-OID 1, erwartet 0“ |
+| dieselbe: Spalte ohne Tabelle behält 0 (Spaltennummer) | `max(c.ColumnNumber, 1)` | `TestToMessageSpaltenMetadaten`: „Spalte n: Spaltennummer 1, erwartet 0“ |
+| `LH-FA-13.a` Startphase: ein Signal vor dem Öffnen ist kein Startfehler, auch mit einem Namen (Exit-Code 0, kein `PGR-E4001`) | K4: `context.WithoutCancel` aus `pgwire.Listen` entfernt | `TestRunSignalVorDemOeffnen/record_Name_localhost` und `/replay_Name_localhost`: „Exit-Code 4, erwartet 0 … lookup localhost: operation was canceled“; `…IP-Adresse` bleibt grün (Kontrolle: die IP-Adresse liest den Kontext nicht) |
+| dieselbe: „kein `PGR-E4001`“ ist eine eigene Bedingung neben Exit-Code 0 | K4 und dazu in `record` nach dem Listen-Fehler bei beendetem Kontext `fail(stderr, err); return 0` (zwei Textersetzungen in einer Kopie) | `…/record_Name_localhost`: „Exit-Code 0, erwartet 0; stderr "Netzwerk [PGR-E4001]…"“ — rot allein über die Meldung |
+| dieselbe: ein Name, der nicht auflöst, bleibt Startfehler (Exit-Code 4, `PGR-E4001`) | in `record` und in `replay`, je für sich: bei beendetem Kontext und `*net.DNSError` `return 0` | `…/record_Name_löst_nicht_auf` bzw. `…/replay_Name_löst_nicht_auf` allein rot: „Exit-Code 0, erwartet 4“ |
+| dieselbe: ein belegter Port bleibt Startfehler | in `record` und in `replay`, je für sich: bei beendetem Kontext und Fehler ohne `*net.DNSError` `return 0` | `…/record_Port_belegt` bzw. `…/replay_Port_belegt` allein rot |
+| dieselbe: jeder Startfehler bleibt, wenn das Signal vor dem Öffnen kam | in `record` und in `replay`, je für sich: bei beendetem Kontext nach dem Listen-Fehler `return 0` | beide Fälle (`Name löst nicht auf`, `Port belegt`) des betroffenen Kommandos rot, die des anderen grün |
+| `SPEC-038` *Warten in Tests*, `server_extended_test.go`: Frist beim Warten auf `conn.gesetzt` | W: `SetReadDeadline(time.Now())` in `replayWaechter` entfernt | `TestReplayHerunterfahrenSpaeteFrist`: „der Prüfling setzt die Lesefrist nicht binnen 10 s“, `FAIL … 10.009s`, ohne Zeitüberschreitung des Pakets (vorher 40 s und Goroutinen-Dump) |
+| dieselbe, `bootstrap_test.go` (`TestRunRecordSchreibfehlerJeStufe`): Frist beim Warten auf das Ende von `Run` | `<-ctx.Done()` in `betreiben` → `<-make(chan struct{})` (Run endet nach dem Signal nie) | „error: Run endet nicht binnen 30 s nach dem Signal“, `FAIL … 30.05s` |
+| dieselbe, `tls_test.go` (`TestRunReplayTLS`, Stelle `:100`): Frist beim Warten auf das Ende von `Run` | dieselbe Mutation | alle drei Fälle: „Run endet nicht binnen 30 s nach dem Signal“ (90,3 s), nicht die Zeitüberschreitung |
+| dieselbe, `tls_test.go` (`TestRunTLSLogOhneSchluessel`, Stelle `:184`) | dieselbe Mutation | `…/replay` und `…/record`: „Run endet nicht binnen 30 s nach dem Signal“ (60,6 s) |
+| dieselbe, `server_tls_test.go` (`paar`, Stelle `:54`; Frist erlaubt, nicht Pflicht) | Test-Mutation: `angenommen <- c` → `_ = c` im Hilfsablauf des Tests | `TestTLSRangfolge/CancelRequest`: „der Listener nimmt die Verbindung nicht binnen 10 s an“, `FAIL … 10.01s`; die Stelle gehört zum Testgeschirr, die Mutation ändert dessen Code, nicht den Prüfling |
+
+Jeder rote Test wird aus dem genannten Grund rot, nicht, weil der Aufbau bricht: die Ausgabe nennt die Zeile des
+Tests und ihren Text. Die Frist steht als Literal im Test (10 s und 30 s, höchstens 60 s nach `SPEC-038`).
+
+**Die vier entfallenen Mutanten am Endstand (G2, G3, G5, G6)**, je ein Lauf des Pakets `pgwire`:
+
+| Mutant | Mutation | Ergebnis am Endstand |
+|---|---|---|
+| G2 / R2 | `&& false` in der Bedingung `verbindungsende(err)` in `replayLesefehler` | rot: `TestProtokollrandClientNachrichten`, `TestProtokollrandAnfragenFolgen` (am Stand `f4ff9387` zusätzlich `TestProtokollrandStartnachricht`; das Paket meldete 20,96 s) |
+| G2 / R4 | `return false` → `continue` nach `replayLesefehler` in `replayLauf` | rot nach 5 s: `TestReplayEndeTerminateMittenInDerGruppe`: „Verbindung endet nicht“ (`server_ende_test.go:300`) |
+| G3 / R3 | `s.fail(…)` in `replayLesefehler` entfernt | rot: `TestProtokollrandClientNachrichten` |
+| G5 / X4 | `s.sendFailed(err)` in `replayZustellen` entfernt | rot: `TestReplayEndeSchreibfehlerBleibtUnverbraucht`, `TestReplayEndeNurAlsLetzteAntwort` |
+| G6 / Z3 | `return folgeEnde` → `return folgeWeiter` nach `s.sendFailed(err)` | rot nach 5 s: `TestReplayEndeNurAlsLetzteAntwort`: „Lesen bis zum Ende: read pipe: i/o timeout“ |
+
+Keine der vier ist grün geworden; kein Rücksprung an den Planner. Die Sätze in den Doc-Kommentaren von
+`replayLesefehler` und `replayZustellen` kehren nicht zurück: Kein Satz wurde hinzugefügt, `server.go` ist
+unverändert (`AGENTS.md` §3.11). Der Doc-Kommentar von `replayWaechter` trägt keinen Satz zum Ende der Sitzung.
+
+**G7 — akzeptiertes Negativ, nicht äquivalent.** Mutation `case <-fertig:` in `replayWaechter` entfernt: grün am Stand
+`44cb42c3` (siehe Messung) und am Endstand. Grund: keine Zusage in `SPEC-032` (Absatz *Nicht zugesichert ist, was eine
+beendete Verbindung im Prozess zurücklässt*); ein Hilfsablauf darf bis zum Ende des Prozesses weiterlaufen. Der Mutant
+ändert das Verhalten (die Goroutine bleibt), Invariante, Ort und Sonde nach `AGENTS.md` §3.10 gibt es nicht und
+werden nicht behauptet. Kein Test.
+
+**Läufe ohne Mutant (Risiko *Ein Test hängt am Zeitverhalten*):** `-count=50`, ein Lauf je Paket, alle Läufe grün.
+
+| Paket | Tests | Ergebnis |
+|---|---|---|
+| `pgwire` | `TestReplayHerunterfahrenSpaeteFrist`, `TestToMessageSpaltenMetadaten`, alle `TestTLS…` (darunter jeder Test über `paar`) | `ok … 125.940s` |
+| `bootstrap` | `TestRunSignalVorDemOeffnen`, `TestRunRecordSchreibfehlerJeStufe`, `TestRunReplayTLS`, `TestRunTLSLogOhneSchluessel` | `ok … 43.588s` |
+
+Die fünf Läufe fanden vor der letzten Änderung der Tests statt (Argumente von `Run` außerhalb der Goroutine, `0752b3ec`,
+wegen `contextcheck`); danach liefen `TestRunSignalVorDemOeffnen` einmal grün und unter K4 rot.
+
+**Warten, je Prozess genau eine Stelle** (`SPEC-038`): `bootstrap_test.go` (`TestRunRecordSchreibfehlerJeStufe`),
+`tls_test.go:100` und `:184` lesen je Lauf von `Run` genau einmal vom Kanal `ende`; `TestRunSignalVorDemOeffnen` ebenso. Keine
+Stelle liest das Ende desselben Laufs ein zweites Mal. **Stelle `tls_test.go:100`** (`TestRunReplayTLS`) steht nicht in
+der Tabelle des Architect; ich habe sie mit derselben Frist versehen, weil sie derselbe Fall ist wie `:184` (`<-ende` auf
+`bootstrap.Run`, Lauf der Kommandozeile in einer Goroutine, `SPEC-038`) und der Architect dort die Regel allgemein für „die
+Stelle am Ende von `bootstrap.Run`“ entschieden hat. Nicht angefasst und nicht in der Tabelle des Architect:
+`play_anmeldung_test.go` (`<-danach`, ein Wert, den der Test-Server des Tests füllt und den der Test nach dem Ende des Laufs liest) und `server_extended_test.go:790` (`<-c.freigabe`, Test-Double). Der Architect bestätigt `tls_test.go:100`
+oder nimmt die Zeile zurück.
+
+**Kommentare (§3.11):** Der Kommentar von `TestToMessageSpaltenMetadaten` sagt zu, was der Test prüft (`ToMessage` bildet
+beide Felder unverändert ab, eine Spalte ohne Tabelle behält 0); der Satz „Der Weg ist für Record und Replay derselbe“ stand
+im ersten Entwurf und ist gestrichen, weil kein Test ihn prüft. Der Kommentar von `TestRunSignalVorDemOeffnen` nennt jeden Fall
+des Tests; die Plattformgrenze steht in `LH-FA-13.a`.
+
+**Zählung der Größe** (`AGENTS.md` §3.14, Basis `7ed55a23`): Summe 138 Zeilen vor dieser Closure-Notiz, Marke 1500 nicht erreicht.
+
+**Gate-Läufe:** `make gates` erster Lauf am Stand `f841bb03` rot in `make lint` (`contextcheck` in
+`bootstrap_test.go`: `quelle` rief `aufzeichnung` mit `context.Background()` in der Goroutine), behoben in `0752b3ec` (Argumente
+vor der Goroutine bilden); zweiter Lauf am Stand `0752b3ec` grün (`exit 0`, ein Lauf, nichts parallel auf Docker). Danach
+einzeln grün: `make abdeckung-check`, `make kopf-check`, `make docs-check` (1454 Dateien, 0 Befunde). `make abdeckung` schrieb
+genau zwei Zeilen in `docs/user/abdeckung-unit.md` (LH-FA-02 und LH-FA-03 für `TestToMessageSpaltenMetadaten`, LH-FA-13 für
+`TestRunSignalVorDemOeffnen`) und die Zelle von LH-FA-03 in `abdeckung-gesamt.md` (Unit kommt hinzu); sie sind in `f841bb03`
+committet und zählen nicht als Schicht (Entscheidung des Planners im Geber, §8). G7 am Endstand: grün (`pgwire` 20,98 s,
+`bootstrap` 6,25 s). Keine Gegenprobe, kein Integrationslauf außer dem in `make gates` enthaltenen Teil; kein Gate oder
+Vertrag geändert.
 
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
