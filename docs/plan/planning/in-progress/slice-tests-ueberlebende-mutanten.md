@@ -260,7 +260,7 @@ sie vor dem Code erneut.
 **Rückführungs-Marke** (`AGENTS.md` §3.14): Marke 1500, Metrik und Befehl dort. Pfade
 des Plans: `internal/hexagon/services`, `internal/adapters/driven/postgres`,
 `internal/adapters/driven/recording`, `spec`, `docs/plan/adr`. Basis-Hash des Moves
-nach `in-progress/`: <beim Übergang einzutragen>.
+nach `in-progress/`: `83eb9993`.
 
 **Start** (`next` → `in-progress`): `slice-harness-coverage` und
 `slice-harness-commit-struktur-id` liegen in `done/` oder sind ausdrücklich zurückgestellt
