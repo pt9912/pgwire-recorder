@@ -1,0 +1,2 @@
+**Vorgang:** slice-play-zweites-signal-terminate-wettlauf
+**Fund:** `Anfrage` nach dem zweiten Signal (§6 Punkt 8): Der Code lieferte `PGR-E4003` ohne zu schreiben (Test `TestEinspielAnfrageNachSchliessen`), die Stelle stand weder in §6 noch in der Spezifikation, und §7 hielt „Keine Randform außerhalb von §6 berührt“ fest (Review r1 F-4, LOW). Zurückgegeben und vom Architect in fa8a8479 mit derselben Antwort entschieden; der Code blieb unverändert. Die Rückgabe kam nach der Lesart im Code an. Quelle: Review-Report r1 vom 2026-10-25 (Planner, Closure, 2026-10-25).
