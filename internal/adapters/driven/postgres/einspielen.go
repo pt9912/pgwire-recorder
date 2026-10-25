@@ -167,12 +167,15 @@ func verworfen(typ byte) pgproto3.BackendMessage {
 }
 
 // einspielSession ist eine aufgebaute Verbindung beim Einspielen. schreiben
-// hält das Senden von Anfrage und einer Gruppe und das Terminate von Schliesse
-// auseinander. Die Gruppen sendet ein eigener Sender nacheinander aus
+// hält das Senden von Anfrage und einer Gruppe auseinander. Ob ein
+// Schreibvorgang (ein Flush von Anfrage oder Gruppe) läuft, steht in
+// schreibEnde unter zustand: ungleich nil, solange er läuft, und geschlossen
+// für das Ende des Vorgangs; das Terminate von Schliesse hängt daran, nicht an
+// schreiben. Die Gruppen sendet ein eigener Sender nacheinander aus
 // warteschlange, unabhängig vom Lesen in Naechste; zustand schützt
-// warteschlange, senderLaeuft, geschlossen und sendefehler. weck weckt den
-// wartenden Sender nach einer eingereihten Gruppe, ende beendet ihn mit
-// Schliesse.
+// warteschlange, senderLaeuft, geschlossen, schreibEnde und sendefehler. weck
+// weckt den wartenden Sender nach einer eingereihten Gruppe, ende beendet ihn
+// mit Schliesse.
 type einspielSession struct {
 	conn      net.Conn
 	fe        *pgproto3.Frontend
@@ -185,6 +188,7 @@ type einspielSession struct {
 	ende          chan struct{}
 	geschlossen   bool
 	sendefehler   error
+	schreibEnde   chan struct{}
 }
 
 // neueEinspielSession ist die Session auf conn; sie liest aus r, das die
@@ -196,9 +200,34 @@ func neueEinspielSession(conn net.Conn, r io.Reader) *einspielSession {
 	}
 }
 
+// beginneSchreiben prüft „geschlossen“ und setzt „schreibt“ in einem Schritt;
+// es liefert falsch, wenn die Session schon geschlossen ist. Auf ein wahres
+// Ergebnis folgt endeSchreiben.
+func (s *einspielSession) beginneSchreiben() bool {
+	s.zustand.Lock()
+	defer s.zustand.Unlock()
+	if s.geschlossen {
+		return false
+	}
+	s.schreibEnde = make(chan struct{})
+	return true
+}
+
+// endeSchreiben beendet den Schreibvorgang und weckt ein wartendes Schliesse.
+func (s *einspielSession) endeSchreiben() {
+	s.zustand.Lock()
+	close(s.schreibEnde)
+	s.schreibEnde = nil
+	s.zustand.Unlock()
+}
+
 func (s *einspielSession) Anfrage(sql string) error {
 	s.schreiben.Lock()
 	defer s.schreiben.Unlock()
+	if !s.beginneSchreiben() {
+		return model.Errorf(model.CodeConnectionLost, nil, "Anfrage nach dem Schließen der Verbindung")
+	}
+	defer s.endeSchreiben()
 	s.fe.Send(&pgproto3.Query{String: sql})
 	if err := s.fe.Flush(); err != nil {
 		return model.Errorf(model.CodeConnectionLost, err, "Anfrage an den Server nicht zu senden")
@@ -271,16 +300,14 @@ func (s *einspielSession) sender() {
 func (s *einspielSession) sendeGruppe(gruppe []pgproto3.FrontendMessage) bool {
 	s.schreiben.Lock()
 	defer s.schreiben.Unlock()
-	s.zustand.Lock()
-	zu := s.geschlossen
-	s.zustand.Unlock()
-	if zu {
+	if !s.beginneSchreiben() {
 		return false
 	}
 	for _, m := range gruppe {
 		s.fe.Send(m)
 	}
 	err := s.fe.Flush()
+	s.endeSchreiben()
 	if err == nil {
 		return true
 	}
@@ -325,9 +352,11 @@ func (s *einspielSession) Naechste() (model.Response, error) {
 	}
 }
 
-// Schliesse beendet den Sender, sendet Terminate nur, wenn gerade nichts
-// sendet, und höchstens terminateFrist lang; danach schließt es die
-// Verbindung. Nach einem Schließen ist es ohne Wirkung.
+// Schliesse beendet den Sender, wartet auf das Ende eines laufenden
+// Schreibvorgangs und sendet danach Terminate; Warten und Schreiben teilen
+// sich die Gesamtfrist terminateFrist ab dem Aufruf. Reißt sie, bleibt
+// Terminate aus. Danach schließt es die Verbindung. Nach einem Schließen ist
+// es ohne Wirkung.
 func (s *einspielSession) Schliesse() {
 	s.schliesse(true)
 }
@@ -339,23 +368,47 @@ func (s *einspielSession) SchliesseOhneTerminate() {
 }
 
 // schliesse wirkt nur beim ersten Schließen der Session und sendet nur dort,
-// und nur mit terminate, ein Terminate.
+// und nur mit terminate, ein Terminate. „geschlossen“ setzt es im selben
+// Schritt, in dem es „schreibt“ liest; danach beginnt kein Schreibvorgang mehr.
 func (s *einspielSession) schliesse(terminate bool) {
+	frist := time.Now().Add(terminateFrist)
 	s.zustand.Lock()
 	erstes := !s.geschlossen
+	var schreibEnde chan struct{}
 	if erstes {
 		s.geschlossen = true
+		schreibEnde = s.schreibEnde
 		close(s.ende)
 	}
 	s.zustand.Unlock()
 	if !erstes {
 		return
 	}
-	if terminate && s.schreiben.TryLock() {
-		_ = s.conn.SetWriteDeadline(time.Now().Add(terminateFrist))
+	if terminate && wartePunktlich(schreibEnde, frist) {
+		_ = s.conn.SetWriteDeadline(frist)
 		s.fe.Send(&pgproto3.Terminate{})
 		_ = s.fe.Flush()
-		s.schreiben.Unlock()
 	}
 	_ = s.conn.Close()
+}
+
+// wartePunktlich wartet bis zum Ende von ende (nil: kein Warten) oder bis frist
+// und liefert wahr, wenn ende vor der Frist geschlossen war.
+func wartePunktlich(ende chan struct{}, frist time.Time) bool {
+	if ende == nil {
+		return true
+	}
+	select {
+	case <-ende:
+		return true
+	default:
+	}
+	t := time.NewTimer(time.Until(frist))
+	defer t.Stop()
+	select {
+	case <-ende:
+		return true
+	case <-t.C:
+		return false
+	}
 }
