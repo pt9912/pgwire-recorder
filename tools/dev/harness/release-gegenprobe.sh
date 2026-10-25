@@ -373,7 +373,11 @@ EOT
   cat > "$b/gp-layout" << 'EOT'
 #!/usr/bin/env bash
 # gp-layout <Variante> <Tar> — schreibt ein OCI-Layout als Tar und die Bytes des Index nach <Tar>.index
-v="$1"; out="$2"; d="$(mktemp -d)"; trap 'rm -rf "$d"' EXIT
+v="$1"; out="$2"
+# das Layout einer Variante ist in einer Welt immer dasselbe: das erste wird abgelegt, die weiteren sind Kopien
+cache="${0%/*}/../layout-cache"
+if [ -f "$cache/$v.tar" ] && [ -f "$cache/$v.index" ]; then cp "$cache/$v.tar" "$out"; cp "$cache/$v.index" "$out.index"; exit 0; fi
+d="$(mktemp -d)"; trap 'rm -rf "$d"' EXIT
 h() { printf '%s' "$1" | sha256sum | cut -d' ' -f1; }
 m() { printf '{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:%s","size":1,"platform":{"architecture":"%s","os":"linux"}}' "$(h "m-$1")" "$1"; }
 mv() { printf '{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:%s","size":1,"platform":{"architecture":"%s","os":"linux","variant":"%s"}}' "$(h "m-$1-$2")" "$1" "$2"; }
@@ -408,6 +412,7 @@ if [ "$v" = tar-abgeschnitten ]; then
 else
   tar -cf "$out" -C "$d" oci-layout index.json blobs
 fi
+mkdir -p "$cache" && cp "$out" "$cache/$v.tar" && cp "$out.index" "$cache/$v.index"
 EOT
   cat > "$b/docker" << 'EOT'
 #!/usr/bin/env bash
@@ -421,7 +426,7 @@ if [ "${1-}" = run ]; then
   a="$(jq -r '.manifests[0].platform.architecture // ""' "$ldir/index.json" 2> /dev/null)"
   { echo "== $a"; (cd "$ldir" 2> /dev/null && ls -A | tr '\n' ' '; echo); jq -c '.manifests' "$ldir/index.json" 2> /dev/null || echo; echo "$(cd "$ldir/blobs" 2> /dev/null && find . -type f -exec sha256sum {} + | sort | tr '\n' ' ')"; } >> "$GP_LOG/mount"
   modus() { local x w; for w in ${!1-}; do if [[ $w == "$a="* ]]; then x="${w#"$a="}"; break; fi; done; echo "${x:-$2}"; }
-  u() { date -u -d "@$(( $(date +%s) - $1 ))" +%Y-%m-%dT%H:%M:%S.123456789Z; }
+  u() { local t=$(( EPOCHSECONDS - $1 )); TZ=UTC printf '%(%Y-%m-%dT%H:%M:%S.123456789Z)T' "$t"; }
   [ -n "$cache" ] || cache=/nonexistent/cache
   mkdir -p "$cache/db" 2> /dev/null
   case "$(modus GP_DB frisch)" in
@@ -622,7 +627,7 @@ handbuch() {
   } > "$f"
 }
 # kopie — der Baum des Falls: repo/ (Kopie der Welt), log/, runner/, tmp/.
-kopie() { w="$run/t.$fallname"; [ ! -e "$w" ] || rm -rf "$w"; mkdir -p "$w/log" "$w/runner" "$w/tmp" "$w/registry"; cp -a "$run/welt/quelle" "$w/repo"; }
+kopie() { w="$run/t.w"; [ ! -e "$w" ] || rm -rf "$w"; mkdir -p "$w/log" "$w/runner" "$w/tmp" "$w/registry"; cp -a "$run/welt/quelle" "$w/repo"; }
 # fix [Version [Handbuch-Modus]] — setzt V, legt den Baum an, schreibt VERSION und das Handbuch.
 PGIMG='postgres:test@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 fix() {
@@ -940,9 +945,23 @@ REG() { echo "$w/registry/$1"; }
 # rotgrund <Schritt> [Text] — Exit 1 und eine Meldung `release: <Schritt>: ROT`, die den Text nennt.
 rotgrund() { sei "Exit 1" test "$code" -eq 1; sei "ROT in $1" enthaelt "$err" "release: $1: ROT"; if [ -n "${2-}" ]; then sei "Meldung nennt: $2" enthaelt "$err" "$2"; fi; }
 # ibild [Version] — Baum und Lauf bis image, setzt D; bild — dazu der Scan.
-ibild() { fix "${1:-0.1.0}"; umg lauf; bis eingaben binaries image; D="$(cat "$(IMG)/digest")"; }
-bild() { ibild "$@"; bis scan; }
-bis_vergl() { bild "$@"; bis veroeffentlichen vergleichen; }
+# Stände je Mutation: Der Aufbau eines Falls (Schritte bis image, scan, vergleichen) läuft beim ersten Fall der Mutation und wird, wenn er grün war, unter $run/snap abgelegt; jeder weitere Fall bekommt ihn
+# am selben Pfad ($run/t.w) wieder. War der Aufbau rot, legt der Fall nichts ab, und jeder Fall fährt ihn selbst (und ist rot, wie zuvor).
+snap_hole() { [ -d "$run/snap/$1" ] || return 1; w="$run/t.w"; [ ! -e "$w" ] || rm -rf "$w"; cp -a "$run/snap/$1" "$w"; }
+snap_sichere() { [ "$bad" -eq 0 ] || return 0; mkdir -p "$run/snap"; [ -d "$run/snap/$1" ] || cp -a "$w" "$run/snap/$1"; }
+ibild() {
+  local v="${1:-0.1.0}"
+  if snap_hole "i-$v"; then V="$v"; umg lauf; else fix "$v"; umg lauf; bis eingaben binaries image; snap_sichere "i-$v"; fi
+  D="$(cat "$(IMG)/digest")"
+}
+bild() {
+  local v="${1:-0.1.0}"
+  if snap_hole "b-$v"; then V="$v"; umg lauf; D="$(cat "$(IMG)/digest")"; else ibild "$@"; bis scan; snap_sichere "b-$v"; fi
+}
+bis_vergl() {
+  local v="${1:-0.1.0}"
+  if snap_hole "v-$v"; then V="$v"; umg lauf; D="$(cat "$(IMG)/digest")"; else bild "$@"; bis veroeffentlichen vergleichen; snap_sichere "v-$v"; fi
+}
 # tamper <Registry> — ändert die Bytes des Tags, ohne den Index zu ändern (Leerzeichen am Ende).
 tamper() { printf ' ' >> "$(REG "$1")/0.1.0"; }
 # verben — die Anmeldungen und Kopien in der Reihenfolge des Aufrufs, `login <Registry>` und `copy <Registry>`.
@@ -2016,7 +2035,7 @@ faelle() {
     fallname="$n"
     declare -F "f_${n//-/_}" > /dev/null || { echo "$n"; continue; }
     ( bad=0; "f_${n//-/_}"; exit "$bad" ) > /dev/null 2>> "$run/stderr" || echo "$n"
-    for d in "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume_ordner "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; break; fi; done # P14fall-ordner
+    for d in "$run/t.$n" "$run/t.$n".* "$run/t.w" "$run/t.w".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume_ordner "$run/t.$n" "$run/t.$n".* "$run/t.w" "$run/t.w".* "$run"/tmp.*; break; fi; done # P14fall-ordner
   done
 }
 protokoll_zeigen() { [ -z "${GP_FALL-}" ] || [ ! -f "$run/log.$GP_FALL" ] || cat "$run/log.$GP_FALL" >&2; }
@@ -2811,7 +2830,7 @@ mut13g m-p14-budget-last-nie-gelesen "p14-budget-ueber p14-budget-unter p14-budg
 mut13g m-p14-budget-gruende-vertauscht "p14-budget-gruende" $'cat "$arbeit/fehler" >&2; '$'fehler=1; fi\nif [ "$(wc -l' $'fehler=1; fi\n'$'if [ "$(wc -l' gp14 $'  echo "$GPN: ROT — Zeitbudg'$'et: $T s über $budget s" >&2' $'  echo "$GPN: ROT — Zeitbudget: $T s über'$' $budget s" >&2; cat "$arbeit/fehler" >&2'
 mut13g m-p14-ordner-mutation-bleibt "p14-ordner-mutation p14-ordner-rote-mutation" $'  raeume_ordner "$run"'$' # P14mutation-ordner\n' $'' gp14
 mut13g m-p14-ordner-nur-gruene-mutation "p14-ordner-rote-mutation" $'  raeume_ordner "$run'$'" # P14mutation-ordner' $'  [ "$ist" != "$erwartet" ] || raeume_ordner "$run"' gp14
-mut13g m-p14-ordner-fall-bleibt "p14-ordner-fall" $'for d in "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume'$'_ordner "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; break; fi; done # P14fall-ordner' $':' gp14
+mut13g m-p14-ordner-fall-bleibt "p14-ordner-fall" $'for d in "$run/t.$n" "$run/t.$n".* "$run/t.w" "$run/t.w".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume'$'_ordner "$run/t.$n" "$run/t.$n".* "$run/t.w" "$run/t.w".* "$run"/tmp.*; break; fi; done # P14fall-ordner' ':' gp14
 mut13g m-p14-fall-protokoll-nach-entfernen "p14-fall-protokoll" $'    protokoll_zeigen # P14protokoll\n    stderr_zeigen'$' # P14stderr\n    raeume_ordner "$run" # P14ok-ordner\n' $'    stderr_zeigen\n    raeume_ordner "$run"\n    protokoll_zeigen\n' gp14
 mut13g m-p14-fall-stderr-nach-entfernen "p14-fall-stderr" $'    protokoll_zeigen # P14protokoll\n    stderr_zeigen'$' # P14stderr\n    raeume_ordner "$run" # P14ok-ordner\n' $'    protokoll_zeigen\n    raeume_ordner "$run"\n    stderr_zeigen\n' gp14
 mut13g m-p14-budget-sigint-zeile "p14-budget-sigint" $'\nabbruch_int() { trap - EXIT INT TERM;'$' beende_kinder; raeume_auf; exit 130; }' $'\nabbruch_int() { trap - EXIT INT TERM; beende_kinder; ra'$'eume_auf; echo "$GPN: Zeit 0 s, Last 0" >&2; exit 130; }' gp14s
