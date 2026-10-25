@@ -62,7 +62,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben (kein Zähler wird gesetzt); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen (Lage-Prüfung nach dem Move steht aus, §7).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen (Lage-Prüfung nach dem Move in §7).
 
 ## 3. Plan (vor Code)
 
@@ -202,7 +202,7 @@ Die Closure-Notiz (Lerneintrag, Risiko-Ausgänge, Register) schreibt der Planner
 
 **Beleg `make gates`:** am Endstand nach r2 Exit 0 (oben, Code-Stand `0321dd35`); die Commits der Closure ändern nur Plan, Register und eine Zeile von `implement-slice.md`, keine Gates gefahren (Auftrag: Integration macht der Koordinator).
 
-**Drei Paarungen.** Anker: der Satz in `.claude/commands/implement-slice.md` Schritt 16 (`liegt in`, Anker `seit slice-play-zweites-signal-terminate-wettlauf`). Folge-Slice: keiner genannt, keiner nötig; V-2 ist vom Architect ohne Folge-Slice entschieden (74c9e39a). Register: die Pfade oben liegen in `observations/BEO-REPO/` und führen je ein nicht leeres `evidence/`. Die Lage-Prüfung nach dem Move (Modul 6) steht aus.
+**Drei Paarungen.** Anker: der Satz in `.claude/commands/implement-slice.md` Schritt 16 (`liegt in`, Anker `seit slice-play-zweites-signal-terminate-wettlauf`). Folge-Slice: keiner genannt, keiner nötig; V-2 ist vom Architect ohne Folge-Slice entschieden (74c9e39a). Register: die Pfade oben liegen in `observations/BEO-REPO/` und führen je ein nicht leeres `evidence/`. Lage-Prüfung nach dem Move (Modul 6, 2026-10-25): Anker liegt in `implement-slice.md` Schritt 16 (`grep` nach der Kennung findet ihn); kein Folge-Slice genannt, keiner zu prüfen; die sechs Register-Pfade führen je eine Evidence-Datei mit der Kennung dieses Slice. Kein Verweis zeigt mehr auf `in-progress/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
