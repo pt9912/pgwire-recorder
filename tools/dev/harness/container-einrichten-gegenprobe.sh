@@ -47,7 +47,7 @@ quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../../.." && pwd -P)}
 # jedem Fall mit Exit 2 (Reihenfolge der Gründe (a)).
 budget=
 if [ -n "${GP_BUDGET+x}" ]; then
-  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
+  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
   budget=$GP_BUDGET
 elif [ -z "${GP_MUT-}" ]; then
   budget=1200
@@ -548,9 +548,14 @@ fall p17-budget-ueber 'gp_kind "^m-p2-vorgabe-remote$" "s|^fehlt=0$|sleep 2; feh
 fall p17-budget-unter 'gp_kind "^m-p2-vorgabe-remote$" -- GP_BUDGET=3600
   { [ "$kcode" = 0 ] && grep -qE "^$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last [0-9]+[.][0-9]+$" "$w/kerr" \
     && ! grep -q "ROT — Zeitbudget" "$w/kerr"; } || rot'
+for z in 999999 10; do
+  fall "p17-budget-zulaessig-$z" "gp_kind '^m-p2-vorgabe-remote\$' -- GP_BUDGET=$z
+    { [ \"\$kcode\" = 0 ] && grep -qE \"^\$GPN: Zeit [0-9]+ s von höchstens $z s, Last [0-9]+[.][0-9]+\$\" \"\$w/kerr\" \
+      && ! grep -q \"ROT — Zeitbudget\" \"\$w/kerr\"; } || rot"
+done
 fall p17-budget-null 'gp_kind "^m-p2-vorgabe-remote$" "s|^fehlt=0$|sleep 2; fehlt=0|" -- GP_BUDGET=0
   { [ "$kcode" = 0 ] && ! grep -q "ROT — Zeitbudget" "$w/kerr" && grep -qE "^$GPN: Zeit [0-9]+ s von höchstens 0 s, Last [0-9]+[.][0-9]+$" "$w/kerr"; } || rot'
-for p in leer: minus:-1 bruch:1.5 abc:abc; do
+for p in leer: minus:-1 bruch:1.5 abc:abc 08:08 09:09 00:00 007:007 sieben-stellen:1000000 zwanzig-stellen:99999999999999999999; do
   fall "p17-budget-ungueltig-${p%%:*}" "gp_kind '^m-p2-vorgabe-remote\$' -- GP_BUDGET=${p#*:}
     { [ \"\$kcode\" = 2 ] && grep -qx \"\$GPN: GP_BUDGET: keine ganze Zahl\" \"\$w/kerr\" && [ \$(wc -l < \"\$w/kerr\") = 1 ] \
       && [ -z \"\$(ls -A \"\$kw\")\" ]; } || rot"
@@ -894,16 +899,21 @@ mut m-p17-gate-ziel m "$A17" '.PHONY: container-einrichten' 'GATE_CHECKS += cont
 mut m-p17-ausnahme k "$A17" 'GATE_SCHNELL_AUSNAHME := test-container test-integration test-postgres-versionen' 'GATE_SCHNELL_AUSNAHME := test-container test-integration test-postgres-versionen container-einrichten-gegenprobe' p17-keine-ausnahme
 mut m-p17-budget-pruefung p "$A17B" '  if [ -n "$budget" ] && [ "$budget" != 0 ] && (( T > budget )); then' '  if false; then' p17-budget-ueber p17-budget-gruende
 mut m-p17-budget-null p "$A17B" '[ "$budget" != 0 ] && ' '' p17-budget-null
-mut m-p17-budget-zeile p "$A17B" '    echo "$GPN: Zeit $T s von höchstens $budget s, Last $last" >&2' '    :' p17-budget-unter p17-budget-null p17-budget-last-fehlt p17-budget-gruende
+mut m-p17-budget-zeile p "$A17B" '    echo "$GPN: Zeit $T s von höchstens $budget s, Last $last" >&2' '    :' p17-budget-unter p17-budget-null p17-budget-last-fehlt p17-budget-gruende p17-budget-zulaessig-10 p17-budget-zulaessig-999999
 mut m-p17-budget-ohne-mut p "$A17B" 'elif [ -z "${GP_MUT-}" ]; then
   budget=1200' 'elif true; then
   budget=1200' p17-budget-vorgabe-nur-ohne-mut
-mut m-p17-budget-last p "$A17B" 'read -r last _ < "$LOADAVG"' 'last=0' p17-budget-unter p17-budget-null p17-budget-vorgabe-nur-ohne-mut
-mut m-p17-budget-last-fehlt p "$A17B" '[ ! -r "$LOADAVG" ] ||' '[ -r "$LOADAVG" ] ||' p17-budget-unter p17-budget-null p17-budget-vorgabe-nur-ohne-mut
-mut m-p17-budget-ungueltig p "$A17B" '  [[ $GP_BUDGET =~ ^[0-9]+$ ]] ||' '  [[ $GP_BUDGET =~ ^[0-9.-]*$ ]] ||' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch
+mut m-p17-budget-last p "$A17B" 'read -r last _ < "$LOADAVG"' 'last=0' p17-budget-unter p17-budget-null p17-budget-vorgabe-nur-ohne-mut p17-budget-zulaessig-10 p17-budget-zulaessig-999999
+mut m-p17-budget-last-fehlt p "$A17B" '[ ! -r "$LOADAVG" ] ||' '[ -r "$LOADAVG" ] ||' p17-budget-unter p17-budget-null p17-budget-vorgabe-nur-ohne-mut p17-budget-zulaessig-10 p17-budget-zulaessig-999999
+mut m-p17-budget-ungueltig p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^[0-9.-]*$ ]] ||' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch p17-budget-ungueltig-08 p17-budget-ungueltig-09 p17-budget-ungueltig-00 p17-budget-ungueltig-007 p17-budget-ungueltig-sieben-stellen p17-budget-ungueltig-zwanzig-stellen
+mut m-p17-budget-fuehrende-null-erlaubt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^[0-9]{1,6}$ ]] ||' p17-budget-ungueltig-08 p17-budget-ungueltig-09 p17-budget-ungueltig-00 p17-budget-ungueltig-007
+mut m-p17-budget-stellen-unbegrenzt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]*)$ ]] ||' p17-budget-ungueltig-sieben-stellen p17-budget-ungueltig-zwanzig-stellen
+mut m-p17-budget-null-abgelehnt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^[1-9][0-9]{0,5}$ ]] ||' p17-budget-null
+mut m-p17-budget-sechs-stellen-abgelehnt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,4})$ ]] ||' p17-budget-zulaessig-999999
+mut m-p17-budget-zehn-abgelehnt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^(0|[1-9]|[1-9][0-9]{2,5})$ ]] ||' p17-budget-zulaessig-10
 mut m-p17-budget-vor-faellen p "$A17B" 'if [ -n "${GP_BUDGET+x}" ]; then
-  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }' 'if [ -n "${GP_BUDGET+x}" ]; then
-  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { nachher=1; }' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch p17-budget-ungueltig-abc
+  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }' 'if [ -n "${GP_BUDGET+x}" ]; then
+  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { nachher=1; }' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch p17-budget-ungueltig-abc p17-budget-ungueltig-08 p17-budget-ungueltig-09 p17-budget-ungueltig-00 p17-budget-ungueltig-007 p17-budget-ungueltig-sieben-stellen p17-budget-ungueltig-zwanzig-stellen
 mut m-p17-signal-int p "$A17O" "trap 'exit 130' INT" ':' p17-budget-sigint
 mut m-p17-signal-term p "$A17O" "trap 'exit 143' TERM" ':'
 mut m-p17-ordner-ende p "$A17O" 'raeumen() { [ ! -d "$arbeit" ] || rm -rf -- "$arbeit"; return 0; }' 'raeumen() { return 0; }' p17-budget-sigint p17-budget-sigterm

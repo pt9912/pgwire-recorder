@@ -31,10 +31,10 @@ set -euo pipefail
 T0=$SECONDS
 GPN=container-gegenprobe
 LOADAVG=/proc/loadavg
-# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 1200 s, und nur bei einem Lauf ohne GP_MUT.
+# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden (zulässig: 0 oder eine Dezimalzahl ohne führende Null mit höchstens sechs Stellen; `08` und `09` sind in der Arithmetik von bash oktal); ohne die Variable gilt 1200 s, und nur bei einem Lauf ohne GP_MUT.
 budget=
 if [ -n "${GP_BUDGET+x}" ]; then
-  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
+  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
   budget=$GP_BUDGET
 elif [ -z "${GP_MUT-}" ]; then
   budget=1200
@@ -619,9 +619,11 @@ pruefe() {
     ist p12-budget-ueber 'ZE=("$Z_SPAET" "$Z_SPAET2"); zk GP_BUDGET=1 GP_MUT="$CHEAP"; [ "$kcode" = 1 ] && kzeile "$GPN: ROT — Zeitbudget: [0-9]+ s über 1 s" && kzeile "$GPN: Zeit [0-9]+ s von höchstens 1 s, Last [0-9]+[.][0-9]+"'
     ist p12-budget-unter 'ZE=(); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
     ist p12-budget-null 'ZE=("$Z_SPAET" "$Z_SPAET2"); zk GP_BUDGET=0 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && ! grep -q Zeitbudget "$ZD/kerr" && kzeile "$GPN: Zeit [0-9]+ s von höchstens 0 s, Last [0-9]+[.][0-9]+"'
-    for b in 'leer:' 'minus:-1' 'bruch:1.5' 'abc:abc'; do
+    for b in 'leer:' 'minus:-1' 'bruch:1.5' 'abc:abc' '08:08' '09:09' '00:00' '007:007' 'sieben-stellen:1000000' 'zwanzig-stellen:99999999999999999999'; do
       ist "p12-budget-ungueltig-${b%%:*}" "ZE=(); zk 'GP_BUDGET=${b#*:}' GP_MUT=\"\$CHEAP\"; [ \"\$kcode\" = 2 ] && [ \"\$(cat \"\$ZD/kerr\")\" = \"\$GPN: GP_BUDGET: keine ganze Zahl\" ] && [ ! -s \"\$ZD/kout\" ]"
     done
+    ist p12-budget-zulaessig-999999 'ZE=(); zk GP_BUDGET=999999 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 999999 s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
+    ist p12-budget-zulaessig-10 'ZE=(); zk GP_BUDGET=10 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 10 s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
     ist p12-budget-vorgabe-nur-ohne-mut 'ZE=(); zk GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
     ist p12-budget-entdecke-vorgabe-gilt 'ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 1200 s, Last [0-9]+[.][0-9]+"'
     ist p12-budget-last-fehlt 'ZE=("$Z_LAST" "LOADAVG=/proc/nirgends-loadavg"); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last -"'
@@ -938,7 +940,13 @@ mutg() {
   inhalt="$(cat "$GP_SELF_DATEI"; printf x)"; inhalt="${inhalt%x}"
   if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; return 0; fi
   if [[ ${inhalt/"$alt"/$'\001'} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; return 0; fi
-  printf '%s' "${inhalt/"$alt"/"$neu"}" > "$arbeit/$name.sh"
+  neu="${inhalt/"$alt"/"$neu"}"
+  if [ -n "${ALT2-}" ]; then
+    if [[ $neu != *"$ALT2"* ]]; then melde "Mutation '$name': zweite Textstelle nicht gefunden: $ALT2"; return 0; fi
+    if [[ ${neu/"$ALT2"/$'\001'} == *"$ALT2"* ]]; then melde "Mutation '$name': zweite Textstelle nicht eindeutig: $ALT2"; return 0; fi
+    neu="${neu/"$ALT2"/"$NEU2"}"
+  fi
+  printf '%s' "$neu" > "$arbeit/$name.sh"
   SKRIPT="$arbeit/$name.sh"
   ist="$(pruefe "$w" | sort -u | tr '\n' ' ')"
   SKRIPT="$GP_SELF_DATEI"
@@ -953,11 +961,17 @@ mutg m-p12-budget-zeile-mit-obergrenze $'  echo "$GPN: Zeit $T s von höch'$'ste
 mutg m-p12-budget-zeile-ohne-obergrenze $'  echo "$GPN: Zeit $'$'T s, Last $last" >&2' $'  :' p12-budget-vorgabe-nur-ohne-mut
 mutg m-p12-budget-vorgabe-trotz-mut $'elif [ -z "${GP'$'_MUT-}" ]; then' $'elif true; then' p12-budget-vorgabe-nur-ohne-mut
 mutg m-p12-budget-vorgabe-nicht-bei-entdecke $'elif [ -z "${GP'$'_MUT-}" ]; then' $'elif [ -z "${GP_MUT-}" ] && [ -z "${GP_ENTDECKE-}" ]; then' p12-budget-entdecke-vorgabe-gilt
-mutg m-p12-budget-ungueltig-leer-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]*$ ]]' p12-budget-ungueltig-leer
-mutg m-p12-budget-ungueltig-minus-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^-?[0-9]+$ ]]' p12-budget-ungueltig-minus
-mutg m-p12-budget-ungueltig-bruch-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]+([.][0-9]+)?$ ]]' p12-budget-ungueltig-bruch
-mutg m-p12-budget-ungueltig-buchstaben-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9a-z]+$ ]]' p12-budget-ungueltig-abc
-mutg m-p12-budget-ungueltig-ohne-exit $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' p12-budget-ungueltig-leer p12-budget-ungueltig-minus p12-budget-ungueltig-bruch p12-budget-ungueltig-abc
+mutg m-p12-budget-ungueltig-leer-erlaubt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})?$ ]]' p12-budget-ungueltig-leer
+mutg m-p12-budget-ungueltig-minus-erlaubt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^-?(0|[1-9][0-9]{0,5})$ ]]' p12-budget-ungueltig-minus
+mutg m-p12-budget-ungueltig-bruch-erlaubt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})([.][0-9]+)?$ ]]' p12-budget-ungueltig-bruch
+mutg m-p12-budget-ungueltig-buchstaben-erlaubt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5}|abc)$ ]]' p12-budget-ungueltig-abc
+mutg m-p12-budget-fuehrende-null-erlaubt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]{1,6}$ ]]' p12-budget-ungueltig-08 p12-budget-ungueltig-09 p12-budget-ungueltig-00 p12-budget-ungueltig-007
+mutg m-p12-budget-stellen-unbegrenzt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]*)$ ]]' p12-budget-ungueltig-sieben-stellen p12-budget-ungueltig-zwanzig-stellen
+mutg m-p12-budget-null-abgelehnt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^[1-9][0-9]{0,5}$ ]]' p12-budget-null
+mutg m-p12-budget-sechs-stellen-abgelehnt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,4})$ ]]' p12-budget-zulaessig-999999
+mutg m-p12-budget-zehn-abgelehnt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9]|[1-9][0-9]{2,5})$ ]]' p12-budget-zulaessig-10
+mutg m-p12-budget-ungueltig-ohne-exit $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' p12-budget-ungueltig-leer p12-budget-ungueltig-minus p12-budget-ungueltig-bruch p12-budget-ungueltig-abc p12-budget-ungueltig-08 p12-budget-ungueltig-09 p12-budget-ungueltig-00 p12-budget-ungueltig-007 p12-budget-ungueltig-sieben-stellen p12-budget-ungueltig-zwanzig-stellen
+ALT2=$'  echo "$GPN: ROT — Zeitbudg'$'et: $T s über $budget s" >&2' NEU2=$'  echo "$GPN: ROT — Zeitbudget: $T s über $budget s" >'$'&2; [ ! -s "$arbeit/spaet" ] || cat "$arbeit/spaet" >&2' mutg m-p12-budget-gruende-vertauscht $'melde() { echo "container-gegenp'$'robe: ROT — $*" >&2; fehler=1; }' $'melde() { echo "container-gegenprobe: R'$'OT — $*" >> "$arbeit/spaet"; fehler=1; }' p12-budget-gruende
 mutg m-p12-budget-last-null $'read -r last '$'_ < "$LOADAVG"' $'last=0' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt
 mutg m-p12-budget-last-nie-gelesen $'[ ! -r "$LOAD'$'AVG" ] || read' $'[ -r "$LOADAVG" ] || read' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt
 mutg m-p12-ordner-baum-bleibt $'  rm -rf "${w:?}"'$' # P12baum-ordner\n' $'' p12-ordner-mutation

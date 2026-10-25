@@ -25,10 +25,10 @@ set -uo pipefail
 T0=$SECONDS
 GPN=release-gegenprobe
 LOADAVG=/proc/loadavg
-# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 1200 s, und nur bei einem Lauf ohne GP_MUT und ohne GP_FALL.
+# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden (zulässig: 0 oder eine Dezimalzahl ohne führende Null mit höchstens sechs Stellen; `08` und `09` sind in der Arithmetik von bash oktal); ohne die Variable gilt 1200 s, und nur bei einem Lauf ohne GP_MUT und ohne GP_FALL.
 budget=
 if [ -n "${GP_BUDGET+x}" ]; then
-  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
+  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
   budget=$GP_BUDGET
 elif [ -z "${GP_MUT-}" ] && [ -z "${GP_FALL-}" ]; then
   budget=1200
@@ -946,7 +946,7 @@ REG() { echo "$w/registry/$1"; }
 rotgrund() { sei "Exit 1" test "$code" -eq 1; sei "ROT in $1" enthaelt "$err" "release: $1: ROT"; if [ -n "${2-}" ]; then sei "Meldung nennt: $2" enthaelt "$err" "$2"; fi; }
 # ibild [Version] — Baum und Lauf bis image, setzt D; bild — dazu der Scan.
 # Stände je Mutation: Der Aufbau eines Falls (Schritte bis image, scan, vergleichen) läuft beim ersten Fall der Mutation und wird, wenn er grün war, unter $run/snap abgelegt; jeder weitere Fall bekommt ihn
-# am selben Pfad ($run/t.w) wieder. War der Aufbau rot, legt der Fall nichts ab, und jeder Fall fährt ihn selbst (und ist rot, wie zuvor).
+# am selben Pfad ($run/t.w) wieder. War der Aufbau rot, legt der Fall nichts ab, und jeder Fall fährt ihn selbst und ist rot, wenn er rot ist.
 snap_hole() { [ -d "$run/snap/$1" ] || return 1; w="$run/t.w"; [ ! -e "$w" ] || rm -rf "$w"; cp -a "$run/snap/$1" "$w"; }
 snap_sichere() { [ "$bad" -eq 0 ] || return 0; mkdir -p "$run/snap"; [ -d "$run/snap/$1" ] || cp -a "$w" "$run/snap/$1"; }
 ibild() {
@@ -1453,17 +1453,20 @@ reste_da() { [ -n "$(ls -A "$t" 2> /dev/null)" ] || pgrep -f -- "$t" > /dev/null
 # warte_auf_reste — bis zu 8 s auf ein Verzeichnis oder einen Prozess, den ein nicht beendeter Nachkomme hinterlässt.
 warte_auf_reste() { local i; for i in $(seq 1 80); do if reste_da; then return 0; fi; sleep 0.1; done; return 0; }
 # abbruchfall <Signal> <Exit> — fährt $skript13 mit eigenem TMPDIR in eigener Sitzung, sendet das Signal, sobald dort ein Fall läuft, und prüft danach Exit, leeren TMPDIR
-# und Prozesse mit dem Temp-Pfad in der Befehlszeile.
+# und Prozesse mit dem Temp-Pfad in der Befehlszeile. Die Nachkommen der Kopie sind die Prozesse ihrer Sitzung zur Zeit des Signals; lebt nach dem Ende der Kopie noch einer davon (Prozess `kill -0`), ist
+# der Fall rot, gleich ob er den Ordner neu anlegt oder nicht (Bestand der Kopie: `beende_kinder`).
 abbruchfall() {
-  local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste modus="${3-}"
+  local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste modus="${3-}" lebende="" k i ueberlebt=""
   mkdir -p "$run"
   t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1
   ( trap - INT TERM; exec env --default-signal=INT,TERM -u GP_MUT -u GP_ENTDECKE -u GP_FALL TMPDIR="$t" GP_PARALLEL=2 GP_INNEN=1 setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$t.pid" "$skript13" > "$t.out" 2> "$t.err" ) &
   bg=$!
   warte_auf fall_laeuft || ok=0
   pid="$(cat "$t.pid" 2> /dev/null || echo 0)"
-  if [ "$pid" -gt 1 ]; then kill -s "$sig" "$pid" 2> /dev/null; else ok=0; fi
+  if [ "$pid" -gt 1 ]; then lebende="$(pgrep -s "$pid" 2> /dev/null | tr '\n' ' ')"; kill -s "$sig" "$pid" 2> /dev/null; else ok=0; fi
   wait "$bg" || rc=$?
+  if [ "$pid" -gt 1 ]; then for i in $(seq 1 100); do kill -0 "$pid" 2> /dev/null || break; sleep 0.1; done; fi
+  for k in $lebende; do if [ "$k" != "$pid" ] && kill -0 "$k" 2> /dev/null; then ueberlebt+="$k "; fi; done
   warte_auf_reste
   if [ "$modus" = zeit ]; then
     # SPEC-060 Punkt 16 (2): bei Abbruch durch ein Signal steht keine Zeile mit der Zeit auf stderr.
@@ -1472,9 +1475,10 @@ abbruchfall() {
     [ "$rc" -eq "$soll" ] || ok=0
     reste="$(ls -A "$t" 2> /dev/null)"
     ! reste_da || ok=0
+    [ -z "$ueberlebt" ] || ok=0
   fi
   if [ "$ok" -eq 0 ]; then
-    printf 'erwartet: Exit %s, TMPDIR leer, kein Prozess mit dem Pfad, keine Zeile Zeit\ngelesen: Exit %s, TMPDIR: %s\nstderr:\n%s\n' "$soll" "$rc" "${reste-}" "$(cat "$t.err" 2> /dev/null)" >> "$run/log.$fallname"
+    printf 'erwartet: Exit %s, TMPDIR leer, kein Prozess mit dem Pfad, kein überlebender Nachkomme, keine Zeile Zeit\ngelesen: Exit %s, TMPDIR: %s, überlebende Prozesse: %s\nstderr:\n%s\n' "$soll" "$rc" "${reste-}" "${ueberlebt-}" "$(cat "$t.err" 2> /dev/null)" >> "$run/log.$fallname"
     bad=1
   fi
   if [ "$pid" -gt 1 ]; then kill -s KILL -- "-$pid" 2> /dev/null || true; fi
@@ -1556,6 +1560,15 @@ f_p14_budget_ungueltig_leer() { budget_ungueltig ''; }
 f_p14_budget_ungueltig_minus() { budget_ungueltig '-1'; }
 f_p14_budget_ungueltig_bruch() { budget_ungueltig '1.5'; }
 f_p14_budget_ungueltig_abc() { budget_ungueltig 'abc'; }
+f_p14_budget_ungueltig_08() { budget_ungueltig '08'; }
+f_p14_budget_ungueltig_09() { budget_ungueltig '09'; }
+f_p14_budget_ungueltig_00() { budget_ungueltig '00'; }
+f_p14_budget_ungueltig_007() { budget_ungueltig '007'; }
+f_p14_budget_ungueltig_sieben_stellen() { budget_ungueltig '1000000'; }
+f_p14_budget_ungueltig_zwanzig_stellen() { budget_ungueltig '99999999999999999999'; }
+budget_zulaessig() { ZE=(); zk "GP_BUDGET=$1" GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit" zeile "$GPN: Zeit [0-9]+ s von höchstens $1 s, Last [0-9]+[.][0-9]+"; sei "kein ROT" ohne "$kerr" "Zeitbudget"; }
+f_p14_budget_zulaessig_999999() { budget_zulaessig 999999; }
+f_p14_budget_zulaessig_10() { budget_zulaessig 10; }
 f_p14_budget_vorgabe_nur_ohne_mut() { ZE=(); zk GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit ohne Obergrenze" zeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+"; sei "kein ROT" ohne "$kerr" "Zeitbudget"; }
 f_p14_budget_entdecke_vorgabe_gilt() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit mit Obergrenze 1200" zeile "$GPN: Zeit [0-9]+ s von höchstens 1200 s, Last [0-9]+[.][0-9]+"; }
 f_p14_budget_fall_keine_vorgabe() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_FALL=p1-gleich; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit ohne Obergrenze" zeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+"; }
@@ -2018,7 +2031,7 @@ FAELLE_F=(p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p1
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
 FAELLE_H=(p19-summen-weitere-namen-ignoriert p19-kein-zustand p19-nur-lesen p19-summen-name-genau p19-tap-gleich-andere-summe p19-tap-andere-dateien-bleiben p19-ohne-push p19-ref-kein-tag p19-tag-form p19-vorabversion p19-gh-token-fehlt p19-gh-token-leer p19-tap-token-fehlt p19-tap-token-leer p19-reihenfolge-gruende-a-b p19-reihenfolge-gruende-b-c p19-reihenfolge-gruende-c-d p19-reihenfolge-gruende-d-e p19-ohne-runner-temp p19-summen-aufruf p19-summen-laden-scheitert p19-summen-doppelt p19-summen-altes-schema p19-summen-form-zu-kurz p19-summen-form-zu-lang p19-summen-form-grossbuchstaben p19-summen-form-kein-hex p19-summen-windows-ignoriert p19-summen-vor-tap p19-formel-text p19-formel-version p19-formel-kein-windows p19-formel-kein-platzhalter p19-vorlage-text p19-vorlage-fehlt p19-vorlage-leer p19-vorlage-verzeichnis p19-vorlage-nach-summen p19-vorlage-vor-tap p19-tap-leer p19-tap-leer-head-anders p19-tap-nicht-leer p19-tap-ohne-formula-verzeichnis p19-tap-formula-vorhanden p19-tap-zweig-anders p19-tap-pfad-datei p19-tap-pfad-formula-symlink p19-tap-pfad-formel-verzeichnis p19-tap-pfad-formel-symlink p19-tap-formel-ohne-version p19-tap-formel-zwei-versionen p19-tap-formel-vorabversion p19-tap-niedriger p19-tap-gleich-aktuell p19-tap-gleich-andere-vorlage p19-tap-hoeher p19-tap-semver-numerisch p19-klon-scheitert p19-commit-identitaet p19-commit-nachricht p19-push-ohne-force p19-push-ohne-lease p19-push-abgewiesen p19-tap-url-vorgabe p19-token-askpass-benutzer p19-token-askpass-passwort p19-token-askpass-gesetzt p19-kein-prompt p19-credential-helper-leer p19-token-nicht-im-argument p19-token-nicht-in-url-und-config p19-token-nicht-im-log p19-sigint p19-sigterm p19-summen-fehlt-darwin-amd64 p19-formel-url-darwin-amd64 p19-formel-summe-darwin-amd64 p19-summen-fehlt-darwin-arm64 p19-formel-url-darwin-arm64 p19-formel-summe-darwin-arm64 p19-summen-fehlt-linux-amd64 p19-formel-url-linux-amd64 p19-formel-summe-linux-amd64 p19-summen-fehlt-linux-arm64 p19-formel-url-linux-arm64 p19-formel-summe-linux-arm64 p19-ende)
 FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende p16-werkzeug-jq p16-werkzeug-date)
-FAELLE_GP14=(p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-ungueltig-leer p14-budget-ungueltig-minus p14-budget-ungueltig-bruch p14-budget-ungueltig-abc p14-budget-vorgabe-nur-ohne-mut
+FAELLE_GP14=(p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-ungueltig-leer p14-budget-ungueltig-minus p14-budget-ungueltig-bruch p14-budget-ungueltig-abc p14-budget-ungueltig-08 p14-budget-ungueltig-09 p14-budget-ungueltig-00 p14-budget-ungueltig-007 p14-budget-ungueltig-sieben-stellen p14-budget-ungueltig-zwanzig-stellen p14-budget-zulaessig-999999 p14-budget-zulaessig-10 p14-budget-vorgabe-nur-ohne-mut
   p14-budget-entdecke-vorgabe-gilt p14-budget-fall-keine-vorgabe p14-budget-last-fehlt p14-budget-gruende p14-ordner-mutation p14-ordner-rote-mutation p14-ordner-fall p14-fall-protokoll p14-fall-stderr)
 FAELLE_GP14S=(p14-budget-sigint p14-budget-sigterm)
 
@@ -2042,6 +2055,7 @@ faelle() {
   esac
   for n in "$@" ${FALL_ZUSATZ-}; do
     fallname="$n"
+    # Der Ordner der Mutation entsteht hier, wenn er fehlt. Die Fälle p13-gegenprobe-* erkennen Nachkommen eines abgebrochenen Laufs an ihren Prozessen (abbruchfall), nicht an diesem Ordner.
     [ -d "$run" ] || mkdir -p "$run"
     declare -F "f_${n//-/_}" > /dev/null || { echo "$n"; continue; }
     ( bad=0; "f_${n//-/_}"; exit "$bad" ) > /dev/null 2>> "$run/stderr" || echo "$n"
@@ -2106,7 +2120,7 @@ mutr() {
         continue
       fi
       if [[ $neu != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
-      rest="${neu/"$alt"/$'\001'}" # eindeutig: nach dem Ersatz der ersten Stelle trägt der Rest keine zweite (die Marke trennt; `${neu#*"$alt"}` ist bei 260 KB quadratisch)
+      rest="${neu/"$alt"/$'\001'}" # eindeutig: nach dem Ersatz der ersten Stelle trägt der Rest keine zweite (die Marke trennt)
       if [[ $rest == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
       neu="${neu/"$alt"/"$ersatz"}"
       shift 2
@@ -2830,11 +2844,16 @@ mut13g m-p14-budget-zeile-ohne-obergrenze "p14-budget-vorgabe-nur-ohne-mut p14-b
 mut13g m-p14-budget-vorgabe-trotz-mut "p14-budget-vorgabe-nur-ohne-mut" $'elif [ -z "${GP_MUT-}" ] &&'$' [ -z "${GP_FALL-}" ]; then' $'elif [ -z "${GP_FALL-}" ]; then' gp14
 mut13g m-p14-budget-vorgabe-trotz-fall "p14-budget-fall-keine-vorgabe" $'elif [ -z "${GP_MUT-}" ] &&'$' [ -z "${GP_FALL-}" ]; then' $'elif [ -z "${GP_MUT-}" ]; then' gp14
 mut13g m-p14-budget-vorgabe-nicht-bei-entdecke "p14-budget-entdecke-vorgabe-gilt" $'[ -z "${GP_FALL-}" '$']; then\n  budget=1200' $'[ -z "${GP_FALL-}" ] && [ -z "${GP_ENTDECKE-}" ]; then\n  budget=1200' gp14
-mut13g m-p14-budget-ungueltig-leer-erlaubt "p14-budget-ungueltig-leer" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]*$ ]]' gp14
-mut13g m-p14-budget-ungueltig-minus-erlaubt "p14-budget-ungueltig-minus" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^-?[0-9]+$ ]]' gp14
-mut13g m-p14-budget-ungueltig-bruch-erlaubt "p14-budget-ungueltig-bruch" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]+([.][0-9]+)?$ ]]' gp14
-mut13g m-p14-budget-ungueltig-buchstaben-erlaubt "p14-budget-ungueltig-abc" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9a-z]+$ ]]' gp14
-mut13g m-p14-budget-ungueltig-ohne-exit "p14-budget-ungueltig-leer p14-budget-ungueltig-minus p14-budget-ungueltig-bruch p14-budget-ungueltig-abc" $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' gp14
+mut13g m-p14-budget-ungueltig-leer-erlaubt "p14-budget-ungueltig-leer" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})?$ ]]' gp14
+mut13g m-p14-budget-ungueltig-minus-erlaubt "p14-budget-ungueltig-minus" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^-?(0|[1-9][0-9]{0,5})$ ]]' gp14
+mut13g m-p14-budget-ungueltig-bruch-erlaubt "p14-budget-ungueltig-bruch" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})([.][0-9]+)?$ ]]' gp14
+mut13g m-p14-budget-ungueltig-buchstaben-erlaubt "p14-budget-ungueltig-abc" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5}|abc)$ ]]' gp14
+mut13g m-p14-budget-fuehrende-null-erlaubt "p14-budget-ungueltig-08 p14-budget-ungueltig-09 p14-budget-ungueltig-00 p14-budget-ungueltig-007" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]{1,6}$ ]]' gp14
+mut13g m-p14-budget-stellen-unbegrenzt "p14-budget-ungueltig-sieben-stellen p14-budget-ungueltig-zwanzig-stellen" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]*)$ ]]' gp14
+mut13g m-p14-budget-null-abgelehnt "p14-budget-null" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^[1-9][0-9]{0,5}$ ]]' gp14
+mut13g m-p14-budget-sechs-stellen-abgelehnt "p14-budget-zulaessig-999999" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,4})$ ]]' gp14
+mut13g m-p14-budget-zehn-abgelehnt "p14-budget-zulaessig-10" $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9]|[1-9][0-9]{2,5})$ ]]' gp14
+mut13g m-p14-budget-ungueltig-ohne-exit "p14-budget-ungueltig-leer p14-budget-ungueltig-minus p14-budget-ungueltig-bruch p14-budget-ungueltig-abc p14-budget-ungueltig-08 p14-budget-ungueltig-09 p14-budget-ungueltig-00 p14-budget-ungueltig-007 p14-budget-ungueltig-sieben-stellen p14-budget-ungueltig-zwanzig-stellen" $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' gp14
 mut13g m-p14-budget-last-null "p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-vorgabe-nur-ohne-mut p14-budget-entdecke-vorgabe-gilt p14-budget-fall-keine-vorgabe" $'read -r last '$'_ < "$LOADAVG"' $'last=0' gp14
 mut13g m-p14-budget-last-nie-gelesen "p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-vorgabe-nur-ohne-mut p14-budget-entdecke-vorgabe-gilt p14-budget-fall-keine-vorgabe" $'[ ! -r "$LOAD'$'AVG" ] || read' $'[ -r "$LOADAVG" ] || read' gp14
 mut13g m-p14-budget-gruende-vertauscht "p14-budget-gruende" $'cat "$arbeit/fehler" >&2; '$'fehler=1; fi\nif [ "$(wc -l' $'fehler=1; fi\n'$'if [ "$(wc -l' gp14 $'  echo "$GPN: ROT — Zeitbudg'$'et: $T s über $budget s" >&2' $'  echo "$GPN: ROT — Zeitbudget: $T s über'$' $budget s" >&2; cat "$arbeit/fehler" >&2'
