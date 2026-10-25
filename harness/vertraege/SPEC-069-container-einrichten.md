@@ -10,8 +10,8 @@ Ergebnis. Diese Kennung legt fest, was es zusagt, woran es scheitert und was die
 **Stand.** Die Entscheidungen dieser Kennung gelten:
 [ADR-0057](../../docs/plan/adr/0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) ist
 angenommen (Entscheidung des Nutzers vom 2026-10-21). `ssh` als Voraussetzung am Host für dieses Ziel
-ist Entscheidung des Nutzers vom 2026-10-17 („ja“), die Obergrenze von 600 s für jede Gegenprobe seine
-Entscheidung vom 2026-10-21
+ist Entscheidung des Nutzers vom 2026-10-17 („ja“), die Obergrenze für jede Gegenprobe seine
+Entscheidung vom 2026-10-21 (600 s; seit 2026-10-25 1200 s, Punkt 17)
 ([ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
 
 **Was es nicht ist.** Es legt kein Gerüst an, erzeugt kein Schlüsselpaar, startet, stoppt und entfernt
@@ -412,8 +412,9 @@ der die Fassung ersetzt.
       [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16: Sie trägt die Fälle und Mutationen von dessen Punkt
       16 (9) (`GP_BUDGET`, Zeile mit Zeit und Last, Überschreitung rot, Reihenfolge der Gründe, Ordner
       entfernt), und der Slice, der sie anlegt, trägt sie in der Tabelle dort als `aufgenommen` ein und
-      nennt die gemessene Zeit. Die Obergrenze ist 600 s
-      ([ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
+      nennt die gemessene Zeit. Die Obergrenze ist 1200 s
+      ([ADR-0059](../../docs/plan/adr/0059-obergrenze-der-gegenprobe-zwanzig-minuten.md), vorher 600 s nach
+      [ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
     - **Start:** Die Gegenprobe setzt `SIGINT` beim Start als nicht ignoriert voraus. Ein Start mit ignoriertem `SIGINT` (Hintergrundstart mit `&` oder
       `nohup`, auch `setsid -f` allein) ist für ihre Fälle mit `SIGINT` nicht zugesagt. Aufruf im Vordergrund oder mit
       `setsid -f env --default-signal=INT,QUIT`; Rezept, Messung und Grund stehen in

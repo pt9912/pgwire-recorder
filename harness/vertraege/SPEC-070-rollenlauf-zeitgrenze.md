@@ -27,7 +27,7 @@ nicht beobachtet), dass `decision: block` an dieser Stelle greift, ob und wo Cla
 **Was er nicht ist.** Er beendet keinen Lauf, nimmt keine Arbeit zurück, schreibt keine Zeile in den Strom
 und keine Datei (Leser, Punkt 1) und gilt nicht für die Hauptsitzung (Punkt 2, Grenze 12 (1)). Er ändert weder
 `.claude/hooks/span-emit.sh` noch die Feldliste der Erfassung (`harness/erfassung-feldliste.md`), noch den
-Stop-Hook, noch die Zeitgrenze von 600 s je Gegenprobe ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16); die
+Stop-Hook, noch die Zeitgrenze je Gegenprobe ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16); die
 Stunde ist eine **zusätzliche** Grenze über dem Lauf.
 
 **Plattform** (`AGENTS.md` §3.12). Zugesagt und geprüft ist **Linux** (die Gegenprobe im Gegenproben-Container
@@ -99,7 +99,7 @@ Die Freigabe in den Lagen von (4) ist der Fall, in dem der Hook den Wächter nac
 **uneingeschränkt erst nach Stufe 2**; bis dahin gelten sie für die Lagen in (4).
 **Zwischen den Stufen:** (a) Der Hook ist nach Stufe 1 in `.claude/settings.json` eingetragen und wirkt; Stufe 2 ändert diese Zusagen nicht. (b) Ein Fall der Stufe 1 wird in Stufe 2 nicht gelockert; er darf eine
 Erwartung an stderr dazubekommen (die Zeile der Stufe 2), und Stufe 2 fügt Fälle hinzu, ändert keinen Namen und keine erwartete Menge roter Fälle der Stufe 1. (c) Die Gegenprobe ist nach Stufe 1 aufgenommen (`SPEC-060`
-Punkt 16) und bleibt es nach Stufe 2 unter 600 s. (d) Jeder Satz über den Hook (`harness/README.md`, Kommentar im Kopf, Handbuch, Regeltext) nennt nach Stufe 1 nur die Zusagen nach Stufe 1 (`AGENTS.md` §3.11): keine
+Punkt 16) und bleibt es nach Stufe 2 unter ihrer Obergrenze. (d) Jeder Satz über den Hook (`harness/README.md`, Kommentar im Kopf, Handbuch, Regeltext) nennt nach Stufe 1 nur die Zusagen nach Stufe 1 (`AGENTS.md` §3.11): keine
 Selbstauskunft auf stderr, keine allgemeine Freigabe. (e) Bliebe Stufe 2 aus, bliebe der Hook nach Stufe 1 mit diesen Zusagen und der Liste unter „Nicht zugesagt“ stehen; die Spalte Stufe 2 wäre dann nicht geliefert, und
 der Vertrag sagt es so. (f) Randformen, die ein Fall der Stufe 2 aufwirft und die Stufe 1 berühren, geben beide Stufen an den Architect zurück; kein Implementer entscheidet sie im Code.
 
@@ -269,8 +269,8 @@ Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `tra
    mit dem zweiten Start 2 h zurück: gesperrt); Mutation: der erste Start zählt (färbt beide).
 10. **Die Stunde und die pflichtigen Läufe.** *(Prosa, gilt ab Stufe 1)* Die Stunde trägt, was jede Rolle **muss**, sofern die Arbeit selbst darunter bleibt; für zwei Fälle trägt sie es nicht, (c) und (d), und dafür gilt je eine Ausnahme.
     (a) `make gates` (einmal am Endstand): 265 bis 303 s auf ruhigem Host, einmal 9 min 53 s (Messwerte der Pläne in `done/` und `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`). (b) Der volle Lauf einer
-    **aufgenommenen** Gegenprobe ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16, `container-einrichten-gegenprobe`, diese Gegenprobe): höchstens 600 s ([ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
-    Beide zusammen belegen im Regelfall unter 15 min (rund 300 s und bis zu 600 s), im ungünstigen Fall rund 20 min (600 s und 600 s); es bleiben mindestens 40 min für die Arbeit. **Das trägt.** (c) Der volle Lauf einer Gegenprobe im Zustand `nicht gemessen` (heute `release-gegenprobe` mit 25 bis 30 min auf ruhigem Host
+    **aufgenommenen** Gegenprobe ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16, `container-einrichten-gegenprobe`, diese Gegenprobe): höchstens 1200 s ([ADR-0059](../../docs/plan/adr/0059-obergrenze-der-gegenprobe-zwanzig-minuten.md), vorher 600 s nach [ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md)).
+    Beide zusammen belegen im Regelfall unter 25 min (rund 300 s und bis zu 1200 s), im ungünstigen Fall rund 30 min (600 s und 1200 s); es bleiben mindestens 30 min für die Arbeit. **Das trägt.** (c) Der volle Lauf einer Gegenprobe im Zustand `nicht gemessen` (heute `release-gegenprobe` mit 25 bis 30 min auf ruhigem Host
     und Stunden unter Last, `test-container-gegenprobe`, `container-start-gegenprobe` mit 19 min 38 s am Host): **das trägt nicht neben der Arbeit, und kein Rollenlauf fährt ihn** (Entscheidung des Nutzers vom 2026-10-22, Wortlaut
     „agents.md anpassen“, vom Koordinator übermittelt; sie ändert den Übergang in [ADR-0055](../../docs/plan/adr/0055-gegenproben-haben-ein-zeitbudget.md) und die Ausnahme von `AGENTS.md` §6 Punkt 6). Implementer und Verifier fahren nur den engsten Fall (`GP_MUT=<Muster>`);
     den vollen Lauf fährt der Slice, der die Gegenprobe aufnimmt (Tabelle in [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16, heute `slice-harness-gegenproben-schneller` für diese beiden), und `make gegenproben` am Ende einer Welle (d). Ein Bruch außerhalb des engsten Falls
@@ -308,6 +308,6 @@ Eingabe von `PreToolUse` ist die Basis aller Hook-Ereignisse (`session_id`, `tra
     **kein Fall wartet** (die Zeit kommt aus dem Anker und der Attrappe, nicht aus `sleep`; `BEO-REPO/feste-wartezeit-statt-beobachtung-im-test`). Mutationen sind Textersatz in einer Kopie des Hooks, des Lesers der Felder und der
     Einträge. Die unveränderte Kopie ist grün. Die Fälle von [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16 (9) (Zeitbudget, Zeile mit Zeit und Last, `GP_BUDGET`, Arbeitsordner je Fall und je Mutation entfernt, `GP_MUT`,
     `GP_PARALLEL`) gelten ohne Abweichung; der Code von `container-einrichten-gegenprobe.sh` darf übernommen werden; **Punkt 17 von `SPEC-060`** (Start mit ignoriertem `SIGINT`) gilt für deren Fälle mit Signal. Erwartet sind 30 bis
-    120 s für den vollen Lauf (Schätzung des Architect: nach Stufe 1 rund 80 Fälle, nach Stufe 2 zusammen rund 110, dazu die Fälle von `SPEC-060` Punkt 16 (9); rund 180 Mutationen, jede fährt nur die Fälle ihrer Gruppe, je Fall wenige Prozess-Starts), Obergrenze 600 s, auch nach Stufe 2; die gemessene Zeit steht in §7.
+    120 s für den vollen Lauf (Schätzung des Architect: nach Stufe 1 rund 80 Fälle, nach Stufe 2 zusammen rund 110, dazu die Fälle von `SPEC-060` Punkt 16 (9); rund 180 Mutationen, jede fährt nur die Fälle ihrer Gruppe, je Fall wenige Prozess-Starts), Obergrenze nach `SPEC-060` Punkt 16 (1), auch nach Stufe 2; die gemessene Zeit steht in §7.
     Die Zeile der Gegenprobe in der Tabelle von [`SPEC-060`](SPEC-060-gegenproben.md) Punkt 16 trägt der Slice, der sie anlegt, mit der Lieferung als `aufgenommen`; vorher steht sie dort nicht, weil sie nicht besteht. Fall
     `p14-aufnahme` (die Tabelle in `SPEC-060` nennt `zeitgrenze-gegenprobe` mit dem Zustand `aufgenommen`); Mutation: die Zeile fehlt.
