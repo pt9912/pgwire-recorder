@@ -13,9 +13,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** `LH-FA-20` (Einspielen), `LH-FA-20.a` (*Abbruchsignal*: das zweite Signal sendet `Terminate`). Auslöser: [slice-test-unter-last-ursache](../done/slice-test-unter-last-ursache.md) §7 (Ursache von `TestRunPlayZweitesSignal`: Wettlauf im Code; Probe P1 5 von 5 rot ohne Last). Register: `BEO-REPO/test-faellt-unter-cpu-last-aus` (die Ursache von C steht in dessen `state.md`). Keine aktive ADR.
 
-**Berührte Spec-Stellen:** `spezifikation.md` §`LH-FA-20.a — Einspielen`, Stichwort *Abbruchsignal* (geschärft in Commit 36b6387c; dieser Slice ändert die Spezifikation nicht, er bringt den Code auf ihren Wortlaut) · `LH-FA-20.a`
+**Berührte Spec-Stellen:** `spezifikation.md` §`LH-FA-20.a — Einspielen`, Stichwort *Abbruchsignal* (geschärft in Commit 36b6387c; Randformen Granularität, Gesamtfrist, Gründe und Plattform vom Architect vorab in f17d9027 entschieden; dieser Slice ändert die Spezifikation nicht mehr, er bringt den Code auf ihren Wortlaut) · `LH-FA-20.a`
 
-**Verantwortlich:** —
+**Verantwortlich:** Implementer (pt9912)
 
 **Autor:** Planner. **Datum:** 2026-10-24.
 
@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Eine **Änderung der Spezifikation oder des Lastenhefts** — Schicht-Abgrenzung und Rang: Die Schärfung steht seit 36b6387c in `LH-FA-20.a`; eine Randform, die sie nicht trägt, geht an den Architect zurück (`AGENTS.md` §3.12), sie entscheidet der Implementer nicht.
+- Eine **Änderung der Spezifikation oder des Lastenhefts** im Slice — Schicht-Abgrenzung und Rang: Die Schärfung steht seit 36b6387c in `LH-FA-20.a`, die Randformen 2 bis 5 hat der Architect vor dem Anspruch in f17d9027 ergänzt (Vorab-Änderung, nicht Teil dieses Slice); eine Randform, die sie nicht trägt, geht an den Architect zurück (`AGENTS.md` §3.12), sie entscheidet der Implementer nicht.
 - Eine **Änderung an `TestE2EPlayVergleichAbweichung` oder `TestE2EPlayVergleichAlle`** — anderer Vorgang: Deren Rot ist nicht reproduziert und nicht erklärt (`BEO-REPO/test-faellt-unter-cpu-last-aus`), die Ursache ist keine Wettlaufbedingung dieses Codes.
 - Eine **Änderung an Fristen anderer Tests oder an `terminateFrist`** — Bestand bleibt bewusst stehen: Die Frist von 100 ms ist die Zusage („kurze Frist“); der Slice nutzt sie, er ändert sie nicht.
 - Das **Terminate in `Close` des Upstream-Adapters** (`upstream.go`, Pfad von `record`) — Bestand bleibt bewusst stehen: Der Wettlauf stammt aus `einspielSession`; `record` trägt andere Sperren.
@@ -53,7 +53,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] **Liefer-Punkt 1 (Zustand statt Sperre):** `schliesse` (in `einspielen.go`) sendet `Terminate`, wenn keine Nachricht des Clients teilweise geschrieben ist, und sonst nicht; die Sperre `schreiben` ist nicht mehr der Stellvertreter. Die Wartezeit von `schliesse` auf das Ende eines teilweisen Schreibens ist durch `terminateFrist` begrenzt (Randformen 1 bis 3).
 - [ ] **Liefer-Punkt 2 (Tests mit Mutation, `AGENTS.md` §3.10):** je Zusage ein Test, der rot wird, wenn der Code sie bricht, und die Mutation vom Implementer selbst rot gesehen (Zusage · Mutation · roter Test im Bericht): (a) Terminate bei gehaltener Bearbeitung der Anfrage (Sperre 300 ms nach dem Senden gehalten): `TestRunPlayZweitesSignal` rot; (b) kein Terminate bei teilweise geschriebener Nachricht (bestehend: `TestEinspielSchliesseSchreibtNichtBeimSenden`); (c) die Frist begrenzt das Warten (ein Test, der ohne Frist, mit unbegrenztem `Lock()`, rot wird); (d) die Reihenfolge der Gründe (Randform 4), je Element ein Fall.
-- [ ] **Liefer-Punkt 3 (Plattform und Abdeckung):** Die Plattformentscheidung (Randform 5) ist in der Spezifikation getragen (Architect) und der Abdeckungs-Deklaration der neuen Tests nachgezogen (`make abdeckung-check` grün); die Tests tragen `Abdeckung: LH-FA-20/…`.
+- [ ] **Liefer-Punkt 3 (Plattform und Abdeckung):** Die Plattformentscheidung (Randform 5, in f17d9027 entschieden: geprüft nur unter Linux) ist in der Spezifikation getragen und der Abdeckungs-Deklaration der neuen Tests nachgezogen (`make abdeckung-check` grün); die Tests tragen `Abdeckung: LH-FA-20/…`.
 - [ ] Kein Verhalten der Kommandozeile außer dem zweiten Signal ändert sich; `TestRunPlayZweitesSignal` ist unter der künstlichen Last aus `slice-test-unter-last-ursache` §7 (K=32, K=48 Container mit Rechenschleife) in mindestens 20 Läufen je Last grün, sonst ist die Ursache nicht behoben.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driven/postgres/einspielen.go` | update | `einspielSession`: Zustand „teilweise geschrieben“ (unter `zustand` oder eigener Wert), gesetzt für die Dauer des Schreibens einer Nachricht, `schliesse` fragt ihn; Kommentar des Typs und von `Schliesse` nachziehen (§3.7) |
 | `internal/adapters/driven/postgres/einspielen_ende_test.go`, `einspielen_test.go` | update | Fälle je Zusage und Mutation (Liefer-Punkt 2), Abdeckung `LH-FA-20.a` *Abbruchsignal* |
 | `internal/bootstrap/play_test.go` | unverändert gefahren | `TestRunPlayZweitesSignal` ist der rote Test (a); Änderung nur, wenn der Architect es entscheidet |
-| `spec/spezifikation.md` | Architect | Plattformentscheidung (Randform 5) und Randformen 1 bis 4, soweit 36b6387c sie nicht trägt |
+| `spec/spezifikation.md` | unverändert | Randformen 1 bis 5 stehen seit 36b6387c und f17d9027 (Architect, vor dem Anspruch); Änderung im Slice nur über Rückgabe an den Architect |
 
 Das Schreiben einer Nachricht läuft über `fe.Send` und `fe.Flush`; der Implementer prüft, ob der Zustand je Nachricht oder je `Flush` gilt (Randform 2) und nennt es dem Architect, wenn die Spezifikation es nicht entscheidet.
 
@@ -85,7 +85,7 @@ Das Schreiben einer Nachricht läuft über `fe.Send` und `fe.Flush`; der Impleme
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Nutzer priorisiert (`open` → `next`, `Verantwortlich:`), dann der reine Move auf `main`. Voraussetzung: `slice-test-unter-last-ursache` in `done/` (Ursache belegt). Kein anderer Slice ändert `einspielen.go` zur selben Zeit (`slice-v1-abschluss-zeitangaben` ist geschlossen oder liegt nicht in `in-progress/`; der Planner prüft es beim Anspruch).
+**Start** (`next` → `in-progress`): Priorisiert (`open` → `next`, `Verantwortlich:` gesetzt), dann der reine Move auf `main`. Voraussetzung: `slice-test-unter-last-ursache` in `done/` (Ursache belegt). Kein anderer Slice ändert `einspielen.go` zur selben Zeit (`slice-v1-abschluss-zeitangaben` ist geschlossen oder liegt nicht in `in-progress/`; der Planner prüft es beim Anspruch).
 
 **Größe.** Metrik und Befehl stehen in `AGENTS.md` §3.14. **Pfade des Plans:** `internal test` (mit den zwei Ausschlüssen des Befehls). **Marke 1500** (`AGENTS.md` §3.14). **Basis:** der Commit, der diese Datei nach `in-progress/` bewegt; sein Hash steht hier beim Anspruch: `—`.
 
