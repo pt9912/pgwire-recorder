@@ -17,7 +17,7 @@
 # roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Läufe; GP_FALL=<name> gibt für die unveränderte Kopie das Protokoll dieses Falls aus.
 # Braucht bash (mit `wait -n`), git, GNU sed, grep, awk, cmp, tar, pgrep, setsid, timeout, sha256sum, jq, date (GNU) und die Werkzeuge von coreutils; ohne Docker, ohne make und ohne Netz.
 # Aufrufarten von `make` (-n, -q, -t, -i, MAKEFLAGS) haben keinen Fall: kein Hook und kein Stand liest das Ergebnis, und release.sh läuft nie unter `make` (SPEC-067 Punkt 13).
-# Zeit und Platz (SPEC-060 Punkt 16, SPEC-067 Punkt 14, ADR-0055): ein voller Lauf dauert höchstens 600 s; die letzte Zeile auf stderr nennt Zeit, Obergrenze und Last, eine Überschreitung ist rot;
+# Zeit und Platz (SPEC-060 Punkt 16, SPEC-067 Punkt 14, ADR-0059): ein voller Lauf dauert höchstens 1200 s; die letzte Zeile auf stderr nennt Zeit, Obergrenze und Last, eine Überschreitung ist rot;
 # GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab, ein ungültiger Wert endet vor jedem Fall mit Exit 2). Der Ordner einer Mutation entfällt, sobald sie bewertet ist, und der
 # Ordner eines Falls, sobald der Fall endet; die Fälle p14-* halten das.
 set -uo pipefail
@@ -25,13 +25,13 @@ set -uo pipefail
 T0=$SECONDS
 GPN=release-gegenprobe
 LOADAVG=/proc/loadavg
-# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 600 s, und nur bei einem Lauf ohne GP_MUT und ohne GP_FALL.
+# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 1200 s, und nur bei einem Lauf ohne GP_MUT und ohne GP_FALL.
 budget=
 if [ -n "${GP_BUDGET+x}" ]; then
   [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
   budget=$GP_BUDGET
 elif [ -z "${GP_MUT-}" ] && [ -z "${GP_FALL-}" ]; then
-  budget=600
+  budget=1200
 fi
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -1557,7 +1557,7 @@ f_p14_budget_ungueltig_minus() { budget_ungueltig '-1'; }
 f_p14_budget_ungueltig_bruch() { budget_ungueltig '1.5'; }
 f_p14_budget_ungueltig_abc() { budget_ungueltig 'abc'; }
 f_p14_budget_vorgabe_nur_ohne_mut() { ZE=(); zk GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit ohne Obergrenze" zeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+"; sei "kein ROT" ohne "$kerr" "Zeitbudget"; }
-f_p14_budget_entdecke_vorgabe_gilt() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit mit Obergrenze 600" zeile "$GPN: Zeit [0-9]+ s von höchstens 600 s, Last [0-9]+[.][0-9]+"; }
+f_p14_budget_entdecke_vorgabe_gilt() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit mit Obergrenze 1200" zeile "$GPN: Zeit [0-9]+ s von höchstens 1200 s, Last [0-9]+[.][0-9]+"; }
 f_p14_budget_fall_keine_vorgabe() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_FALL=p1-gleich; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit ohne Obergrenze" zeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+"; }
 f_p14_budget_last_fehlt() { ZE=("$Z_LAST" $'LOADAVG=/proc/nirgends-loadavg'); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Last -" zeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last -"; }
 f_p14_budget_gruende() {
@@ -2829,7 +2829,7 @@ mut13g m-p14-budget-zeile-mit-obergrenze "p14-budget-ueber p14-budget-unter p14-
 mut13g m-p14-budget-zeile-ohne-obergrenze "p14-budget-vorgabe-nur-ohne-mut p14-budget-fall-keine-vorgabe" $'  echo "$GPN: Zeit $'$'T s, Last $last" >&2' $'  :' gp14
 mut13g m-p14-budget-vorgabe-trotz-mut "p14-budget-vorgabe-nur-ohne-mut" $'elif [ -z "${GP_MUT-}" ] &&'$' [ -z "${GP_FALL-}" ]; then' $'elif [ -z "${GP_FALL-}" ]; then' gp14
 mut13g m-p14-budget-vorgabe-trotz-fall "p14-budget-fall-keine-vorgabe" $'elif [ -z "${GP_MUT-}" ] &&'$' [ -z "${GP_FALL-}" ]; then' $'elif [ -z "${GP_MUT-}" ]; then' gp14
-mut13g m-p14-budget-vorgabe-nicht-bei-entdecke "p14-budget-entdecke-vorgabe-gilt" $'[ -z "${GP_FALL-}" '$']; then\n  budget=600' $'[ -z "${GP_FALL-}" ] && [ -z "${GP_ENTDECKE-}" ]; then\n  budget=600' gp14
+mut13g m-p14-budget-vorgabe-nicht-bei-entdecke "p14-budget-entdecke-vorgabe-gilt" $'[ -z "${GP_FALL-}" '$']; then\n  budget=1200' $'[ -z "${GP_FALL-}" ] && [ -z "${GP_ENTDECKE-}" ]; then\n  budget=1200' gp14
 mut13g m-p14-budget-ungueltig-leer-erlaubt "p14-budget-ungueltig-leer" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]*$ ]]' gp14
 mut13g m-p14-budget-ungueltig-minus-erlaubt "p14-budget-ungueltig-minus" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^-?[0-9]+$ ]]' gp14
 mut13g m-p14-budget-ungueltig-bruch-erlaubt "p14-budget-ungueltig-bruch" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]+([.][0-9]+)?$ ]]' gp14

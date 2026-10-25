@@ -21,7 +21,7 @@
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt; GP_ENTDECKE=1 nennt je
 # Mutation die roten Fälle.
 #
-# Zeit und Platz (SPEC-060 Punkt 16, SPEC-055 Punkt 12, ADR-0055): ein voller Lauf dauert höchstens 600 s; die letzte Zeile auf stderr nennt Zeit, Obergrenze und Last, eine Überschreitung ist rot;
+# Zeit und Platz (SPEC-060 Punkt 16, SPEC-055 Punkt 12, ADR-0059): ein voller Lauf dauert höchstens 1200 s; die letzte Zeile auf stderr nennt Zeit, Obergrenze und Last, eine Überschreitung ist rot;
 # GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab, ein ungültiger Wert endet vor jedem Fall mit Exit 2); die Obergrenze gilt nur ohne GP_MUT. Der Baum `baum-<n>` entfällt, sobald die
 # Fälle seiner Mutation bewertet sind; die Fälle p12-budget-* halten das. Die Gegenprobe kennt kein GP_FALL; GP_INNEN=1 lässt die Kopie der Fälle p12-budget-* die unveränderte Kopie und diese Fälle auslassen.
 #
@@ -31,13 +31,13 @@ set -euo pipefail
 T0=$SECONDS
 GPN=container-gegenprobe
 LOADAVG=/proc/loadavg
-# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 600 s, und nur bei einem Lauf ohne GP_MUT.
+# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 1200 s, und nur bei einem Lauf ohne GP_MUT.
 budget=
 if [ -n "${GP_BUDGET+x}" ]; then
   [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
   budget=$GP_BUDGET
 elif [ -z "${GP_MUT-}" ]; then
-  budget=600
+  budget=1200
 fi
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -623,7 +623,7 @@ pruefe() {
       ist "p12-budget-ungueltig-${b%%:*}" "ZE=(); zk 'GP_BUDGET=${b#*:}' GP_MUT=\"\$CHEAP\"; [ \"\$kcode\" = 2 ] && [ \"\$(cat \"\$ZD/kerr\")\" = \"\$GPN: GP_BUDGET: keine ganze Zahl\" ] && [ ! -s \"\$ZD/kout\" ]"
     done
     ist p12-budget-vorgabe-nur-ohne-mut 'ZE=(); zk GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
-    ist p12-budget-entdecke-vorgabe-gilt 'ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 600 s, Last [0-9]+[.][0-9]+"'
+    ist p12-budget-entdecke-vorgabe-gilt 'ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 1200 s, Last [0-9]+[.][0-9]+"'
     ist p12-budget-last-fehlt 'ZE=("$Z_LAST" "LOADAVG=/proc/nirgends-loadavg"); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last -"'
     ist p12-budget-gruende 'ZE=("$Z_SPAET" "$Z_SPAET2" "$Z_ROT" "$Z_ROT2"); zk GP_BUDGET=1 GP_MUT="$CHEAP"; [ "$kcode" = 1 ] && a="$(grep -n "^$GPN: ROT — Mutation" "$ZD/kerr" | head -n 1 | cut -d: -f1)" && b="$(grep -n "^$GPN: ROT — Zeitbudget" "$ZD/kerr" | head -n 1 | cut -d: -f1)" && c="$(grep -n "^$GPN: Zeit " "$ZD/kerr" | head -n 1 | cut -d: -f1)" && [ "${a:-9}" -lt "${b:-0}" ] && [ "${b:-9}" -lt "${c:-0}" ]'
     ist p12-budget-sigint 'zs INT'

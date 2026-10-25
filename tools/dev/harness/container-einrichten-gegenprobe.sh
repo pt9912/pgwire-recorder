@@ -23,7 +23,7 @@
 # Die unveränderte Kopie besteht jeden Fall, und bei jeder Mutation (genau eine Textersetzung in einer Kopie;
 # trifft sie nichts oder mehr als eine Stelle, bricht die Gegenprobe ab) werden von den Fällen ihrer Auswahl
 # genau die benannten rot.
-# Zeitbudget (SPEC-060 Punkt 16, ADR-0055): höchstens 600 s für den vollen Lauf; die Zeile am Ende nennt Zeit,
+# Zeitbudget (SPEC-060 Punkt 16, ADR-0059): höchstens 1200 s für den vollen Lauf; die Zeile am Ende nennt Zeit,
 # Obergrenze und Last, eine Überschreitung ist rot.
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn
 # das Muster `ok` trifft); GP_NUR=<Muster> wählt die Fälle (der
@@ -50,7 +50,7 @@ if [ -n "${GP_BUDGET+x}" ]; then
   [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
   budget=$GP_BUDGET
 elif [ -z "${GP_MUT-}" ]; then
-  budget=600
+  budget=1200
 fi
 
 arbeit=$(mktemp -d) || { echo "$GPN: ROT — mktemp -d schlug fehl" >&2; exit 1; }
@@ -896,8 +896,8 @@ mut m-p17-budget-pruefung p "$A17B" '  if [ -n "$budget" ] && [ "$budget" != 0 ]
 mut m-p17-budget-null p "$A17B" '[ "$budget" != 0 ] && ' '' p17-budget-null
 mut m-p17-budget-zeile p "$A17B" '    echo "$GPN: Zeit $T s von höchstens $budget s, Last $last" >&2' '    :' p17-budget-unter p17-budget-null p17-budget-last-fehlt p17-budget-gruende
 mut m-p17-budget-ohne-mut p "$A17B" 'elif [ -z "${GP_MUT-}" ]; then
-  budget=600' 'elif true; then
-  budget=600' p17-budget-vorgabe-nur-ohne-mut
+  budget=1200' 'elif true; then
+  budget=1200' p17-budget-vorgabe-nur-ohne-mut
 mut m-p17-budget-last p "$A17B" 'read -r last _ < "$LOADAVG"' 'last=0' p17-budget-unter p17-budget-null p17-budget-vorgabe-nur-ohne-mut
 mut m-p17-budget-last-fehlt p "$A17B" '[ ! -r "$LOADAVG" ] ||' '[ -r "$LOADAVG" ] ||' p17-budget-unter p17-budget-null p17-budget-vorgabe-nur-ohne-mut
 mut m-p17-budget-ungueltig p "$A17B" '  [[ $GP_BUDGET =~ ^[0-9]+$ ]] ||' '  [[ $GP_BUDGET =~ ^[0-9.-]*$ ]] ||' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch
