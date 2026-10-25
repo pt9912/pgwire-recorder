@@ -17,13 +17,30 @@
 # roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Läufe; GP_FALL=<name> gibt für die unveränderte Kopie das Protokoll dieses Falls aus.
 # Braucht bash (mit `wait -n`), git, GNU sed, grep, awk, cmp, tar, pgrep, setsid, timeout, sha256sum, jq, date (GNU) und die Werkzeuge von coreutils; ohne Docker, ohne make und ohne Netz.
 # Aufrufarten von `make` (-n, -q, -t, -i, MAKEFLAGS) haben keinen Fall: kein Hook und kein Stand liest das Ergebnis, und release.sh läuft nie unter `make` (SPEC-067 Punkt 13).
+# Zeit und Platz (SPEC-060 Punkt 16, SPEC-067 Punkt 14, ADR-0055): ein voller Lauf dauert höchstens 600 s; die letzte Zeile auf stderr nennt Zeit, Obergrenze und Last, eine Überschreitung ist rot;
+# GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab, ein ungültiger Wert endet vor jedem Fall mit Exit 2). Der Ordner einer Mutation entfällt, sobald sie bewertet ist, und der
+# Ordner eines Falls, sobald der Fall endet; die Fälle p14-* halten das.
 set -uo pipefail
+
+T0=$SECONDS
+GPN=release-gegenprobe
+LOADAVG=/proc/loadavg
+# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 600 s, und nur bei einem Lauf ohne GP_MUT und ohne GP_FALL.
+budget=
+if [ -n "${GP_BUDGET+x}" ]; then
+  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
+  budget=$GP_BUDGET
+elif [ -z "${GP_MUT-}" ] && [ -z "${GP_FALL-}" ]; then
+  budget=600
+fi
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$hier/../../.." && pwd)"
 arbeit="$(mktemp -d)"
 selbst="$hier/$(basename "${BASH_SOURCE[0]}")"
 raeume_auf() { chmod -R u+rwX "${arbeit:?}" 2> /dev/null; rm -rf "${arbeit:?}"; }
+# raeume_ordner <Ordner> — entfernt den Ordner einer Mutation oder eines Falls (Dateien ohne Rechte eingeschlossen).
+raeume_ordner() { rm -rf "$@" 2> /dev/null || { chmod -R u+rwX "$@" 2> /dev/null; rm -rf "$@"; }; }
 # nachkommen <pid> — alle Nachkommen, Eltern vor Kindern.
 nachkommen() { local k; for k in $(pgrep -P "$1" 2> /dev/null); do echo "$k"; nachkommen "$k"; done; }
 # beende_kinder — hält die Nachkommen an (bis die Menge feststeht), beendet sie und wartet, bis keiner mehr läuft.
@@ -206,27 +223,30 @@ text() {
   done
 }
 # urteil <ok|rot> — schreibt stdin nach $w/release.yml und vergleicht das Urteil von pruefe_release.
-urteil() {
-  local soll="$1" r=0
-  mkdir -p "$w"
-  cat > "$w/release.yml"
-  pruefe_release "$w/release.yml" || r=$?
+# urteil_z <ok|rot> <Zeile>… — wie urteil mit den Zeilen als Argumente (ohne Unterprozess); die Datei liegt im Ordner der Mutation, nicht in einem Ordner je Fall.
+urteil_z() {
+  local soll="$1" r=0 f="$run/yml.$fallname"
+  shift
+  printf '%s\n' "$@" > "$f"
+  pruefe_release "$f" || r=$?
   if { [ "$soll" = ok ] && [ "$r" -ne 0 ]; } || { [ "$soll" = rot ] && [ "$r" -eq 0 ]; }; then
     bad=1
     printf 'erwartet: %s\ngelesen: Exit %s\n' "$soll" "$r" >> "$run/log.$fallname"
   fi
 }
-neu() { w="$run/t.$fallname"; mapfile -t t < <(text); }
+urteil() { local soll="$1" L; mapfile -t L; urteil_z "$soll" "${L[@]}"; }
+# neu — setzt w und t (der Text von Punkt 1); TEXT0 trägt ihn, wenn faelle ihn für die Gruppe einmal gebaut hat.
+neu() { w="$run/t.$fallname"; if [ "${TEXT0+x}" = x ]; then t=("${TEXT0[@]}"); else mapfile -t t < <(text); fi; }
 zeilen() { printf '%s\n' "$@"; }
 f_p1_gleich() { neu; mkdir -p "$w"; pruefe_release "$repo/.github/workflows/release.yml" || { bad=1; echo "release.yml des Arbeitsbaums weicht von Punkt 1 ab" >> "$run/log.$fallname"; }; }
-f_p1_text_gleich() { neu; urteil ok < <(zeilen "${t[@]}"); }
-p1_fehlt() { neu; unset "t[$(($1 - 1))]"; urteil rot < <(zeilen "${t[@]}"); }
+f_p1_text_gleich() { neu; urteil_z ok "${t[@]}"; }
+p1_fehlt() { neu; unset "t[$(($1 - 1))]"; urteil_z rot "${t[@]}"; }
 p1_geaendert() {
   local l lead
   neu
   l="${t[$(($1 - 1))]}"; lead="${l%%[! ]*}"
   t[$(($1 - 1))]="${lead}Z${l:${#lead}+1}"
-  urteil rot < <(zeilen "${t[@]}")
+  urteil_z rot "${t[@]}"
 }
 for ((n = 1; n <= N; n++)); do eval "f_p1_fehlt_$n() { p1_fehlt $n; }; f_p1_geaendert_$n() { p1_geaendert $n; }"; done
 # Zusätze am Ende der Datei: <Wort, das die Mutation durchlässt>|<Zeile>
@@ -239,16 +259,16 @@ ZUSATZ=(
   "always()|        if: \${{ always() }}"
 )
 ZUSATZ_NAMEN=(pull-request-target secrets-debug schritt-cache environment continue-on-error always)
-zusatz() { neu; urteil rot < <(zeilen "${t[@]}" "$1"); }
+zusatz() { neu; urteil_z rot "${t[@]}" "$1"; }
 for k in "${!ZUSATZ[@]}"; do eval "f_p1_zusatz_${ZUSATZ_NAMEN[k]//-/_}() { zusatz \"\${ZUSATZ[$k]#*|}\"; }"; done
-pin() { neu; t[PIN]="        $1"; urteil rot < <(zeilen "${t[@]}"); }
+pin() { neu; t[PIN]="        $1"; urteil_z rot "${t[@]}"; }
 f_p1_pin_kurz() { pin "uses: actions/checkout@${SHA_PROBE:1} # v7.0.1"; }
 f_p1_pin_gross() { pin "uses: actions/checkout@${SHA_PROBE^^} # v7.0.1"; }
 f_p1_pin_tag_leer() { pin "uses: actions/checkout@$SHA_PROBE # "; }
 f_p1_pin_ohne_tag() { pin "uses: actions/checkout@$SHA_PROBE"; }
 f_p1_pin_andere_action() { pin "uses: actions/cache@$SHA_PROBE # v4"; }
 # Je Schritt mit Bedingung auf das Ereignis `push` ein Fall, in dem die Zeile `if:` fehlt.
-for j in "${!BEDING[@]}"; do eval "f_p1_bedingung_${BEDING_ID[j]//-/_}() { neu; unset \"t[${BEDING[j]}]\"; urteil rot < <(zeilen \"\${t[@]}\"); }"; done
+for j in "${!BEDING[@]}"; do eval "f_p1_bedingung_${BEDING_ID[j]//-/_}() { neu; unset \"t[${BEDING[j]}]\"; urteil_z rot \"\${t[@]}\"; }"; done
 # umgestellt <k>… — der Text mit den Schritten in der genannten Reihenfolge (Zahl: Stelle des Schritts im Text; der Checkout bleibt vorn).
 umgestellt() {
   local k
@@ -261,9 +281,9 @@ tausch() { local o=() j; for ((j = 0; j < K; j++)); do o+=("$j"); done; o[$1]=$2
 # Paare vertauschter Schritte: <Name> <Stelle> <Stelle>
 TAUSCHE=("eingaben-binaries 0 1" "binaries-release 1 $((K - 1))" "binaries-image 1 2" "image-scan 2 3" "scan-veroeffentlichen 3 4" "image-veroeffentlichen 2 4" "veroeffentlichen-vergleichen 4 5" "vergleichen-smoke 5 6" "smoke-latest 6 7" "latest-release 7 8")
 for tp in "${TAUSCHE[@]}"; do read -r tn tk tl <<< "$tp"; eval "f_p1_reihenfolge_${tn//-/_}() { neu; urteil rot < <(umgestellt \$(tausch $tk $tl)); }"; done
-f_p1_leerzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "" "${t[@]:3}"); }
-f_p1_kommentarzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "# Kommentar" "${t[@]:3}"); }
-f_p1_kommentarzeile_eingerueckt() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "    # Kommentar" "${t[@]:3}"); }
+f_p1_leerzeile() { neu; urteil_z ok "${t[@]:0:3}" "" "${t[@]:3}"; }
+f_p1_kommentarzeile() { neu; urteil_z ok "${t[@]:0:3}" "# Kommentar" "${t[@]:3}"; }
+f_p1_kommentarzeile_eingerueckt() { neu; urteil_z ok "${t[@]:0:3}" "    # Kommentar" "${t[@]:3}"; }
 # Job homebrew (Punkt 1c): sidx <Text> <von> <bis> — Index der ersten Zeile von SOLL mit genau dem Text in [von, bis), sonst -1.
 sidx() { local i; for ((i = $2; i < $3; i++)); do if [ "${SOLL[i]}" = "$1" ]; then echo "$i"; return; fi; done; echo -1; }
 JR=$(sidx '  release:' 0 "$N")
@@ -275,16 +295,16 @@ H_SCHRITT=$(sidx '      - name: Homebrew' "$JH" "$N")
 R_ENV_REPO=$(sidx '      RELEASE_REPOSITORY: ${{ github.repository }}' 0 "$JH")
 R_GH_STEP=$(sidx '          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}' 0 "$JH")
 # einfuegen <Index> <Zeile> — der Text mit einer zusätzlichen Zeile hinter der Zeile <Index>.
-einfuegen() { neu; urteil rot < <(zeilen "${t[@]:0:$1+1}" "$2" "${t[@]:$1+1}"); }
-f_p1_homebrew_needs() { neu; unset "t[$H_NEEDS]"; urteil rot < <(zeilen "${t[@]}"); }
-f_p1_homebrew_bedingung() { neu; unset "t[$H_IF]"; urteil rot < <(zeilen "${t[@]}"); }
-f_p1_homebrew_pin() { neu; t[PIN2]="        uses: actions/checkout@$SHA_PROBE"; urteil rot < <(zeilen "${t[@]}"); }
+einfuegen() { neu; urteil_z rot "${t[@]:0:$1+1}" "$2" "${t[@]:$1+1}"; }
+f_p1_homebrew_needs() { neu; unset "t[$H_NEEDS]"; urteil_z rot "${t[@]}"; }
+f_p1_homebrew_bedingung() { neu; unset "t[$H_IF]"; urteil_z rot "${t[@]}"; }
+f_p1_homebrew_pin() { neu; t[PIN2]="        uses: actions/checkout@$SHA_PROBE"; urteil_z rot "${t[@]}"; }
 f_p1_homebrew_geheimnis_nur_im_schritt() { einfuegen "$H_ENV_REPO" '      RELEASE_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}'; }
 f_p1_homebrew_geheimnis_release_job() { einfuegen "$R_ENV_REPO" '      HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}'; }
 f_p1_homebrew_geheimnis_release_schritt() { einfuegen "$R_GH_STEP" '          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}'; }
 f_p1_homebrew_keine_registry_rechte() { einfuegen "$H_PERM" '      packages: write'; }
-f_p1_reihenfolge_jobs() { neu; urteil rot < <(zeilen "${t[@]:0:JR}" "${t[@]:JH}" "${t[@]:JR:JH-JR}"); }
-f_p1_reihenfolge_homebrew_schritte() { neu; urteil rot < <(zeilen "${t[@]:0:PIN2-1}" "${t[@]:H_SCHRITT}" "${t[@]:PIN2-1:H_SCHRITT-PIN2+1}"); }
+f_p1_reihenfolge_jobs() { neu; urteil_z rot "${t[@]:0:JR}" "${t[@]:JH}" "${t[@]:JR:JH-JR}"; }
+f_p1_reihenfolge_homebrew_schritte() { neu; urteil_z rot "${t[@]:0:PIN2-1}" "${t[@]:H_SCHRITT}" "${t[@]:PIN2-1:H_SCHRITT-PIN2+1}"; }
 
 # --- Welt, Attrappen, Hilfen für release.sh -------------------------------------------------------------------------------------------------------------
 TOKEN=ghs_GeheimerTokenWert0123456789
@@ -400,7 +420,7 @@ if [ "${1-}" = run ]; then
   done
   a="$(jq -r '.manifests[0].platform.architecture // ""' "$ldir/index.json" 2> /dev/null)"
   { echo "== $a"; (cd "$ldir" 2> /dev/null && ls -A | tr '\n' ' '; echo); jq -c '.manifests' "$ldir/index.json" 2> /dev/null || echo; echo "$(cd "$ldir/blobs" 2> /dev/null && find . -type f -exec sha256sum {} + | sort | tr '\n' ' ')"; } >> "$GP_LOG/mount"
-  modus() { local x; x="$(tr ' ' '\n' <<< "${!1-}" | sed -n "s/^$a=//p" | head -n 1)"; echo "${x:-$2}"; }
+  modus() { local x w; for w in ${!1-}; do if [[ $w == "$a="* ]]; then x="${w#"$a="}"; break; fi; done; echo "${x:-$2}"; }
   u() { date -u -d "@$(( $(date +%s) - $1 ))" +%Y-%m-%dT%H:%M:%S.123456789Z; }
   [ -n "$cache" ] || cache=/nonexistent/cache
   mkdir -p "$cache/db" 2> /dev/null
@@ -560,12 +580,13 @@ esac
 exit 0
 EOT
   chmod +x "$b"/*
+  sed -i "1s|^#!/usr/bin/env bash\$|#!$(command -v bash)|" "$b"/*
 }
 # welt <dir> — legt quelle/ an (main: c1 c2; Zweig side mit s1 aus c1; refs/remotes/origin/main auf c1, origin/trunk auf s1) und bin/ mit den Attrappen.
 welt() {
   local q="$1/quelle"
   mkdir -p "$q"
-  git -C "$q" init -q -b main
+  git -C "$q" init -q --template= -b main
   GIT_AUTHOR_DATE="1700000000 +0000" GIT_COMMITTER_DATE="1700000000 +0000" git -C "$q" commit -q --allow-empty -m c1
   c1="$(git -C "$q" rev-parse HEAD)"
   git -C "$q" checkout -q -b side
@@ -583,7 +604,7 @@ welt() {
 # Überschrift, die nicht auf Änderungshistorie endet) · pipe, pipe-maskiert (ein weiteres `|` im Text, roh und als `\|`) · spaeter (die Version nur in einem Abschnitt danach) · leer (Zeile der Version mit leerer dritter Zelle) · ohne (keine Zeile).
 handbuch() {
   local v="$1" m="${2:-normal}" f="$w/repo/docs/user/benutzerhandbuch.md"
-  mkdir -p "$w/repo/docs/user"
+  [ -d "$w/repo/docs/user" ] || mkdir -p "$w/repo/docs/user"
   {
     printf '# Benutzerhandbuch\n\n'
     case "$m" in abschnitt | nur-anderer) printf '## 10. Support\n\n| %s | 2020-01-01 | Falscher-Abschnitt |\n\n' "$v" ;; esac
@@ -601,19 +622,23 @@ handbuch() {
   } > "$f"
 }
 # kopie — der Baum des Falls: repo/ (Kopie der Welt), log/, runner/, tmp/.
-kopie() { w="$run/t.$fallname"; rm -rf "$w"; mkdir -p "$w/log" "$w/runner" "$w/tmp" "$w/registry"; cp -a "$run/welt/quelle" "$w/repo"; }
+kopie() { w="$run/t.$fallname"; [ ! -e "$w" ] || rm -rf "$w"; mkdir -p "$w/log" "$w/runner" "$w/tmp" "$w/registry"; cp -a "$run/welt/quelle" "$w/repo"; }
 # fix [Version [Handbuch-Modus]] — setzt V, legt den Baum an, schreibt VERSION und das Handbuch.
 PGIMG='postgres:test@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 fix() {
-  V="${1:-0.1.0}"; kopie; printf '%s\n' "$V" > "$w/repo/VERSION"; handbuch "$V" "${2:-normal}"
-  mkdir -p "$w/repo/harness/mk" "$w/repo/tools/harness"
+  V="${1:-0.1.0}"; kopie
+  mkdir -p "$w/repo/docs/user" "$w/repo/harness/mk" "$w/repo/tools/harness"
+  printf '%s\n' "$V" > "$w/repo/VERSION"; handbuch "$V" "${2:-normal}"
   printf 'POSTGRES_IMAGE ?= %s\n' "$PGIMG" > "$w/repo/harness/mk/integration.mk"
-  cat > "$w/repo/tools/harness/container-smoke.sh" << 'EOT'
+  printf '%s\n' "$SMOKE_TEXT" > "$w/repo/tools/harness/container-smoke.sh"
+}
+SMOKE_TEXT="$(cat << 'EOT'
 #!/usr/bin/env bash
 echo "ref=$1 VERSION=$VERSION POSTGRES_IMAGE=$POSTGRES_IMAGE SMOKE_NAME=$SMOKE_NAME LAUF=$SMOKE_LAUF WERK=$([ -d "$SMOKE_WERK" ] && echo da || echo fehlt)" >> "$GP_LOG/smoke"
 [[ " ${GP_SMOKE_ROT-} " != *" ${1%%/*} "* ]] || { echo "smoke rot" >&2; exit 1; }
 EOT
-}
+)"
+
 # umg <lauf|trocken> [NAME=Wert | -NAME]… — setzt E: die Umgebung von release.sh, dann die Abweichungen.
 umg() {
   local art="$1" a
@@ -635,8 +660,8 @@ lauf() {
   umg_befehl
   ( cd "$w/repo" && "${ENVV[@]}" "$@" bash "$releasesh" "$s" ) > "$w.out" 2> "$w.err"
   code=$?
-  out="$(cat "$w.out"; printf x)"; out="${out%x}"
-  err="$(cat "$w.err"; printf x)"; err="${err%x}"
+  IFS= read -r -d '' out < "$w.out" || true
+  IFS= read -r -d '' err < "$w.err" || true
 }
 # sei <Beschreibung> <Befehl>… — der Befehl muss Exit 0 haben, sonst ist der Fall rot und das Protokoll nennt die Beschreibung mit Exit, stdout und stderr.
 sei() {
@@ -658,7 +683,7 @@ hat_hinweis() { local z; while IFS= read -r z; do if [[ $z == "release: hinweis:
 gruen() { sei "Exit 0" test "$code" -eq 0; }
 # bis <Schritt>… — fährt die Schritte nacheinander mit E; jeder endet mit Exit 0.
 bis() { local s; for s in "$@"; do lauf "$s"; sei "Schritt $s grün" test "$code" -eq 0; done; }
-aufrufe() { cat "$w/log/$1" 2> /dev/null || true; }
+aufrufe() { local x=""; IFS= read -r -d '' x < "$w/log/$1" 2> /dev/null || true; printf '%s' "$x"; }
 nie() { [ ! -s "$w/log/$1" ]; }
 DIST() { echo "$w/runner/release/dist"; }
 NAMEN() { local o a e; for o in darwin linux windows; do for a in amd64 arm64; do e=""; [ "$o" = windows ] && e=.exe; echo "pgwire-recorder-${o}-${a}$e"; done; done; echo SHA256SUMS; }
@@ -1411,7 +1436,7 @@ warte_auf_reste() { local i; for i in $(seq 1 80); do if reste_da; then return 0
 # abbruchfall <Signal> <Exit> — fährt $skript13 mit eigenem TMPDIR in eigener Sitzung, sendet das Signal, sobald dort ein Fall läuft, und prüft danach Exit, leeren TMPDIR
 # und Prozesse mit dem Temp-Pfad in der Befehlszeile.
 abbruchfall() {
-  local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste
+  local sig="$1" soll="$2" pid=0 rc=0 bg ok=1 reste modus="${3-}"
   mkdir -p "$run"
   t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1
   ( trap - INT TERM; exec env --default-signal=INT,TERM -u GP_MUT -u GP_ENTDECKE -u GP_FALL TMPDIR="$t" GP_PARALLEL=2 GP_INNEN=1 setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$t.pid" "$skript13" > "$t.out" 2> "$t.err" ) &
@@ -1421,11 +1446,16 @@ abbruchfall() {
   if [ "$pid" -gt 1 ]; then kill -s "$sig" "$pid" 2> /dev/null; else ok=0; fi
   wait "$bg" || rc=$?
   warte_auf_reste
-  [ "$rc" -eq "$soll" ] || ok=0
-  reste="$(ls -A "$t" 2> /dev/null)"
-  ! reste_da || ok=0
+  if [ "$modus" = zeit ]; then
+    # SPEC-060 Punkt 16 (2): bei Abbruch durch ein Signal steht keine Zeile mit der Zeit auf stderr.
+    ! grep -q ': Zeit ' "$t.err" || ok=0
+  else
+    [ "$rc" -eq "$soll" ] || ok=0
+    reste="$(ls -A "$t" 2> /dev/null)"
+    ! reste_da || ok=0
+  fi
   if [ "$ok" -eq 0 ]; then
-    printf 'erwartet: Exit %s, TMPDIR leer, kein Prozess mit dem Pfad\ngelesen: Exit %s, TMPDIR: %s\nstderr:\n%s\n' "$soll" "$rc" "$reste" "$(cat "$t.err" 2> /dev/null)" >> "$run/log.$fallname"
+    printf 'erwartet: Exit %s, TMPDIR leer, kein Prozess mit dem Pfad, keine Zeile Zeit\ngelesen: Exit %s, TMPDIR: %s\nstderr:\n%s\n' "$soll" "$rc" "${reste-}" "$(cat "$t.err" 2> /dev/null)" >> "$run/log.$fallname"
     bad=1
   fi
   if [ "$pid" -gt 1 ]; then kill -s KILL -- "-$pid" 2> /dev/null || true; fi
@@ -1456,6 +1486,79 @@ f_p16_werkzeug_jq() { werkzeug_fehlt jq; }
 f_p16_werkzeug_date() { werkzeug_fehlt date; }
 f_p13_gegenprobe_sigint() { abbruchfall INT 130; }
 f_p13_gegenprobe_sigterm() { abbruchfall TERM 143; }
+
+# --- Zeit und Platz (SPEC-060 Punkt 16, SPEC-067 Punkt 14) ---------------------------------------------------------------------------------------------------
+# zk <NAME=Wert>… — fährt eine Kopie von $skript13 (die Zeile `repo=` zeigt auf den Arbeitsbaum, dazu die Ersetzungen aus ZE, Paare alt neu) mit eigenem TMPDIR und GP_INNEN=1 und setzt kcode, kout und kerr.
+# Die Umgebung der Kopie trägt nur die Werte nach dem Aufruf; GP_ZEUGE (Datei) nehmen die Ersetzungen auf, die einen Zwischenstand sichtbar machen.
+ZE=()
+zk() {
+  local inhalt neu alt ersatz i
+  mkdir -p "$run"
+  t="$(mktemp -d "$run/tmp.XXXXXX")" || exit 1
+  inhalt="$(cat "$skript13"; printf x)"; inhalt="${inhalt%x}"
+  alt='repo="$(cd "$hier/../../.." && pwd)"'; ersatz="repo=\"$repo\""
+  neu="${inhalt/"$alt"/"$ersatz"}"
+  for ((i = 0; i < ${#ZE[@]}; i += 2)); do
+    alt="${ZE[i]}"; ersatz="${ZE[i + 1]}"
+    if [[ $neu != *"$alt"* ]]; then bad=1; printf 'Textstelle nicht gefunden: %s\n' "$alt" >> "$run/log.$fallname"; kcode=99; kout=""; kerr=""; return; fi
+    if [[ ${neu/"$alt"/$'\001'} == *"$alt"* ]]; then bad=1; printf 'Textstelle nicht eindeutig: %s\n' "$alt" >> "$run/log.$fallname"; kcode=99; kout=""; kerr=""; return; fi
+    neu="${neu/"$alt"/"$ersatz"}"
+  done
+  printf '%s' "$neu" > "$t/skript.sh"
+  kcode=0
+  env -u GP_FALL -u GP_ENTDECKE -u GP_MUT -u GP_BUDGET -u GP_ZEUGE TMPDIR="$t" GP_INNEN=1 GP_ZEUGE="$t/zeuge" "$@" bash "$t/skript.sh" > "$t/kout" 2> "$t/kerr" || kcode=$?
+  IFS= read -r -d '' kout < "$t/kout" || true
+  IFS= read -r -d '' kerr < "$t/kerr" || true
+}
+# zeile <Muster> — eine ganze Zeile von kerr passt auf das Muster (regulärer Ausdruck).
+zeile() { [[ $kerr =~ (^|$'\n')($1)($|$'\n') ]]; }
+Z_VERZ="    echo fall-ohne-funktion >> \"\$arbeit/gefahren\""
+Z_SPAET="    sleep 2; echo fall-ohne-funktion >> \"\$arbeit/gefahren\""
+Z_ARB=": > \"\$arbeit/fehler\""
+Z_MUTSPAET=": > \"\$arbeit/fehler\"; GP_MUT='^fall-ohne-funktion\$'"
+CHEAP='^fall-ohne-funktion$'
+Z_LAST='LOADAVG=/proc/load''avg'
+Z_ENDE=$'\nwait\nfehler=0\n'
+Z_ZEUGE=$'\nwait\nfind "$arbeit" -mindepth 1 -maxdepth 1 -name \'m-*\' > "$GP_ZEUGE"\nfehler=0\n'
+Z_EINE=$'mut1 m-p1-leerzeilen-nicht-''ignoriert "p1-leerzeile" '
+Z_EINE_ROT=$'mut1 m-p1-leerzeilen-nicht-ignoriert "p1-gleich" '
+Z_P1=$'FAELLE_P13=(p13-ende p13-sigint ''p13-sigterm)'
+Z_P1_KLEIN=$'FAELLE_P13=(p13-ende p13-sigint ''p13-sigterm); FAELLE_P1=(p1-gleich p1-leerzeile)'
+EINE='^m-p1-leerzeilen-nicht-ignoriert$'
+Z_BEWERTE=$'  echo "$1" >> "$arbeit/gefahren"\n'
+Z_FALLZEUGE=$'  find "$run" -mindepth 1 -maxdepth 1 -name \'t.*\' >> "$GP_ZEUGE"\n  echo "$1" >> "$arbeit/gefahren"\n'
+Z_TIPP=$'FALL_ZUSATZ=p1-tippfehler ''faelle p1'
+Z_TIPP2=$'FALL_ZUSATZ=p1-tippfehler2 faelle p1'
+f_p14_budget_ueber() { ZE=("$Z_VERZ" "$Z_SPAET"); zk GP_BUDGET=1 GP_MUT="$CHEAP"; sei "Exit 1" test "$kcode" -eq 1; sei "Zeile ROT — Zeitbudget" zeile "$GPN: ROT — Zeitbudget: [0-9]+ s über 1 s"; sei "Zeile Zeit" zeile "$GPN: Zeit [0-9]+ s von höchstens 1 s, Last [0-9]+[.][0-9]+"; }
+f_p14_budget_unter() { ZE=(); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit" zeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last [0-9]+[.][0-9]+"; sei "kein ROT" ohne "$kerr" "Zeitbudget"; }
+f_p14_budget_null() { ZE=("$Z_VERZ" "$Z_SPAET"); zk GP_BUDGET=0 GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "kein ROT" ohne "$kerr" "Zeitbudget"; sei "Zeile Zeit" zeile "$GPN: Zeit [0-9]+ s von höchstens 0 s, Last [0-9]+[.][0-9]+"; }
+budget_ungueltig() { ZE=(); zk "GP_BUDGET=$1" GP_MUT="$CHEAP"; sei "Exit 2" test "$kcode" -eq 2; sei "genau die Meldung" test "$kerr" = "$GPN: GP_BUDGET: keine ganze Zahl"$'\n'; sei "kein Fall gefahren" test -z "$kout"; }
+f_p14_budget_ungueltig_leer() { budget_ungueltig ''; }
+f_p14_budget_ungueltig_minus() { budget_ungueltig '-1'; }
+f_p14_budget_ungueltig_bruch() { budget_ungueltig '1.5'; }
+f_p14_budget_ungueltig_abc() { budget_ungueltig 'abc'; }
+f_p14_budget_vorgabe_nur_ohne_mut() { ZE=(); zk GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit ohne Obergrenze" zeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+"; sei "kein ROT" ohne "$kerr" "Zeitbudget"; }
+f_p14_budget_entdecke_vorgabe_gilt() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit mit Obergrenze 600" zeile "$GPN: Zeit [0-9]+ s von höchstens 600 s, Last [0-9]+[.][0-9]+"; }
+f_p14_budget_fall_keine_vorgabe() { ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_FALL=p1-gleich; sei "Exit 0" test "$kcode" -eq 0; sei "Zeile Zeit ohne Obergrenze" zeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+"; }
+f_p14_budget_last_fehlt() { ZE=("$Z_LAST" $'LOADAVG=/proc/nirgends-loadavg'); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; sei "Exit 0" test "$kcode" -eq 0; sei "Last -" zeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last -"; }
+f_p14_budget_gruende() {
+  local a b c
+  ZE=("$Z_VERZ" "$Z_SPAET" "$Z_TIPP" "$Z_TIPP2"); zk GP_BUDGET=1 GP_MUT="$CHEAP"
+  sei "Exit 1" test "$kcode" -eq 1
+  a="$(grep -n "^$GPN: ROT — Fall ohne Funktion" "$t/kerr" | head -n 1 | cut -d: -f1)"
+  b="$(grep -n "^$GPN: ROT — Zeitbudget" "$t/kerr" | head -n 1 | cut -d: -f1)"
+  c="$(grep -n "^$GPN: Zeit " "$t/kerr" | head -n 1 | cut -d: -f1)"
+  sei "rote Fälle vor Zeitbudget vor Zeile Zeit" test "${a:-9}" -lt "${b:-0}" -a "${b:-9}" -lt "${c:-0}"
+}
+f_p14_budget_sigint() { abbruchfall INT 130 zeit; }
+f_p14_budget_sigterm() { abbruchfall TERM 143 zeit; }
+f_p14_ordner_mutation() { ZE=("$Z_P1" "$Z_P1_KLEIN" "$Z_ENDE" "$Z_ZEUGE"); zk GP_MUT="$EINE"; sei "Exit 0" test "$kcode" -eq 0; sei "kein Ordner einer Mutation am Ende" test ! -s "$t/zeuge"; }
+f_p14_ordner_rote_mutation() { ZE=("$Z_P1" "$Z_P1_KLEIN" "$Z_ENDE" "$Z_ZEUGE" "$Z_EINE" "$Z_EINE_ROT"); zk GP_MUT="$EINE"; sei "Exit 1" test "$kcode" -eq 1; sei "kein Ordner einer roten Mutation am Ende" test ! -s "$t/zeuge"; }
+f_p14_ordner_fall() { ZE=("$Z_P1" "$Z_P1_KLEIN" "$Z_BEWERTE" "$Z_FALLZEUGE"); zk GP_MUT="$EINE"; sei "Exit 0" test "$kcode" -eq 0; sei "kein Ordner eines Falls bei der Bewertung" test -f "$t/zeuge" -a ! -s "$t/zeuge"; }
+Z_OK=$'    ist="$(faelle ok | LC_ALL=C sort -u | tr \'\\n\' \' \')"'
+Z_OK_PROBE=$'    f_p14_probe() { bad=1; echo PROBE-PROTOKOLL >> "$run/log.$fallname"; echo PROBE-STDERR >&2; }; ist="$(faelle p14-probe | LC_ALL=C sort -u | tr \'\\n\' \' \')"'
+f_p14_fall_protokoll() { ZE=("$Z_OK" "$Z_OK_PROBE"); zk GP_MUT='^ok$' GP_FALL=p14-probe; sei "Exit 1" test "$kcode" -eq 1; sei "Protokoll des Falls" enthaelt "$kerr" "PROBE-PROTOKOLL"; }
+f_p14_fall_stderr() { ZE=("$Z_OK" "$Z_OK_PROBE"); zk GP_MUT='^ok$' GP_FALL=p14-probe; sei "Exit 1" test "$kcode" -eq 1; sei "stderr der unveränderten Kopie" zeile "stderr: PROBE-STDERR"; }
 # release.sh: Ende, SIGINT und SIGTERM in `binaries` mit einem make als Attrappe, das Nachkommen startet und in das Temp-Verzeichnis des Skripts schreibt.
 f_p13_ende() {
   fix 0.1.0; umg lauf; bis eingaben
@@ -1886,11 +1989,16 @@ FAELLE_F=(p16-trockenlauf p16-gruen p16-e1 p16-e2 p16-e2-quelle p16-e3 p16-e4 p1
 FAELLE_P13=(p13-ende p13-sigint p13-sigterm)
 FAELLE_H=(p19-summen-weitere-namen-ignoriert p19-kein-zustand p19-nur-lesen p19-summen-name-genau p19-tap-gleich-andere-summe p19-tap-andere-dateien-bleiben p19-ohne-push p19-ref-kein-tag p19-tag-form p19-vorabversion p19-gh-token-fehlt p19-gh-token-leer p19-tap-token-fehlt p19-tap-token-leer p19-reihenfolge-gruende-a-b p19-reihenfolge-gruende-b-c p19-reihenfolge-gruende-c-d p19-reihenfolge-gruende-d-e p19-ohne-runner-temp p19-summen-aufruf p19-summen-laden-scheitert p19-summen-doppelt p19-summen-altes-schema p19-summen-form-zu-kurz p19-summen-form-zu-lang p19-summen-form-grossbuchstaben p19-summen-form-kein-hex p19-summen-windows-ignoriert p19-summen-vor-tap p19-formel-text p19-formel-version p19-formel-kein-windows p19-formel-kein-platzhalter p19-vorlage-text p19-vorlage-fehlt p19-vorlage-leer p19-vorlage-verzeichnis p19-vorlage-nach-summen p19-vorlage-vor-tap p19-tap-leer p19-tap-leer-head-anders p19-tap-nicht-leer p19-tap-ohne-formula-verzeichnis p19-tap-formula-vorhanden p19-tap-zweig-anders p19-tap-pfad-datei p19-tap-pfad-formula-symlink p19-tap-pfad-formel-verzeichnis p19-tap-pfad-formel-symlink p19-tap-formel-ohne-version p19-tap-formel-zwei-versionen p19-tap-formel-vorabversion p19-tap-niedriger p19-tap-gleich-aktuell p19-tap-gleich-andere-vorlage p19-tap-hoeher p19-tap-semver-numerisch p19-klon-scheitert p19-commit-identitaet p19-commit-nachricht p19-push-ohne-force p19-push-ohne-lease p19-push-abgewiesen p19-tap-url-vorgabe p19-token-askpass-benutzer p19-token-askpass-passwort p19-token-askpass-gesetzt p19-kein-prompt p19-credential-helper-leer p19-token-nicht-im-argument p19-token-nicht-in-url-und-config p19-token-nicht-im-log p19-sigint p19-sigterm p19-summen-fehlt-darwin-amd64 p19-formel-url-darwin-amd64 p19-formel-summe-darwin-amd64 p19-summen-fehlt-darwin-arm64 p19-formel-url-darwin-arm64 p19-formel-summe-darwin-arm64 p19-summen-fehlt-linux-amd64 p19-formel-url-linux-amd64 p19-formel-summe-linux-amd64 p19-summen-fehlt-linux-arm64 p19-formel-url-linux-arm64 p19-formel-summe-linux-arm64 p19-ende)
 FAELLE_GP13=(p13-gegenprobe-sigint p13-gegenprobe-sigterm p13-gegenprobe-ende p16-werkzeug-jq p16-werkzeug-date)
+FAELLE_GP14=(p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-ungueltig-leer p14-budget-ungueltig-minus p14-budget-ungueltig-bruch p14-budget-ungueltig-abc p14-budget-vorgabe-nur-ohne-mut
+  p14-budget-entdecke-vorgabe-gilt p14-budget-fall-keine-vorgabe p14-budget-last-fehlt p14-budget-gruende p14-ordner-mutation p14-ordner-rote-mutation p14-ordner-fall p14-fall-protokoll p14-fall-stderr)
+FAELLE_GP14S=(p14-budget-sigint p14-budget-sigterm)
 
 # faelle <gruppe> — schreibt die Namen der roten Fälle der Gruppe (p1, sh, b, f, h, p13, gp13, ok = alle), einen je Zeile. FALL_ZUSATZ nennt einen weiteren Namen (Probe: ein Name ohne
 # Funktion ist ein roter Fall).
 faelle() {
-  local n
+  local n d
+  unset TEXT0
+  case "$1" in p1 | ok) mapfile -t TEXT0 < <(text) ;; esac
   case "$1" in
     p1) set -- "${FAELLE_P1[@]}" ;;
     sh) set -- "${FAELLE_SH[@]}" ;;
@@ -1899,16 +2007,20 @@ faelle() {
     p13) set -- "${FAELLE_P13[@]}" ;;
     h) set -- "${FAELLE_H[@]}" ;;
     gp13) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_GP13[@]}"; fi ;;
-    ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_B[@]}" "${FAELLE_F[@]}" "${FAELLE_P13[@]}" "${FAELLE_H[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" ;;
+    gp14) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_GP14[@]}"; fi ;;
+    gp14s) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_GP14S[@]}"; fi ;;
+    ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_B[@]}" "${FAELLE_F[@]}" "${FAELLE_P13[@]}" "${FAELLE_H[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" "${FAELLE_GP14[@]}" "${FAELLE_GP14S[@]}" ;;
   esac
+  mkdir -p "$run"
   for n in "$@" ${FALL_ZUSATZ-}; do
     fallname="$n"
-    mkdir -p "$run"
     declare -F "f_${n//-/_}" > /dev/null || { echo "$n"; continue; }
     ( bad=0; "f_${n//-/_}"; exit "$bad" ) > /dev/null 2>> "$run/stderr" || echo "$n"
+    for d in "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume_ordner "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; break; fi; done # P14fall-ordner
   done
 }
 protokoll_zeigen() { [ -z "${GP_FALL-}" ] || [ ! -f "$run/log.$GP_FALL" ] || cat "$run/log.$GP_FALL" >&2; }
+stderr_zeigen() { if [ -n "${GP_FALL-}" ]; then sed 's/^/stderr: /' "$run/stderr" >&2; fi; }
 
 maxjobs="${GP_PARALLEL:-4}"
 wartejob() { while [ "$(jobs -rp | wc -l)" -ge "$maxjobs" ]; do wait -n || true; done; }
@@ -1922,6 +2034,7 @@ bewerte() {
   if [ -n "${GP_ENTDECKE-}" ]; then echo "$1 => ${ist:-nichts}" >&2; fi
   echo "$1" >> "$arbeit/gefahren"
   [ "$ist" = "$erwartet" ] || melde "Mutation '$1': erwartet rot: ${2:-nichts}; rot sind: ${ist:-nichts}"
+  raeume_ordner "$run" # P14mutation-ordner
 }
 # fn_ersetze <alt> <neu> — Textersatz in pruefe_release (Quelltext aus declare -f), wirkt im aktuellen Lauf.
 fn_ersetze() {
@@ -1964,7 +2077,7 @@ mutr() {
         continue
       fi
       if [[ $neu != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
-      rest="${neu#*"$alt"}"
+      rest="${neu/"$alt"/$'\001'}" # eindeutig: nach dem Ersatz der ersten Stelle trägt der Rest keine zweite (die Marke trennt; `${neu#*"$alt"}` ist bei 260 KB quadratisch)
       if [[ $rest == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
       neu="${neu/"$alt"/"$ersatz"}"
       shift 2
@@ -1983,8 +2096,9 @@ if [[ ok =~ ${GP_MUT:-.} ]]; then
     ist="$(faelle ok | LC_ALL=C sort -u | tr '\n' ' ')"
     echo ok >> "$arbeit/gefahren"
     [ -z "$ist" ] || melde "unveränderte Kopie ist nicht grün: $ist"
-    protokoll_zeigen
-    if [ -n "${GP_FALL-}" ]; then sed 's/^/stderr: /' "$run/stderr" >&2; fi
+    protokoll_zeigen # P14protokoll
+    stderr_zeigen # P14stderr
+    raeume_ordner "$run" # P14ok-ordner
   ) &
 fi
 
@@ -1999,11 +2113,16 @@ mut13g() {
     for f in .github/workflows/release.yml tools/harness/release.sh tools/harness/homebrew-formula.rb.tmpl; do cp "$repo/$f" "$m/$f"; done
     inhalt="$(cat "$selbst"; printf x)"; inhalt="${inhalt%x}"
     if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
-    if [[ ${inhalt#*"$alt"} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
+    if [[ ${inhalt/"$alt"/$'\001'} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
     neu="${inhalt/"$alt"/"$4"}"
+    if [ -n "${6-}" ]; then
+      if [[ $neu != *"$6"* ]]; then melde "Mutation '$name': zweite Textstelle nicht gefunden: $6"; exit 0; fi
+      if [[ ${neu/"$6"/$'\001'} == *"$6"* ]]; then melde "Mutation '$name': zweite Textstelle nicht eindeutig: $6"; exit 0; fi
+      neu="${neu/"$6"/"$7"}"
+    fi
     printf '%s' "$neu" > "$m/tools/dev/harness/release-gegenprobe.sh"
     skript13="$m/tools/dev/harness/release-gegenprobe.sh"
-    bewerte "$name" "$rote" gp13
+    bewerte "$name" "$rote" "${5:-gp13}"
   ) &
 }
 
@@ -2014,6 +2133,7 @@ if [[ rekursion-schutz =~ ${GP_MUT:-.} ]] && [ -z "${GP_INNEN-}" ]; then
     rc=0; ausgabe="$(env -u GP_FALL GP_INNEN=1 GP_MUT=m-p13-gegenprobe TMPDIR="$run" timeout 60 bash "$selbst" 2>&1)" || rc=$?
     echo rekursion-schutz >> "$arbeit/gefahren"
     [[ $ausgabe == *"keine Mutation und keine Kopie gefahren"* ]] && [ "$rc" -eq 1 ] || melde "Rekursionsschutz: erwartet Exit 1 ohne Lauf; Exit $rc: $ausgabe"
+    raeume_ordner "$run"
   ) &
 fi
 
@@ -2024,6 +2144,7 @@ if [[ fall-ohne-funktion =~ ${GP_MUT:-.} ]]; then
     ist="$(FALL_ZUSATZ=p1-tippfehler faelle p1 | LC_ALL=C sort -u | tr '\n' ' ')"
     echo fall-ohne-funktion >> "$arbeit/gefahren"
     [ "$ist" = "p1-tippfehler " ] || melde "Fall ohne Funktion: erwartet rot: p1-tippfehler; rot sind: ${ist:-nichts}"
+    raeume_ordner "$run"
   ) &
 fi
 
@@ -2520,7 +2641,7 @@ mutv() {
     run="$arbeit/$name"; mkdir -p "$run"; releasesh="$repo/tools/harness/release.sh"
     inhalt="$(cat "$repo/tools/harness/homebrew-formula.rb.tmpl"; printf x)"; inhalt="${inhalt%x}"
     if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; exit 0; fi
-    if [[ ${inhalt#*"$alt"} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
+    if [[ ${inhalt/"$alt"/$'\001'} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; exit 0; fi
     neu="${inhalt/"$alt"/"$4"}"
     vorlage="$run/vorlage.tmpl"; printf '%s' "$neu" > "$vorlage"
     lauf_welt
@@ -2672,9 +2793,44 @@ mh m-p19-int-verzeichnis-zu-frueh "p19-sigint" $'\nabbruch_int() { trap - EXIT I
 mh m-p19-term-verzeichnis-zu-frueh "p19-sigterm" $'\nabbruch_term() { trap - EXIT INT TERM; beende_kinder; raeume_auf; exit 143; }' $'\nabbruch_term() { trap - EXIT INT TERM; raeume_auf; sleep 5; beende_kinder; exit 143; }'
 # Punkt 2 (Gruppe sh): der Schritt homebrew prüft das Ereignis
 mutr m-p2-homebrew-ohne-ereignispruefung "p2-aussenwirkung-ohne-push p2-ref-kein-tag" sh 'L:# P19ereignis' ''
+# Zeit und Platz (SPEC-060 Punkt 16, SPEC-067 Punkt 14): Mutationen der Zeitprüfung, der Ausgabe und des Entfernens; rot sind genau die benannten Fälle p14-*. Der Text der Textstelle steht geteilt im Skript (sonst fände die Mutation ihn zweimal).
+mut13g m-p14-budget-pruefung "p14-budget-ueber p14-budget-gruende" $'if [ -n "$budget" ] && [ "$budget'$'" != 0 ] && (( T > budget )); then' $'if false; then' gp14
+mut13g m-p14-budget-null-geprueft "p14-budget-null" $'[ "$budget"'$' != 0 ] && ' $'' gp14
+mut13g m-p14-budget-zeile-mit-obergrenze "p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-entdecke-vorgabe-gilt p14-budget-last-fehlt p14-budget-gruende" $'  echo "$GPN: Zeit $T s von höch'$'stens $budget s, Last $last" >&2' $'  :' gp14
+mut13g m-p14-budget-zeile-ohne-obergrenze "p14-budget-vorgabe-nur-ohne-mut p14-budget-fall-keine-vorgabe" $'  echo "$GPN: Zeit $'$'T s, Last $last" >&2' $'  :' gp14
+mut13g m-p14-budget-vorgabe-trotz-mut "p14-budget-vorgabe-nur-ohne-mut" $'elif [ -z "${GP_MUT-}" ] &&'$' [ -z "${GP_FALL-}" ]; then' $'elif [ -z "${GP_FALL-}" ]; then' gp14
+mut13g m-p14-budget-vorgabe-trotz-fall "p14-budget-fall-keine-vorgabe" $'elif [ -z "${GP_MUT-}" ] &&'$' [ -z "${GP_FALL-}" ]; then' $'elif [ -z "${GP_MUT-}" ]; then' gp14
+mut13g m-p14-budget-vorgabe-nicht-bei-entdecke "p14-budget-entdecke-vorgabe-gilt" $'[ -z "${GP_FALL-}" '$']; then\n  budget=600' $'[ -z "${GP_FALL-}" ] && [ -z "${GP_ENTDECKE-}" ]; then\n  budget=600' gp14
+mut13g m-p14-budget-ungueltig-leer-erlaubt "p14-budget-ungueltig-leer" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]*$ ]]' gp14
+mut13g m-p14-budget-ungueltig-minus-erlaubt "p14-budget-ungueltig-minus" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^-?[0-9]+$ ]]' gp14
+mut13g m-p14-budget-ungueltig-bruch-erlaubt "p14-budget-ungueltig-bruch" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]+([.][0-9]+)?$ ]]' gp14
+mut13g m-p14-budget-ungueltig-buchstaben-erlaubt "p14-budget-ungueltig-abc" $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9a-z]+$ ]]' gp14
+mut13g m-p14-budget-ungueltig-ohne-exit "p14-budget-ungueltig-leer p14-budget-ungueltig-minus p14-budget-ungueltig-bruch p14-budget-ungueltig-abc" $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' gp14
+mut13g m-p14-budget-last-null "p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-vorgabe-nur-ohne-mut p14-budget-entdecke-vorgabe-gilt p14-budget-fall-keine-vorgabe" $'read -r last '$'_ < "$LOADAVG"' $'last=0' gp14
+mut13g m-p14-budget-last-nie-gelesen "p14-budget-ueber p14-budget-unter p14-budget-null p14-budget-vorgabe-nur-ohne-mut p14-budget-entdecke-vorgabe-gilt p14-budget-fall-keine-vorgabe" $'[ ! -r "$LOAD'$'AVG" ] || read' $'[ -r "$LOADAVG" ] || read' gp14
+mut13g m-p14-budget-gruende-vertauscht "p14-budget-gruende" $'cat "$arbeit/fehler" >&2; '$'fehler=1; fi\nif [ "$(wc -l' $'fehler=1; fi\n'$'if [ "$(wc -l' gp14 $'  echo "$GPN: ROT — Zeitbudg'$'et: $T s über $budget s" >&2' $'  echo "$GPN: ROT — Zeitbudget: $T s über'$' $budget s" >&2; cat "$arbeit/fehler" >&2'
+mut13g m-p14-ordner-mutation-bleibt "p14-ordner-mutation p14-ordner-rote-mutation" $'  raeume_ordner "$run"'$' # P14mutation-ordner\n' $'' gp14
+mut13g m-p14-ordner-nur-gruene-mutation "p14-ordner-rote-mutation" $'  raeume_ordner "$run'$'" # P14mutation-ordner' $'  [ "$ist" != "$erwartet" ] || raeume_ordner "$run"' gp14
+mut13g m-p14-ordner-fall-bleibt "p14-ordner-fall" $'for d in "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume'$'_ordner "$run/t.$n" "$run/t.$n".* "$run"/tmp.*; break; fi; done # P14fall-ordner' $':' gp14
+mut13g m-p14-fall-protokoll-nach-entfernen "p14-fall-protokoll" $'    protokoll_zeigen # P14protokoll\n    stderr_zeigen'$' # P14stderr\n    raeume_ordner "$run" # P14ok-ordner\n' $'    stderr_zeigen\n    raeume_ordner "$run"\n    protokoll_zeigen\n' gp14
+mut13g m-p14-fall-stderr-nach-entfernen "p14-fall-stderr" $'    protokoll_zeigen # P14protokoll\n    stderr_zeigen'$' # P14stderr\n    raeume_ordner "$run" # P14ok-ordner\n' $'    protokoll_zeigen\n    raeume_ordner "$run"\n    stderr_zeigen\n' gp14
+mut13g m-p14-budget-sigint-zeile "p14-budget-sigint" $'\nabbruch_int() { trap - EXIT INT TERM;'$' beende_kinder; raeume_auf; exit 130; }' $'\nabbruch_int() { trap - EXIT INT TERM; beende_kinder; ra'$'eume_auf; echo "$GPN: Zeit 0 s, Last 0" >&2; exit 130; }' gp14s
+mut13g m-p14-budget-sigterm-zeile "p14-budget-sigterm" $'\nabbruch_term() { trap - EXIT INT TERM;'$' beende_kinder; raeume_auf; exit 143; }' $'\nabbruch_term() { trap - EXIT INT TERM; beende_kinder; r'$'aeume_auf; echo "$GPN: Zeit 0 s, Last 0" >&2; exit 143; }' gp14s
 wait
 fehler=0
 if [ -s "$arbeit/fehler" ]; then cat "$arbeit/fehler" >&2; fehler=1; fi
 if [ "$(wc -l < "$arbeit/gefahren")" -eq 0 ]; then echo "release-gegenprobe: keine Mutation und keine Kopie gefahren (GP_MUT passt auf nichts)" >&2; fehler=1; fi
+# SPEC-060 Punkt 16 (2) und (3): die Zeile mit Zeit, Obergrenze und Last; eine Überschreitung ist rot, die roten Mutationen und Fälle stehen davor (Reihenfolge der Gründe (c) vor (d)).
+T=$((SECONDS - T0)) last=-
+[ ! -r "$LOADAVG" ] || read -r last _ < "$LOADAVG"
+if [ -n "$budget" ] && [ "$budget" != 0 ] && (( T > budget )); then
+  echo "$GPN: ROT — Zeitbudget: $T s über $budget s" >&2
+  fehler=1
+fi
 if [ "$fehler" -eq 0 ]; then echo "release-gegenprobe: grün ($(wc -l < "$arbeit/gefahren") Läufe)"; fi
+if [ -n "$budget" ]; then
+  echo "$GPN: Zeit $T s von höchstens $budget s, Last $last" >&2
+else
+  echo "$GPN: Zeit $T s, Last $last" >&2
+fi
 exit "$fehler"

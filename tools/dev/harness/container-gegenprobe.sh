@@ -21,8 +21,24 @@
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt; GP_ENTDECKE=1 nennt je
 # Mutation die roten Fälle.
 #
-# Ausgang: 0, wenn jeder Fall und jede Mutation wie erwartet endet, sonst 1.
+# Zeit und Platz (SPEC-060 Punkt 16, SPEC-055 Punkt 12, ADR-0055): ein voller Lauf dauert höchstens 600 s; die letzte Zeile auf stderr nennt Zeit, Obergrenze und Last, eine Überschreitung ist rot;
+# GP_BUDGET=<s> setzt die Obergrenze (0 schaltet die Prüfung ab, ein ungültiger Wert endet vor jedem Fall mit Exit 2); die Obergrenze gilt nur ohne GP_MUT. Der Baum `baum-<n>` entfällt, sobald die
+# Fälle seiner Mutation bewertet sind; die Fälle p12-budget-* halten das. Die Gegenprobe kennt kein GP_FALL; GP_INNEN=1 lässt die Kopie der Fälle p12-budget-* die unveränderte Kopie und diese Fälle auslassen.
+#
+# Ausgang: 0, wenn jeder Fall und jede Mutation wie erwartet endet und die Zeit unter der Obergrenze liegt, sonst 1.
 set -euo pipefail
+
+T0=$SECONDS
+GPN=container-gegenprobe
+LOADAVG=/proc/loadavg
+# SPEC-060 Punkt 16 (4): GP_BUDGET setzt die Obergrenze in Sekunden; ohne die Variable gilt 600 s, und nur bei einem Lauf ohne GP_MUT.
+budget=
+if [ -n "${GP_BUDGET+x}" ]; then
+  [[ $GP_BUDGET =~ ^[0-9]+$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }
+  budget=$GP_BUDGET
+elif [ -z "${GP_MUT-}" ]; then
+  budget=600
+fi
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 wurzel="$(cd "$hier/../../.." && pwd)"
@@ -597,8 +613,85 @@ pruefe() {
   # Punkt 12: test-container hängt an GATE_CHECKS, die Gegenprobe steht in der Liste für den Container.
   ist p12-gate-checks-ziel '[[ " $(make_variable "$w" GATE_CHECKS | tr "\n" " ") " == *" test-container "* ]]'
   ist p12-liste-gegenprobe '[[ " $(make_variable "$w" GEGENPROBEN_CONTAINER | tr "\n" " ") " == *" test-container-gegenprobe "* ]]'
+
+  # Zeit und Platz (SPEC-060 Punkt 16 (9), SPEC-055 Punkt 12): Kopien dieser Gegenprobe; die Kopie der Fälle fährt sie selbst nicht noch einmal (GP_INNEN).
+  if [ -z "${GP_INNEN-}" ]; then
+    ist p12-budget-ueber 'ZE=("$Z_SPAET" "$Z_SPAET2"); zk GP_BUDGET=1 GP_MUT="$CHEAP"; [ "$kcode" = 1 ] && kzeile "$GPN: ROT — Zeitbudget: [0-9]+ s über 1 s" && kzeile "$GPN: Zeit [0-9]+ s von höchstens 1 s, Last [0-9]+[.][0-9]+"'
+    ist p12-budget-unter 'ZE=(); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
+    ist p12-budget-null 'ZE=("$Z_SPAET" "$Z_SPAET2"); zk GP_BUDGET=0 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && ! grep -q Zeitbudget "$ZD/kerr" && kzeile "$GPN: Zeit [0-9]+ s von höchstens 0 s, Last [0-9]+[.][0-9]+"'
+    for b in 'leer:' 'minus:-1' 'bruch:1.5' 'abc:abc'; do
+      ist "p12-budget-ungueltig-${b%%:*}" "ZE=(); zk 'GP_BUDGET=${b#*:}' GP_MUT=\"\$CHEAP\"; [ \"\$kcode\" = 2 ] && [ \"\$(cat \"\$ZD/kerr\")\" = \"\$GPN: GP_BUDGET: keine ganze Zahl\" ] && [ ! -s \"\$ZD/kout\" ]"
+    done
+    ist p12-budget-vorgabe-nur-ohne-mut 'ZE=(); zk GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s, Last [0-9]+[.][0-9]+" && ! grep -q Zeitbudget "$ZD/kerr"'
+    ist p12-budget-entdecke-vorgabe-gilt 'ZE=("$Z_ARB" "$Z_MUTSPAET"); zk GP_ENTDECKE=1; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 600 s, Last [0-9]+[.][0-9]+"'
+    ist p12-budget-last-fehlt 'ZE=("$Z_LAST" "LOADAVG=/proc/nirgends-loadavg"); zk GP_BUDGET=3600 GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && kzeile "$GPN: Zeit [0-9]+ s von höchstens 3600 s, Last -"'
+    ist p12-budget-gruende 'ZE=("$Z_SPAET" "$Z_SPAET2" "$Z_ROT" "$Z_ROT2"); zk GP_BUDGET=1 GP_MUT="$CHEAP"; [ "$kcode" = 1 ] && a="$(grep -n "^$GPN: ROT — Mutation" "$ZD/kerr" | head -n 1 | cut -d: -f1)" && b="$(grep -n "^$GPN: ROT — Zeitbudget" "$ZD/kerr" | head -n 1 | cut -d: -f1)" && c="$(grep -n "^$GPN: Zeit " "$ZD/kerr" | head -n 1 | cut -d: -f1)" && [ "${a:-9}" -lt "${b:-0}" ] && [ "${b:-9}" -lt "${c:-0}" ]'
+    ist p12-budget-sigint 'zs INT'
+    ist p12-budget-sigterm 'zs TERM'
+    ist p12-ordner-mutation 'ZE=("$Z_ENDE" "$Z_ZEUGE"); zk GP_MUT="$CHEAP"; [ "$kcode" = 0 ] && [ -f "$ZD/zeuge" ] && [ ! -s "$ZD/zeuge" ]'
+  fi
 }
 q="'"
+
+# --- Zeit und Platz: Kopien dieser Gegenprobe ---------------------------------------------------------------------------------------------------------
+# zk <NAME=Wert>… — fährt eine Kopie von $SKRIPT (die Zeile `wurzel=` zeigt auf den Arbeitsbaum, dazu die Ersetzungen aus ZE, Paare alt neu) mit eigenem TMPDIR und GP_INNEN=1; setzt kcode, kerr, ZD.
+GP_SELF_DATEI="$hier/$(basename "${BASH_SOURCE[0]}")"
+SKRIPT="$GP_SELF_DATEI"
+ZE=()
+zk() {
+  local inhalt neu alt ersatz i
+  ZD="$(mktemp -d "$arbeit/zk.XXXXXX")"
+  inhalt="$(cat "$SKRIPT"; printf x)"; inhalt="${inhalt%x}"
+  alt='wurzel="$(cd "$hier/../../.." && pwd)"'; ersatz="wurzel=\"$wurzel\""
+  neu="${inhalt/"$alt"/"$ersatz"}"
+  for ((i = 0; i < ${#ZE[@]}; i += 2)); do
+    alt="${ZE[i]}"; ersatz="${ZE[i + 1]}"
+    [[ $neu == *"$alt"* ]] || { echo "Textstelle nicht gefunden: $alt" >&2; kcode=99; : > "$ZD/kerr"; : > "$ZD/kout"; return 0; }
+    [[ ${neu/"$alt"/$'\001'} != *"$alt"* ]] || { echo "Textstelle nicht eindeutig: $alt" >&2; kcode=99; : > "$ZD/kerr"; : > "$ZD/kout"; return 0; }
+    neu="${neu/"$alt"/"$ersatz"}"
+  done
+  printf '%s' "$neu" > "$ZD/skript.sh"
+  kcode=0
+  env -u GP_MUT -u GP_ENTDECKE -u GP_BUDGET -u GP_ZEUGE TMPDIR="$ZD" GP_INNEN=1 GP_ZEUGE="$ZD/zeuge" "$@" bash "$ZD/skript.sh" > "$ZD/kout" 2> "$ZD/kerr" || kcode=$?
+}
+# kzeile <Muster> — eine ganze Zeile von stderr der Kopie passt auf das Muster.
+kzeile() { grep -qxE -- "$1" "$ZD/kerr"; }
+# zs <Signal> — die Kopie läuft in eigener Sitzung mit einer Pause je Mutation, das Signal geht an die Prozessgruppe, sobald ihr Arbeitsordner die Attrappe von docker trägt, und schreibt keine Zeile mit der Zeit.
+zs() {
+  local pid=0 i ok=1
+  ZE=("$Z_SPAET" "$Z_SPAET2")
+  zk_start GP_MUT="$CHEAP"
+  for i in $(seq 1 100); do if compgen -G "$ZD/tmp.*/bin/docker" > /dev/null; then break; fi; sleep 0.1; done; sleep 0.5
+  pid="$(cat "$ZD/pid" 2> /dev/null || echo 0)"
+  if [ "$pid" -gt 1 ]; then kill -s "$1" -- "-$pid" 2> /dev/null || ok=0; else ok=0; fi
+  wait "$ZB" || true
+  for i in $(seq 1 80); do if [ "$pid" -le 1 ] || ! kill -0 "$pid" 2> /dev/null; then break; fi; sleep 0.1; done
+  ! grep -q ': Zeit ' "$ZD/kerr" || ok=0
+  [ -z "$(ls -A "$ZD"/tmp.* 2> /dev/null)" ] || ok=0
+  if [ "$pid" -gt 1 ]; then kill -s KILL -- "-$pid" 2> /dev/null || true; fi
+  [ "$ok" = 1 ]
+}
+zk_start() {
+  local inhalt neu alt ersatz i
+  ZD="$(mktemp -d "$arbeit/zk.XXXXXX")"
+  inhalt="$(cat "$SKRIPT"; printf x)"; inhalt="${inhalt%x}"
+  alt='wurzel="$(cd "$hier/../../.." && pwd)"'; ersatz="wurzel=\"$wurzel\""
+  neu="${inhalt/"$alt"/"$ersatz"}"
+  for ((i = 0; i < ${#ZE[@]}; i += 2)); do neu="${neu/"${ZE[i]}"/"${ZE[i + 1]}"}"; done
+  printf '%s' "$neu" > "$ZD/skript.sh"
+  ( trap - INT TERM; exec env --default-signal=INT,TERM -u GP_MUT -u GP_ENTDECKE -u GP_BUDGET TMPDIR="$ZD" GP_INNEN=1 "$@" setsid bash -c 'echo $$ > "$1"; exec bash "$2"' _ "$ZD/pid" "$ZD/skript.sh" > "$ZD/kout" 2> "$ZD/kerr" ) &
+  ZB=$!
+}
+Z_SPAET2='nur="$5''"; sleep 2'
+Z_SPAET='nur="$5''"'
+Z_ARB='arbeit="$(mktemp -''d)"'
+Z_MUTSPAET="GP_MUT='^p12-gegenprobe\$'; arbeit=\"\$(mktemp -d)\""
+Z_LAST='LOADAVG=/proc/load''avg'
+Z_ENDE=$'\n# SPEC-060 Punkt 16 (2) und (3)'
+Z_ZEUGE=$'\nls "$arbeit" | grep baum- > "$GP_ZEUGE" || true\n# SPEC-060 Punkt 16 (2) und (3)'
+Z_ROT=$'mut p12-gegenprobe "$F_" \'GEGENPROBEN_CONTAINER += test-container-gegenprobe\' \'GEGENPROBEN_CONTAINER +=\' p12 p12-liste-gegenprobe'
+Z_ROT2=$'mut p12-gegenprobe "$F_" \'GEGENPROBEN_CONTAINER += test-container-gegenprobe\' \'GEGENPROBEN_CONTAINER +=\' p12 p12-gate-checks-ziel'
+CHEAP='^p12-gegenprobe$'
 
 # mutiere <datei> <alt> <neu> — ersetzt das erste Vorkommen (wörtlich) in der Kopie; mit `%<marke>`
 # als alt wird die Zeile ersetzt, die auf `# <marke>` endet.
@@ -627,15 +720,19 @@ mut() {
   soll="$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')"
   if [ -n "${GP_ENTDECKE-}" ]; then echo "$name => ${ist:-nichts}" >&2; fi
   if [ "$ist" != "$soll" ]; then melde "Mutation '$name': erwartet rot: ${soll:-nichts}; rot sind: ${ist:-nichts}"; fi
+  rm -rf "${w:?}" # P12baum-ordner
 }
 
 L_=tools/harness/container-eingabe.sh B_=tools/harness/binaries.sh G_=tools/harness/run-container.sh S_=tools/harness/container-smoke.sh F_=harness/mk/container.mk
 
 # --- Die unveränderte Kopie besteht jeden Fall; im Arbeitsbaum hängt test-container an GATE_CHECKS, die Gegenprobe steht in der Liste ---
 nur=""
+if [ -z "${GP_INNEN-}" ]; then
 fixture
 ist="$(pruefe "$w" | sort -u | tr '\n' ' ')"
 if [ -n "$ist" ]; then melde "die unveränderte Kopie besteht nicht: $ist"; fi
+rm -rf "${w:?}"
+fi
 gates=" $(make_variable "$wurzel" GATE_CHECKS | tr '\n' ' ') "
 if [[ "$gates" != *" test-container "* ]]; then melde "test-container hängt im Arbeitsbaum nicht an GATE_CHECKS"; fi
 gp_liste=" $(make_variable "$wurzel" GEGENPROBEN_CONTAINER | tr '\n' ' ') "
@@ -831,6 +928,54 @@ mut p11-plus-gegenprobe "$F_" $'\t@bash tools/dev/harness/container-gegenprobe.s
 mut p12-ziel "$F_" $'GATE_CHECKS += test-container\n' $'GATE_CHECKS +=\n' p12 p12-gate-checks-ziel
 mut p12-gegenprobe "$F_" 'GEGENPROBEN_CONTAINER += test-container-gegenprobe' 'GEGENPROBEN_CONTAINER +=' p12 p12-liste-gegenprobe
 
+# mutg <name> <alt> <neu> <erwartet rot>… — Textersatz in einer Kopie dieser Gegenprobe (SKRIPT); rot sind genau die benannten Fälle p12-budget-* und p12-ordner-*. Die Textstelle steht geteilt im Skript (sonst fände die Mutation sie zweimal).
+mutg() {
+  local name="$1" alt="$2" neu="$3" soll ist inhalt
+  if [ -n "${GP_MUT-}" ] && ! [[ "$1" =~ $GP_MUT ]]; then return 0; fi
+  shift 3
+  nur="p12-budget p12-ordner"
+  fixture
+  inhalt="$(cat "$GP_SELF_DATEI"; printf x)"; inhalt="${inhalt%x}"
+  if [[ $inhalt != *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $alt"; return 0; fi
+  if [[ ${inhalt/"$alt"/$'\001'} == *"$alt"* ]]; then melde "Mutation '$name': Textstelle nicht eindeutig: $alt"; return 0; fi
+  printf '%s' "${inhalt/"$alt"/"$neu"}" > "$arbeit/$name.sh"
+  SKRIPT="$arbeit/$name.sh"
+  ist="$(pruefe "$w" | sort -u | tr '\n' ' ')"
+  SKRIPT="$GP_SELF_DATEI"
+  soll="$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')"
+  if [ -n "${GP_ENTDECKE-}" ]; then echo "$name => ${ist:-nichts}" >&2; fi
+  if [ "$ist" != "$soll" ]; then melde "Mutation '$name': erwartet rot: ${soll:-nichts}; rot sind: ${ist:-nichts}"; fi
+  rm -rf "${w:?}" "$arbeit/$name.sh"
+}
+mutg m-p12-budget-pruefung $'if [ -n "$budget" ] && [ "$budget'$'" != 0 ] && (( T > budget )); then' $'if false; then' p12-budget-ueber p12-budget-gruende
+mutg m-p12-budget-null-geprueft $'[ "$budget"'$' != 0 ] && ' $'' p12-budget-null
+mutg m-p12-budget-zeile-mit-obergrenze $'  echo "$GPN: Zeit $T s von höch'$'stens $budget s, Last $last" >&2' $'  :' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt p12-budget-gruende
+mutg m-p12-budget-zeile-ohne-obergrenze $'  echo "$GPN: Zeit $'$'T s, Last $last" >&2' $'  :' p12-budget-vorgabe-nur-ohne-mut
+mutg m-p12-budget-vorgabe-trotz-mut $'elif [ -z "${GP'$'_MUT-}" ]; then' $'elif true; then' p12-budget-vorgabe-nur-ohne-mut
+mutg m-p12-budget-vorgabe-nicht-bei-entdecke $'elif [ -z "${GP'$'_MUT-}" ]; then' $'elif [ -z "${GP_MUT-}" ] && [ -z "${GP_ENTDECKE-}" ]; then' p12-budget-entdecke-vorgabe-gilt
+mutg m-p12-budget-ungueltig-leer-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]*$ ]]' p12-budget-ungueltig-leer
+mutg m-p12-budget-ungueltig-minus-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^-?[0-9]+$ ]]' p12-budget-ungueltig-minus
+mutg m-p12-budget-ungueltig-bruch-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9]+([.][0-9]+)?$ ]]' p12-budget-ungueltig-bruch
+mutg m-p12-budget-ungueltig-buchstaben-erlaubt $'[[ $GP_BUDGET '$'=~ ^[0-9]+$ ]]' $'[[ $GP_BUDGET =~ ^[0-9a-z]+$ ]]' p12-budget-ungueltig-abc
+mutg m-p12-budget-ungueltig-ohne-exit $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' p12-budget-ungueltig-leer p12-budget-ungueltig-minus p12-budget-ungueltig-bruch p12-budget-ungueltig-abc
+mutg m-p12-budget-last-null $'read -r last '$'_ < "$LOADAVG"' $'last=0' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt
+mutg m-p12-budget-last-nie-gelesen $'[ ! -r "$LOAD'$'AVG" ] || read' $'[ -r "$LOADAVG" ] || read' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt
+mutg m-p12-ordner-baum-bleibt $'  rm -rf "${w:?}"'$' # P12baum-ordner\n' $'' p12-ordner-mutation
+mutg m-p12-budget-sigint-zeile $'trap \'rm -rf "${'$'arbeit:?}"\' EXIT\n' $'trap \'rm -rf "${arbeit:?}"\' EXIT; trap \'echo "$GPN: Zeit 0 s, Last 0" >&2; exit 130\' INT\n' p12-budget-sigint
+mutg m-p12-budget-sigterm-zeile $'trap \'rm -rf "${'$'arbeit:?}"\' EXIT\n' $'trap \'rm -rf "${arbeit:?}"\' EXIT; trap \'echo "$GPN: Zeit 0 s, Last 0" >&2; exit 143\' TERM\n' p12-budget-sigterm
+
+# SPEC-060 Punkt 16 (2) und (3): die Zeile mit Zeit, Obergrenze und Last; eine Überschreitung ist rot, die roten Mutationen und Fälle stehen davor (Reihenfolge der Gründe (c) vor (d)).
+T=$((SECONDS - T0)) last=-
+[ ! -r "$LOADAVG" ] || read -r last _ < "$LOADAVG"
+if [ -n "$budget" ] && [ "$budget" != 0 ] && (( T > budget )); then
+  echo "$GPN: ROT — Zeitbudget: $T s über $budget s" >&2
+  fehler=1
+fi
+if [ -n "$budget" ]; then
+  echo "$GPN: Zeit $T s von höchstens $budget s, Last $last" >&2
+else
+  echo "$GPN: Zeit $T s, Last $last" >&2
+fi
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
