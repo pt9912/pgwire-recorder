@@ -98,6 +98,8 @@ Der Architect hat diese Tabelle nach dem Lesen der Skripte gefüllt (2026-10-20)
 
 **Schätzung des Architect in der Metrik von §4** (Summe aus Einfügungen und Löschungen, Gegenprobe-Code ohne Faktor, weil der Code selbst Gegenprobe-Code ist; Vertragstext und ADR des Architect liegen vor der Basis und zählen nicht): `release-gegenprobe.sh` 200 bis 320 (Umbau von `lauf`, `kopie`, `attrappen`, Aufräumen, Budget 25, Fälle und Mutationen zu `SPEC-060` Punkt 16 (9) rund 120), `container-gegenprobe.sh` 100 bis 160, `harness/README.md` 10; zusammen 310 bis 490, mit Streuung durch Umstellungen bis 700. Unter der Marke von 1500 (§4, `AGENTS.md` §3.14; die Schätzung ist die des Anlegens und bedient nur diese Zeile). Mit dem Zuwachs der Skripte (+635 Zeilen) ist die Spanne 400 bis 700 wahrscheinlicher als 310 bis 490; die Marke bleibt außer Reichweite.
 
+**Stand des Implementers, Lauf 1 (2026-10-25; Belege in §7):** Geliefert sind in beiden Skripten das Zeitbudget (`GP_BUDGET`, Zeile `Zeit`, Rot bei Überschreitung), das Entfernen des Ordners je Mutation und je Fall (`release-gegenprobe`) bzw. des Baums `baum-<n>` (`container-gegenprobe`) und die Fälle samt Mutationen von `SPEC-060` Punkt 16 (9) (`p14-*`, `p12-*`); beide Skripte tragen den Schalter `GP_INNEN=1` für die Kopie, die diese Fälle fährt. Das Tempo ist nicht erreicht: Die Stichprobe sank von 73 s auf 60 s (Faktor 1,2); das Profil (§7) zeigt 60 Prozent der Prozess-Starts in `release.sh` selbst und 35 Prozent in den Attrappen, das Harness trägt 9 Prozent. Der Ansatz „Schritte vor dem Fall je Mutation einmal fahren und je Fall wiederherstellen“ ist nicht umgesetzt und nicht entschieden (§7, Vorschlag). Harness-Artefakte (`harness/README.md`, `AGENTS.md`, `implement-slice.md`, Tabelle von `SPEC-060` Punkt 16) sind unverändert, weil sie erst mit der Lieferung folgen.
+
 Nicht in dieser Liste: Produkt-Code, `Dockerfile`, andere Gegenproben, CI (§1).
 
 ## 4. Trigger
@@ -172,6 +174,44 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+**Belege des Implementers, Lauf 1 (Teilstand, 2026-10-25; Zweig `impl-gps1`, Commit `805e4441`; DoD noch nicht erfüllt).**
+
+*Messung Gruppe `h`* (Hinweis des Architect, `GP_MUT='^m-p19-' GP_PARALLEL=1`, vor dem Umbau): 7 Mutationen in rund 270 s bei Last 5 bis 12 (zwei Trace-Läufe zugleich), rund 38 s je Mutation; die Gruppe führt 100 Mutationen `mh` und eine `mutr`, also rund 3800 s Arbeit statt der geschätzten 2000 s. Gesamtarbeit damit rund 10 100 s; bei `GP_PARALLEL=4` rund 2500 s, für 600 s braucht es den Faktor 4,2 (bei 8: 2,1). Den Lauf habe ich nach 7 Mutationen beendet (Zeit des Rollenlaufs); die Zahl ist eine Hochrechnung, keine Messung des ganzen Laufs.
+
+*Profil* (Stichprobe `m-p16-pin-ohne-digest`, `strace -f -e trace=execve,clone`, Zuordnung nach dem Skript des Aufrufers): 50 000 Starts, 26 700 Forks: `release.sh` 12 629, Attrappe `docker` 4 230, `gp-layout` 2 256, Harness 1 860, Attrappe `git` 678, Attrappe `make` 339. `sed` und `awk` sind kein Hebel (Architect, §3). Der größte Teil liegt in `release.sh` selbst (Produkt, unverändert) und in den Schritten, die jeder Fall vor seiner Prüfung fährt (`ibild`: `eingaben`, `binaries`, `image`).
+
+*Tempo.* Stichprobe (§3, `GP_PARALLEL=1`, Last 3,5): vorher 73 s (Architect), nachher 60 s (Faktor 1,2; user 26 s, sys 41 s). Maßnahmen: `lauf` und `aufrufe` lesen ohne `cat`; `fix` schreibt Handbuch, Makefragment und Attrappe des Smokes ohne `cat` und mit einem `mkdir`; `kopie` ohne `rm -rf` auf einen frischen Pfad; `git init --template=` (22 statt 41 Einträge je Kopie); Attrappen mit `#!<bash>` statt `env bash`; `modus()` der Attrappe von `docker` ohne `tr | sed | head`; Fälle `p1`: Text je Gruppe einmal, Argumente statt Unterprozess, Datei im Ordner der Mutation (Start einer Kopie 2,8 s auf 1,1 s, 212 Mutationen `m-p1-` in 59 s bei `GP_PARALLEL=4`, `grün (212 Läufe)`); `${x#*"…"}` ist bei 260 KB quadratisch (25 s je Aufruf, gemessen), die Eindeutigkeit der Textstelle prüft jetzt `${x/"…"/Marke}` (gilt für `mutr`, `mut13g`, `mutv`). Prozess-Starts nach dem Umbau nicht neu gemessen. **Rückführung nach §4 (Faktor 2) ist nicht ausgelöst und nicht ausgeschlossen:** Die Ansatzpunkte aus §3 sind ausgeschöpft, soweit sie das Harness betreffen; der verbleibende Hebel ist, die Schritte vor dem Fall je Mutation einmal zu fahren und je Fall wiederherzustellen (Pfad `$w` bleibt gleich, damit die Pfade in den Protokollen stimmen); das ist keine Lockerung (jeder Fall prüft alle seine Zusagen, die Schritte davor prüft die Einrichtung einmal je Mutation), aber ein Umbau der Fälle `b` und `f`, den der Architect vor dem Code bestätigt. Ob das reicht (Schätzung 2 bis 2,5), ist nicht gemessen.
+
+*Ergebnisgleichheit.* Deklarationszeilen: `git diff -U0 b60a6b9d -- tools/dev/harness/release-gegenprobe.sh` und `…/container-gegenprobe.sh`, gefiltert auf `mutr`, `mf`, `mh`, `mutv`, `mut1`, `mut13g`, `FAELLE_*`, `mut`, `ist`: 0 entfernte, nur neue Zeilen. Der Vergleich der roten Mengen aller Mutationen mit `GP_ENTDECKE=1` (§6 Risiko 2) ist nur für `m-p1-` (212 grün) gefahren, nicht für `sh`, `b`, `f`, `h`; der volle Lauf am Endstand fehlt.
+
+*Zusage · Mutation · roter Test (`release-gegenprobe`, Fälle `p14-*`, gefahren mit `GP_MUT='^m-p14-' GP_ENTDECKE=1 GP_PARALLEL=4`: `grün (22 Läufe)`, jede Mutation färbt genau die benannten Fälle).*
+
+| Zusage | Mutation | roter Test (nur dieser) |
+|---|---|---|
+| Überschreitung rot: Exit 1, Zeile `ROT — Zeitbudget` und Zeile `Zeit` | `if false` statt `T > budget` | p14-budget-ueber, p14-budget-gruende |
+| `GP_BUDGET=0` schaltet die Prüfung ab | die Bedingung `!= 0` entfällt | p14-budget-null |
+| Zeile `Zeit <T> s von höchstens <B> s, Last <L>` | Zeile entfällt | ueber, unter, null, entdecke-vorgabe-gilt, last-fehlt, gruende |
+| Zeile ohne Obergrenze bei einem Lauf mit `GP_MUT` | Zeile entfällt | vorgabe-nur-ohne-mut, fall-keine-vorgabe |
+| Vorgabe 600 s nur ohne `GP_MUT` | Bedingung `GP_MUT` entfällt | vorgabe-nur-ohne-mut |
+| Vorgabe entfällt bei `GP_FALL` | Bedingung `GP_FALL` entfällt | fall-keine-vorgabe |
+| Vorgabe gilt bei `GP_ENTDECKE` | `GP_ENTDECKE` schaltet die Vorgabe ab | entdecke-vorgabe-gilt |
+| ungültiger Wert Exit 2 (leer, `-1`, `1.5`, `abc`, je einer) | je Wert ein Muster, das genau ihn zulässt | ungueltig-leer, -minus, -bruch, -abc (je einer) |
+| Exit 2 vor jedem Fall, genau eine Zeile | Exit entfällt | alle vier ungueltig-* |
+| Last `-` bei fehlender Datei, Last gelesen | `last=0`; `-r` umgekehrt | ueber, unter, null, vorgabe-nur-ohne-mut, entdecke-vorgabe-gilt, fall-keine-vorgabe (beide Mutationen) |
+| Reihenfolge der Gründe: rote Fälle vor Zeitbudget vor Zeile `Zeit` | Zeitbudget vor die roten Fälle | p14-budget-gruende |
+| keine Zeile `Zeit` bei `SIGINT` bzw. `SIGTERM` | Zeile im Handler | p14-budget-sigint bzw. -sigterm (je einer) |
+| Ordner einer Mutation nach ihrem Ende entfernt | Entfernen entfällt | p14-ordner-mutation, p14-ordner-rote-mutation |
+| … auch einer roten Mutation | nur bei grüner Mutation | p14-ordner-rote-mutation |
+| Ordner je Fall entfernt | Entfernen entfällt | p14-ordner-fall |
+| `GP_FALL`: Protokoll des Falls vor dem Entfernen | Ausgabe nach dem Entfernen | p14-fall-protokoll |
+| `GP_FALL`: `stderr` vor dem Entfernen | Ausgabe nach dem Entfernen | p14-fall-stderr |
+
+*`container-gegenprobe`, Fälle `p12-budget-*` und `p12-ordner-mutation`* (gefahren in vier Läufen mit `GP_MUT`; unveränderte Kopie grün in 34 s; 17 Mutationen `m-p12-*`, jede färbt genau die benannten Fälle): dieselben Zusagen mit denselben Mutationen, ohne die Zeilen zu `GP_FALL` (die Gegenprobe kennt kein `GP_FALL`), ohne Ordner je Fall (die Fälle laufen im Baum der Mutation) und ohne Mutation zur Reihenfolge der Gründe (der Fall `p12-budget-gruende` steht, eine Mutation, die nur ihn bricht, fehlt: die roten Zeilen entstehen im Lauf, die Zeile `Zeit` steht am Ende). `m-p12-budget-last-nie-gelesen` färbt zusätzlich `p12-budget-last-fehlt` (unter `set -e` bricht das `read` auf eine fehlende Datei die Kopie), die Erwartung nennt es.
+
+*Grüne Mutanten.* `>=` statt `>` bei der Prüfung: äquivalent in der Praxis, akzeptiertes Negativ (`SPEC-060` Punkt 16 (9) letzter Satz, Zeit ist ganze Sekunden). Kein anderer Mutant blieb grün. *Nicht gefahren, Gründe:* voller Lauf von `make release-gegenprobe` und `make test-container-gegenprobe` (Entscheidung des Nutzers 2026-10-25: einmal am Endstand; das Tempo ist nicht erreicht, ein voller Lauf dauerte rund 2500 s und risse die Grenze, er folgt nach dem Umbau der Fälle); Fahrten unter fremdem Benutzer, fremder Locale und unter Last und die Platz-Spitze (`du` im Sekundenabstand) hängen am vollen Lauf; `make gates`: siehe unten. `harness/README.md`, `AGENTS.md`, `implement-slice.md` und die Tabelle von `SPEC-060` Punkt 16 sind unverändert, weil sie erst mit der Lieferung folgen (§3).
+
+*Gate.* `make gates` am Stand `805e4441` (Code; danach nur dieser Plan geändert): Exit 0 nach 250 s, Ausgabe endet mit `workflows-check: 2 Datei(en) geprüft, kein Befund`; Last des Hosts 2 bis 4; kein Rot, keine Wiederholung. `make a-check`, `make lint` und `make test` laufen darin; die zwei Gegenproben sind nicht Teil von `make gates` (ADR-0048).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
