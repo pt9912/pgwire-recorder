@@ -505,7 +505,7 @@ EOT
 #!/usr/bin/env bash
 echo "git $*" >> "$GP_LOG/git"
 echo "GIT_TERMINAL_PROMPT=${GIT_TERMINAL_PROMPT-} GIT_ASKPASS=$([ -n "${GIT_ASKPASS-}" ] && echo gesetzt || echo -)" >> "$GP_LOG/git-env"
-if [ -n "${GIT_ASKPASS-}" ] && [ -f "$GIT_ASKPASS" ]; then cp "$GIT_ASKPASS" "$GP_LOG/askpass.sh"; fi
+if [ -n "${GIT_ASKPASS-}" ] && [ -f "$GIT_ASKPASS" ]; then IFS= read -r -d '' a < "$GIT_ASKPASS"; printf '%s' "$a" > "$GP_LOG/askpass.sh"; fi
 if [ "${GP_GIT-}" = haengt ] && [[ " $* " == *" clone "* ]]; then
   d="$(ls -d "$TMPDIR"/tmp.* | head -n 1)"
   bash -c 'while :; do mkdir -p "$1"; : > "$1/spur"; sleep 0.1; done' _ "$d/spur" &
@@ -517,7 +517,7 @@ fi
 @@GIT@@ "$@"
 rc=$?
 for d in "$@" "$PWD"; do
-  if [ -d "$d/.git" ]; then { echo "== $d"; cat "$d/.git/config"; } >> "$GP_LOG/gitconfig"; fi
+  if [ -d "$d/.git" ]; then { echo "== $d"; IFS= read -r -d '' a < "$d/.git/config"; printf '%s' "$a"; } >> "$GP_LOG/gitconfig"; fi
 done
 if [ -n "${RELEASE_TAP_TOKEN-}" ]; then grep -rlF -- "$RELEASE_TAP_TOKEN" "$TMPDIR" >> "$GP_LOG/token-dateien" 2> /dev/null || true; fi
 exit "$rc"
@@ -1654,23 +1654,33 @@ class PgwireRecorder < Formula
 end
 EOT
 # hsumme <os-arch> — die Summe der Plattform im Fall (je Plattform und Version verschieden).
-hsumme() { printf '%s' "summe:$1:$V" | sha256sum | cut -d' ' -f1; }
+# Die Summe je Plattform und Version wird einmal berechnet und je Lauf in $run/hs abgelegt; hsumme_v setzt REPLY ohne Unterprozess.
+hsumme_v() {
+  local f="$run/hs/$1.$V"
+  if [ -f "$f" ]; then IFS= read -r REPLY < "$f"; else REPLY="$(printf '%s' "summe:$1:$V" | sha256sum | cut -d' ' -f1)"; mkdir -p "$run/hs"; printf '%s\n' "$REPLY" > "$f"; fi
+}
+hsumme() { hsumme_v "$1"; printf '%s' "$REPLY"; }
 # sums_schreiben — $w/sums: je Plattform eine gültige Zeile (unter Windows mit .exe).
 sums_schreiben() {
   local k
   {
-    for k in "${PLAT_H[@]}"; do printf '%s  pgwire-recorder-%s\n' "$(hsumme "$k")" "$k"; done
-    for k in windows-amd64 windows-arm64; do printf '%s  pgwire-recorder-%s.exe\n' "$(hsumme "$k")" "$k"; done
+    for k in "${PLAT_H[@]}"; do hsumme_v "$k"; printf '%s  pgwire-recorder-%s\n' "$REPLY" "$k"; done
+    for k in windows-amd64 windows-arm64; do hsumme_v "$k"; printf '%s  pgwire-recorder-%s.exe\n' "$REPLY" "$k"; done
   } > "$w/sums"
 }
 # formel_soll — der Text der Formel für V und die Summen des Falls: die Vorlage mit der Version ohne v und den vier Summen.
 formel_soll() {
   local f="$VORLAGE_SOLL" k kk
   f="${f//@@VERSION@@/$V}"
-  for k in "${PLAT_H[@]}"; do kk="${k^^}"; f="${f//@@SHA256_${kk//-/_}@@/$(hsumme "$k")}"; done
+  for k in "${PLAT_H[@]}"; do kk="${k^^}"; hsumme_v "$k"; f="${f//@@SHA256_${kk//-/_}@@/$REPLY}"; done
   printf '%s' "$f"
 }
-tap_leer() { git init -q --bare -b "${1:-main}" "$w/tap.git"; }
+# tap_leer [Zweig] — ein leeres Bare-Repository; das erste je Zweig entsteht mit git init, die weiteren sind Kopien.
+tap_leer() {
+  local z="${1:-main}"
+  if [ ! -d "$run/tapleer.$z" ]; then git init -q --bare -b "$z" "$run/tapleer.$z.t$$" && mv "$run/tapleer.$z.t$$" "$run/tapleer.$z"; fi
+  cp -a "$run/tapleer.$z" "$w/tap.git"
+}
 tap_stand() { git -C "$w/tap.git" for-each-ref --format='%(refname) %(objectname)' | sha256sum | cut -d' ' -f1; }
 tap_zeigt() { git -C "$w/tap.git" show "main:$1" 2> /dev/null; }
 tap_commits() { git -C "$w/tap.git" rev-list --count main 2> /dev/null || echo 0; }
