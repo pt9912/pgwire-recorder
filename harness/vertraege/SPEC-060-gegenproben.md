@@ -246,10 +246,11 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     einer Zeile `<name>: GP_BUDGET: keine ganze Zahl`. **Reihenfolge der Gründe:** (a) `GP_BUDGET` ungültig (Exit 2), (b) Abbruch durch
     `SIGINT` (130) oder `SIGTERM` (143) ohne Zeile nach (2), (c) rote Mutation oder Fall (Exit 1, Zeilen wie bisher), (d) Zeitbudget (Exit 1);
     (c) und (d) stehen beide in der Ausgabe, wenn beide zutreffen.
+    **`GP_FALL`** gibt das Protokoll des Falls der unveränderten Kopie aus und ändert die Auswahl der Läufe nicht (Bestand: alle Mutationen laufen mit); der Lauf hat keine Vorgabe, weil er ein Lauf zur Diagnose ist und nicht der volle Lauf von (1) (Entscheidung des Architect, 2026-10-25). Eine Gegenprobe ohne `GP_FALL` (`test-container-gegenprobe`) ignoriert die Variable; das ist nicht zugesagt, und ihre Vorgabe gilt dann. **`GP_BUDGET=0`:** Die Zeile nach (2) trägt `B` = 0 (`Zeit <T> s von höchstens 0 s`), ohne Prüfung und ohne die Zeile nach (3).
     (5) **Arbeitsordner.** Der Ordner einer Mutation (bei `release-gegenprobe` `$arbeit/<name>`, bei `test-container-gegenprobe` `baum-<n>`)
     wird entfernt, sobald ihre Fälle bewertet sind, die rote wie die grüne, und der Ordner jedes Falls, sobald der Fall endet (Grund: ein
     Ordner je Mutation und Fall summierte sich auf über 5 GB je Lauf). Jede Mutation hat einen eigenen Ordner und kein gemeinsames
-    Verzeichnis mit einer anderen; mehrere Mutationen zugleich (`GP_PARALLEL`) entfernen je ihren. Die Spitze des Platzbedarfs des
+    Verzeichnis mit einer anderen; mehrere Mutationen zugleich (`GP_PARALLEL`) entfernen je ihren. Eine Gegenprobe, deren Fälle im Ordner der Mutation laufen (`test-container-gegenprobe`), hat keinen Ordner je Fall; der Satz zum Ordner je Fall entfällt dort. Die Spitze des Platzbedarfs des
     Arbeitsordners liegt bei der Vorgabe von `GP_PARALLEL` unter 100 MB. Was ein roter Fall oder eine rote Mutation an Diagnose trägt, ist die Zeile des Laufs (Mutation, erwartete und tatsächlich rote Fälle); die
     Protokolle der Fälle (`log.<fall>`, `stderr`) liegen im Ordner der Mutation und sind mit ihm weg, ausgenommen die der unveränderten Kopie, die `GP_FALL` ausgibt: Sie werden vor
     dem Entfernen ausgegeben (Entscheidung des Architect, 2026-10-25). Wer das Protokoll eines Falls einer Mutation braucht, fährt sie neu (`GP_MUT=<Muster>`). Bei `SIGINT`, `SIGTERM` und Ende entfernt das Skript den ganzen
@@ -258,7 +259,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     (6) **Plattform.** Zeit und Platz sind auf dem Gegenproben-Container (Linux) gemessen; für macOS und Windows gilt die Grenze aus dem Kopf
     dieser Kennung (nicht zugesagt). (7) **Aufrufarten.** `GP_MUT`, `GP_ENTDECKE`, `GP_FALL` und `GP_PARALLEL` behalten ihre Bedeutung; unter
     `make` gelten `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` wie bisher ohne eigenen Fall ([`SPEC-067`](SPEC-067-release.md) Kopf von Punkt 14);
-    `GP_BUDGET` aus der Umgebung von `make` erreicht das Skript. Die Vorgabe von `GP_PARALLEL` darf von 4 auf höchstens 8 steigen, wenn zwei
+    `GP_BUDGET` aus der Umgebung von `make` erreicht das Skript. `GP_INNEN=1` ist der Haken, mit dem eine Gegenprobe ihre eigenen Kopien fährt (Bestand, Fälle `p13-*`); er ist nicht zugesagt und hat keinen Fall. Die Vorgabe von `GP_PARALLEL` darf von 4 auf höchstens 8 steigen, wenn zwei
     volle Läufe in Folge grün sind (Messung im Bericht); Grund für die Grenze: Fälle mit Wartezeiten und `pgrep` fallen unter Last
     aus (`BEO-REPO/test-faellt-unter-cpu-last-aus`). (8) **Umgebung der Fahrt.** Die Messung nach (1) verlangt einen ruhigen Host. Platz,
     Benutzer (root und ohne root), Sprache und Zeitzone ändern die Zahlen nach (1) nicht; die Fahrt am Endstand läuft einmal unter einem
@@ -266,7 +267,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     (9) **Ergebnisgleichheit und Lockerung.** Eine Beschleunigung ändert weder die Mutationen noch ihre erwarteten roten Fälle noch die Liste
     der Fälle. Beleg: der Unterschied der Deklarationszeilen (Zeilen, die eine Mutation, ihre roten Fälle oder die Fall-Listen deklarieren) zwischen
     Basis und Endstand ist leer, und ein voller Lauf am Endstand ist grün (die Gegenprobe vergleicht je Mutation die tatsächlichen mit den
-    deklarierten roten Fällen). Eine Mutation zu streichen oder zusammenzulegen, einen Fall zu streichen oder die Obergrenze zu erhöhen ist
+    deklarierten roten Fällen); dazu der Vergleich der roten Mengen aller Mutationen aller Gruppen vor und nach dem Umbau (`GP_ENTDECKE=1`). Wie ein Fall seine Welt aufbaut (je Fall neu oder je Mutation einmal und je Fall wiederhergestellt) ist nicht zugesagt, solange jeder Fall dieselben Zusagen prüft wie zuvor, die Pfade in seinen Protokollen gleich bleiben und der Fehler eines gemeinsamen Schrittes jeden Fall färbt, der ihn voraussetzt (Entscheidung des Architect, 2026-10-25). Eine Mutation zu streichen oder zusammenzulegen, einen Fall zu streichen oder die Obergrenze zu erhöhen ist
     eine Lockerung (`AGENTS.md` §3.6) und braucht eine ADR; die Option, die roten Fälle nur unter einer Auswahl der Fälle zu prüfen
     (wie [`SPEC-055`](SPEC-055-container-und-binaries.md) mit `nur`), ist es auch, wo sie die Prüfung der übrigen Fälle je Mutation auslässt.
     **Fälle und Mutationen** (in der jeweiligen Gegenprobe, Name mit der Nummer ihres Vertrags; je Element eines): Überschreitung rot (Kopie mit
@@ -274,7 +275,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     nach (2) ohne `ROT`); `GP_BUDGET=0` ohne Prüfung; ungültiger Wert Exit 2 vor jedem Fall (Leerstring, `-1`, `1.5`, `abc`, je einer);
     Vorgabe nur ohne `GP_MUT` (Lauf mit `GP_MUT` und ohne `GP_BUDGET` hat keine Zeile `ROT — Zeitbudget`); Vorgabe gilt bei `GP_ENTDECKE` und entfällt bei `GP_FALL` (je ein Fall); Protokoll der unveränderten Kopie bei `GP_FALL` vor dem Entfernen ausgegeben; Zeile nach (2) mit `Last` und
     `-` bei fehlender Datei; Reihenfolge der Gründe (c) vor (d); keine Zeile nach (2) bei `SIGINT` und `SIGTERM`; Arbeitsordner einer Mutation
-    nach ihrem Ende entfernt (eine Kopie ohne `rm` färbt den Fall rot), je Fall entfernt, und nach Abbruch weg (Bestand). Die Mutation
+    nach ihrem Ende entfernt (eine Kopie ohne `rm` färbt den Fall rot), je Fall entfernt, und nach Abbruch weg (Bestand). Die Elemente zu `GP_FALL` und der Fall je Fall-Ordner gibt es nur in `release-gegenprobe`. Die Mutation
     zur Nutzung von `>=` statt `>` bleibt grün (äquivalent in der Praxis; akzeptiertes Negativ: die Zeit ist nicht steuerbar, die Wirkung beträgt eine
     Sekunde).
 
