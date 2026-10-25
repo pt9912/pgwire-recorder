@@ -2040,9 +2040,9 @@ faelle() {
     gp14s) if [ -n "${GP_INNEN-}" ]; then set --; else set -- "${FAELLE_GP14S[@]}"; fi ;;
     ok) set -- "${FAELLE_P1[@]}" "${FAELLE_SH[@]}" "${FAELLE_B[@]}" "${FAELLE_F[@]}" "${FAELLE_P13[@]}" "${FAELLE_H[@]}"; [ -n "${GP_INNEN-}" ] || set -- "$@" "${FAELLE_GP13[@]}" "${FAELLE_GP14[@]}" "${FAELLE_GP14S[@]}" ;;
   esac
-  mkdir -p "$run"
   for n in "$@" ${FALL_ZUSATZ-}; do
     fallname="$n"
+    [ -d "$run" ] || mkdir -p "$run"
     declare -F "f_${n//-/_}" > /dev/null || { echo "$n"; continue; }
     ( bad=0; "f_${n//-/_}"; exit "$bad" ) > /dev/null 2>> "$run/stderr" || echo "$n"
     for d in "$run/t.$n" "$run/t.$n".* "$run/t.w" "$run/t.w".* "$run"/tmp.*; do if [ -e "$d" ]; then raeume_ordner "$run/t.$n" "$run/t.$n".* "$run/t.w" "$run/t.w".* "$run"/tmp.*; break; fi; done # P14fall-ordner
