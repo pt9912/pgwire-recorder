@@ -47,4 +47,4 @@ und ein `geplant` mit einer Kennung, die es nicht gibt, wäre keine Adresse (`AG
 
 Die Zeile für [ADR-0056](../../../../adr/0056-groessen-metrik-misst-den-gelieferten-diff.md) steht seit dem Proposed-Commit `85454f8e` in beiden Tabellen des Index; der Architect hat Status und Datum am 2026-10-22 gesetzt (`71255295`). `slice-harness-groessen-metrik` trägt dazu nichts mehr (sein §6: Risiko entfallen); ein Gegenbeleg aus dem Slice entfällt, der Zähler bleibt 0.
 
-Erstes gezähltes Auftreten: `slice-harness-gegenproben-schneller` (Review r1 F-6, LOW) — die Hauptzeile von ADR-0059 fehlte in der Haupttabelle (Beleg `evidence/slice-harness-gegenproben-schneller.md`); nachgetragen. Zähler 1, unter der Schwelle, `offen`.
+Erstes gezähltes Auftreten: `slice-harness-gegenproben-schneller` (Review r1 F-6, LOW) — die Hauptzeile von [ADR-0059](../../../../adr/0059-obergrenze-der-gegenprobe-zwanzig-minuten.md) fehlte in der Haupttabelle (Beleg `evidence/slice-harness-gegenproben-schneller.md`); nachgetragen. Zähler 1, unter der Schwelle, `offen`.
