@@ -241,7 +241,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     sieht, liest `L` und fährt auf einem ruhigen Host neu (Grund: ein Lauf, der die Last erkennt und die Prüfung auslässt, wäre selbst
     ein Gate mit eigener Zusage). Ein Lauf, der auf ruhigem Host die Obergrenze reißt, ist rot, bis eine Mutation schneller wird oder die
     Obergrenze per ADR geändert ist (Punkt 16 (9)). (4) **`GP_BUDGET=<s>`.** Setzt `B` in Sekunden; `0` schaltet die Prüfung ab; ohne
-    die Variable ist `B` die Obergrenze aus (1), und nur dann nur bei einem Lauf ohne `GP_MUT` (mit `GP_MUT` gibt es keine Vorgabe, die Zeile
+    die Variable ist `B` die Obergrenze aus (1), und nur dann nur bei einem Lauf ohne `GP_MUT` und ohne `GP_FALL` (`GP_ENTDECKE` ändert nur die Ausgabe, der Lauf ist voll und die Vorgabe gilt; mit `GP_MUT` oder `GP_FALL` gibt es keine Vorgabe, die Zeile
     nach (2) steht ohne `B` als `Zeit <T> s`). Ein Wert, der keine ganze Zahl ohne Vorzeichen ist, endet vor jedem Fall mit Exit 2 und
     einer Zeile `<name>: GP_BUDGET: keine ganze Zahl`. **Reihenfolge der Gründe:** (a) `GP_BUDGET` ungültig (Exit 2), (b) Abbruch durch
     `SIGINT` (130) oder `SIGTERM` (143) ohne Zeile nach (2), (c) rote Mutation oder Fall (Exit 1, Zeilen wie bisher), (d) Zeitbudget (Exit 1);
@@ -250,7 +250,9 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     wird entfernt, sobald ihre Fälle bewertet sind, die rote wie die grüne, und der Ordner jedes Falls, sobald der Fall endet (Grund: ein
     Ordner je Mutation und Fall summierte sich auf über 5 GB je Lauf). Jede Mutation hat einen eigenen Ordner und kein gemeinsames
     Verzeichnis mit einer anderen; mehrere Mutationen zugleich (`GP_PARALLEL`) entfernen je ihren. Die Spitze des Platzbedarfs des
-    Arbeitsordners liegt bei der Vorgabe von `GP_PARALLEL` unter 100 MB. Bei `SIGINT`, `SIGTERM` und Ende entfernt das Skript den ganzen
+    Arbeitsordners liegt bei der Vorgabe von `GP_PARALLEL` unter 100 MB. Was ein roter Fall oder eine rote Mutation an Diagnose trägt, ist die Zeile des Laufs (Mutation, erwartete und tatsächlich rote Fälle); die
+    Protokolle der Fälle (`log.<fall>`, `stderr`) liegen im Ordner der Mutation und sind mit ihm weg, ausgenommen die der unveränderten Kopie, die `GP_FALL` ausgibt: Sie werden vor
+    dem Entfernen ausgegeben (Entscheidung des Architect, 2026-10-25). Wer das Protokoll eines Falls einer Mutation braucht, fährt sie neu (`GP_MUT=<Muster>`). Bei `SIGINT`, `SIGTERM` und Ende entfernt das Skript den ganzen
     Arbeitsordner, den der laufenden Mutationen eingeschlossen, nachdem es seine Nachkommen beendet hat (Bestand, Fälle `p13-*`). Ein
     Ordner, der nach der Mutation für die Diagnose stehen bliebe, gibt es nicht: Der Arbeitsordner war schon bisher mit dem Lauf weg.
     (6) **Plattform.** Zeit und Platz sind auf dem Gegenproben-Container (Linux) gemessen; für macOS und Windows gilt die Grenze aus dem Kopf
@@ -270,7 +272,7 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     **Fälle und Mutationen** (in der jeweiligen Gegenprobe, Name mit der Nummer ihres Vertrags; je Element eines): Überschreitung rot (Kopie mit
     `GP_BUDGET=1` und einer billigen Mutation endet mit Exit 1 und der Zeile nach (3)); Grün unter der Grenze (`GP_BUDGET=3600`, Zeile
     nach (2) ohne `ROT`); `GP_BUDGET=0` ohne Prüfung; ungültiger Wert Exit 2 vor jedem Fall (Leerstring, `-1`, `1.5`, `abc`, je einer);
-    Vorgabe nur ohne `GP_MUT` (Lauf mit `GP_MUT` und ohne `GP_BUDGET` hat keine Zeile `ROT — Zeitbudget`); Zeile nach (2) mit `Last` und
+    Vorgabe nur ohne `GP_MUT` (Lauf mit `GP_MUT` und ohne `GP_BUDGET` hat keine Zeile `ROT — Zeitbudget`); Vorgabe gilt bei `GP_ENTDECKE` und entfällt bei `GP_FALL` (je ein Fall); Protokoll der unveränderten Kopie bei `GP_FALL` vor dem Entfernen ausgegeben; Zeile nach (2) mit `Last` und
     `-` bei fehlender Datei; Reihenfolge der Gründe (c) vor (d); keine Zeile nach (2) bei `SIGINT` und `SIGTERM`; Arbeitsordner einer Mutation
     nach ihrem Ende entfernt (eine Kopie ohne `rm` färbt den Fall rot), je Fall entfernt, und nach Abbruch weg (Bestand). Die Mutation
     zur Nutzung von `>=` statt `>` bleibt grün (äquivalent in der Praxis; akzeptiertes Negativ: die Zeit ist nicht steuerbar, die Wirkung beträgt eine
