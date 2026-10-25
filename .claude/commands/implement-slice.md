@@ -126,7 +126,7 @@ emittierten Durchsetzungsschicht):
 ## Implementieren und gaten (Modul 9, Schritte 5–6)
 
 14. Die kleinste sinnvolle Änderung implementieren.
-15. Zuerst den engsten nützlichen Gate laufen lassen (z. B. eine Testdatei / ein Gate). Bei `release-gegenprobe` und `test-container-gegenprobe` heißt das bis zur Lieferung von `slice-harness-gegenproben-schneller`: den engsten Fall mit `GP_MUT=<Muster>`; auch der Verifier fährt nur den engsten Fall, keinen vollen Lauf (`AGENTS.md` §6 Punkt 6).
+15. Zuerst den engsten nützlichen Gate laufen lassen (z. B. eine Testdatei / ein Gate). Bei `release-gegenprobe` und `test-container-gegenprobe` ist der engste Fall `GP_MUT=<Muster>`; der volle Lauf fährt im Hintergrund nach `SPEC-060` Punkt 17 (`AGENTS.md` §6 Punkt 6).
 16. `make gates` laufen lassen.
     Zwischenregel (seit slice-test-unter-last-ursache, Entscheidung des Nutzers vom 2026-10-24): Endet `make gates` rot in `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` oder `TestE2EPlayVergleichAlle/Umgebungsvariable` (Frist von 30 s unter CPU-Last), fährst du den Test allein und wiederholst `make gates` einmal, bevor du einen Befund schreibst; §7 des Slice-Plans nennt beide Läufe und die Last des Hosts. Das erste Rot bleibt ein Auftreten (`BEO-REPO/test-faellt-unter-cpu-last-aus`), ein zweites Rot ist ein Befund. Rot von `TestRunPlayZweitesSignal` ist ein Befund, keine Wiederholung (der Wettlauf im Code ist seit slice-play-zweites-signal-terminate-wettlauf behoben; ein Rot hat keine bekannte Ursache mehr). Die Regel gilt für den Implementer, nicht für Reviewer und Verifier.
 
