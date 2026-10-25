@@ -2099,6 +2099,14 @@ offenlässt.
   geschrieben ist (sie wird nicht zerrissen) und nicht, wenn die Verbindung es nicht binnen
   einer kurzen Frist annimmt; ist die Nachricht vollständig geschrieben, wird `Terminate`
   gesendet, auch wenn der Sender seine Bearbeitung der Anfrage noch nicht abgeschlossen hat.
+  „Teilweise geschrieben“ gilt je Schreibvorgang (ein `Flush` einer Anfrage oder Gruppe), nicht je Nachricht:
+  zwischen den Nachrichten einer Gruppe, die ein `Flush` gemeinsam schreibt, gibt es keine Stelle für `Terminate`.
+  Läuft ein Schreibvorgang, wartet das Schließen auf sein Ende; die kurze Frist ist eine Gesamtfrist von 100 ms ab
+  dem zweiten Signal für Warten und Schreiben von `Terminate` zusammen. Reißt sie, bleibt `Terminate` aus, die
+  Verbindung wird geschlossen, ohne Meldung; ob das Warten oder das Schreiben sie riss, ist nicht beobachtbar
+  und ohne Folge. Eingereihte, noch nicht geschriebene Gruppen werden nach dem Signal nicht mehr geschrieben.
+  Die Zusage setzt voraus, dass Senden und zweites Signal gleichzeitig kommen können; das Verhalten
+  der Verbindung hängt vom Betriebssystem ab: geprüft nur unter Linux (Grenze für macOS und Windows, `LH-QA-03`).
   Es schließt sie, auch während des Verbindungsversuchs, und
   beendet den Prozess; die unterbrochene Interaktion und ein unterbrochener Aufbau sind
   kein Fehler, der Exit-Code folgt der Zeile *Abbruchsignal*. Jedes weitere Signal bleibt ohne Wirkung.
@@ -3733,6 +3741,7 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Vergleich mit Ende: Einleitung und Absatz zur `ErrorResponse` in der Extended-Interaktion nennen die Ausnahme der letzten Gruppe mit `Flush` wie der vierte Punkt von *Ende der Aufzeichnung*, kein Zuwachs an Regeln (`LH-FA-24.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
 | 2026-10-24 | Einspielen, zweites Signal: `Terminate` bleibt nur aus, solange eine Nachricht teilweise geschrieben ist oder das Schreiben die Frist reißt; nach vollständigem Schreiben wird es gesendet (`LH-FA-20.a`) |
+| 2026-10-25 | Einspielen, zweites Signal: „teilweise geschrieben“ je Schreibvorgang, Gesamtfrist 100 ms für Warten und Senden, geprüft nur unter Linux (`LH-FA-20.a`) |
 | 2026-10-16 | Schweregrad des Endes: ein leeres `V` gilt wie ein fehlendes, in der Datei und beim Einspielen gleich; der SQLSTATE des Vergleichs zählt nur an einer `ErrorResponse` (`LH-FA-24.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Hilfe von `play` zum Ende des Servers bei `--allow-recorded-errors` und `--compare-responses` (`LH-FA-20.a`); `SPEC-029` Punkt 2: „die Anmeldung mit Klartext-Passwort und die mit MD5“ (Berichtigung des Numerus, keine Aussage geändert) |
 | 2026-10-16 | Ende des Servers beim Aufzeichnen, Upstream-Adapter: Sendefehler an den geschlossenen Upstream im Leerlauf ist `PGR-E4003` statt „kein Fehler“ (Berichtigung gegen *Gelesen*: nach einem Sendefehler wird nicht weitergelesen), Senden nach gelesener Fehlerantwort ohne Fehler, Aufrufe nach dem Ende nicht zugesagt, Schweregrad wie in der Datei (`LH-FA-25.a`, `LH-FA-02.b`) |
