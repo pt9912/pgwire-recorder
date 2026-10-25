@@ -957,7 +957,7 @@ mutg() {
 }
 mutg m-p12-budget-pruefung $'if [ -n "$budget" ] && [ "$budget'$'" != 0 ] && (( T > budget )); then' $'if false; then' p12-budget-ueber p12-budget-gruende
 mutg m-p12-budget-null-geprueft $'[ "$budget"'$' != 0 ] && ' $'' p12-budget-null
-mutg m-p12-budget-zeile-mit-obergrenze $'  echo "$GPN: Zeit $T s von höch'$'stens $budget s, Last $last" >&2' $'  :' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt p12-budget-gruende
+mutg m-p12-budget-zeile-mit-obergrenze $'  echo "$GPN: Zeit $T s von höch'$'stens $budget s, Last $last" >&2' $'  :' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt p12-budget-gruende p12-budget-zulaessig-999999 p12-budget-zulaessig-10
 mutg m-p12-budget-zeile-ohne-obergrenze $'  echo "$GPN: Zeit $'$'T s, Last $last" >&2' $'  :' p12-budget-vorgabe-nur-ohne-mut
 mutg m-p12-budget-vorgabe-trotz-mut $'elif [ -z "${GP'$'_MUT-}" ]; then' $'elif true; then' p12-budget-vorgabe-nur-ohne-mut
 mutg m-p12-budget-vorgabe-nicht-bei-entdecke $'elif [ -z "${GP'$'_MUT-}" ]; then' $'elif [ -z "${GP_MUT-}" ] && [ -z "${GP_ENTDECKE-}" ]; then' p12-budget-entdecke-vorgabe-gilt
@@ -972,8 +972,8 @@ mutg m-p12-budget-sechs-stellen-abgelehnt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0
 mutg m-p12-budget-zehn-abgelehnt $'[[ $GP_BUDGET =~ ^(0'$'|[1-9][0-9]{0,5})$ ]]' $'[[ $GP_BUDGET =~ ^(0|[1-9]|[1-9][0-9]{2,5})$ ]]' p12-budget-zulaessig-10
 mutg m-p12-budget-ungueltig-ohne-exit $'keine ganze Zahl'$'" >&2; exit 2; }' $'keine ganze Zahl" >&2; }' p12-budget-ungueltig-leer p12-budget-ungueltig-minus p12-budget-ungueltig-bruch p12-budget-ungueltig-abc p12-budget-ungueltig-08 p12-budget-ungueltig-09 p12-budget-ungueltig-00 p12-budget-ungueltig-007 p12-budget-ungueltig-sieben-stellen p12-budget-ungueltig-zwanzig-stellen
 ALT2=$'  echo "$GPN: ROT — Zeitbudg'$'et: $T s über $budget s" >&2' NEU2=$'  echo "$GPN: ROT — Zeitbudget: $T s über $budget s" >'$'&2; [ ! -s "$arbeit/spaet" ] || cat "$arbeit/spaet" >&2' mutg m-p12-budget-gruende-vertauscht $'melde() { echo "container-gegenp'$'robe: ROT — $*" >&2; fehler=1; }' $'melde() { echo "container-gegenprobe: R'$'OT — $*" >> "$arbeit/spaet"; fehler=1; }' p12-budget-gruende
-mutg m-p12-budget-last-null $'read -r last '$'_ < "$LOADAVG"' $'last=0' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt
-mutg m-p12-budget-last-nie-gelesen $'[ ! -r "$LOAD'$'AVG" ] || read' $'[ -r "$LOADAVG" ] || read' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt
+mutg m-p12-budget-last-null $'read -r last '$'_ < "$LOADAVG"' $'last=0' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt p12-budget-zulaessig-999999 p12-budget-zulaessig-10
+mutg m-p12-budget-last-nie-gelesen $'[ ! -r "$LOAD'$'AVG" ] || read' $'[ -r "$LOADAVG" ] || read' p12-budget-ueber p12-budget-unter p12-budget-null p12-budget-vorgabe-nur-ohne-mut p12-budget-entdecke-vorgabe-gilt p12-budget-last-fehlt p12-budget-zulaessig-999999 p12-budget-zulaessig-10
 mutg m-p12-ordner-baum-bleibt $'  rm -rf "${w:?}"'$' # P12baum-ordner\n' $'' p12-ordner-mutation
 mutg m-p12-budget-sigint-zeile $'trap \'rm -rf "${'$'arbeit:?}"\' EXIT\n' $'trap \'rm -rf "${arbeit:?}"\' EXIT; trap \'echo "$GPN: Zeit 0 s, Last 0" >&2; exit 130\' INT\n' p12-budget-sigint
 mutg m-p12-budget-sigterm-zeile $'trap \'rm -rf "${'$'arbeit:?}"\' EXIT\n' $'trap \'rm -rf "${arbeit:?}"\' EXIT; trap \'echo "$GPN: Zeit 0 s, Last 0" >&2; exit 143\' TERM\n' p12-budget-sigterm
