@@ -51,11 +51,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1 (Zustand statt Sperre):** `schliesse` (in `einspielen.go`) sendet `Terminate`, wenn keine Nachricht des Clients teilweise geschrieben ist, und sonst nicht; die Sperre `schreiben` ist nicht mehr der Stellvertreter. Die Wartezeit von `schliesse` auf das Ende eines teilweisen Schreibens ist durch `terminateFrist` begrenzt (Randformen 1 bis 3).
-- [ ] **Liefer-Punkt 2 (Tests mit Mutation, `AGENTS.md` §3.10):** je Zusage ein Test, der rot wird, wenn der Code sie bricht, und die Mutation vom Implementer selbst rot gesehen (Zusage · Mutation · roter Test im Bericht): (a) Terminate bei gehaltener Bearbeitung der Anfrage (Sperre 300 ms nach dem Senden gehalten): `TestRunPlayZweitesSignal` rot; (b) kein Terminate bei teilweise geschriebener Nachricht (bestehend: `TestEinspielSchliesseSchreibtNichtBeimSenden`); (c) die Frist begrenzt das Warten (ein Test, der ohne Frist, mit unbegrenztem `Lock()`, rot wird); (d) die Reihenfolge der Gründe (Randform 4), je Element ein Fall.
-- [ ] **Liefer-Punkt 3 (Plattform und Abdeckung):** Die Plattformentscheidung (Randform 5, in f17d9027 entschieden: geprüft nur unter Linux) ist in der Spezifikation getragen und der Abdeckungs-Deklaration der neuen Tests nachgezogen (`make abdeckung-check` grün); die Tests tragen `Abdeckung: LH-FA-20/…`.
-- [ ] Kein Verhalten der Kommandozeile außer dem zweiten Signal ändert sich; `TestRunPlayZweitesSignal` ist unter der künstlichen Last aus `slice-test-unter-last-ursache` §7 (K=32, K=48 Container mit Rechenschleife) in mindestens 20 Läufen je Last grün, sonst ist die Ursache nicht behoben.
-- [ ] `make gates` grün.
+- [x] **Liefer-Punkt 1 (Zustand statt Sperre):** `schliesse` (in `einspielen.go`) sendet `Terminate`, wenn keine Nachricht des Clients teilweise geschrieben ist, und sonst nicht; die Sperre `schreiben` ist nicht mehr der Stellvertreter. Die Wartezeit von `schliesse` auf das Ende eines teilweisen Schreibens ist durch `terminateFrist` begrenzt (Randformen 1 bis 3).
+- [x] **Liefer-Punkt 2 (Tests mit Mutation, `AGENTS.md` §3.10):** je Zusage ein Test, der rot wird, wenn der Code sie bricht, und die Mutation vom Implementer selbst rot gesehen (Zusage · Mutation · roter Test im Bericht): (a) Terminate bei gehaltener Bearbeitung der Anfrage (Sperre 300 ms nach dem Senden gehalten): `TestRunPlayZweitesSignal` rot; (b) kein Terminate bei teilweise geschriebener Nachricht (bestehend: `TestEinspielSchliesseSchreibtNichtBeimSenden`); (c) die Frist begrenzt das Warten (ein Test, der ohne Frist, mit unbegrenztem `Lock()`, rot wird); (d) die Reihenfolge der Gründe (Randform 4), je Element ein Fall.
+- [x] **Liefer-Punkt 3 (Plattform und Abdeckung):** Die Plattformentscheidung (Randform 5, in f17d9027 entschieden: geprüft nur unter Linux) ist in der Spezifikation getragen und der Abdeckungs-Deklaration der neuen Tests nachgezogen (`make abdeckung-check` grün); die Tests tragen `Abdeckung: LH-FA-20/…`.
+- [x] Kein Verhalten der Kommandozeile außer dem zweiten Signal ändert sich; `TestRunPlayZweitesSignal` ist unter der künstlichen Last aus `slice-test-unter-last-ursache` §7 (K=32, K=48 Container mit Rechenschleife) in mindestens 20 Läufen je Last grün, sonst ist die Ursache nicht behoben.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -128,7 +128,38 @@ dasteht.
 
 ## 7. Closure-Notiz
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+Die Closure-Notiz (Lerneintrag, Risiko-Ausgänge, Register) schreibt der Planner bei Closure, vor dem `git mv` nach `done/`.
+
+### Belege des Implementers
+
+**Umsetzung** (Commit `b0a7e10a`, Basis `dced44df`): `einspielSession` führt `schreibEnde chan struct{}` unter `zustand`; ungleich `nil` heißt „ein Schreibvorgang (ein `Flush` von `Anfrage` oder einer Gruppe) läuft“. `beginneSchreiben` prüft `geschlossen` und setzt den Zustand in einem Schritt, `endeSchreiben` löscht ihn und weckt `schliesse`. `schliesse` setzt `geschlossen` und liest `schreibEnde` im selben Schritt, wartet höchstens bis zur Gesamtfrist `terminateFrist` ab dem Aufruf (Warten und `SetWriteDeadline(frist)` teilen sie) und sendet danach `Terminate`; reißt die Frist, bleibt es aus. Die Sperre `schreiben` hält nur noch `Anfrage` und den Sender auseinander. `Anfrage` nach dem Schließen liefert `PGR-E4003`, ohne zu schreiben (vorher ein Write auf die geschlossene Verbindung, Fehler gleich). Keine Randform außerhalb von §6 berührt; Randformen 1 bis 5 stehen in `LH-FA-20.a` *Abbruchsignal* (f17d9027), die Spezifikation ist unverändert.
+
+**Mutationen** (jeweils eine Änderung an `einspielen.go`, Lauf `go test ./internal/adapters/driven/postgres/ -run Einspiel` im Image `pgwire-recorder:test` mit dem Arbeitsbaum per Bind-Mount, danach zurückgesetzt; Mutant kommt so ohne Cache an):
+
+| Zusage (Wortlaut `LH-FA-20.a`) | Mutation | roter Test (aus dem Grund der Zusage) |
+|---|---|---|
+| Terminate bei vollständig geschriebener Anfrage, Bearbeitung nicht abgeschlossen | `endeSchreiben` in `Anfrage` 300 ms nach dem `Flush` | `TestEinspielSchliesseSendetNachVollstaendigerAnfrage` (kein Terminate hinter der Anfrage); dazu `TestRunPlayZweitesSignal` 30,3 s rot („play endet binnen 30 s nach dem zweiten Signal nicht“ bzw. kein `X`), ohne Mutation grün |
+| dasselbe für eine Gruppe | `endeSchreiben` im Sender 300 ms nach dem `Flush` | `TestEinspielSchliesseSendetNachVollstaendigerGruppe` (daneben `TestEinspielGruppeNachrichten`, `TestEinspielGruppeUnabhaengig`) |
+| kein Terminate in einen teilweise geschriebenen Schreibvorgang | `schliesse` wartet nicht (`wartePunktlich(nil, …)`) | `TestEinspielGruppeSchliesseBeimSenden` (Panic des Fakes: zweites `Write` während des ersten, `sendeSperre` und `steuerConn`), `TestEinspielSchliesseSchreibtNichtBeimSenden` |
+| Frist begrenzt das Warten | Timer `time.Hour` statt `time.Until(frist)` | `TestEinspielSchliesseBeimSenden`, `TestEinspielSchliesseSchreibtNichtBeimSenden/Schliesse`, `TestEinspielGruppeSchliesseBeimSenden`, `…SchliesseBeendetSender`, `…VerwirftWarteschlange` (je 5 s: Schliesse endet nicht) |
+| gerissene Frist: kein Terminate | `wartePunktlich` liefert nach Ablauf `true` | `TestEinspielGruppeSchliesseBeimSenden` (Panic: zweites `Write`) |
+| Gesamtfrist für Warten und Schreiben zusammen | `SetWriteDeadline(time.Now().Add(terminateFrist))` nach dem Warten | `TestEinspielSchliesseGesamtfrist` (Frist nach dem Ende des Vorgangs plus 100 ms) |
+| Grund `SchliesseOhneTerminate` | `SchliesseOhneTerminate` ruft `schliesse(true)` | `TestEinspielSchliesseOhneTerminate`, `TestEinspielSchliesseNurEinmal/SchliesseOhneTerminate,…` (2 Fälle) |
+| Grund „erstes Schließen schon geschehen“ | `erstes := true` | `TestEinspielSchliesseNurEinmal/Schliesse,_Schliesse` |
+| eingereihte Gruppen nach dem Signal nicht mehr geschrieben | `beginneSchreiben` prüft `geschlossen` nicht | `TestEinspielGruppeSchliesseVerwirftWarteschlange` (beide Arten) |
+| nach dem Schließen schreibt `Anfrage` nichts | `Anfrage` setzt „schreibt“ ohne Prüfung von `geschlossen` | `TestEinspielAnfrageNachSchliessen` (beide Arten) |
+
+Die Reihenfolge der letzten zwei Gründe (Teilweise geschrieben und Frist) ist laut Spezifikation nicht beobachtbar und hat keinen eigenen Fall. Zwei der Fälle (Warten entfällt, Terminate trotz Frist) werden durch den Panic des Fakes (`close of closed channel` in `einspielen_gruppe_test.go`) rot, nicht durch eine Meldung; Grund ist in beiden Fällen ein zweites gleichzeitiges `Write`. Eine Mutation, die `beginneSchreiben` ignoriert und dann `endeSchreiben` ruft (Panic `close of nil channel` in einem anderen Test), zählt nicht als Beleg für die Zeile *Anfrage nach dem Schließen*; die Zeile trägt die zweite Mutation.
+
+**Last** (`TestRunPlayZweitesSignal` als vorab gebautes Testbinary, je Lauf ein Container `--network none`, Last wie `slice-test-unter-last-ursache` §7 (a): K Container mit `while :; do :; done` im Image `postgres:17-alpine@sha256:b0f9560a…`, 5 s Vorlauf; Host Linux, 20 Kerne, kein anderer Container): K=32: 20 Läufe, 0 rot (Last 1 min vorher 10,7, nachher 19,8); K=48: 20 Läufe, 0 rot (vorher 29,9, nachher 39,1). Zum Vergleich der alte Stand laut `slice-test-unter-last-ursache` §7: 8 von 20 und 9 von 20 rot bei 16 Kernen. Grenze: Die Hosts unterscheiden sich (16 gegen 20 Kerne), die Lastzahl blieb bei K=32 um die Kernzahl; ein Lauf des alten Codes auf diesem Host steht nicht daneben. Das Skript liegt im Scratchpad der Sitzung, nicht im Repo.
+
+**Gates:** `make gates` am Endstand (Commit `b0a7e10a`): Exit 0, `run-integration-tests: gruen`, `test-postgres-versionen: grün`, `workflows-check: kein Befund`. `make abdeckung-check` lief vorher rot („nicht aktuell“, die vier neuen Tests), `make abdeckung` schrieb `docs/user/abdeckung-unit.md` neu, danach grün im Gate. Keine Gegenprobe gefahren: kein Gate, keine Gegenprobe und kein Vertrag unter `harness/` berührt.
+
+**Größe (§3.14):** 252 Zeilen nach dem Befehl der Regel (Basis `dced44df`, Pfade `internal test`), Marke 1500 nicht nahe.
+
+**Kommentare (§3.7/§3.11):** neue und geänderte Kommentare in `einspielen.go` (Typ `einspielSession`, `beginneSchreiben`, `endeSchreiben`, `Schliesse`, `schliesse`, `wartePunktlich`) beschreiben den Ist-Zustand; jede Zusage darin hat die Tests der Tabelle. Handbuch und README unverändert (§1). Der Kommentar des Ports `Schliesse` („soweit die Verbindung es sofort annimmt“) bleibt; er deckt die Gesamtfrist nicht ausdrücklich, die Spezifikation tut es.
+
+**Beobachtungen für die Closure:** Die Prüfung von `TestEinspielSchliesseGesamtfrist` hängt an einem Spielraum von 80 ms (Schliesse muss binnen 80 ms nach dem Aufruf seine Frist gesetzt haben); unter extremer Last könnte sie rot werden (`BEO-REPO/test-faellt-unter-cpu-last-aus`, Risiko 3 in §6).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
