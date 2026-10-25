@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/bootstrap/play_test.go` | unverändert gefahren | `TestRunPlayZweitesSignal` ist der rote Test (a); Änderung nur, wenn der Architect es entscheidet |
 | `spec/spezifikation.md` | unverändert | Randformen 1 bis 5 stehen seit 36b6387c und f17d9027 (Architect, vor dem Anspruch), die Randform 8 seit fa8a8479 (Architect, auf Rückgabe im Slice); weitere Änderung nur über Rückgabe an den Architect |
 
-Das Schreiben einer Nachricht läuft über `fe.Send` und `fe.Flush`; der Implementer prüft, ob der Zustand je Nachricht oder je `Flush` gilt (Randform 2) und nennt es dem Architect, wenn die Spezifikation es nicht entscheidet.
+Das Schreiben einer Nachricht läuft über `fe.Send` und `fe.Flush`; der Zustand gilt je `Flush`, nicht je Nachricht (Randform 2, in der Spezifikation entschieden).
 
 ## 4. Trigger
 
@@ -151,9 +151,10 @@ Die Closure-Notiz (Lerneintrag, Risiko-Ausgänge, Register) schreibt der Planner
 | Grund `SchliesseOhneTerminate` | `SchliesseOhneTerminate` ruft `schliesse(true)` | `TestEinspielSchliesseOhneTerminate`, `TestEinspielSchliesseNurEinmal/SchliesseOhneTerminate,…` (2 Fälle) |
 | Grund „erstes Schließen schon geschehen“ | `erstes := true` | `TestEinspielSchliesseNurEinmal/Schliesse,_Schliesse` |
 | eingereihte Gruppen nach dem Signal nicht mehr geschrieben | `beginneSchreiben` prüft `geschlossen` nicht | `TestEinspielGruppeSchliesseVerwirftWarteschlange` (beide Arten) |
+| `Anfrage` nach dem Schließen endet mit `PGR-E4003` (Randform 8) | `Anfrage` liefert `CodeUnsupported` statt `CodeConnectionLost` | `TestEinspielAnfrageNachSchliessen` (beide Arten), daneben `TestEinspielNaechsteFehler/Senden_scheitert` |
 | nach dem Schließen schreibt `Anfrage` nichts | `Anfrage` setzt „schreibt“ ohne Prüfung von `geschlossen` | `TestEinspielAnfrageNachSchliessen` (beide Arten) |
 
-Die Reihenfolge der letzten zwei Gründe (Teilweise geschrieben und Frist) ist laut Spezifikation nicht beobachtbar und hat keinen eigenen Fall. Zwei der Fälle (Warten entfällt, Terminate trotz Frist) werden durch den Panic des Fakes (`close of closed channel` in `einspielen_gruppe_test.go`) rot, nicht durch eine Meldung; Grund ist in beiden Fällen ein zweites gleichzeitiges `Write`. Eine Mutation, die `beginneSchreiben` ignoriert und dann `endeSchreiben` ruft (Panic `close of nil channel` in einem anderen Test), zählt nicht als Beleg für die Zeile *Anfrage nach dem Schließen*; die Zeile trägt die zweite Mutation.
+„Ohne Meldung“ (Randform 8): Der Adapter hat keinen Ausgabeweg und gibt nur den Fehler zurück; ob der Aufrufer ihn meldet, belegt dieser Slice nicht (Grenze: kein Test dieses Teilsatzes, Adresse: Planner bei der Closure). Die Reihenfolge der letzten zwei Gründe (Teilweise geschrieben und Frist) ist laut Spezifikation nicht beobachtbar und hat keinen eigenen Fall. Zwei der Fälle (Warten entfällt, Terminate trotz Frist) werden durch den Panic des Fakes (`close of closed channel` in `einspielen_gruppe_test.go`) rot, nicht durch eine Meldung; Grund ist in beiden Fällen ein zweites gleichzeitiges `Write`. Eine Mutation, die `beginneSchreiben` ignoriert und dann `endeSchreiben` ruft (Panic `close of nil channel` in einem anderen Test), zählt nicht als Beleg für die Zeile *Anfrage nach dem Schließen*; die Zeile trägt die zweite Mutation.
 
 **Last** (`TestRunPlayZweitesSignal` als vorab gebautes Testbinary, je Lauf ein Container `--network none`, Last wie `slice-test-unter-last-ursache` §7 (a): K Container mit `while :; do :; done` im Image `postgres:17-alpine@sha256:b0f9560a…`, 5 s Vorlauf; Host Linux, 20 Kerne, kein anderer Container): K=32: 20 Läufe, 0 rot (Last 1 min vorher 10,7, nachher 19,8); K=48: 20 Läufe, 0 rot (vorher 29,9, nachher 39,1). Zum Vergleich der alte Stand laut `slice-test-unter-last-ursache` §7: 8 von 20 und 9 von 20 rot bei 16 Kernen. Grenze: Die Hosts unterscheiden sich (16 gegen 20 Kerne), die Lastzahl blieb bei K=32 um die Kernzahl; ein Lauf des alten Codes auf diesem Host steht nicht daneben. Das Skript liegt im Scratchpad der Sitzung, nicht im Repo.
 
@@ -165,9 +166,9 @@ Die Reihenfolge der letzten zwei Gründe (Teilweise geschrieben und Frist) ist l
 
 **Größe (§3.14):** 252 Zeilen nach dem Befehl der Regel (Basis `dced44df`, Pfade `internal test`), Marke 1500 nicht nahe.
 
-**Kommentare (§3.7/§3.11):** neue und geänderte Kommentare in `einspielen.go` (Typ `einspielSession`, `beginneSchreiben`, `endeSchreiben`, `Schliesse`, `schliesse`, `wartePunktlich`) beschreiben den Ist-Zustand; jede Zusage darin hat die Tests der Tabelle. Handbuch und README unverändert (§1). Der Kommentar des Ports `Schliesse` („soweit die Verbindung es sofort annimmt“) bleibt; er deckt die Gesamtfrist nicht ausdrücklich, die Spezifikation tut es.
+**Kommentare (§3.7/§3.11):** neue und geänderte Kommentare in `einspielen.go` (Typ `einspielSession`, `beginneSchreiben`, `endeSchreiben`, `Schliesse`, `schliesse`, `wartePunktlich`) beschreiben den Ist-Zustand; jede Zusage darin hat die Tests der Tabelle. Handbuch und README unverändert (§1). Der Kommentar des Ports `Schliesse` nennt das Warten auf den Schreibvorgang und die Gesamtfrist (statt „sofort“).
 
-**Beobachtungen für die Closure:** Die Prüfung von `TestEinspielSchliesseGesamtfrist` hängt an einem Spielraum von 80 ms (Schliesse muss binnen 80 ms nach dem Aufruf seine Frist gesetzt haben); unter extremer Last könnte sie rot werden (`BEO-REPO/test-faellt-unter-cpu-last-aus`, Risiko 3 in §6).
+**Beobachtungen für die Closure:** Die Prüfung von `TestEinspielSchliesseGesamtfrist` hängt seit der Nacharbeit an einem Spielraum von rund 800 ms (Frist 1 s, Wartezeit 200 ms nach Beginn des Schließens); unter extremer Last könnte sie rot werden (`BEO-REPO/test-faellt-unter-cpu-last-aus`, Risiko 3 in §6).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
