@@ -555,8 +555,9 @@ for z in 999999 10; do
 done
 fall p17-budget-null 'gp_kind "^m-p2-vorgabe-remote$" "s|^fehlt=0$|sleep 2; fehlt=0|" -- GP_BUDGET=0
   { [ "$kcode" = 0 ] && ! grep -q "ROT — Zeitbudget" "$w/kerr" && grep -qE "^$GPN: Zeit [0-9]+ s von höchstens 0 s, Last [0-9]+[.][0-9]+$" "$w/kerr"; } || rot'
-for p in leer: minus:-1 bruch:1.5 abc:abc 08:08 09:09 00:00 007:007 sieben-stellen:1000000 zwanzig-stellen:99999999999999999999; do
-  fall "p17-budget-ungueltig-${p%%:*}" "gp_kind '^m-p2-vorgabe-remote\$' -- GP_BUDGET=${p#*:}
+for p in leer: minus:-1 bruch:1.5 abc:abc 08:08 09:09 00:00 007:007 sieben-stellen:1000000 zwanzig-stellen:99999999999999999999 plus:+5 leerraum-vorn:~5 leerraum-hinten:5~; do
+  v=${p#*:}; v=${v//"~"/ }
+  fall "p17-budget-ungueltig-${p%%:*}" "gp_kind '^m-p2-vorgabe-remote\$' -- 'GP_BUDGET=$v'
     { [ \"\$kcode\" = 2 ] && grep -qx \"\$GPN: GP_BUDGET: keine ganze Zahl\" \"\$w/kerr\" && [ \$(wc -l < \"\$w/kerr\") = 1 ] \
       && [ -z \"\$(ls -A \"\$kw\")\" ]; } || rot"
 done
@@ -911,9 +912,12 @@ mut m-p17-budget-stellen-unbegrenzt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]
 mut m-p17-budget-null-abgelehnt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^[1-9][0-9]{0,5}$ ]] ||' p17-budget-null
 mut m-p17-budget-sechs-stellen-abgelehnt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,4})$ ]] ||' p17-budget-zulaessig-999999
 mut m-p17-budget-zehn-abgelehnt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^(0|[1-9]|[1-9][0-9]{2,5})$ ]] ||' p17-budget-zulaessig-10
+mut m-p17-budget-vorzeichen-plus-erlaubt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^[+]?(0|[1-9][0-9]{0,5})$ ]] ||' p17-budget-ungueltig-plus
+mut m-p17-budget-leerraum-vorn-erlaubt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^\ ?(0|[1-9][0-9]{0,5})$ ]] ||' p17-budget-ungueltig-leerraum-vorn
+mut m-p17-budget-leerraum-hinten-erlaubt p "$A17B" '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] ||' '  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})\ ?$ ]] ||' p17-budget-ungueltig-leerraum-hinten
 mut m-p17-budget-vor-faellen p "$A17B" 'if [ -n "${GP_BUDGET+x}" ]; then
   [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { echo "$GPN: GP_BUDGET: keine ganze Zahl" >&2; exit 2; }' 'if [ -n "${GP_BUDGET+x}" ]; then
-  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { nachher=1; }' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch p17-budget-ungueltig-abc p17-budget-ungueltig-08 p17-budget-ungueltig-09 p17-budget-ungueltig-00 p17-budget-ungueltig-007 p17-budget-ungueltig-sieben-stellen p17-budget-ungueltig-zwanzig-stellen
+  [[ $GP_BUDGET =~ ^(0|[1-9][0-9]{0,5})$ ]] || { nachher=1; }' p17-budget-ungueltig-leer p17-budget-ungueltig-minus p17-budget-ungueltig-bruch p17-budget-ungueltig-abc p17-budget-ungueltig-08 p17-budget-ungueltig-09 p17-budget-ungueltig-00 p17-budget-ungueltig-007 p17-budget-ungueltig-sieben-stellen p17-budget-ungueltig-zwanzig-stellen p17-budget-ungueltig-plus p17-budget-ungueltig-leerraum-vorn p17-budget-ungueltig-leerraum-hinten
 mut m-p17-signal-int p "$A17O" "trap 'exit 130' INT" ':' p17-budget-sigint
 mut m-p17-signal-term p "$A17O" "trap 'exit 143' TERM" ':'
 mut m-p17-ordner-ende p "$A17O" 'raeumen() { [ ! -d "$arbeit" ] || rm -rf -- "$arbeit"; return 0; }' 'raeumen() { return 0; }' p17-budget-sigint p17-budget-sigterm
