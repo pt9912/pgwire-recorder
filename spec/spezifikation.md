@@ -2106,7 +2106,8 @@ offenlässt.
   Verbindung wird geschlossen, ohne Meldung; ob das Warten oder das Schreiben sie riss, ist nicht beobachtbar
   und ohne Folge. Eingereihte, noch nicht geschriebene Gruppen werden nach dem Signal nicht mehr geschrieben.
   Beginnt eine Anfrage nach dem zweiten Signal, wird sie nicht geschrieben (kein zweiter Schreiber neben
-  `Terminate`); sie endet mit `PGR-E4003`, ohne Meldung.
+  `Terminate`); sie endet mit `PGR-E4003`, der Adapter gibt nur den Fehler zurück (ob der Aufrufer ihn meldet, regelt
+  die Zeile *Abbruchsignal*: die unterbrochene Interaktion ist kein Fehler).
   Die Zusage setzt voraus, dass Senden und zweites Signal gleichzeitig kommen können; das Verhalten
   der Verbindung hängt vom Betriebssystem ab: geprüft nur unter Linux (Grenze für macOS und Windows, `LH-QA-03`).
   Es schließt sie, auch während des Verbindungsversuchs, und
@@ -3762,4 +3763,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-24 | Replay: Tabellen-OID und Spaltennummer einer aufgezeichneten `RowDescription` unverändert an den Client (`LH-FA-03.a`); Signal vor dem Öffnen des Listeners, auch bei einem Namen in `--listen`: kein Startfehler, Exit-Code `0`, geprüft nur unter Linux (`LH-FA-13.a`); Hilfsabläufe einer beendeten Verbindung nicht zugesichert (`SPEC-032`); Warten in Tests: Lauf der Kommandozeile in einer Goroutine ist ein gestarteter Prozess, Kanal des Testgeschirrs ohne Pflicht zur Frist (`SPEC-038`) |
 | 2026-10-24 | Warten in Tests: ein Kanal des Testgeschirrs, dessen Wert der Prüfling bestimmt (gesendete Nachrichten, Ende der Verbindung), verlangt eine Frist (`SPEC-038`) |
 | 2026-10-24 | Homebrew: Stufe „Bericht“ je Kombination unterhalb des Nachweises (Schritte (1) und (2) vom Nutzer berichtet, Schritt (3) ohne Beleg); Entscheidung des Nutzers vom 2026-10-24 (`LH-FA-19.a`, `SPEC-067` Punkt 20 (6)) |
-| 2026-10-25 | Abbruchsignal von `play`: eine Anfrage, die nach dem zweiten Signal beginnt, wird nicht geschrieben und endet mit `PGR-E4003` ohne Meldung (`LH-FA-20.a`) |
+| 2026-10-25 | Abbruchsignal von `play`: eine Anfrage, die nach dem zweiten Signal beginnt, wird nicht geschrieben und endet mit `PGR-E4003`; der Adapter gibt nur den Fehler zurück, „ohne Meldung“ gilt nicht als Zusage (`LH-FA-20.a`) |
