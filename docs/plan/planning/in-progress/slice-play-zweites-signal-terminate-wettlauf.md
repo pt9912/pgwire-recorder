@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): Priorisiert (`open` → `next`, `Verantwortlich:` gesetzt), dann der reine Move auf `main`. Voraussetzung: `slice-test-unter-last-ursache` in `done/` (Ursache belegt). Kein anderer Slice ändert `einspielen.go` zur selben Zeit (`slice-v1-abschluss-zeitangaben` ist geschlossen oder liegt nicht in `in-progress/`; der Planner prüft es beim Anspruch).
 
-**Größe.** Metrik und Befehl stehen in `AGENTS.md` §3.14. **Pfade des Plans:** `internal test` (mit den zwei Ausschlüssen des Befehls). **Marke 1500** (`AGENTS.md` §3.14). **Basis:** der Commit, der diese Datei nach `in-progress/` bewegt; sein Hash steht hier beim Anspruch: `—`.
+**Größe.** Metrik und Befehl stehen in `AGENTS.md` §3.14. **Pfade des Plans:** `internal test` (mit den zwei Ausschlüssen des Befehls). **Marke 1500** (`AGENTS.md` §3.14). **Basis:** der Commit, der diese Datei nach `in-progress/` bewegt; sein Hash steht hier beim Anspruch: `dced44df`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
