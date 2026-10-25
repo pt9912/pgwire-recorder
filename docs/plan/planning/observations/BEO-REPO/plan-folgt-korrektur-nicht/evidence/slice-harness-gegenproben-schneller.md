@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-schneller
+**Fund (Review r1 F-7, LOW):** §1 sagte, die Zeilen je Gegenprobe in `harness/README.md` §Sensors blieben bis zur Lieferung unverändert (seit `5ebede1a` geändert), und §3 führte das Herausnehmen des Übergangssatzes aus `AGENTS.md` §6 Punkt 6 und `implement-slice.md` Schritt 15, das weder der Diff noch die DoD trug. Nachgezogen; die Closure ersetzt den Übergangssatz (Commit `1af1df53`).

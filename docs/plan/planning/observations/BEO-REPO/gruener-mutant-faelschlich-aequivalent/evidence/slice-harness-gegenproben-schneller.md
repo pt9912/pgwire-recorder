@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-schneller
+**Fund (Review r1 F-2, MEDIUM):** §7 führte den grünen Mutanten `>=` statt `>` als „äquivalent in der Praxis“ ohne Invariante, Ort und Sonde; die Sonde des Reviews (`T=5`, `GP_BUDGET=5`) trennte Original (Exit 0) und Mutant (Exit 1). Der Architect hielt ihn in `SPEC-060` Punkt 16 (9) als nicht äquivalentes akzeptiertes Negativ fest (Zeit ohne Naht nicht steuerbar, eine Sekunde an der Grenze); §7 nennt ihn nicht mehr äquivalent.

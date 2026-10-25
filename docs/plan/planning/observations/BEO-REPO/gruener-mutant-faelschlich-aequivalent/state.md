@@ -31,3 +31,5 @@ Kein Auftreten, gegenläufiger Beleg (`slice-erster-release-freigabe`, Urteil de
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-cancel-ohne-schluessel` (F-2) — ein Mutant, der den Zeitpunkt der Ablehnung ändert, stand ohne Sonde als äquivalent in §7; die Sonde des Reviews trennte ihn (Beleg `evidence/slice-v1-abschluss-cancel-ohne-schluessel.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-devcontainer-einrichten` (F-V6) — einer von drei als äquivalent geführten Mutanten war es nicht (er brach die Zusage selbst), und die Sonde eines zweiten hing an einer Bedingung, die nie wahr wird; die Verifikation und der Lauf der Sonde fanden es (Beleg `evidence/slice-harness-devcontainer-einrichten.md`). Zähler 11.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-gegenproben-schneller` (Review r1 F-2, MEDIUM) — `>=` stand ohne Invariante, Ort und Sonde als äquivalent in §7; die Sonde des Reviews trennte ihn (Beleg `evidence/slice-harness-gegenproben-schneller.md`). Zähler 12.

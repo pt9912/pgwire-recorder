@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-schneller
+**Fund (Review r1 F-1, MEDIUM):** Die Zahlform von `GP_BUDGET` stand in keiner Randform von §6 und in keinem Fall: `08` und `09` (oktal in `bash`), `00`, `0010` und Werte über 64 Bit bestanden die Prüfung `^[0-9]+$`, die Arithmetik versagte still (Exit 0 trotz Überschreitung). Der Architect entschied sie nach dem Review (Randform (j), `SPEC-060` Punkt 16 (4), (9)): zulässig `^(0|[1-9][0-9]{0,5})$`, jeder andere Wert Exit 2.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-schneller
+**Fund (Review r1 F-4, LOW):** Die Zeile in `harness/README.md` („Ordner je Mutation und je Fall entfernt“) sagte über die Gruppen `b`, `f`, `h` mehr zu, als ein Fall prüfte (`p14-ordner-fall` fuhr nur `t.<Fall>` der Gruppe `p1`). Die Zeile nennt nur noch, was ein Fall prüft; die Mutationen je Element folgten (siehe `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`).
