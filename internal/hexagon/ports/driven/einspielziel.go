@@ -43,8 +43,9 @@ type EinspielSession interface {
 	// lesen lässt, sind PGR-E6001, ein Verbindungsende PGR-E4003. Sie liest nie
 	// über die gelieferte Nachricht hinaus.
 	Naechste() (model.Response, error)
-	// Schliesse sendet Terminate, soweit die Verbindung es sofort annimmt, und
-	// schließt sie; ein Fehler dabei bleibt ohne Folge. Nach einem Schließen,
+	// Schliesse sendet Terminate, soweit die Verbindung es binnen einer kurzen
+	// Gesamtfrist annimmt (das Warten auf einen laufenden Schreibvorgang
+	// eingeschlossen), und schließt sie; ein Fehler dabei bleibt ohne Folge. Nach einem Schließen,
 	// auch nach SchliesseOhneTerminate, ist es ohne Wirkung.
 	Schliesse()
 	// SchliesseOhneTerminate schließt die Verbindung, ohne Terminate zu senden;

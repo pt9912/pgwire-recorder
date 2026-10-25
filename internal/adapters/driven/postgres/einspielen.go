@@ -189,13 +189,21 @@ type einspielSession struct {
 	geschlossen   bool
 	sendefehler   error
 	schreibEnde   chan struct{}
+	frist         time.Duration
 }
 
 // neueEinspielSession ist die Session auf conn; sie liest aus r, das die
 // Bytes hinter dem Aufbau noch trägt, und schreibt auf conn.
 func neueEinspielSession(conn net.Conn, r io.Reader) *einspielSession {
+	return neueEinspielSessionMitFrist(conn, r, terminateFrist)
+}
+
+// neueEinspielSessionMitFrist ist neueEinspielSession mit der Gesamtfrist frist
+// für das Terminate von Schliesse.
+func neueEinspielSessionMitFrist(conn net.Conn, r io.Reader, frist time.Duration) *einspielSession {
 	return &einspielSession{
-		conn: conn, fe: pgproto3.NewFrontend(r, conn),
+		frist: frist,
+		conn:  conn, fe: pgproto3.NewFrontend(r, conn),
 		weck: make(chan struct{}, 1), ende: make(chan struct{}),
 	}
 }
@@ -303,11 +311,7 @@ func (s *einspielSession) sendeGruppe(gruppe []pgproto3.FrontendMessage) bool {
 	if !s.beginneSchreiben() {
 		return false
 	}
-	for _, m := range gruppe {
-		s.fe.Send(m)
-	}
-	err := s.fe.Flush()
-	s.endeSchreiben()
+	err := s.schreibeGruppe(gruppe)
 	if err == nil {
 		return true
 	}
@@ -318,6 +322,16 @@ func (s *einspielSession) sendeGruppe(gruppe []pgproto3.FrontendMessage) bool {
 	s.zustand.Unlock()
 	_ = s.conn.Close()
 	return false
+}
+
+// schreibeGruppe schreibt die Gruppe mit einem Flush und beendet danach den
+// Schreibvorgang.
+func (s *einspielSession) schreibeGruppe(gruppe []pgproto3.FrontendMessage) error {
+	defer s.endeSchreiben()
+	for _, m := range gruppe {
+		s.fe.Send(m)
+	}
+	return s.fe.Flush()
 }
 
 // fehlerDesSendens ist der gemerkte Fehler eines gescheiterten Sendens, sonst nil.
@@ -354,7 +368,7 @@ func (s *einspielSession) Naechste() (model.Response, error) {
 
 // Schliesse beendet den Sender, wartet auf das Ende eines laufenden
 // Schreibvorgangs und sendet danach Terminate; Warten und Schreiben teilen
-// sich die Gesamtfrist terminateFrist ab dem Aufruf. Reißt sie, bleibt
+// sich die Gesamtfrist der Session (terminateFrist) ab dem Aufruf. Reißt sie, bleibt
 // Terminate aus. Danach schließt es die Verbindung. Nach einem Schließen ist
 // es ohne Wirkung.
 func (s *einspielSession) Schliesse() {
@@ -371,7 +385,7 @@ func (s *einspielSession) SchliesseOhneTerminate() {
 // und nur mit terminate, ein Terminate. „geschlossen“ setzt es im selben
 // Schritt, in dem es „schreibt“ liest; danach beginnt kein Schreibvorgang mehr.
 func (s *einspielSession) schliesse(terminate bool) {
-	frist := time.Now().Add(terminateFrist)
+	frist := time.Now().Add(s.frist)
 	s.zustand.Lock()
 	erstes := !s.geschlossen
 	var schreibEnde chan struct{}

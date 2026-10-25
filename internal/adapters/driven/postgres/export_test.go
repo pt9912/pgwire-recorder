@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"io"
 	"net"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
@@ -35,6 +36,17 @@ func Verbindung(s driven.UpstreamSession) net.Conn {
 // schreibend auf conn; conn stellt der Test.
 func NeueEinspielSession(conn net.Conn) driven.EinspielSession {
 	return neueEinspielSession(conn, conn)
+}
+
+// NeueEinspielSessionMitFrist reicht an neueEinspielSessionMitFrist weiter,
+// lesend und schreibend auf conn; conn stellt der Test.
+func NeueEinspielSessionMitFrist(conn net.Conn, frist time.Duration) driven.EinspielSession {
+	return neueEinspielSessionMitFrist(conn, conn, frist)
+}
+
+// WartePunktlich reicht an wartePunktlich weiter.
+func WartePunktlich(ende chan struct{}, frist time.Time) bool {
+	return wartePunktlich(ende, frist)
 }
 
 // Aufbau reicht an aufbau weiter; conn stellt der Test.

@@ -71,15 +71,20 @@ func bisSignal(t *testing.T, ch <-chan struct{}, was string) {
 	}
 }
 
+// langeFrist ist die Gesamtfrist der Tests, die nur die Reihenfolge prüfen: Sie
+// liegt um Größenordnungen über der Zeit zwischen Write und Ende des
+// Schreibvorgangs, damit Last sie nicht reißt.
+const langeFrist = time.Second
+
 // Abdeckung: LH-FA-20/Boundary — ist die Anfrage vollständig geschrieben, sendet
-// das zweite Signal Terminate, auch wenn Anfrage noch nicht zurückgekehrt ist:
-// das Schließen sofort nach dem Write sendet Terminate hinter die Anfrage, ohne
-// dass der Schreibvorgang als laufend gilt (LH-FA-20.a *Abbruchsignal*: auch bei
-// nicht abgeschlossener Bearbeitung der Anfrage).
+// das zweite Signal Terminate hinter die Anfrage, sobald der Schreibvorgang
+// endet; Schliesse wartet darauf höchstens die Gesamtfrist (hier eine Sekunde,
+// LH-FA-20.a *Abbruchsignal*: auch bei nicht abgeschlossener Bearbeitung der
+// Anfrage).
 func TestEinspielSchliesseSendetNachVollstaendigerAnfrage(t *testing.T) {
 	hook, geschrieben := geschriebenSignal()
 	conn := &fristVerbindung{hook: hook}
-	s := postgres.NeueEinspielSession(conn)
+	s := postgres.NeueEinspielSessionMitFrist(conn, langeFrist)
 	go func() { _ = s.Anfrage("SELECT 1") }()
 	bisSignal(t, geschrieben, "Anfrage schreibt binnen 5 s nicht")
 	s.Schliesse()
@@ -90,13 +95,13 @@ func TestEinspielSchliesseSendetNachVollstaendigerAnfrage(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-20/Boundary — wie die Anfrage: ist eine eingereihte Gruppe
-// vollständig geschrieben, sendet das zweite Signal Terminate hinter sie, auch
-// wenn der Sender seinen Vorgang noch nicht beendet hat (LH-FA-20.a
-// *Abbruchsignal*).
+// vollständig geschrieben, sendet das zweite Signal Terminate hinter sie,
+// sobald der Schreibvorgang des Senders endet; Schliesse wartet darauf
+// höchstens die Gesamtfrist (hier eine Sekunde, LH-FA-20.a *Abbruchsignal*).
 func TestEinspielSchliesseSendetNachVollstaendigerGruppe(t *testing.T) {
 	hook, geschrieben := geschriebenSignal()
 	conn := &fristVerbindung{hook: hook}
-	s := postgres.NeueEinspielSession(conn)
+	s := postgres.NeueEinspielSessionMitFrist(conn, langeFrist)
 	if err := gruppeBinnen(t, s, "Gruppe", model.ClientMessage{Type: model.ClientSync}); err != nil {
 		t.Fatal(err)
 	}
@@ -109,10 +114,11 @@ func TestEinspielSchliesseSendetNachVollstaendigerGruppe(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-20/Boundary — Warten auf einen laufenden Schreibvorgang und
-// Schreiben von Terminate teilen sich eine Gesamtfrist von 100 ms ab dem zweiten
-// Signal: Endet der Vorgang 80 ms nach dem Aufruf, liegt die Frist des
-// Terminate vor dem Ende des Vorgangs plus 100 ms; Terminate wird gesendet
-// (LH-FA-20.a *Abbruchsignal*: Gesamtfrist für Warten und Schreiben zusammen).
+// Schreiben von Terminate teilen sich eine Gesamtfrist ab dem zweiten Signal:
+// Endet der Vorgang 200 ms, nachdem das Schließen begonnen hat, liegt die Frist
+// des Terminate nicht nach dem Ende des Vorgangs plus der Gesamtfrist (hier
+// eine Sekunde), und Terminate wird gesendet (LH-FA-20.a *Abbruchsignal*:
+// Gesamtfrist für Warten und Schreiben zusammen).
 func TestEinspielSchliesseGesamtfrist(t *testing.T) {
 	frei := make(chan struct{})
 	beginnt := make(chan struct{})
@@ -123,7 +129,7 @@ func TestEinspielSchliesseGesamtfrist(t *testing.T) {
 			<-frei
 		}
 	}
-	s := postgres.NeueEinspielSession(conn)
+	s := postgres.NeueEinspielSessionMitFrist(conn, langeFrist)
 	go func() { _ = s.Anfrage("SELECT 1") }()
 	bisSignal(t, beginnt, "Anfrage beginnt binnen 5 s nicht zu schreiben")
 	fertig := make(chan struct{})
@@ -131,7 +137,16 @@ func TestEinspielSchliesseGesamtfrist(t *testing.T) {
 		s.Schliesse()
 		close(fertig)
 	}()
-	time.Sleep(80 * time.Millisecond)
+	// Eine Gruppe nach dem Schließen wird abgelehnt: Das Schließen hat dann
+	// begonnen und seine Frist gesetzt.
+	bis := time.Now().Add(5 * time.Second)
+	for s.Gruppe([]model.ClientMessage{{Type: model.ClientSync}}) == nil {
+		if time.Now().After(bis) {
+			t.Fatal("das Schließen beginnt binnen 5 s nicht")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(200 * time.Millisecond)
 	ende := time.Now()
 	close(frei)
 	bisSignal(t, fertig, "Schliesse endet binnen 5 s nicht")
@@ -140,11 +155,44 @@ func TestEinspielSchliesseGesamtfrist(t *testing.T) {
 	if len(conn.fristen) != 1 {
 		t.Fatalf("Terminate mit %d Schreibfristen, erwartet 1 (Schreiben nach dem Warten)", len(conn.fristen))
 	}
-	if !conn.fristen[0].Before(ende.Add(100 * time.Millisecond)) {
-		t.Fatalf("Frist des Terminate %v, erwartet vor %v: das Warten verbraucht die Gesamtfrist", conn.fristen[0], ende.Add(100*time.Millisecond))
+	if grenze := ende.Add(langeFrist); conn.fristen[0].After(grenze) {
+		t.Fatalf("Frist des Terminate %v, erwartet nicht nach %v: das Warten verbraucht die Gesamtfrist nicht", conn.fristen[0], grenze)
 	}
 	if want := kodiertFrontend(t, &pgproto3.Terminate{}); !bytes.HasSuffix(conn.geschrieben, want) {
 		t.Fatalf("geschrieben %q, erwartet Terminate am Ende", conn.geschrieben)
+	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — ist der Schreibvorgang beendet, bevor das
+// Warten beginnt, entscheidet nicht die Frist: Mit abgelaufener Frist liefert
+// das Warten wahr, wenn der Vorgang beendet ist, sonst falsch; ohne Vorgang
+// wahr (LH-FA-20.a *Abbruchsignal*: Terminate, sobald die Nachricht vollständig
+// geschrieben ist).
+func TestEinspielWartePunktlich(t *testing.T) {
+	vorbei := time.Now().Add(-time.Second)
+	spaeter := time.Now().Add(time.Hour)
+	beendet := make(chan struct{})
+	close(beendet)
+	for i := 0; i < 200; i++ {
+		if !postgres.WartePunktlich(beendet, vorbei) {
+			t.Fatal("beendeter Vorgang bei abgelaufener Frist: falsch, erwartet wahr")
+		}
+	}
+	if !postgres.WartePunktlich(beendet, spaeter) {
+		t.Fatal("beendeter Vorgang vor der Frist: falsch, erwartet wahr")
+	}
+	if !postgres.WartePunktlich(nil, vorbei) {
+		t.Fatal("kein Vorgang: falsch, erwartet wahr")
+	}
+	laufend := make(chan bool, 1)
+	go func() { laufend <- postgres.WartePunktlich(make(chan struct{}), vorbei) }()
+	select {
+	case got := <-laufend:
+		if got {
+			t.Fatal("laufender Vorgang bei abgelaufener Frist: wahr, erwartet falsch")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("das Warten endet binnen 5 s nicht, obwohl die Frist abgelaufen ist")
 	}
 }
 
