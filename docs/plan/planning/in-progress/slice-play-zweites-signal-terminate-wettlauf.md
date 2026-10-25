@@ -56,13 +56,13 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] **Liefer-Punkt 3 (Plattform und Abdeckung):** Die Plattformentscheidung (Randform 5, in f17d9027 entschieden: geprüft nur unter Linux) ist in der Spezifikation getragen und der Abdeckungs-Deklaration der neuen Tests nachgezogen (`make abdeckung-check` grün); die Tests tragen `Abdeckung: LH-FA-20/…`.
 - [x] Kein Verhalten der Kommandozeile außer dem zweiten Signal ändert sich; `TestRunPlayZweitesSignal` ist unter der künstlichen Last aus `slice-test-unter-last-ursache` §7 (K=32, K=48 Container mit Rechenschleife) in mindestens 20 Läufen je Last grün, sonst ist die Ursache nicht behoben.
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben (kein Zähler wird gesetzt); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben (kein Zähler wird gesetzt); keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen (Lage-Prüfung nach dem Move steht aus, §7).
 
 ## 3. Plan (vor Code)
 
@@ -171,6 +171,38 @@ Die Closure-Notiz (Lerneintrag, Risiko-Ausgänge, Register) schreibt der Planner
 **Kommentare (§3.7/§3.11):** neue und geänderte Kommentare in `einspielen.go` (Typ `einspielSession`, `beginneSchreiben`, `endeSchreiben`, `Schliesse`, `schliesse`, `wartePunktlich`) beschreiben den Ist-Zustand; jede Zusage darin hat die Tests der Tabelle. Handbuch und README unverändert (§1). Der Kommentar des Ports `Schliesse` nennt das Warten auf den Schreibvorgang und die Gesamtfrist (statt „sofort“).
 
 **Beobachtungen für die Closure:** Die Prüfung von `TestEinspielSchliesseGesamtfrist` hängt seit der Nacharbeit an einem Spielraum von rund 800 ms (Frist 1 s, Wartezeit 200 ms nach Beginn des Schließens); unter extremer Last könnte sie rot werden (`BEO-REPO/test-faellt-unter-cpu-last-aus`, Risiko 3 in §6).
+
+### Closure (Planner, 2026-10-25)
+
+**Gelesen:** Review-Reports r1 (F-1 MEDIUM, F-2 bis F-5 LOW, F-6 bis F-8 INFO) und r2 (F-1 bis F-3 LOW, F-4, F-5 INFO), Verifikationsbericht (bestanden mit Vorbehalten V-1, V-2), alle unter `docs/reviews/2026-10-25-*`. r1 ist mit der Nacharbeit behoben (r2 (a), (b)). Offen aus r2 war der Nachzug von §3 (F-2, V-1) und die Mutation zum Code von Randform 8 (F-3, in §7 nachgetragen); beides erledigt.
+
+**Zwei Befunde der Closure:**
+
+1. *V-1 (§3 folgte dem Code nicht):* behoben im Commit `9ba623b9`: Die Zeile `einspielen.go` nennt den Zustand `schreibEnde` je `Flush`, die Zeile zu `spec/spezifikation.md` nennt die Änderung durch den Architect (Randform 8), §1 und Kopf nennen fa8a8479, und §3 führt die Zeile `implement-slice.md`. §4 verweist auf Randform 2 („je Nachricht statt je `Flush`“) und stimmt.
+2. *V-2 („ohne Meldung“ ohne Test):* **benannte Spec-Lücke, an den Architect zurückgegeben, hier nicht entschieden.** Der Satz steht in `LH-FA-20.a` *Abbruchsignal* („sie endet mit `PGR-E4003`, ohne Meldung“, fa8a8479). Der Adapter hat keinen Ausgabeweg; die Tests des Slice zeigen nur, dass `Anfrage` nach dem Schließen nichts schreibt und `PGR-E4003` liefert. Ob der Aufrufer (Dienst `play`, Bootstrap) den Fehler dieser Stelle meldet, belegt kein Test (`TestRunPlayZweitesSignal` prüft „kein `level=ERROR`“ nur für den Fall, dass `Terminate` ankommt). *Randform · Frage an den Architect:* Anfrage nach dem zweiten Signal · soll der Teilsatz „ohne Meldung“ auf das verengt werden, was geprüft ist („sie endet mit `PGR-E4003`; der Adapter gibt nur den Fehler zurück“, die Meldung regelt die Zeile *Abbruchsignal*: die unterbrochene Interaktion ist kein Fehler), oder soll ein Test auf Dienst- oder Bootstrap-Ebene den Teilsatz tragen (`play` mit einer Anfrage nach dem zweiten Signal, stderr ohne Meldung, Exit 0)? Empfehlung des Planners, nicht Entscheidung: die engere Fassung, weil sie keinen neuen Test an einer Stelle verlangt, die der Adapter nicht kennt (`AGENTS.md` §3.11). Bis zur Entscheidung steht der Satz ungeprüft in der Spezifikation; ein Folge-Slice entsteht nur, wenn der Architect den Test wählt.
+
+**Lerneintrag (Steering Loop).**
+
+- **Geschärfte Regel:** `implement-slice.md` Schritt 16 nennt für `TestRunPlayZweitesSignal` den Ist-Zustand: Rot ist ein Befund, keine Wiederholung; der Wettlauf im Code ist behoben (Anker `seit slice-play-zweites-signal-terminate-wettlauf`, Herkunft `BEO-REPO/test-faellt-unter-cpu-last-aus`). Der Wortlaut der Zeile ist am 2026-10-24 vom Nutzer für den Kern bestätigt; die Berichtigung des Satzes auf den Ist-Zustand ist eine Änderung, die der Planner auf Anweisung des Koordinators vornahm und die der Nutzer noch nicht bestätigt hat (zu bestätigen oder streichen lassen; die Zusätze (i) und (ii) von `slice-test-unter-last-ursache` Vorbehalt 5 stehen weiter offen).
+- **Was gemessen wurde:** Das Rot war ein Wettlauf im Produktcode (`TryLock` als Stellvertreter für „der Sender schreibt“). Die Zwischenregel „einmal wiederholen“ aus `slice-test-unter-last-ursache` hätte ihn verdeckt; sie nimmt `TestRunPlayZweitesSignal` deshalb aus. Nach der Behebung: 0 von 20 und 0 von 20 rot bei K=32 und K=48 (vorher 8 und 9 von 20 auf einem anderen Host), Verifikation 6 von 6 bei K=32.
+- **Folge, Empfehlung und nicht Entscheidung des Nutzers:** Ein Test mit Zeitgrenze bekommt den Spielraum durch Konstruktion (Ereignis statt Schlafen, Test-Frist ein Vielfaches der Wartezeit), nicht durch Läufe; „0 rot in 40 Läufen“ belegte hier nichts, das Review r1 F-1 fand 20 ms Spielraum, wo der Plan 80 ms nannte, ohne dass ein Lauf rot war. Der Vorschlag steht im `state.md` von `BEO-REPO/feste-wartezeit-statt-beobachtung-im-test` (dritte Evidence-Datei, Schwelle 3×); die Zuweisung trifft der Nutzer.
+- **Benannte Spec-Lücke:** V-2 oben.
+- **Kein neuer Sensor.**
+
+**Risiken aus §6 und ihr Ausgang** (je genau einer):
+
+1. *Zustand je `Flush` zu grob, `Terminate` käme bei großen Gruppen später* — **entfallen:** Der Architect hat die Granularität in f17d9027 als je Schreibvorgang entschieden und die Gesamtfrist von 100 ms gesetzt; der Code folgt (`TestEinspielSchliesseSendetNachVollstaendigerGruppe`, Mutation in §7), eine Abweichung von der Spezifikation entstand nicht.
+2. *Der Fix verlagert den Wettlauf* — **entfallen:** 0 von 40 Läufen rot unter Last (Implementer), 6 von 6 (Verifikation); die Konstruktion lässt `Terminate` nach dem Ende des Schreibvorgangs ausbleiben nur über die Gesamtfrist, die die Spezifikation zusagt. Das Restfenster (Goroutine länger als 100 ms angehalten) steht unter Risiko 3.
+3. *Ein Test mit Zeitgrenze gerät unter Last ins Rot* — **weiter offen** → `BEO-REPO/test-faellt-unter-cpu-last-aus` (Stand im `state.md`: Spielraum der Tests rund 800 ms aus der Konstruktion, `TestRunPlayZweitesSignal` selbst mit der Frist von 100 ms der Spezifikation); kein Auftreten, keine neue Evidence-Datei, Zähler 7.
+4. *Die Marke 1500 wird erreicht* — **entfallen:** 341 Zeilen nach dem Befehl von `AGENTS.md` §3.14 (Basis `dced44df`, Pfade `internal test`), gemessen am Stand `c190c61d` vom Verifier und von der Closure (`9ba623b9` ändert keinen gezählten Pfad).
+
+**Beobachtungs-Register** (Schritt 25, Belege `evidence/slice-play-zweites-signal-terminate-wettlauf.md`, Commit `65ed52ec`): `BEO-REPO/plan-folgt-korrektur-nicht` (86), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (99), `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (30), `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (66), `BEO-REPO/feste-wartezeit-statt-beobachtung-im-test` (3, **Schwelle erreicht**, Zuordnung der Klasse „Test mit Zeitgrenze ohne Spielraum unter Last“ zu diesem Eintrag ist Urteil des Planners; sie lag dort näher als bei `BEO-REPO/test-faellt-unter-cpu-last-aus`, weil der Test grün war und das Review die feste Zeit fand); `BEO-REPO/test-faellt-unter-cpu-last-aus` nur im `state.md` (Risiko 3, kein Auftreten). Der Zähler wird nicht gesetzt.
+
+**Lese-Schritt und Rate (`AGENTS.md` §3.15).** Seit `slice-harness-regeln-rueckbau` sind elf Slices geschlossen: `slice-v1-abschluss-verbindungsende-upstream-extended`, `slice-version-option`, `slice-play-feldvergleich`, `slice-play-feldvergleich-doku`, `slice-go-toolchain-1-27-3`, `slice-release-v0-2-0`, `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-homebrew-nachweis-macos-arm64`, `slice-test-unter-last-ursache` und dieser (die Closure von `slice-test-unter-last-ursache` nannte neun und ließ `slice-tests-ueberlebende-mutanten` aus; das ändert dort nichts, weil unter zehn). Die zehn zuletzt geschlossenen sind die ab `slice-version-option`. Rate je Klasse, zu der eine Datei dazukam und deren Regel in `AGENTS.md` §3 auf sie zeigt: `plan-folgt-korrektur-nicht` (§3.9) 5 von 10 = **0,5**; `zusage-im-kommentar-weiter-als-pruefung` (§3.11) 5 von 10 = **0,5**; `randform-im-code-entschieden-dann-zurueckgegeben` 3 von 10 = 0,3 (Regel steht in `implement-slice.md`, nicht in §3); `negativtests-fehlen-bei-neuem-vertrag` (§3.10) 1 von 10 = 0,1. **Keine Rate über 0,5, kein Vorschlag zum Streichen oder Ersetzen.** Zwei Klassen stehen genau an der Grenze; ein weiteres Auftreten in einem der nächsten Slices legt dem Nutzer die Frage vor. `BEO-REPO/feste-wartezeit-statt-beobachtung-im-test` hat 3× und keine Regel in §3; sein Vorschlag steht im `state.md`.
+
+**Beleg `make gates`:** am Endstand nach r2 Exit 0 (oben, Code-Stand `0321dd35`); die Commits der Closure ändern nur Plan, Register und eine Zeile von `implement-slice.md`, keine Gates gefahren (Auftrag: Integration macht der Koordinator).
+
+**Drei Paarungen.** Anker: der Satz in `.claude/commands/implement-slice.md` Schritt 16 (`liegt in`, Anker `seit slice-play-zweites-signal-terminate-wettlauf`). Folge-Slice: keiner genannt, keiner nötig; die Frage V-2 geht an den Architect, ein Slice entsteht nur auf dessen Entscheidung. Register: die Pfade oben liegen in `observations/BEO-REPO/` und führen je ein nicht leeres `evidence/`. Die Lage-Prüfung nach dem Move (Modul 6) steht aus.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
