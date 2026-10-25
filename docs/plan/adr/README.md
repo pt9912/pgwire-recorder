@@ -62,6 +62,7 @@
 | [0056](0056-groessen-metrik-misst-den-gelieferten-diff.md) | Die Größen-Metrik der Rückführungs-Marke misst den gelieferten Diff, nicht die Bücher des Slice | Accepted | — |
 | [0057](0057-einrichtung-im-dev-container-gegenprobe-ohne-container.md) | Die Einrichtung im Dev-Container ist ein Werkzeug im Repo; ihre Gegenprobe fährt ohne Container, der Lauf gegen einen echten Container ist ein Nachweis | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0058](0058-zeitgrenze-eines-rollenlaufs-als-wachter-im-werkzeug-aufruf.md) | Die Zeitgrenze eines Rollenlaufs setzt ein deterministischer Wächter im Werkzeug-Aufruf durch | Accepted | — |
+| [0059](0059-obergrenze-der-gegenprobe-zwanzig-minuten.md) | Obergrenze für den vollen Lauf einer Gegenprobe 1200 s statt 600 s | Accepted | [0055](0055-gegenproben-haben-ein-zeitbudget.md) (Punkt 1) |
 
 ## Konventionen
 
