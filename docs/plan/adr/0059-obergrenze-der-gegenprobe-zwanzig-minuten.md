@@ -18,7 +18,7 @@
 
 ## Kontext
 
-[ADR-0055](0055-gegenproben-haben-ein-zeitbudget.md) Punkt 5 sah vor: Reicht das Senken der Kosten je Mutation nicht, entscheidet der Nutzer zwischen einer höheren Obergrenze und einer Auswahl der Fälle je Mutation, jede mit eigener ADR; der Re-Evaluierungs-Trigger nennt den Fall, dass der Nutzer die zehn Minuten ändert. `slice-harness-gegenproben-schneller` hat die Kosten gesenkt und gemessen (Plan §7): Die Stichprobe fiel von 73 s auf 29 s (Faktor 2,5). Die Gruppe `h` (Mutationen `m-p19-*`, rund 100) lässt sich kaum beschleunigen (510 s auf 500 s bei `GP_PARALLEL=8`), weil ihre Fälle echtes `git` gegen ein Probe-Tap fahren. Die Hochrechnung für den vollen Lauf von `release-gegenprobe` ergibt rund 985 s bei `GP_PARALLEL=8`; unter 600 s liegt er nicht, unter 1200 s mit Abstand.
+[ADR-0055](0055-gegenproben-haben-ein-zeitbudget.md) Punkt 5 sah vor: Reicht das Senken der Kosten je Mutation nicht, entscheidet der Nutzer zwischen einer höheren Obergrenze und einer Auswahl der Fälle je Mutation, jede mit eigener ADR; der Re-Evaluierungs-Trigger nennt den Fall, dass der Nutzer die zehn Minuten ändert. `slice-harness-gegenproben-schneller` hat die Kosten gesenkt und gemessen (Plan §7): Die Stichprobe fiel von 73 s auf 29 s (Faktor 2,5). Die Gruppe `h` (Mutationen `m-p19-*`, rund 100) lässt sich kaum beschleunigen (510 s auf 500 s bei `GP_PARALLEL=8`), weil ihre Fälle echtes `git` gegen ein Probe-Tap fahren. Die Hochrechnung für den vollen Lauf von `release-gegenprobe` ergibt rund 985 s bei `GP_PARALLEL=8`; unter 600 s liegt er nicht, unter 1200 s mit Abstand. <!-- d-check:status-provenance -->
 
 ## Entscheidung
 
