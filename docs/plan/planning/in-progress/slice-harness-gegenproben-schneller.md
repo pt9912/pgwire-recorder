@@ -105,7 +105,7 @@ Nicht in dieser Liste: Produkt-Code, `Dockerfile`, andere Gegenproben, CI (§1).
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Basis:** — (beim Übergang nach `in-progress/` einzutragen).
+**Basis:** `b60a6b9d` (Commit, der die Plandatei nach `in-progress/` bewegt, 2026-10-25; Pfade, Marke 1500 und Befehl: `AGENTS.md` §3.14).
 
 **Start** (`open` → `next`, erledigt am 2026-10-21): [ADR-0055](../../adr/0055-gegenproben-haben-ein-zeitbudget.md) ist angenommen (Entscheidung des Nutzers vom 2026-10-21: „die gegenproben werden zeitlich begrenzt. höchstens 10 minuten“), und der Slice ist eingeplant (Planner) mit `Verantwortlich: pt9912`. Reihenfolge: **hinter `slice-v1-abschluss-release-v0-1-1`**, der zuerst dran ist (Empfehlung des Planners; der Nutzer will zuerst den Release, Entscheidung des Nutzers vom 2026-10-21: „ich gebe alles frei, damit wir jetzt endlich diesen brew release machen können“); `slice-v1-abschluss-release-v0-1-1` setzt diesen Slice nicht voraus und er jenen nicht, die Punkte 2 und 3 der Freigabe laufen bis zu dessen Lieferung über `CO-001`. Eine Stellung zu `slice-erster-release-homebrew-nachweis` ist nicht entschieden, keiner der beiden setzt den anderen voraus. Das Lesen der zwei Skripte, Zielzahl, Randformen und Schnitt sind geschehen (Architect, 2026-10-20; §3, §6, §8); **Start von `next` nach `in-progress`:** `slice-v1-abschluss-release-v0-1-1` liegt nicht mehr in `in-progress/` (WIP-Limit 1 je Rolleninhaber), und beim Übergang trägt der Planner `<Basis>` ein (`AGENTS.md` §3.14).
 
