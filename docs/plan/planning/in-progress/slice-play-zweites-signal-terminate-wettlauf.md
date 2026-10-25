@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** `LH-FA-20` (Einspielen), `LH-FA-20.a` (*Abbruchsignal*: das zweite Signal sendet `Terminate`). Auslöser: [slice-test-unter-last-ursache](../done/slice-test-unter-last-ursache.md) §7 (Ursache von `TestRunPlayZweitesSignal`: Wettlauf im Code; Probe P1 5 von 5 rot ohne Last). Register: `BEO-REPO/test-faellt-unter-cpu-last-aus` (die Ursache von C steht in dessen `state.md`). Keine aktive ADR.
 
-**Berührte Spec-Stellen:** `spezifikation.md` §`LH-FA-20.a — Einspielen`, Stichwort *Abbruchsignal* (geschärft in Commit 36b6387c; Randformen Granularität, Gesamtfrist, Gründe und Plattform vom Architect vorab in f17d9027 entschieden; dieser Slice ändert die Spezifikation nicht mehr, er bringt den Code auf ihren Wortlaut) · `LH-FA-20.a`
+**Berührte Spec-Stellen:** `spezifikation.md` §`LH-FA-20.a — Einspielen`, Stichwort *Abbruchsignal* (geschärft in Commit 36b6387c; Randformen Granularität, Gesamtfrist, Gründe und Plattform vom Architect vorab in f17d9027 entschieden, Randform 8 auf Rückgabe in fa8a8479; dieser Slice ändert die Spezifikation nicht mehr, er bringt den Code auf ihren Wortlaut) · `LH-FA-20.a`
 
 **Verantwortlich:** Implementer (pt9912)
 
@@ -30,11 +30,11 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Das zweite Signal von `play` sendet `Terminate`, sobald die Nachricht des Clients vollständig geschrieben ist, auch wenn der Sender seine Bearbeitung der Anfrage noch nicht abgeschlossen hat (Wortlaut von `LH-FA-20.a` *Abbruchsignal* seit 36b6387c): Im Einspiel-Adapter (`internal/adapters/driven/postgres/einspielen.go`) ersetzt ein Zustand „Nachricht teilweise geschrieben“ die Sperre `schreiben` als Stellvertreter für „der Sender schreibt“; `schliesse` fragt den Zustand und nicht die Sperre (`TryLock`). Die Wartezeit des Schreibens in `schliesse` bleibt durch `terminateFrist` (`upstream.go:107`) begrenzt, ein unbegrenztes `Lock()` ist unzulässig. `TestRunPlayZweitesSignal` (`internal/bootstrap/play_test.go`) ist der rote Test der Zusage und fällt mit der Mutation „die Sperre bleibt 300 ms nach dem Senden gehalten“ (Probe P1 von `slice-test-unter-last-ursache`).
+**Ziel:** Das zweite Signal von `play` sendet `Terminate`, sobald die Nachricht des Clients vollständig geschrieben ist, auch wenn der Sender seine Bearbeitung der Anfrage noch nicht abgeschlossen hat (Wortlaut von `LH-FA-20.a` *Abbruchsignal* seit 36b6387c): Im Einspiel-Adapter (`internal/adapters/driven/postgres/einspielen.go`) ersetzt ein Zustand „Nachricht teilweise geschrieben“ die Sperre `schreiben` als Stellvertreter für „der Sender schreibt“; `schliesse` fragt den Zustand und nicht die Sperre (`TryLock`). Die Wartezeit des Schreibens in `schliesse` bleibt durch `terminateFrist` (`upstream.go:107`) begrenzt, ein unbegrenztes `Lock()` ist unzulässig. `TestRunPlayZweitesSignal` (`internal/bootstrap/play_test.go`) ist der rote Test der Zusage und fällt mit der Mutation „die Sperre bleibt 300 ms nach dem Senden gehalten“ (Probe P1 von `slice-test-unter-last-ursache`). Bei der Closure zieht der Planner den Satz in `.claude/commands/implement-slice.md` Schritt 16 („Rot von `TestRunPlayZweitesSignal` ist ein Befund … bis ein Folge-Slice es behebt“) auf den Ist-Zustand nach: Der Folge-Slice ist dieser, die Bedingung des Satzes ist erfüllt (`AGENTS.md` §3.9, Harness-Artefakt); keine weitere Änderung am Command.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Eine **Änderung der Spezifikation oder des Lastenhefts** im Slice — Schicht-Abgrenzung und Rang: Die Schärfung steht seit 36b6387c in `LH-FA-20.a`, die Randformen 2 bis 5 hat der Architect vor dem Anspruch in f17d9027 ergänzt (Vorab-Änderung, nicht Teil dieses Slice); eine Randform, die sie nicht trägt, geht an den Architect zurück (`AGENTS.md` §3.12), sie entscheidet der Implementer nicht.
+- Eine **Änderung der Spezifikation oder des Lastenhefts** im Slice — Schicht-Abgrenzung und Rang: Die Schärfung steht seit 36b6387c in `LH-FA-20.a`, die Randformen 2 bis 5 hat der Architect vor dem Anspruch in f17d9027 ergänzt (Vorab-Änderung, nicht Teil dieses Slice), die Randform 8 auf Rückgabe des Implementers in fa8a8479; eine Randform, die sie nicht trägt, geht an den Architect zurück (`AGENTS.md` §3.12), sie entscheidet der Implementer nicht.
 - Eine **Änderung an `TestE2EPlayVergleichAbweichung` oder `TestE2EPlayVergleichAlle`** — anderer Vorgang: Deren Rot ist nicht reproduziert und nicht erklärt (`BEO-REPO/test-faellt-unter-cpu-last-aus`), die Ursache ist keine Wettlaufbedingung dieses Codes.
 - Eine **Änderung an Fristen anderer Tests oder an `terminateFrist`** — Bestand bleibt bewusst stehen: Die Frist von 100 ms ist die Zusage („kurze Frist“); der Slice nutzt sie, er ändert sie nicht.
 - Das **Terminate in `Close` des Upstream-Adapters** (`upstream.go`, Pfad von `record`) — Bestand bleibt bewusst stehen: Der Wettlauf stammt aus `einspielSession`; `record` trägt andere Sperren.
@@ -73,12 +73,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/postgres/einspielen.go` | update | `einspielSession`: Zustand „teilweise geschrieben“ (unter `zustand` oder eigener Wert), gesetzt für die Dauer des Schreibens einer Nachricht, `schliesse` fragt ihn; Kommentar des Typs und von `Schliesse` nachziehen (§3.7) |
+| `internal/adapters/driven/postgres/einspielen.go` | update | `einspielSession`: Zustand `schreibEnde` (ein Kanal unter `zustand`, ungleich `nil` heißt: ein Schreibvorgang läuft), gesetzt für die Dauer eines `Flush` von `Anfrage` oder einer Gruppe (je Schreibvorgang, nicht je Nachricht, Randform 2); `schliesse` fragt ihn und wartet bis zur Gesamtfrist; Kommentar des Typs und von `Schliesse` nachziehen (§3.7) |
 | `internal/adapters/driven/postgres/einspielen_terminate_test.go` | neu | Fälle je Zusage und Mutation (Liefer-Punkt 2), Abdeckung `LH-FA-20.a` *Abbruchsignal*; die bestehenden Tests in `einspielen_ende_test.go`, `einspielen_test.go` und `einspielen_gruppe_test.go` bleiben unverändert und fangen mehrere der Mutationen |
 | `internal/adapters/driven/postgres/export_test.go` | update | Brücke `NeueEinspielSessionMitFrist` und `WartePunktlich` (reicht nur weiter): Die Tests der Reihenfolge fahren mit einer Frist von einer Sekunde statt 100 ms, damit Last sie nicht reißt |
 | `internal/hexagon/ports/driven/einspielziel.go` | update | Kommentar von `Schliesse` nennt das Warten auf den Schreibvorgang und die Gesamtfrist statt „sofort“ |
 | `internal/bootstrap/play_test.go` | unverändert gefahren | `TestRunPlayZweitesSignal` ist der rote Test (a); Änderung nur, wenn der Architect es entscheidet |
-| `spec/spezifikation.md` | unverändert | Randformen 1 bis 5 stehen seit 36b6387c und f17d9027 (Architect, vor dem Anspruch), die Randform 8 seit fa8a8479 (Architect, auf Rückgabe im Slice); weitere Änderung nur über Rückgabe an den Architect |
+| `spec/spezifikation.md` | vom Architect geändert, nicht vom Implementer | Randformen 1 bis 5 stehen seit 36b6387c und f17d9027 (Architect, vor dem Anspruch), die Randform 8 seit fa8a8479 (Architect, auf Rückgabe im Slice, im Diff des Zweigs); weitere Änderung nur über Rückgabe an den Architect |
+| `docs/user/abdeckung-unit.md` | erzeugt | `make abdeckung` schreibt die Zeilen der neuen Tests aus ihren Deklarationen; nicht von Hand |
+| `.claude/commands/implement-slice.md` | update (Closure, Planner) | Schritt 16: der Satz zu `TestRunPlayZweitesSignal` nennt den Ist-Zustand statt „bis ein Folge-Slice es behebt“ (§1) |
 
 Das Schreiben einer Nachricht läuft über `fe.Send` und `fe.Flush`; der Zustand gilt je `Flush`, nicht je Nachricht (Randform 2, in der Spezifikation entschieden).
 
